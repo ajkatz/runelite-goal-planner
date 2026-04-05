@@ -3,6 +3,7 @@ package com.goaltracker.ui;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
+import com.goaltracker.model.ItemTag;
 import com.goaltracker.util.FormatUtil;
 import net.runelite.api.Skill;
 import net.runelite.client.game.ItemManager;
@@ -25,6 +26,7 @@ public class GoalCard extends JPanel
 	private static final Color ARROW_COLOR = new Color(180, 180, 180);
 	private static final Color ARROW_HOVER = Color.WHITE;
 	private static final int CARD_HEIGHT = 48;
+	private static final int TAG_ROW_HEIGHT = 18;
 	private static final int CORNER_RADIUS = 8;
 
 	private Goal goal;
@@ -38,10 +40,13 @@ public class GoalCard extends JPanel
 	{
 		this.goal = goal;
 
+		boolean hasTags = goal.getTags() != null && !goal.getTags().isEmpty();
+		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
+
 		setLayout(new BorderLayout(4, 0));
-		setBorder(new EmptyBorder(4, 10, 4, 4));
-		setPreferredSize(new Dimension(0, CARD_HEIGHT));
-		setMaximumSize(new Dimension(Integer.MAX_VALUE, CARD_HEIGHT));
+		setBorder(new EmptyBorder(4, 10, hasTags ? 2 : 4, 4));
+		setPreferredSize(new Dimension(0, height));
+		setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
 		setOpaque(false);
 
 		// Left: icon + name (two lines)
@@ -102,9 +107,54 @@ public class GoalCard extends JPanel
 		arrowPanel.add(upButton);
 		arrowPanel.add(downButton);
 
-		add(leftPanel, BorderLayout.WEST);
-		add(statusLabel, BorderLayout.CENTER);
-		add(arrowPanel, BorderLayout.EAST);
+		// Main content row
+		JPanel mainRow = new JPanel(new BorderLayout(4, 0));
+		mainRow.setOpaque(false);
+		mainRow.add(leftPanel, BorderLayout.WEST);
+		mainRow.add(statusLabel, BorderLayout.CENTER);
+		mainRow.add(arrowPanel, BorderLayout.EAST);
+
+		add(mainRow, BorderLayout.CENTER);
+
+		// Tag pills row (if tags exist)
+		if (hasTags)
+		{
+			JPanel tagPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 0));
+			tagPanel.setOpaque(false);
+			tagPanel.setPreferredSize(new Dimension(0, TAG_ROW_HEIGHT));
+
+			for (ItemTag tag : goal.getTags())
+			{
+				tagPanel.add(createTagPill(tag));
+			}
+
+			add(tagPanel, BorderLayout.SOUTH);
+		}
+	}
+
+	private static JLabel createTagPill(ItemTag tag)
+	{
+		JLabel pill = new JLabel(tag.getLabel())
+		{
+			@Override
+			protected void paintComponent(Graphics g)
+			{
+				Graphics2D g2 = (Graphics2D) g.create();
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				Color c = tag.getCategory().getColor();
+				g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 50));
+				g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+				g2.setColor(new Color(c.getRed(), c.getGreen(), c.getBlue(), 120));
+				g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
+				g2.dispose();
+				super.paintComponent(g);
+			}
+		};
+		pill.setForeground(tag.getCategory().getColor());
+		pill.setFont(pill.getFont().deriveFont(Font.PLAIN, 9f));
+		pill.setBorder(new EmptyBorder(1, 5, 1, 5));
+		pill.setOpaque(false);
+		return pill;
 	}
 
 	private static JLabel makeColorDot(Color color)

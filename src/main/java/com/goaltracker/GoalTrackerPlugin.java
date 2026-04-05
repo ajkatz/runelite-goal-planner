@@ -1,7 +1,9 @@
 package com.goaltracker;
 
+import com.goaltracker.data.ItemSourceData;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
+import com.goaltracker.model.ItemTag;
 import com.goaltracker.persistence.GoalStore;
 import com.goaltracker.tracker.ItemTracker;
 import com.goaltracker.tracker.SkillTracker;
@@ -157,7 +159,8 @@ public class GoalTrackerPlugin extends Plugin
 								.description(FormatUtil.formatNumber(targetQty) + " total")
 								.itemId(itemId)
 								.targetValue(targetQty)
-								.currentValue(-1)  // -1 = unscanned, will update on next bank/inventory change
+								.currentValue(-1)
+								.tags(new java.util.ArrayList<>(ItemSourceData.getTags(itemId)))
 								.build();
 
 							goalStore.addGoal(goal);
@@ -257,6 +260,7 @@ public class GoalTrackerPlugin extends Plugin
 									.itemId(realItemId)
 									.targetValue(qty)
 									.currentValue(-1)
+									.tags(new java.util.ArrayList<>(ItemSourceData.getTags(realItemId)))
 									.build();
 
 								goalStore.addGoal(goal);

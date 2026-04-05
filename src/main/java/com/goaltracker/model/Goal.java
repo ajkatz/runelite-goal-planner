@@ -1,5 +1,7 @@
 package com.goaltracker.model;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import lombok.Builder;
 import lombok.Data;
@@ -31,6 +33,10 @@ public class Goal
 	private String questName;     // For QUEST goals — matches net.runelite.api.Quest name
 	private int varbitId;         // For DIARY/COMBAT_ACHIEVEMENT goals
 	private int itemId;           // For ITEM_GRIND goals
+
+	// Tags (source/category labels for filtering and display)
+	@Builder.Default
+	private List<ItemTag> tags = new ArrayList<>();
 
 	// Integrations
 	private String wikiUrl;
