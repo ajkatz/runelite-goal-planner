@@ -55,11 +55,20 @@ public class GoalTrackerPlugin extends Plugin
 
 		panel = new GoalPanel(goalStore);
 
-		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/goal_icon.png");
+		BufferedImage icon;
+		try
+		{
+			icon = ImageUtil.loadImageResource(getClass(), "/goal_icon.png");
+		}
+		catch (Exception e)
+		{
+			log.warn("Could not load goal_icon.png, using fallback");
+			icon = new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB);
+		}
 
 		navButton = NavigationButton.builder()
 			.tooltip("Goal Tracker")
-			.icon(icon != null ? icon : new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB))
+			.icon(icon)
 			.priority(5)
 			.panel(panel)
 			.build();
@@ -72,7 +81,10 @@ public class GoalTrackerPlugin extends Plugin
 	{
 		log.info("Goal Tracker stopped");
 		goalStore.save();
-		clientToolbar.removeNavigation(navButton);
+		if (navButton != null)
+		{
+			clientToolbar.removeNavigation(navButton);
+		}
 	}
 
 	@Subscribe

@@ -5,7 +5,6 @@ import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 import lombok.extern.slf4j.Slf4j;
-import net.runelite.api.Client;
 import net.runelite.api.Skill;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
@@ -21,8 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Sidebar panel — priority list of goals with gradient cards.
- * Supports adding skill goals and right-click management.
+ * Sidebar panel — priority list of goals with gradient cards and arrow reordering.
  */
 @Slf4j
 public class GoalPanel extends PluginPanel
@@ -72,17 +70,27 @@ public class GoalPanel extends PluginPanel
 		rebuild();
 	}
 
-	/**
-	 * Rebuild the entire goal list from the store.
-	 */
 	public void rebuild()
 	{
 		goalListPanel.removeAll();
 		cardMap.clear();
 
-		for (Goal goal : goalStore.getGoals())
+		List<Goal> goals = goalStore.getGoals();
+
+		for (int i = 0; i < goals.size(); i++)
 		{
-			GoalCard card = new GoalCard(goal);
+			final int index = i;
+			Goal goal = goals.get(i);
+
+			GoalCard card = new GoalCard(
+				goal,
+				e -> moveGoal(index, index - 1),  // up
+				e -> moveGoal(index, index + 1)    // down
+			);
+
+			card.setFirstInList(i == 0);
+			card.setLastInList(i == goals.size() - 1);
+
 			addContextMenu(card, goal);
 			cardMap.put(goal.getId(), card);
 
@@ -90,7 +98,7 @@ public class GoalPanel extends PluginPanel
 			goalListPanel.add(Box.createVerticalStrut(4));
 		}
 
-		if (goalStore.getGoals().isEmpty())
+		if (goals.isEmpty())
 		{
 			JLabel empty = new JLabel("No goals yet. Click + to add one.");
 			empty.setForeground(new Color(120, 120, 120));
@@ -103,9 +111,17 @@ public class GoalPanel extends PluginPanel
 		goalListPanel.repaint();
 	}
 
-	/**
-	 * Update a single goal's card without rebuilding the whole list.
-	 */
+	private void moveGoal(int fromIndex, int toIndex)
+	{
+		List<Goal> goals = goalStore.getGoals();
+		if (toIndex < 0 || toIndex >= goals.size())
+		{
+			return;
+		}
+		goalStore.reorder(fromIndex, toIndex);
+		rebuild();
+	}
+
 	public void updateGoal(Goal goal)
 	{
 		GoalCard card = cardMap.get(goal.getId());
@@ -115,9 +131,6 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
-	/**
-	 * Refresh all cards from the store.
-	 */
 	public void refresh()
 	{
 		for (Goal goal : goalStore.getGoals())
@@ -140,6 +153,17 @@ public class GoalPanel extends PluginPanel
 				rebuild();
 			});
 			menu.add(complete);
+		}
+		else
+		{
+			JMenuItem reopen = new JMenuItem("Reopen");
+			reopen.addActionListener(e -> {
+				goal.setStatus(GoalStatus.ACTIVE);
+				goal.setCompletedAt(0);
+				goalStore.updateGoal(goal);
+				rebuild();
+			});
+			menu.add(reopen);
 		}
 
 		JMenuItem remove = new JMenuItem("Remove");
@@ -175,17 +199,27 @@ public class GoalPanel extends PluginPanel
 	{
 		JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
 
-		// Goal type
 		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL});
 		panel.add(new JLabel("Type:"));
 		panel.add(typeCombo);
 
-		// Skill selector
 		JComboBox<Skill> skillCombo = new JComboBox<>(Skill.values());
+		skillCombo.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof Skill)
+				{
+					setText(((Skill) value).getName());
+				}
+				return this;
+			}
+		});
 		panel.add(new JLabel("Skill:"));
 		panel.add(skillCombo);
 
-		// Target
 		JTextField targetField = new JTextField("99");
 		panel.add(new JLabel("Target Level/XP:"));
 		panel.add(targetField);
@@ -203,7 +237,7 @@ public class GoalPanel extends PluginPanel
 
 				Goal goal = Goal.builder()
 					.type(GoalType.SKILL)
-					.name(String.format("%s → %s", skill.getName(),
+					.name(String.format("%s \u2192 %s", skill.getName(),
 						target > 99 ? formatNumber(target) + " XP" : "Level " + target))
 					.skillName(skill.name())
 					.targetValue(target)
