@@ -6,6 +6,7 @@ import com.goaltracker.persistence.GoalStore;
 import com.goaltracker.tracker.ItemTracker;
 import com.goaltracker.tracker.SkillTracker;
 import com.goaltracker.ui.GoalPanel;
+import com.goaltracker.util.FormatUtil;
 import com.google.inject.Provides;
 
 import javax.inject.Inject;
@@ -86,7 +87,7 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch, this::scanBankForGoal);
+		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch);
 		panel.setClient(client);
 
 		BufferedImage icon;
@@ -142,7 +143,7 @@ public class GoalTrackerPlugin extends Plugin
 					{
 						int confirm = javax.swing.JOptionPane.showConfirmDialog(
 							panel,
-							"Add goal: " + GoalPanel.formatNumber(targetQty) + " x " + itemName + "?",
+							"Add goal: " + FormatUtil.formatNumber(targetQty) + " x " + itemName + "?",
 							"Confirm Item Goal",
 							javax.swing.JOptionPane.OK_CANCEL_OPTION,
 							javax.swing.JOptionPane.PLAIN_MESSAGE
@@ -153,7 +154,7 @@ public class GoalTrackerPlugin extends Plugin
 							Goal goal = Goal.builder()
 								.type(GoalType.ITEM_GRIND)
 								.name(itemName)
-								.description(GoalPanel.formatNumber(targetQty) + " total")
+								.description(FormatUtil.formatNumber(targetQty) + " total")
 								.itemId(itemId)
 								.targetValue(targetQty)
 								.currentValue(-1)  // -1 = unscanned, will update on next bank/inventory change
@@ -166,22 +167,6 @@ public class GoalTrackerPlugin extends Plugin
 				});
 			})
 			.build();
-	}
-
-	/**
-	 * Manually scan bank/inventory for a specific item goal.
-	 */
-	public void scanBankForGoal(String goalId)
-	{
-		clientThread.invokeLater(() ->
-		{
-			boolean updated = itemTracker.checkGoals(goalStore.getGoals());
-			if (updated)
-			{
-				goalStore.save();
-			}
-			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-		});
 	}
 
 	@Subscribe
@@ -214,15 +199,6 @@ public class GoalTrackerPlugin extends Plugin
 		// Find the first entry to determine context
 		MenuEntry first = entries[entries.length - 1];
 
-		// Debug: log all entries to understand the menu structure
-		for (MenuEntry e : entries)
-		{
-			int wid = e.getParam1();
-			log.debug("Menu: option='{}' target='{}' id={} itemId={} param1={} groupId={} type={}",
-				e.getOption(), e.getTarget(), e.getIdentifier(), e.getItemId(),
-				wid, wid >> 16, e.getType());
-		}
-
 		// Look for item context: check each entry for item-related widgets
 		for (MenuEntry entry : entries)
 		{
@@ -253,7 +229,7 @@ public class GoalTrackerPlugin extends Plugin
 			// Get the real item ID (noted items have different IDs)
 			final int realItemId = itemManager.canonicalize(itemId);
 			String itemName = itemManager.getItemComposition(realItemId).getName();
-			int defaultQty = isCollectionLog ? 1 : 1;
+			int defaultQty = 1;
 
 			// Add at index 1 to put it near the bottom of the menu
 			client.createMenuEntry(1)
@@ -277,7 +253,7 @@ public class GoalTrackerPlugin extends Plugin
 								Goal goal = Goal.builder()
 									.type(GoalType.ITEM_GRIND)
 									.name(itemName)
-									.description(GoalPanel.formatNumber(qty) + " total")
+									.description(FormatUtil.formatNumber(qty) + " total")
 									.itemId(realItemId)
 									.targetValue(qty)
 									.currentValue(-1)

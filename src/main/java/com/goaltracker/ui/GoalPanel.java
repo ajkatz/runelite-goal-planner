@@ -4,6 +4,8 @@ import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
+import com.goaltracker.service.GoalReorderingService;
+import com.goaltracker.util.FormatUtil;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Skill;
@@ -29,24 +31,23 @@ import java.util.Map;
 public class GoalPanel extends PluginPanel
 {
 	private final GoalStore goalStore;
+	private final GoalReorderingService reorderingService;
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
 	private final java.util.function.IntConsumer itemSearchCallback;
-	private final java.util.function.Consumer<String> itemScanCallback;
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
-					 java.util.function.IntConsumer itemSearchCallback,
-					 java.util.function.Consumer<String> itemScanCallback)
+					 java.util.function.IntConsumer itemSearchCallback)
 	{
 		super(false);
 		this.goalStore = goalStore;
+		this.reorderingService = new GoalReorderingService(goalStore);
 		this.skillIconManager = skillIconManager;
 		this.itemManager = itemManager;
 		this.itemSearchCallback = itemSearchCallback;
-		this.itemScanCallback = itemScanCallback;
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -134,139 +135,14 @@ public class GoalPanel extends PluginPanel
 
 	private void moveGoalTo(int fromIndex, int toIndex)
 	{
-		List<Goal> goals = goalStore.getGoals();
-		if (fromIndex < 0 || fromIndex >= goals.size() || toIndex < 0 || toIndex >= goals.size() || fromIndex == toIndex)
-		{
-			return;
-		}
-
-		goalStore.reorder(fromIndex, toIndex);
-
-		// Enforce skill ordering after direct placement
-		goals = goalStore.getGoals();
-		boolean fixed = true;
-		int maxPasses = goals.size();
-		while (fixed && maxPasses-- > 0)
-		{
-			fixed = false;
-			for (int i = 0; i < goals.size(); i++)
-			{
-				Goal a = goals.get(i);
-				if (a.getType() != GoalType.SKILL || a.getSkillName() == null || a.getStatus() == GoalStatus.COMPLETE)
-					continue;
-				for (int j = i + 1; j < goals.size(); j++)
-				{
-					Goal b = goals.get(j);
-					if (b.getType() == GoalType.SKILL && a.getSkillName().equals(b.getSkillName())
-						&& b.getStatus() != GoalStatus.COMPLETE && a.getTargetValue() > b.getTargetValue())
-					{
-						goalStore.reorder(j, i);
-						goals = goalStore.getGoals();
-						fixed = true;
-						break;
-					}
-				}
-				if (fixed) break;
-			}
-		}
-
-		goalStore.save();
+		reorderingService.moveGoalTo(fromIndex, toIndex);
 		rebuild();
 	}
 
 	private void moveGoal(int fromIndex, int toIndex)
 	{
-		List<Goal> goals = goalStore.getGoals();
-		if (toIndex < 0 || toIndex >= goals.size())
-		{
-			return;
-		}
-
-		boolean movingUp = toIndex < fromIndex;
-		Goal moving = goals.get(fromIndex);
-
-		// Recursively make room if this move would violate same-skill ordering
-		makeRoom(moving, fromIndex, movingUp);
-
-		// Re-read goals (may have changed from makeRoom)
-		goals = goalStore.getGoals();
-		int currentIndex = goals.indexOf(moving);
-		int newTarget = movingUp ? currentIndex - 1 : currentIndex + 1;
-
-		if (newTarget >= 0 && newTarget < goals.size())
-		{
-			goalStore.reorder(currentIndex, newTarget);
-		}
-
-		// Ensure final state is persisted
-		goalStore.save();
+		reorderingService.moveGoal(fromIndex, toIndex);
 		rebuild();
-	}
-
-	/**
-	 * Recursively make room for a goal to move in a direction.
-	 *
-	 * If the goal would swap with a same-skill partner (creating a violation),
-	 * the partner moves first. The partner's move may recursively trigger
-	 * its own partner to move, from the end of the chain inward.
-	 */
-	private void makeRoom(Goal moving, int movingIndex, boolean movingUp)
-	{
-		if (moving.getType() != GoalType.SKILL || moving.getSkillName() == null
-			|| moving.getStatus() == GoalStatus.COMPLETE)
-		{
-			return;
-		}
-
-		List<Goal> goals = goalStore.getGoals();
-		int targetIndex = movingUp ? movingIndex - 1 : movingIndex + 1;
-
-		if (targetIndex < 0 || targetIndex >= goals.size())
-		{
-			return;
-		}
-
-		Goal neighbor = goals.get(targetIndex);
-
-		// Check if the neighbor is a same-skill partner that would create a violation
-		if (neighbor.getType() != GoalType.SKILL
-			|| !moving.getSkillName().equals(neighbor.getSkillName())
-			|| neighbor.getStatus() == GoalStatus.COMPLETE)
-		{
-			return; // neighbor is unrelated, no conflict
-		}
-
-		// Would this swap violate ordering? (lower target must be above higher target)
-		boolean wouldViolate;
-		if (movingUp)
-		{
-			// Moving up: we'd end up above neighbor. Violation if our target > neighbor's target
-			wouldViolate = moving.getTargetValue() > neighbor.getTargetValue();
-		}
-		else
-		{
-			// Moving down: we'd end up below neighbor. Violation if our target < neighbor's target
-			wouldViolate = moving.getTargetValue() < neighbor.getTargetValue();
-		}
-
-		if (!wouldViolate)
-		{
-			return;
-		}
-
-		// The partner needs to move first to make room.
-		// Recursively check if the partner also needs to make room.
-		makeRoom(neighbor, targetIndex, movingUp);
-
-		// Now move the partner
-		goals = goalStore.getGoals(); // refresh after recursive call
-		int partnerIndex = goals.indexOf(neighbor);
-		int partnerTarget = movingUp ? partnerIndex - 1 : partnerIndex + 1;
-
-		if (partnerTarget >= 0 && partnerTarget < goals.size())
-		{
-			goalStore.reorder(partnerIndex, partnerTarget);
-		}
 	}
 
 	public void updateGoal(Goal goal)
@@ -413,7 +289,7 @@ public class GoalPanel extends PluginPanel
 						if (newQty > 0)
 						{
 							goal.setTargetValue(newQty);
-							goal.setDescription(formatNumber(newQty) + " total");
+							goal.setDescription(FormatUtil.formatNumber(newQty) + " total");
 							goalStore.updateGoal(goal);
 							rebuild();
 						}
@@ -643,22 +519,8 @@ public class GoalPanel extends PluginPanel
 				.targetValue(targetXp)
 				.build();
 
-			int insertBefore = -1;
-			List<Goal> existing = goalStore.getGoals();
-			for (int i = 0; i < existing.size(); i++)
-			{
-				Goal g = existing.get(i);
-				if (g.getType() == GoalType.SKILL
-					&& skill.name().equals(g.getSkillName())
-					&& g.getStatus() != GoalStatus.COMPLETE
-					&& g.getTargetValue() > targetXp)
-				{
-					insertBefore = i;
-					break;
-				}
-			}
-
 			goalStore.addGoal(goal);
+			int insertBefore = reorderingService.findInsertionIndex(skill.name(), targetXp);
 			if (insertBefore >= 0)
 			{
 				goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
@@ -717,27 +579,12 @@ public class GoalPanel extends PluginPanel
 			if (existing.getTargetValue() == target)
 			{
 				return String.format("You already have a %s goal for %s.",
-					skill.getName(), target > 99 ? formatNumber(target) + " XP" : "Level " + target);
+					skill.getName(), target > 99 ? FormatUtil.formatNumber(target) + " XP" : "Level " + target);
 			}
 		}
 		return null;
 	}
 
 
-	private JPanel makeFieldRow(String label, JComponent field)
-	{
-		JPanel row = new JPanel(new BorderLayout(8, 0));
-		JLabel lbl = new JLabel(label);
-		lbl.setPreferredSize(new Dimension(100, 24));
-		row.add(lbl, BorderLayout.WEST);
-		row.add(field, BorderLayout.CENTER);
-		return row;
-	}
 
-	public static String formatNumber(int n)
-	{
-		if (n >= 1_000_000) return String.format("%.1fM", n / 1_000_000.0);
-		if (n >= 1_000) return String.format("%.0fK", n / 1_000.0);
-		return String.valueOf(n);
-	}
 }

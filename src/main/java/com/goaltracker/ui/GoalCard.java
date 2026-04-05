@@ -3,6 +3,7 @@ package com.goaltracker.ui;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
+import com.goaltracker.util.FormatUtil;
 import net.runelite.api.Skill;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
@@ -28,7 +29,6 @@ public class GoalCard extends JPanel
 
 	private Goal goal;
 	private final JLabel nameLabel;
-	private final JLabel progressLabel;
 	private final JLabel statusLabel;
 	private final JButton upButton;
 	private final JButton downButton;
@@ -90,9 +90,6 @@ public class GoalCard extends JPanel
 		statusLabel.setFont(statusLabel.getFont().deriveFont(11f));
 		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
-
-		progressLabel = new JLabel();
-		progressLabel.setVisible(false);
 
 		// Right: up/down arrows
 		JPanel arrowPanel = new JPanel(new GridLayout(2, 1, 0, 0));
@@ -246,49 +243,34 @@ public class GoalCard extends JPanel
 				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case ITEM_GRIND:
-				line1 = truncate(goal.getName(), 22);
+				line1 = FormatUtil.truncate(goal.getName(), 22);
 				if (goal.getCurrentValue() < 0)
 				{
-					line2 = "? / " + formatNumber(goal.getTargetValue());
+					line2 = "? / " + FormatUtil.formatNumber(goal.getTargetValue());
 				}
 				else
 				{
-					line2 = formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue());
+					line2 = FormatUtil.formatNumber(goal.getCurrentValue()) + " / " + FormatUtil.formatNumber(goal.getTargetValue());
 				}
 				break;
 			case CUSTOM:
 			default:
-				line1 = truncate(goal.getName(), 22);
+				line1 = FormatUtil.truncate(goal.getName(), 22);
 				line2 = (goal.getDescription() != null && !goal.getDescription().isEmpty())
-					? truncate(goal.getDescription(), 30)
+					? FormatUtil.truncate(goal.getDescription(), 30)
 					: "";
 				break;
 		}
 
 		if (line2.isEmpty())
 		{
-			return escapeHtml(line1);
+			return FormatUtil.escapeHtml(line1);
 		}
 
-		return "<html>" + escapeHtml(line1) + "<br><span style='font-size:9px; color:#a0a0a0'>"
-			+ escapeHtml(line2) + "</span></html>";
+		return "<html>" + FormatUtil.escapeHtml(line1) + "<br><span style='font-size:9px; color:#a0a0a0'>"
+			+ FormatUtil.escapeHtml(line2) + "</span></html>";
 	}
 
-	private static String formatXp(int xp)
-	{
-		return String.format("%,d", xp);
-	}
-
-	private static String truncate(String text, int maxLen)
-	{
-		if (text.length() <= maxLen) return text;
-		return text.substring(0, maxLen - 1) + "\u2026"; // ellipsis
-	}
-
-	private static String escapeHtml(String text)
-	{
-		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
-	}
 
 
 	private String formatPercent()
@@ -309,18 +291,12 @@ public class GoalCard extends JPanel
 		{
 			int remaining = Math.max(0, goal.getTargetValue() - goal.getCurrentValue());
 			return "<html>"
-				+ formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue())
+				+ FormatUtil.formatNumber(goal.getCurrentValue()) + " / " + FormatUtil.formatNumber(goal.getTargetValue())
 				+ " (" + String.format("%.0f%%", goal.getProgressPercent()) + ")"
 				+ "<br><span style='font-size:9px; color:#a0a0a0'>"
-				+ formatXp(remaining) + " left</span></html>";
+				+ FormatUtil.formatXp(remaining) + " left</span></html>";
 		}
 		return String.format("%.0f%%", goal.getProgressPercent());
 	}
 
-	private static String formatNumber(int n)
-	{
-		if (n >= 1_000_000) return String.format("%.1fM", n / 1_000_000.0);
-		if (n >= 1_000) return String.format("%.0fK", n / 1_000.0);
-		return String.valueOf(n);
-	}
 }

@@ -47,7 +47,7 @@ public class Goal
 		{
 			return status == GoalStatus.COMPLETE ? 100.0 : 0.0;
 		}
-		return Math.min(100.0, (currentValue * 100.0) / targetValue);
+		return Math.max(0.0, Math.min(100.0, (currentValue * 100.0) / targetValue));
 	}
 
 	public boolean isComplete()
