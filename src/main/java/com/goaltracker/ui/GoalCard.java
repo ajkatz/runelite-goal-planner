@@ -9,10 +9,8 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 
 /**
- * Individual goal card with gradient progress fill and reorder arrows.
- *
- * The card IS the progress bar — color fills left-to-right with
- * increasing saturation as progress grows.
+ * Individual goal card with gradient progress fill, reorder arrows,
+ * and chain indicator for related goals.
  */
 public class GoalCard extends JPanel
 {
@@ -28,8 +26,23 @@ public class GoalCard extends JPanel
 	private final JLabel nameLabel;
 	private final JLabel progressLabel;
 	private final JLabel statusLabel;
+	private final JLabel chainLabel;
 	private final JButton upButton;
 	private final JButton downButton;
+
+	// Chain colors — each unique skill chain gets a distinct color
+	private static final Color[] CHAIN_COLORS = {
+		new Color(255, 107, 107),  // coral
+		new Color(78, 205, 196),   // teal
+		new Color(255, 195, 0),    // amber
+		new Color(130, 120, 255),  // periwinkle
+		new Color(255, 154, 162),  // pink
+		new Color(0, 210, 180),    // mint
+		new Color(255, 165, 0),    // orange
+		new Color(147, 130, 220),  // lavender
+	};
+
+	private Color chainColor = null;
 
 	public GoalCard(Goal goal, ActionListener onMoveUp, ActionListener onMoveDown)
 	{
@@ -41,10 +54,23 @@ public class GoalCard extends JPanel
 		setMaximumSize(new Dimension(Integer.MAX_VALUE, CARD_HEIGHT));
 		setOpaque(false);
 
+		// Far left: chain indicator
+		chainLabel = new JLabel();
+		chainLabel.setFont(chainLabel.getFont().deriveFont(10f));
+		chainLabel.setPreferredSize(new Dimension(14, CARD_HEIGHT));
+		chainLabel.setHorizontalAlignment(SwingConstants.CENTER);
+		chainLabel.setVisible(false);
+
 		// Left: goal name
+		JPanel leftPanel = new JPanel(new BorderLayout(4, 0));
+		leftPanel.setOpaque(false);
+
 		nameLabel = new JLabel(goal.getName());
 		nameLabel.setForeground(TEXT_PRIMARY);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
+
+		leftPanel.add(chainLabel, BorderLayout.WEST);
+		leftPanel.add(nameLabel, BorderLayout.CENTER);
 
 		// Center: progress info
 		JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
@@ -66,15 +92,52 @@ public class GoalCard extends JPanel
 		arrowPanel.setOpaque(false);
 		arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
 
-		upButton = createArrowButton("\u25B2", onMoveUp);   // ▲
-		downButton = createArrowButton("\u25BC", onMoveDown); // ▼
+		upButton = createArrowButton("\u25B2", onMoveUp);
+		downButton = createArrowButton("\u25BC", onMoveDown);
 
 		arrowPanel.add(upButton);
 		arrowPanel.add(downButton);
 
-		add(nameLabel, BorderLayout.WEST);
+		add(leftPanel, BorderLayout.WEST);
 		add(centerPanel, BorderLayout.CENTER);
 		add(arrowPanel, BorderLayout.EAST);
+	}
+
+	/**
+	 * Set chain indicator. Pass null to hide, or a color index to show.
+	 */
+	public void setChain(int chainIndex, boolean isFirst, boolean isLast)
+	{
+		if (chainIndex < 0)
+		{
+			chainLabel.setVisible(false);
+			chainColor = null;
+			return;
+		}
+
+		chainColor = CHAIN_COLORS[chainIndex % CHAIN_COLORS.length];
+		chainLabel.setForeground(chainColor);
+
+		// Show a link icon — different for first, middle, last in chain
+		if (isFirst && isLast)
+		{
+			chainLabel.setVisible(false); // single item, no chain
+		}
+		else if (isFirst)
+		{
+			chainLabel.setText("\u2502"); // │ top of chain
+			chainLabel.setVisible(true);
+		}
+		else if (isLast)
+		{
+			chainLabel.setText("\u2514"); // └ bottom of chain
+			chainLabel.setVisible(true);
+		}
+		else
+		{
+			chainLabel.setText("\u251C"); // ├ middle of chain
+			chainLabel.setVisible(true);
+		}
 	}
 
 	private JButton createArrowButton(String text, ActionListener action)
@@ -197,7 +260,7 @@ public class GoalCard extends JPanel
 	{
 		if (goal.getStatus() == GoalStatus.COMPLETE)
 		{
-			return "\u2713"; // ✓
+			return "\u2713";
 		}
 		return String.format("%.0f%%", goal.getProgressPercent());
 	}

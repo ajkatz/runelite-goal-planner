@@ -77,6 +77,27 @@ public class GoalPanel extends PluginPanel
 
 		List<Goal> goals = goalStore.getGoals();
 
+		// Assign chain colors: each unique skill with 2+ active goals gets a color
+		Map<String, Integer> chainColorMap = new HashMap<>();
+		Map<String, List<Integer>> skillIndices = new HashMap<>();
+		int nextChainColor = 0;
+
+		for (int i = 0; i < goals.size(); i++)
+		{
+			Goal g = goals.get(i);
+			if (g.getType() == GoalType.SKILL && g.getSkillName() != null && g.getStatus() != GoalStatus.COMPLETE)
+			{
+				skillIndices.computeIfAbsent(g.getSkillName(), k -> new ArrayList<>()).add(i);
+			}
+		}
+		for (Map.Entry<String, List<Integer>> entry : skillIndices.entrySet())
+		{
+			if (entry.getValue().size() > 1)
+			{
+				chainColorMap.put(entry.getKey(), nextChainColor++);
+			}
+		}
+
 		for (int i = 0; i < goals.size(); i++)
 		{
 			final int index = i;
@@ -84,12 +105,28 @@ public class GoalPanel extends PluginPanel
 
 			GoalCard card = new GoalCard(
 				goal,
-				e -> moveGoal(index, index - 1),  // up
-				e -> moveGoal(index, index + 1)    // down
+				e -> moveGoal(index, index - 1),
+				e -> moveGoal(index, index + 1)
 			);
 
 			card.setFirstInList(i == 0);
 			card.setLastInList(i == goals.size() - 1);
+
+			// Set chain indicator
+			if (goal.getType() == GoalType.SKILL && goal.getSkillName() != null
+				&& chainColorMap.containsKey(goal.getSkillName())
+				&& goal.getStatus() != GoalStatus.COMPLETE)
+			{
+				int colorIdx = chainColorMap.get(goal.getSkillName());
+				List<Integer> indices = skillIndices.get(goal.getSkillName());
+				boolean isFirst = indices.get(0) == i;
+				boolean isLast = indices.get(indices.size() - 1) == i;
+				card.setChain(colorIdx, isFirst, isLast);
+			}
+			else
+			{
+				card.setChain(-1, false, false);
+			}
 
 			addContextMenu(card, goal);
 			cardMap.put(goal.getId(), card);
@@ -118,8 +155,90 @@ public class GoalPanel extends PluginPanel
 		{
 			return;
 		}
-		goalStore.reorder(fromIndex, toIndex);
+
+		boolean movingUp = toIndex < fromIndex;
+		Goal moving = goals.get(fromIndex);
+
+		// Recursively make room if this move would violate same-skill ordering
+		makeRoom(moving, fromIndex, movingUp);
+
+		// Re-read goals (may have changed from makeRoom)
+		goals = goalStore.getGoals();
+		int currentIndex = goals.indexOf(moving);
+		int newTarget = movingUp ? currentIndex - 1 : currentIndex + 1;
+
+		if (newTarget >= 0 && newTarget < goals.size())
+		{
+			goalStore.reorder(currentIndex, newTarget);
+		}
+
 		rebuild();
+	}
+
+	/**
+	 * Recursively make room for a goal to move in a direction.
+	 *
+	 * If the goal would swap with a same-skill partner (creating a violation),
+	 * the partner moves first. The partner's move may recursively trigger
+	 * its own partner to move, from the end of the chain inward.
+	 */
+	private void makeRoom(Goal moving, int movingIndex, boolean movingUp)
+	{
+		if (moving.getType() != GoalType.SKILL || moving.getSkillName() == null
+			|| moving.getStatus() == GoalStatus.COMPLETE)
+		{
+			return;
+		}
+
+		List<Goal> goals = goalStore.getGoals();
+		int targetIndex = movingUp ? movingIndex - 1 : movingIndex + 1;
+
+		if (targetIndex < 0 || targetIndex >= goals.size())
+		{
+			return;
+		}
+
+		Goal neighbor = goals.get(targetIndex);
+
+		// Check if the neighbor is a same-skill partner that would create a violation
+		if (neighbor.getType() != GoalType.SKILL
+			|| !moving.getSkillName().equals(neighbor.getSkillName())
+			|| neighbor.getStatus() == GoalStatus.COMPLETE)
+		{
+			return; // neighbor is unrelated, no conflict
+		}
+
+		// Would this swap violate ordering? (lower target must be above higher target)
+		boolean wouldViolate;
+		if (movingUp)
+		{
+			// Moving up: we'd end up above neighbor. Violation if our target > neighbor's target
+			wouldViolate = moving.getTargetValue() > neighbor.getTargetValue();
+		}
+		else
+		{
+			// Moving down: we'd end up below neighbor. Violation if our target < neighbor's target
+			wouldViolate = moving.getTargetValue() < neighbor.getTargetValue();
+		}
+
+		if (!wouldViolate)
+		{
+			return;
+		}
+
+		// The partner needs to move first to make room.
+		// Recursively check if the partner also needs to make room.
+		makeRoom(neighbor, targetIndex, movingUp);
+
+		// Now move the partner
+		goals = goalStore.getGoals(); // refresh after recursive call
+		int partnerIndex = goals.indexOf(neighbor);
+		int partnerTarget = movingUp ? partnerIndex - 1 : partnerIndex + 1;
+
+		if (partnerTarget >= 0 && partnerTarget < goals.size())
+		{
+			goalStore.reorder(partnerIndex, partnerTarget);
+		}
 	}
 
 	public void updateGoal(Goal goal)
@@ -200,6 +319,19 @@ public class GoalPanel extends PluginPanel
 		JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
 
 		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL});
+		typeCombo.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof GoalType)
+				{
+					setText(((GoalType) value).getDisplayName());
+				}
+				return this;
+			}
+		});
 		panel.add(new JLabel("Type:"));
 		panel.add(typeCombo);
 
@@ -235,6 +367,14 @@ public class GoalPanel extends PluginPanel
 				Skill skill = (Skill) skillCombo.getSelectedItem();
 				int target = Integer.parseInt(targetField.getText().trim().replace(",", ""));
 
+				// Check for conflicting goals on the same skill
+				String conflict = checkSkillConflict(skill, target);
+				if (conflict != null)
+				{
+					JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
+					return;
+				}
+
 				Goal goal = Goal.builder()
 					.type(GoalType.SKILL)
 					.name(String.format("%s \u2192 %s", skill.getName(),
@@ -243,7 +383,28 @@ public class GoalPanel extends PluginPanel
 					.targetValue(target)
 					.build();
 
+				// Find where to insert: just above the first same-skill goal with a higher target
+				int insertBefore = -1;
+				List<Goal> existing = goalStore.getGoals();
+				for (int i = 0; i < existing.size(); i++)
+				{
+					Goal g = existing.get(i);
+					if (g.getType() == GoalType.SKILL
+						&& skill.name().equals(g.getSkillName())
+						&& g.getStatus() != GoalStatus.COMPLETE
+						&& g.getTargetValue() > target)
+					{
+						insertBefore = i;
+						break;
+					}
+				}
+
 				goalStore.addGoal(goal);
+				if (insertBefore >= 0)
+				{
+					// Goal was added at the end, move it to just before the higher target
+					goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
+				}
 				rebuild();
 			}
 			catch (NumberFormatException e)
@@ -252,6 +413,38 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 	}
+
+	/**
+	 * Check if a new skill goal conflicts with existing goals.
+	 * Blocks exact duplicates only. Multiple levels for the same skill are fine.
+	 * Returns an error message if conflicting, null if OK.
+	 */
+	private String checkSkillConflict(Skill skill, int target)
+	{
+		for (Goal existing : goalStore.getGoals())
+		{
+			if (existing.getType() != GoalType.SKILL || existing.getSkillName() == null)
+			{
+				continue;
+			}
+			if (!existing.getSkillName().equals(skill.name()))
+			{
+				continue;
+			}
+			if (existing.getStatus() == GoalStatus.COMPLETE)
+			{
+				continue;
+			}
+
+			if (existing.getTargetValue() == target)
+			{
+				return String.format("You already have a %s goal for %s.",
+					skill.getName(), target > 99 ? formatNumber(target) + " XP" : "Level " + target);
+			}
+		}
+		return null;
+	}
+
 
 	private static String formatNumber(int n)
 	{

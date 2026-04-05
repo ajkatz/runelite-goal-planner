@@ -104,6 +104,13 @@ public class GoalStore
 		save();
 	}
 
+	public void setGoals(List<Goal> newGoals)
+	{
+		goals = new ArrayList<>(newGoals);
+		reindex();
+		save();
+	}
+
 	public void reorder(int fromIndex, int toIndex)
 	{
 		if (fromIndex < 0 || fromIndex >= goals.size() || toIndex < 0 || toIndex >= goals.size())
