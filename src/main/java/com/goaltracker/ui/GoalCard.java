@@ -64,60 +64,8 @@ public class GoalCard extends JPanel
 		}
 		else if (goal.getType() == GoalType.ITEM_GRIND && goal.getItemId() > 0 && itemManager != null)
 		{
-			// Try to get cached image synchronously first
-			ImageIcon itemIcon = null;
-			try
-			{
-				java.awt.image.BufferedImage itemImg = itemManager.getImage(goal.getItemId(), 1, false);
-				if (itemImg != null && itemImg.getWidth() > 0)
-				{
-					java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-					java.awt.Graphics2D g2d = scaled.createGraphics();
-					g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-					g2d.drawImage(itemImg, 0, 0, 18, 18, null);
-					g2d.dispose();
-					itemIcon = new ImageIcon(scaled);
-				}
-			}
-			catch (Exception ignored) {}
-
-			if (itemIcon != null)
-			{
-				iconLabel = new JLabel(itemIcon);
-			}
-			else
-			{
-				// Not cached yet — show empty and load async
-				JLabel asyncIcon = new JLabel();
-				iconLabel = asyncIcon;
-				new Thread(() ->
-				{
-					try
-					{
-						Thread.sleep(500);
-						java.awt.image.BufferedImage itemImg = itemManager.getImage(goal.getItemId(), 1, false);
-						if (itemImg != null && itemImg.getWidth() > 0)
-						{
-							java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
-							java.awt.Graphics2D g2d = scaled.createGraphics();
-							g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-							g2d.drawImage(itemImg, 0, 0, 18, 18, null);
-							g2d.dispose();
-							SwingUtilities.invokeLater(() ->
-							{
-								asyncIcon.setIcon(new ImageIcon(scaled));
-								Container parent = asyncIcon.getParent();
-								if (parent != null)
-								{
-									parent.revalidate();
-									parent.repaint();
-								}
-							});
-						}
-					}
-					catch (Exception ignored) {}
-				}).start();
-			}
+			iconLabel = new JLabel();
+			ItemImageCache.applyTo(iconLabel, goal.getItemId(), itemManager);
 		}
 		else
 		{

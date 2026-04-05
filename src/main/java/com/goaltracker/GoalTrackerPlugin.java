@@ -13,6 +13,7 @@ import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
+import net.runelite.api.InventoryID;
 import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
@@ -81,15 +82,6 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		// Pre-warm item image cache for existing item goals
-		for (Goal goal : goalStore.getGoals())
-		{
-			if (goal.getType() == GoalType.ITEM_GRIND && goal.getItemId() > 0)
-			{
-				itemManager.getImage(goal.getItemId(), 1, false);
-			}
-		}
-
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch, this::scanBankForGoal);
 		panel.setClient(client);
 
@@ -112,13 +104,6 @@ public class GoalTrackerPlugin extends Plugin
 			.build();
 
 		clientToolbar.addNavigation(navButton);
-
-		// Delayed rebuild to catch async item images
-		new Thread(() ->
-		{
-			try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
-			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-		}).start();
 	}
 
 	@Override
@@ -146,6 +131,7 @@ public class GoalTrackerPlugin extends Plugin
 				{
 					String itemName = itemManager.getItemComposition(itemId).getName();
 					log.info("Item selected: {} (ID: {})", itemName, itemId);
+
 
 					// Show confirmation on Swing thread
 					javax.swing.SwingUtilities.invokeLater(() ->
@@ -202,12 +188,13 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			tickCounter = 0;
 			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
-			updated |= itemTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
 				goalStore.save();
-				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 			}
+
+			// Rebuild to refresh state and images
+			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
 	}
 
@@ -218,18 +205,25 @@ public class GoalTrackerPlugin extends Plugin
 		if (updated)
 		{
 			goalStore.save();
-			panel.refresh();
+			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
 	}
 
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
+		// Only check items when bank or inventory changes
+		int containerId = event.getContainerId();
+		if (containerId != InventoryID.BANK.getId() && containerId != InventoryID.INVENTORY.getId())
+		{
+			return;
+		}
+
 		boolean updated = itemTracker.checkGoals(goalStore.getGoals());
 		if (updated)
 		{
 			goalStore.save();
-			panel.refresh();
+			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
 	}
 

@@ -326,7 +326,6 @@ public class GoalPanel extends PluginPanel
 		}
 		else if (goal.getType() == GoalType.CUSTOM)
 		{
-			// Only custom goals can be manually marked complete
 			JMenuItem complete = new JMenuItem("Mark Complete");
 			complete.addActionListener(e -> {
 				goal.setStatus(GoalStatus.COMPLETE);
@@ -335,6 +334,65 @@ public class GoalPanel extends PluginPanel
 				rebuild();
 			});
 			menu.add(complete);
+
+			JMenuItem editName = new JMenuItem("Change Name");
+			editName.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(this, "New name:", goal.getName());
+				if (input != null && !input.trim().isEmpty())
+				{
+					goal.setName(input.trim());
+					goalStore.updateGoal(goal);
+					rebuild();
+				}
+			});
+			menu.add(editName);
+
+			JMenuItem editDesc = new JMenuItem("Change Description");
+			editDesc.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(this, "New description:",
+					goal.getDescription() != null ? goal.getDescription() : "");
+				if (input != null)
+				{
+					goal.setDescription(input.trim());
+					goalStore.updateGoal(goal);
+					rebuild();
+				}
+			});
+			menu.add(editDesc);
+		}
+
+		// Skill-specific options
+		if (goal.getType() == GoalType.SKILL && goal.getStatus() != GoalStatus.COMPLETE)
+		{
+			JMenuItem editLevel = new JMenuItem("Change Target");
+			editLevel.addActionListener(e -> {
+				int currentTargetLevel = goal.getTargetValue() > 0
+					? net.runelite.api.Experience.getLevelForXp(goal.getTargetValue()) : 99;
+				String input = JOptionPane.showInputDialog(
+					this,
+					"New target level for " + (goal.getSkillName() != null
+					? net.runelite.api.Skill.valueOf(goal.getSkillName()).getName() : goal.getName()) + ":",
+					String.valueOf(currentTargetLevel)
+				);
+				if (input != null)
+				{
+					try
+					{
+						int newLevel = Integer.parseInt(input.trim());
+						if (newLevel >= 1 && newLevel <= 99)
+						{
+							int newXp = net.runelite.api.Experience.getXpForLevel(newLevel);
+							goal.setTargetValue(newXp);
+							goal.setName(net.runelite.api.Skill.valueOf(goal.getSkillName()).getName()
+								+ " \u2192 Level " + newLevel);
+							goalStore.updateGoal(goal);
+							rebuild();
+						}
+					}
+					catch (NumberFormatException ignored) {}
+				}
+			});
+			menu.add(editLevel);
 		}
 
 		// Item-specific options

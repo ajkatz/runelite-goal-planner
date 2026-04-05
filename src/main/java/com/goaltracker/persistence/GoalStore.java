@@ -48,18 +48,6 @@ public class GoalStore
 				{
 					goals = new ArrayList<>(loaded);
 					goals.sort(Comparator.comparingInt(Goal::getPriority));
-
-					// Migrate: item goals with currentValue 0 → -1 (unscanned)
-					for (Goal g : goals)
-					{
-						if (g.getType() == com.goaltracker.model.GoalType.ITEM_GRIND
-							&& g.getCurrentValue() == 0
-							&& g.getStatus() == com.goaltracker.model.GoalStatus.ACTIVE)
-						{
-							g.setCurrentValue(-1);
-						}
-					}
-
 					log.info("Loaded {} goals", goals.size());
 				}
 			}

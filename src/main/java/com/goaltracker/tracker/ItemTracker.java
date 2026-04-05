@@ -48,7 +48,25 @@ public class ItemTracker
 				continue;
 			}
 
+			// Only count if at least one container is available
+			// (bank is null until opened, inventory is usually available)
+			boolean hasContainer = client.getItemContainer(InventoryID.INVENTORY) != null
+				|| client.getItemContainer(InventoryID.BANK) != null;
+
+			if (!hasContainer && goal.getCurrentValue() < 0)
+			{
+				// No containers loaded yet and goal is unscanned — skip
+				continue;
+			}
+
 			int totalCount = countItem(goal.getItemId());
+
+			// Don't overwrite unscanned (-1) with 0 unless we actually have a container
+			if (goal.getCurrentValue() < 0 && totalCount == 0 && client.getItemContainer(InventoryID.BANK) == null)
+			{
+				// Bank not opened yet — can't confirm 0, stay as unscanned
+				continue;
+			}
 
 			if (totalCount != goal.getCurrentValue())
 			{
