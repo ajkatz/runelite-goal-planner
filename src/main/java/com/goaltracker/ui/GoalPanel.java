@@ -6,6 +6,7 @@ import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Skill;
+import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
 
@@ -26,13 +27,15 @@ import java.util.Map;
 public class GoalPanel extends PluginPanel
 {
 	private final GoalStore goalStore;
+	private final SkillIconManager skillIconManager;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 
-	public GoalPanel(GoalStore goalStore)
+	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager)
 	{
 		super(false);
 		this.goalStore = goalStore;
+		this.skillIconManager = skillIconManager;
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -77,27 +80,6 @@ public class GoalPanel extends PluginPanel
 
 		List<Goal> goals = goalStore.getGoals();
 
-		// Assign chain colors: each unique skill with 2+ active goals gets a color
-		Map<String, Integer> chainColorMap = new HashMap<>();
-		Map<String, List<Integer>> skillIndices = new HashMap<>();
-		int nextChainColor = 0;
-
-		for (int i = 0; i < goals.size(); i++)
-		{
-			Goal g = goals.get(i);
-			if (g.getType() == GoalType.SKILL && g.getSkillName() != null && g.getStatus() != GoalStatus.COMPLETE)
-			{
-				skillIndices.computeIfAbsent(g.getSkillName(), k -> new ArrayList<>()).add(i);
-			}
-		}
-		for (Map.Entry<String, List<Integer>> entry : skillIndices.entrySet())
-		{
-			if (entry.getValue().size() > 1)
-			{
-				chainColorMap.put(entry.getKey(), nextChainColor++);
-			}
-		}
-
 		for (int i = 0; i < goals.size(); i++)
 		{
 			final int index = i;
@@ -106,27 +88,12 @@ public class GoalPanel extends PluginPanel
 			GoalCard card = new GoalCard(
 				goal,
 				e -> moveGoal(index, index - 1),
-				e -> moveGoal(index, index + 1)
+				e -> moveGoal(index, index + 1),
+				skillIconManager
 			);
 
 			card.setFirstInList(i == 0);
 			card.setLastInList(i == goals.size() - 1);
-
-			// Set chain indicator
-			if (goal.getType() == GoalType.SKILL && goal.getSkillName() != null
-				&& chainColorMap.containsKey(goal.getSkillName())
-				&& goal.getStatus() != GoalStatus.COMPLETE)
-			{
-				int colorIdx = chainColorMap.get(goal.getSkillName());
-				List<Integer> indices = skillIndices.get(goal.getSkillName());
-				boolean isFirst = indices.get(0) == i;
-				boolean isLast = indices.get(indices.size() - 1) == i;
-				card.setChain(colorIdx, isFirst, isLast);
-			}
-			else
-			{
-				card.setChain(-1, false, false);
-			}
 
 			addContextMenu(card, goal);
 			cardMap.put(goal.getId(), card);
@@ -316,9 +283,24 @@ public class GoalPanel extends PluginPanel
 
 	private void showAddGoalDialog()
 	{
-		JPanel panel = new JPanel(new GridLayout(0, 2, 8, 8));
+		// Use GridBagLayout for reliable sizing in JOptionPane
+		JPanel panel = new JPanel(new GridBagLayout());
+		GridBagConstraints gbc = new GridBagConstraints();
+		gbc.insets = new Insets(4, 4, 4, 4);
+		gbc.anchor = GridBagConstraints.WEST;
 
-		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL});
+		// Labels column
+		int labelWidth = 100;
+
+		// Row 0: Type
+		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = GridBagConstraints.NONE;
+		gbc.weightx = 0;
+		JLabel typeLabel = new JLabel("Type:");
+		typeLabel.setPreferredSize(new Dimension(labelWidth, 24));
+		panel.add(typeLabel, gbc);
+
+		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.CUSTOM});
 		typeCombo.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -332,8 +314,13 @@ public class GoalPanel extends PluginPanel
 				return this;
 			}
 		});
-		panel.add(new JLabel("Type:"));
-		panel.add(typeCombo);
+		panel.add(typeCombo, gbc);
+
+		// Row 1: Field 1 label + input
+		JLabel label1 = new JLabel("Skill:");
+		label1.setPreferredSize(new Dimension(labelWidth, 24));
+		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+		panel.add(label1, gbc);
 
 		JComboBox<Skill> skillCombo = new JComboBox<>(Skill.values());
 		skillCombo.setRenderer(new DefaultListCellRenderer()
@@ -349,12 +336,44 @@ public class GoalPanel extends PluginPanel
 				return this;
 			}
 		});
-		panel.add(new JLabel("Skill:"));
-		panel.add(skillCombo);
+		JTextField nameField = new JTextField(15);
 
-		JTextField targetField = new JTextField("99");
-		panel.add(new JLabel("Target Level/XP:"));
-		panel.add(targetField);
+		// CardLayout to swap between skill combo and name field
+		JPanel field1Panel = new JPanel(new CardLayout());
+		field1Panel.add(skillCombo, "SKILL");
+		field1Panel.add(nameField, "CUSTOM");
+		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		panel.add(field1Panel, gbc);
+
+		// Row 2: Field 2 label + input
+		JLabel label2 = new JLabel("Target Level/XP:");
+		label2.setPreferredSize(new Dimension(labelWidth, 24));
+		gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+		panel.add(label2, gbc);
+
+		JTextField targetField = new JTextField("99", 15);
+		JTextField descField = new JTextField(15);
+
+		JPanel field2Panel = new JPanel(new CardLayout());
+		field2Panel.add(targetField, "SKILL");
+		field2Panel.add(descField, "CUSTOM");
+		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		panel.add(field2Panel, gbc);
+
+		// Swap fields when type changes
+		typeCombo.addActionListener(e ->
+		{
+			GoalType selected = (GoalType) typeCombo.getSelectedItem();
+			String card = selected == GoalType.CUSTOM ? "CUSTOM" : "SKILL";
+
+			((CardLayout) field1Panel.getLayout()).show(field1Panel, card);
+			((CardLayout) field2Panel.getLayout()).show(field2Panel, card);
+
+			label1.setText(selected == GoalType.CUSTOM ? "Goal Name:" : "Skill:");
+			label2.setText(selected == GoalType.CUSTOM ? "Description:" : "Target Level/XP:");
+		});
+
+		panel.setPreferredSize(new Dimension(320, panel.getPreferredSize().height));
 
 		int result = JOptionPane.showConfirmDialog(
 			this, panel, "Add Goal", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
@@ -362,56 +381,88 @@ public class GoalPanel extends PluginPanel
 
 		if (result == JOptionPane.OK_OPTION)
 		{
-			try
+			GoalType selectedType = (GoalType) typeCombo.getSelectedItem();
+
+			if (selectedType == GoalType.SKILL)
 			{
-				Skill skill = (Skill) skillCombo.getSelectedItem();
-				int target = Integer.parseInt(targetField.getText().trim().replace(",", ""));
-
-				// Check for conflicting goals on the same skill
-				String conflict = checkSkillConflict(skill, target);
-				if (conflict != null)
-				{
-					JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
-					return;
-				}
-
-				Goal goal = Goal.builder()
-					.type(GoalType.SKILL)
-					.name(String.format("%s \u2192 %s", skill.getName(),
-						target > 99 ? formatNumber(target) + " XP" : "Level " + target))
-					.skillName(skill.name())
-					.targetValue(target)
-					.build();
-
-				// Find where to insert: just above the first same-skill goal with a higher target
-				int insertBefore = -1;
-				List<Goal> existing = goalStore.getGoals();
-				for (int i = 0; i < existing.size(); i++)
-				{
-					Goal g = existing.get(i);
-					if (g.getType() == GoalType.SKILL
-						&& skill.name().equals(g.getSkillName())
-						&& g.getStatus() != GoalStatus.COMPLETE
-						&& g.getTargetValue() > target)
-					{
-						insertBefore = i;
-						break;
-					}
-				}
-
-				goalStore.addGoal(goal);
-				if (insertBefore >= 0)
-				{
-					// Goal was added at the end, move it to just before the higher target
-					goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
-				}
-				rebuild();
+				addSkillGoal(skillCombo, targetField);
 			}
-			catch (NumberFormatException e)
+			else if (selectedType == GoalType.CUSTOM)
 			{
-				JOptionPane.showMessageDialog(this, "Invalid target value.", "Error", JOptionPane.ERROR_MESSAGE);
+				addCustomGoal(nameField, descField);
 			}
 		}
+	}
+
+	private void addSkillGoal(JComboBox<Skill> skillCombo, JTextField targetField)
+	{
+		try
+		{
+			Skill skill = (Skill) skillCombo.getSelectedItem();
+			int target = Integer.parseInt(targetField.getText().trim().replace(",", ""));
+
+			String conflict = checkSkillConflict(skill, target);
+			if (conflict != null)
+			{
+				JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
+				return;
+			}
+
+			Goal goal = Goal.builder()
+				.type(GoalType.SKILL)
+				.name(String.format("%s \u2192 %s", skill.getName(),
+					target > 99 ? formatNumber(target) + " XP" : "Level " + target))
+				.skillName(skill.name())
+				.targetValue(target)
+				.build();
+
+			int insertBefore = -1;
+			List<Goal> existing = goalStore.getGoals();
+			for (int i = 0; i < existing.size(); i++)
+			{
+				Goal g = existing.get(i);
+				if (g.getType() == GoalType.SKILL
+					&& skill.name().equals(g.getSkillName())
+					&& g.getStatus() != GoalStatus.COMPLETE
+					&& g.getTargetValue() > target)
+				{
+					insertBefore = i;
+					break;
+				}
+			}
+
+			goalStore.addGoal(goal);
+			if (insertBefore >= 0)
+			{
+				goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
+			}
+			rebuild();
+		}
+		catch (NumberFormatException e)
+		{
+			JOptionPane.showMessageDialog(this, "Invalid target value.", "Error", JOptionPane.ERROR_MESSAGE);
+		}
+	}
+
+	private void addCustomGoal(JTextField nameField, JTextField descField)
+	{
+		String name = nameField.getText().trim();
+		if (name.isEmpty())
+		{
+			JOptionPane.showMessageDialog(this, "Goal name is required.", "Error", JOptionPane.ERROR_MESSAGE);
+			return;
+		}
+
+		Goal goal = Goal.builder()
+			.type(GoalType.CUSTOM)
+			.name(name)
+			.description(descField.getText().trim())
+			.targetValue(1)  // binary: 0 = not done, 1 = done
+			.currentValue(0)
+			.build();
+
+		goalStore.addGoal(goal);
+		rebuild();
 	}
 
 	/**
@@ -445,6 +496,16 @@ public class GoalPanel extends PluginPanel
 		return null;
 	}
 
+
+	private JPanel makeFieldRow(String label, JComponent field)
+	{
+		JPanel row = new JPanel(new BorderLayout(8, 0));
+		JLabel lbl = new JLabel(label);
+		lbl.setPreferredSize(new Dimension(100, 24));
+		row.add(lbl, BorderLayout.WEST);
+		row.add(field, BorderLayout.CENTER);
+		return row;
+	}
 
 	private static String formatNumber(int n)
 	{

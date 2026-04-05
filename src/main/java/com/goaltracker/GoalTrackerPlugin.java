@@ -43,6 +43,9 @@ public class GoalTrackerPlugin extends Plugin
 	@Inject
 	private SkillTracker skillTracker;
 
+	@Inject
+	private net.runelite.client.game.SkillIconManager skillIconManager;
+
 	private GoalPanel panel;
 	private NavigationButton navButton;
 
@@ -53,7 +56,7 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		panel = new GoalPanel(goalStore);
+		panel = new GoalPanel(goalStore, skillIconManager);
 
 		BufferedImage icon;
 		try
