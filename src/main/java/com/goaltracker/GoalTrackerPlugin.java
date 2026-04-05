@@ -1,15 +1,24 @@
 package com.goaltracker;
 
+import com.goaltracker.persistence.GoalStore;
+import com.goaltracker.tracker.SkillTracker;
+import com.goaltracker.ui.GoalPanel;
 import com.google.inject.Provides;
+
 import javax.inject.Inject;
+
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.events.StatChanged;
 import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
 import net.runelite.client.ui.NavigationButton;
-import net.runelite.client.ui.overlay.OverlayManager;
+import net.runelite.client.util.ImageUtil;
+
+import java.awt.image.BufferedImage;
 
 @Slf4j
 @PluginDescriptor(
@@ -29,20 +38,52 @@ public class GoalTrackerPlugin extends Plugin
 	private ClientToolbar clientToolbar;
 
 	@Inject
-	private OverlayManager overlayManager;
+	private GoalStore goalStore;
+
+	@Inject
+	private SkillTracker skillTracker;
+
+	private GoalPanel panel;
+	private NavigationButton navButton;
 
 	@Override
 	protected void startUp() throws Exception
 	{
 		log.info("Goal Tracker started");
-		// TODO: Register sidebar panel, overlay, load saved goals
+
+		goalStore.load();
+
+		panel = new GoalPanel(goalStore);
+
+		final BufferedImage icon = ImageUtil.loadImageResource(getClass(), "/goal_icon.png");
+
+		navButton = NavigationButton.builder()
+			.tooltip("Goal Tracker")
+			.icon(icon != null ? icon : new BufferedImage(16, 16, BufferedImage.TYPE_INT_ARGB))
+			.priority(5)
+			.panel(panel)
+			.build();
+
+		clientToolbar.addNavigation(navButton);
 	}
 
 	@Override
 	protected void shutDown() throws Exception
 	{
 		log.info("Goal Tracker stopped");
-		// TODO: Unregister sidebar panel, overlay, save goals
+		goalStore.save();
+		clientToolbar.removeNavigation(navButton);
+	}
+
+	@Subscribe
+	public void onStatChanged(StatChanged event)
+	{
+		boolean updated = skillTracker.checkGoals(goalStore.getGoals());
+		if (updated)
+		{
+			goalStore.save();
+			panel.refresh();
+		}
 	}
 
 	@Provides
