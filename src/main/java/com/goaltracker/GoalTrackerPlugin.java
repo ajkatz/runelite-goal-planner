@@ -1,6 +1,9 @@
 package com.goaltracker;
 
+import com.goaltracker.model.Goal;
+import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
+import com.goaltracker.tracker.ItemTracker;
 import com.goaltracker.tracker.SkillTracker;
 import com.goaltracker.ui.GoalPanel;
 import com.google.inject.Provides;
@@ -9,9 +12,14 @@ import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.StatChanged;
+import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.game.ItemManager;
+import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.chatbox.ChatboxItemSearch;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
 import net.runelite.client.ui.ClientToolbar;
@@ -44,7 +52,19 @@ public class GoalTrackerPlugin extends Plugin
 	private SkillTracker skillTracker;
 
 	@Inject
-	private net.runelite.client.game.SkillIconManager skillIconManager;
+	private ItemTracker itemTracker;
+
+	@Inject
+	private SkillIconManager skillIconManager;
+
+	@Inject
+	private ItemManager itemManager;
+
+	@Inject
+	private ChatboxItemSearch chatboxItemSearch;
+
+	@Inject
+	private ClientThread clientThread;
 
 	private GoalPanel panel;
 	private NavigationButton navButton;
@@ -56,7 +76,7 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		panel = new GoalPanel(goalStore, skillIconManager);
+		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch);
 
 		BufferedImage icon;
 		try
@@ -90,10 +110,67 @@ public class GoalTrackerPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * Opens the in-game chatbox item search.
+	 * After selection, shows a confirmation dialog with item name + quantity.
+	 */
+	public void openItemSearch(int targetQty)
+	{
+		chatboxItemSearch
+			.tooltipText("Select item for goal")
+			.onItemSelected(itemId ->
+			{
+				clientThread.invokeLater(() ->
+				{
+					String itemName = itemManager.getItemComposition(itemId).getName();
+					log.info("Item selected: {} (ID: {})", itemName, itemId);
+
+					// Show confirmation on Swing thread
+					javax.swing.SwingUtilities.invokeLater(() ->
+					{
+						int confirm = javax.swing.JOptionPane.showConfirmDialog(
+							panel,
+							"Add goal: " + GoalPanel.formatNumber(targetQty) + " x " + itemName + "?",
+							"Confirm Item Goal",
+							javax.swing.JOptionPane.OK_CANCEL_OPTION,
+							javax.swing.JOptionPane.PLAIN_MESSAGE
+						);
+
+						if (confirm == javax.swing.JOptionPane.OK_OPTION)
+						{
+							Goal goal = Goal.builder()
+								.type(GoalType.ITEM_GRIND)
+								.name(itemName)
+								.description(GoalPanel.formatNumber(targetQty) + " total")
+								.itemId(itemId)
+								.targetValue(targetQty)
+								.currentValue(0)
+								.build();
+
+							goalStore.addGoal(goal);
+							panel.rebuild();
+						}
+					});
+				});
+			})
+			.build();
+	}
+
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
 		boolean updated = skillTracker.checkGoals(goalStore.getGoals());
+		if (updated)
+		{
+			goalStore.save();
+			panel.refresh();
+		}
+	}
+
+	@Subscribe
+	public void onItemContainerChanged(ItemContainerChanged event)
+	{
+		boolean updated = itemTracker.checkGoals(goalStore.getGoals());
 		if (updated)
 		{
 			goalStore.save();

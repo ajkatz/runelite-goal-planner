@@ -8,7 +8,7 @@ public enum GoalType
 	QUEST("Quest", new Color(66, 133, 244)),           // Blue
 	DIARY("Diary", new Color(255, 152, 0)),            // Orange
 	COLLECTION_LOG("Collection Log", new Color(156, 39, 176)),  // Purple
-	ITEM_GRIND("Item/Resource", new Color(255, 193, 7)),        // Gold
+	ITEM_GRIND("Item", new Color(255, 193, 7)),                  // Gold
 	COMBAT_ACHIEVEMENT("Combat Achievement", new Color(244, 67, 54)),  // Red
 	CUSTOM("Custom", new Color(158, 158, 158));        // Gray
 

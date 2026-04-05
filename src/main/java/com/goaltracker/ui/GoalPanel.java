@@ -6,6 +6,7 @@ import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Skill;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.ui.ColorScheme;
 import net.runelite.client.ui.PluginPanel;
@@ -28,14 +29,19 @@ public class GoalPanel extends PluginPanel
 {
 	private final GoalStore goalStore;
 	private final SkillIconManager skillIconManager;
+	private final ItemManager itemManager;
+	private final java.util.function.IntConsumer itemSearchCallback;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 
-	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager)
+	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
+					 java.util.function.IntConsumer itemSearchCallback)
 	{
 		super(false);
 		this.goalStore = goalStore;
 		this.skillIconManager = skillIconManager;
+		this.itemManager = itemManager;
+		this.itemSearchCallback = itemSearchCallback;
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -89,7 +95,8 @@ public class GoalPanel extends PluginPanel
 				goal,
 				e -> moveGoal(index, index - 1),
 				e -> moveGoal(index, index + 1),
-				skillIconManager
+				skillIconManager,
+				itemManager
 			);
 
 			card.setFirstInList(i == 0);
@@ -139,6 +146,8 @@ public class GoalPanel extends PluginPanel
 			goalStore.reorder(currentIndex, newTarget);
 		}
 
+		// Ensure final state is persisted
+		goalStore.save();
 		rebuild();
 	}
 
@@ -300,7 +309,7 @@ public class GoalPanel extends PluginPanel
 		panel.add(typeLabel, gbc);
 
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.CUSTOM});
+		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.ITEM_GRIND, GoalType.CUSTOM});
 		typeCombo.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -337,15 +346,17 @@ public class GoalPanel extends PluginPanel
 			}
 		});
 		JTextField nameField = new JTextField(15);
+		JTextField itemQtyField = new JTextField("1", 15);
 
-		// CardLayout to swap between skill combo and name field
+		// CardLayout to swap between types
 		JPanel field1Panel = new JPanel(new CardLayout());
 		field1Panel.add(skillCombo, "SKILL");
+		field1Panel.add(itemQtyField, "ITEM_GRIND");
 		field1Panel.add(nameField, "CUSTOM");
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field1Panel, gbc);
 
-		// Row 2: Field 2 label + input
+		// Row 2: Field 2
 		JLabel label2 = new JLabel("Target Level/XP:");
 		label2.setPreferredSize(new Dimension(labelWidth, 24));
 		gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
@@ -353,9 +364,12 @@ public class GoalPanel extends PluginPanel
 
 		JTextField targetField = new JTextField("99", 15);
 		JTextField descField = new JTextField(15);
+		JLabel itemHint = new JLabel("<html><i>Item search opens in-game</i></html>");
+		itemHint.setForeground(new Color(140, 140, 140));
 
 		JPanel field2Panel = new JPanel(new CardLayout());
 		field2Panel.add(targetField, "SKILL");
+		field2Panel.add(itemHint, "ITEM_GRIND");
 		field2Panel.add(descField, "CUSTOM");
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field2Panel, gbc);
@@ -364,13 +378,28 @@ public class GoalPanel extends PluginPanel
 		typeCombo.addActionListener(e ->
 		{
 			GoalType selected = (GoalType) typeCombo.getSelectedItem();
-			String card = selected == GoalType.CUSTOM ? "CUSTOM" : "SKILL";
 
-			((CardLayout) field1Panel.getLayout()).show(field1Panel, card);
-			((CardLayout) field2Panel.getLayout()).show(field2Panel, card);
+			((CardLayout) field1Panel.getLayout()).show(field1Panel, selected.name());
+			((CardLayout) field2Panel.getLayout()).show(field2Panel, selected.name());
 
-			label1.setText(selected == GoalType.CUSTOM ? "Goal Name:" : "Skill:");
-			label2.setText(selected == GoalType.CUSTOM ? "Description:" : "Target Level/XP:");
+			switch (selected)
+			{
+				case SKILL:
+					label1.setText("Skill:");
+					label2.setText("Target Level/XP:");
+					break;
+				case ITEM_GRIND:
+					label1.setText("Quantity:");
+					label2.setText("");
+					break;
+				default:
+					label1.setText("Goal Name:");
+					label2.setText("Description:");
+					break;
+			}
+
+			Window w = SwingUtilities.getWindowAncestor(panel);
+			if (w != null) w.pack();
 		});
 
 		panel.setPreferredSize(new Dimension(320, panel.getPreferredSize().height));
@@ -386,6 +415,24 @@ public class GoalPanel extends PluginPanel
 			if (selectedType == GoalType.SKILL)
 			{
 				addSkillGoal(skillCombo, targetField);
+			}
+			else if (selectedType == GoalType.ITEM_GRIND)
+			{
+				try
+				{
+					int qty = Integer.parseInt(itemQtyField.getText().trim().replace(",", ""));
+					if (qty <= 0)
+					{
+						JOptionPane.showMessageDialog(this, "Quantity must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					// Open the in-game chatbox item search
+					itemSearchCallback.accept(qty);
+				}
+				catch (NumberFormatException e)
+				{
+					JOptionPane.showMessageDialog(this, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+				}
 			}
 			else if (selectedType == GoalType.CUSTOM)
 			{
@@ -507,7 +554,7 @@ public class GoalPanel extends PluginPanel
 		return row;
 	}
 
-	private static String formatNumber(int n)
+	public static String formatNumber(int n)
 	{
 		if (n >= 1_000_000) return String.format("%.1fM", n / 1_000_000.0);
 		if (n >= 1_000) return String.format("%.0fK", n / 1_000.0);

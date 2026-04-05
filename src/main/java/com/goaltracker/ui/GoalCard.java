@@ -4,6 +4,7 @@ import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import net.runelite.api.Skill;
+import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 
 import javax.swing.*;
@@ -32,7 +33,8 @@ public class GoalCard extends JPanel
 	private final JButton upButton;
 	private final JButton downButton;
 
-	public GoalCard(Goal goal, ActionListener onMoveUp, ActionListener onMoveDown, SkillIconManager skillIconManager)
+	public GoalCard(Goal goal, ActionListener onMoveUp, ActionListener onMoveDown,
+					SkillIconManager skillIconManager, ItemManager itemManager)
 	{
 		this.goal = goal;
 
@@ -46,7 +48,7 @@ public class GoalCard extends JPanel
 		JPanel leftPanel = new JPanel(new BorderLayout(6, 0));
 		leftPanel.setOpaque(false);
 
-		// Icon: skill icon for skills, colored dot for everything else
+		// Icon: skill icon for skills, item sprite for items, colored dot for others
 		JLabel iconLabel;
 		if (goal.getType() == GoalType.SKILL && goal.getSkillName() != null && skillIconManager != null)
 		{
@@ -54,6 +56,31 @@ public class GoalCard extends JPanel
 			{
 				Skill skill = Skill.valueOf(goal.getSkillName());
 				iconLabel = new JLabel(new ImageIcon(skillIconManager.getSkillImage(skill, true)));
+			}
+			catch (Exception e)
+			{
+				iconLabel = makeColorDot(goal.getType().getColor());
+			}
+		}
+		else if (goal.getType() == GoalType.ITEM_GRIND && goal.getItemId() > 0 && itemManager != null)
+		{
+			try
+			{
+				// getImage with quantity 1 and border false for a clean icon
+				java.awt.image.BufferedImage itemImg = itemManager.getImage(goal.getItemId(), 1, false);
+				if (itemImg != null && itemImg.getWidth() > 0)
+				{
+					java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+					java.awt.Graphics2D g2d = scaled.createGraphics();
+					g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					g2d.drawImage(itemImg, 0, 0, 18, 18, null);
+					g2d.dispose();
+					iconLabel = new JLabel(new ImageIcon(scaled));
+				}
+				else
+				{
+					iconLabel = makeColorDot(goal.getType().getColor());
+				}
 			}
 			catch (Exception e)
 			{
@@ -223,11 +250,14 @@ public class GoalCard extends JPanel
 		switch (goal.getType())
 		{
 			case SKILL:
-				// Line 1: skill name, Line 2: level/XP progress
 				line1 = goal.getSkillName() != null
 					? net.runelite.api.Skill.valueOf(goal.getSkillName()).getName()
 					: goal.getName();
 				line2 = formatProgress();
+				break;
+			case ITEM_GRIND:
+				line1 = truncate(goal.getName(), 22);
+				line2 = formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue());
 				break;
 			case CUSTOM:
 			default:
@@ -292,7 +322,7 @@ public class GoalCard extends JPanel
 		}
 		if (goal.getType() == GoalType.CUSTOM)
 		{
-			return ""; // custom goals just show ✓ when complete
+			return "";
 		}
 		return String.format("%.0f%%", goal.getProgressPercent());
 	}

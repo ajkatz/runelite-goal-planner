@@ -65,6 +65,7 @@ public class GoalStore
 		{
 			String json = GSON.toJson(goals);
 			configManager.setConfiguration(CONFIG_GROUP, GOALS_KEY, json);
+			log.debug("Saved {} goals ({} bytes)", goals.size(), json.length());
 		}
 		catch (Exception e)
 		{
