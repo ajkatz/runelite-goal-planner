@@ -14,10 +14,14 @@ import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
-import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.MenuAction;
+import net.runelite.api.MenuEntry;
 import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
+import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
+import net.runelite.api.widgets.WidgetID;
+import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -195,6 +199,100 @@ public class GoalTrackerPlugin extends Plugin
 
 			// Rebuild to refresh state and images
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+		}
+	}
+
+	@Subscribe
+	public void onMenuOpened(MenuOpened event)
+	{
+		MenuEntry[] entries = event.getMenuEntries();
+		if (entries.length == 0)
+		{
+			return;
+		}
+
+		// Find the first entry to determine context
+		MenuEntry first = entries[entries.length - 1];
+
+		// Debug: log all entries to understand the menu structure
+		for (MenuEntry e : entries)
+		{
+			int wid = e.getParam1();
+			log.debug("Menu: option='{}' target='{}' id={} itemId={} param1={} groupId={} type={}",
+				e.getOption(), e.getTarget(), e.getIdentifier(), e.getItemId(),
+				wid, wid >> 16, e.getType());
+		}
+
+		// Look for item context: check each entry for item-related widgets
+		for (MenuEntry entry : entries)
+		{
+			int widgetGroupId = entry.getParam1() >> 16;
+			int itemId = entry.getItemId();
+
+			// Check if this is an inventory, bank, or collection log item
+			boolean isInventory = widgetGroupId == WidgetID.INVENTORY_GROUP_ID;
+			boolean isBank = widgetGroupId == WidgetID.BANK_GROUP_ID;
+			boolean isCollectionLog = widgetGroupId == WidgetID.COLLECTION_LOG_ID;
+
+			if (!isInventory && !isBank && !isCollectionLog)
+			{
+				continue;
+			}
+
+			// For collection log, itemId might be in identifier
+			if (isCollectionLog && itemId <= 0)
+			{
+				itemId = entry.getIdentifier();
+			}
+
+			if (itemId <= 0)
+			{
+				continue;
+			}
+
+			// Get the real item ID (noted items have different IDs)
+			final int realItemId = itemManager.canonicalize(itemId);
+			String itemName = itemManager.getItemComposition(realItemId).getName();
+			int defaultQty = isCollectionLog ? 1 : 1;
+
+			// Add at index 1 to put it near the bottom of the menu
+			client.createMenuEntry(1)
+				.setOption("Add Goal")
+				.setTarget(entry.getTarget())
+				.setType(MenuAction.RUNELITE)
+				.onClick(e ->
+				{
+					String input = javax.swing.JOptionPane.showInputDialog(
+						panel,
+						"Target quantity for " + itemName + ":",
+						String.valueOf(defaultQty)
+					);
+					if (input != null)
+					{
+						try
+						{
+							int qty = Integer.parseInt(input.trim().replace(",", ""));
+							if (qty > 0)
+							{
+								Goal goal = Goal.builder()
+									.type(GoalType.ITEM_GRIND)
+									.name(itemName)
+									.description(GoalPanel.formatNumber(qty) + " total")
+									.itemId(realItemId)
+									.targetValue(qty)
+									.currentValue(-1)
+									.build();
+
+								goalStore.addGoal(goal);
+								javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+							}
+						}
+						catch (NumberFormatException ignored) {}
+					}
+				});
+
+			// Only add one "Add Goal" entry
+			break;
 		}
 	}
 
