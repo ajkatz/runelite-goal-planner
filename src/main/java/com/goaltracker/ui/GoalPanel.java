@@ -5,6 +5,7 @@ import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 import lombok.extern.slf4j.Slf4j;
+import net.runelite.api.Client;
 import net.runelite.api.Skill;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
@@ -31,17 +32,21 @@ public class GoalPanel extends PluginPanel
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
 	private final java.util.function.IntConsumer itemSearchCallback;
+	private final java.util.function.Consumer<String> itemScanCallback;
+	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
-					 java.util.function.IntConsumer itemSearchCallback)
+					 java.util.function.IntConsumer itemSearchCallback,
+					 java.util.function.Consumer<String> itemScanCallback)
 	{
 		super(false);
 		this.goalStore = goalStore;
 		this.skillIconManager = skillIconManager;
 		this.itemManager = itemManager;
 		this.itemSearchCallback = itemSearchCallback;
+		this.itemScanCallback = itemScanCallback;
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -79,6 +84,11 @@ public class GoalPanel extends PluginPanel
 		rebuild();
 	}
 
+	public void setClient(Client client)
+	{
+		this.client = client;
+	}
+
 	public void rebuild()
 	{
 		goalListPanel.removeAll();
@@ -102,7 +112,7 @@ public class GoalPanel extends PluginPanel
 			card.setFirstInList(i == 0);
 			card.setLastInList(i == goals.size() - 1);
 
-			addContextMenu(card, goal);
+			addContextMenu(card, goal, index, goals.size());
 			cardMap.put(goal.getId(), card);
 
 			goalListPanel.add(card);
@@ -120,6 +130,48 @@ public class GoalPanel extends PluginPanel
 
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
+	}
+
+	private void moveGoalTo(int fromIndex, int toIndex)
+	{
+		List<Goal> goals = goalStore.getGoals();
+		if (fromIndex < 0 || fromIndex >= goals.size() || toIndex < 0 || toIndex >= goals.size() || fromIndex == toIndex)
+		{
+			return;
+		}
+
+		goalStore.reorder(fromIndex, toIndex);
+
+		// Enforce skill ordering after direct placement
+		goals = goalStore.getGoals();
+		boolean fixed = true;
+		int maxPasses = goals.size();
+		while (fixed && maxPasses-- > 0)
+		{
+			fixed = false;
+			for (int i = 0; i < goals.size(); i++)
+			{
+				Goal a = goals.get(i);
+				if (a.getType() != GoalType.SKILL || a.getSkillName() == null || a.getStatus() == GoalStatus.COMPLETE)
+					continue;
+				for (int j = i + 1; j < goals.size(); j++)
+				{
+					Goal b = goals.get(j);
+					if (b.getType() == GoalType.SKILL && a.getSkillName().equals(b.getSkillName())
+						&& b.getStatus() != GoalStatus.COMPLETE && a.getTargetValue() > b.getTargetValue())
+					{
+						goalStore.reorder(j, i);
+						goals = goalStore.getGoals();
+						fixed = true;
+						break;
+					}
+				}
+				if (fixed) break;
+			}
+		}
+
+		goalStore.save();
+		rebuild();
 	}
 
 	private void moveGoal(int fromIndex, int toIndex)
@@ -234,12 +286,47 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
-	private void addContextMenu(GoalCard card, Goal goal)
+	private void addContextMenu(GoalCard card, Goal goal, int index, int totalGoals)
 	{
 		JPopupMenu menu = new JPopupMenu();
 
-		if (goal.getStatus() != GoalStatus.COMPLETE)
+		if (index > 0)
 		{
+			JMenuItem moveFirst = new JMenuItem("Move to Top");
+			moveFirst.addActionListener(e -> {
+				moveGoalTo(index, 0);
+			});
+			menu.add(moveFirst);
+		}
+
+		if (index < totalGoals - 1)
+		{
+			JMenuItem moveLast = new JMenuItem("Move to Bottom");
+			moveLast.addActionListener(e -> {
+				moveGoalTo(index, totalGoals - 1);
+			});
+			menu.add(moveLast);
+		}
+
+		if (menu.getComponentCount() > 0)
+		{
+			menu.addSeparator();
+		}
+
+		if (goal.getStatus() == GoalStatus.COMPLETE)
+		{
+			JMenuItem reopen = new JMenuItem("Mark Incomplete");
+			reopen.addActionListener(e -> {
+				goal.setStatus(GoalStatus.ACTIVE);
+				goal.setCompletedAt(0);
+				goalStore.updateGoal(goal);
+				rebuild();
+			});
+			menu.add(reopen);
+		}
+		else if (goal.getType() == GoalType.CUSTOM)
+		{
+			// Only custom goals can be manually marked complete
 			JMenuItem complete = new JMenuItem("Mark Complete");
 			complete.addActionListener(e -> {
 				goal.setStatus(GoalStatus.COMPLETE);
@@ -249,16 +336,35 @@ public class GoalPanel extends PluginPanel
 			});
 			menu.add(complete);
 		}
-		else
+
+		// Item-specific options
+		if (goal.getType() == GoalType.ITEM_GRIND && goal.getStatus() != GoalStatus.COMPLETE)
 		{
-			JMenuItem reopen = new JMenuItem("Reopen");
-			reopen.addActionListener(e -> {
-				goal.setStatus(GoalStatus.ACTIVE);
-				goal.setCompletedAt(0);
-				goalStore.updateGoal(goal);
-				rebuild();
+			JMenuItem editQty = new JMenuItem("Change Target");
+			editQty.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(
+					this,
+					"New target quantity for " + goal.getName() + ":",
+					String.valueOf(goal.getTargetValue())
+				);
+				if (input != null)
+				{
+					try
+					{
+						int newQty = Integer.parseInt(input.trim().replace(",", ""));
+						if (newQty > 0)
+						{
+							goal.setTargetValue(newQty);
+							goal.setDescription(formatNumber(newQty) + " total");
+							goalStore.updateGoal(goal);
+							rebuild();
+						}
+					}
+					catch (NumberFormatException ignored) {}
+				}
 			});
-			menu.add(reopen);
+			menu.add(editQty);
+
 		}
 
 		JMenuItem remove = new JMenuItem("Remove");
@@ -331,7 +437,15 @@ public class GoalPanel extends PluginPanel
 		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
 		panel.add(label1, gbc);
 
-		JComboBox<Skill> skillCombo = new JComboBox<>(Skill.values());
+		// Filter out skills already at 99
+		Skill[] availableSkills = java.util.Arrays.stream(Skill.values())
+			.filter(s -> {
+				if (client == null) return true;
+				try { return client.getRealSkillLevel(s) < 99; }
+				catch (Exception e) { return true; }
+			})
+			.toArray(Skill[]::new);
+		JComboBox<Skill> skillCombo = new JComboBox<>(availableSkills);
 		skillCombo.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -386,7 +500,7 @@ public class GoalPanel extends PluginPanel
 			{
 				case SKILL:
 					label1.setText("Skill:");
-					label2.setText("Target Level/XP:");
+					label2.setText("Target Level:");
 					break;
 				case ITEM_GRIND:
 					label1.setText("Quantity:");
@@ -446,9 +560,18 @@ public class GoalPanel extends PluginPanel
 		try
 		{
 			Skill skill = (Skill) skillCombo.getSelectedItem();
-			int target = Integer.parseInt(targetField.getText().trim().replace(",", ""));
+			int targetLevel = Integer.parseInt(targetField.getText().trim().replace(",", ""));
 
-			String conflict = checkSkillConflict(skill, target);
+			if (targetLevel < 1 || targetLevel > 99)
+			{
+				JOptionPane.showMessageDialog(this, "Target level must be between 1 and 99.", "Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+
+			// Convert level to XP target
+			int targetXp = net.runelite.api.Experience.getXpForLevel(targetLevel);
+
+			String conflict = checkSkillConflict(skill, targetXp);
 			if (conflict != null)
 			{
 				JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
@@ -457,10 +580,9 @@ public class GoalPanel extends PluginPanel
 
 			Goal goal = Goal.builder()
 				.type(GoalType.SKILL)
-				.name(String.format("%s \u2192 %s", skill.getName(),
-					target > 99 ? formatNumber(target) + " XP" : "Level " + target))
+				.name(skill.getName() + " \u2192 Level " + targetLevel)
 				.skillName(skill.name())
-				.targetValue(target)
+				.targetValue(targetXp)
 				.build();
 
 			int insertBefore = -1;
@@ -471,7 +593,7 @@ public class GoalPanel extends PluginPanel
 				if (g.getType() == GoalType.SKILL
 					&& skill.name().equals(g.getSkillName())
 					&& g.getStatus() != GoalStatus.COMPLETE
-					&& g.getTargetValue() > target)
+					&& g.getTargetValue() > targetXp)
 				{
 					insertBefore = i;
 					break;

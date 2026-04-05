@@ -13,7 +13,8 @@ import javax.inject.Singleton;
 import java.util.List;
 
 /**
- * Tracks skill XP/level goals against the current game state.
+ * Tracks skill goals by XP. Target is always stored as XP
+ * (converted from level at goal creation time).
  */
 @Slf4j
 @Singleton
@@ -28,7 +29,7 @@ public class SkillTracker
 	}
 
 	/**
-	 * Update all skill goals with current values from the game.
+	 * Update all skill goals with current XP from the game.
 	 * Returns true if any goal was updated.
 	 */
 	public boolean checkGoals(List<Goal> goals)
@@ -51,24 +52,10 @@ public class SkillTracker
 			{
 				Skill skill = Skill.valueOf(goal.getSkillName());
 				int currentXp = client.getSkillExperience(skill);
-				int currentLevel = client.getRealSkillLevel(skill);
 
-				// Determine current value based on whether target is XP or level
-				int currentValue;
-				if (goal.getTargetValue() > 99)
+				if (currentXp != goal.getCurrentValue())
 				{
-					// XP-based goal (targets over 99 are XP amounts)
-					currentValue = currentXp;
-				}
-				else
-				{
-					// Level-based goal
-					currentValue = currentLevel;
-				}
-
-				if (currentValue != goal.getCurrentValue())
-				{
-					goal.setCurrentValue(currentValue);
+					goal.setCurrentValue(currentXp);
 					anyUpdated = true;
 
 					if (goal.isComplete())

@@ -64,9 +64,10 @@ public class GoalCard extends JPanel
 		}
 		else if (goal.getType() == GoalType.ITEM_GRIND && goal.getItemId() > 0 && itemManager != null)
 		{
+			// Try to get cached image synchronously first
+			ImageIcon itemIcon = null;
 			try
 			{
-				// getImage with quantity 1 and border false for a clean icon
 				java.awt.image.BufferedImage itemImg = itemManager.getImage(goal.getItemId(), 1, false);
 				if (itemImg != null && itemImg.getWidth() > 0)
 				{
@@ -75,16 +76,47 @@ public class GoalCard extends JPanel
 					g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
 					g2d.drawImage(itemImg, 0, 0, 18, 18, null);
 					g2d.dispose();
-					iconLabel = new JLabel(new ImageIcon(scaled));
-				}
-				else
-				{
-					iconLabel = makeColorDot(goal.getType().getColor());
+					itemIcon = new ImageIcon(scaled);
 				}
 			}
-			catch (Exception e)
+			catch (Exception ignored) {}
+
+			if (itemIcon != null)
 			{
-				iconLabel = makeColorDot(goal.getType().getColor());
+				iconLabel = new JLabel(itemIcon);
+			}
+			else
+			{
+				// Not cached yet — show empty and load async
+				JLabel asyncIcon = new JLabel();
+				iconLabel = asyncIcon;
+				new Thread(() ->
+				{
+					try
+					{
+						Thread.sleep(500);
+						java.awt.image.BufferedImage itemImg = itemManager.getImage(goal.getItemId(), 1, false);
+						if (itemImg != null && itemImg.getWidth() > 0)
+						{
+							java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+							java.awt.Graphics2D g2d = scaled.createGraphics();
+							g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+							g2d.drawImage(itemImg, 0, 0, 18, 18, null);
+							g2d.dispose();
+							SwingUtilities.invokeLater(() ->
+							{
+								asyncIcon.setIcon(new ImageIcon(scaled));
+								Container parent = asyncIcon.getParent();
+								if (parent != null)
+								{
+									parent.revalidate();
+									parent.repaint();
+								}
+							});
+						}
+					}
+					catch (Exception ignored) {}
+				}).start();
 			}
 		}
 		else
@@ -97,24 +129,22 @@ public class GoalCard extends JPanel
 		nameLabel = new JLabel(formatNameHtml());
 		nameLabel.setForeground(TEXT_PRIMARY);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
+		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 		if (goal.getName().length() > 22)
 		{
 			nameLabel.setToolTipText(goal.getName());
 		}
 		leftPanel.add(nameLabel, BorderLayout.CENTER);
 
-		// Right side: percent
-		JPanel centerPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
-		centerPanel.setOpaque(false);
-
-		progressLabel = new JLabel(); // kept for update() compatibility
-		progressLabel.setVisible(false);
-
+		// Right side: status (XP, percent, etc.)
 		statusLabel = new JLabel(formatPercent());
 		statusLabel.setForeground(TEXT_PRIMARY);
-		statusLabel.setFont(statusLabel.getFont().deriveFont(Font.BOLD, 11f));
+		statusLabel.setFont(statusLabel.getFont().deriveFont(11f));
+		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		centerPanel.add(statusLabel);
+		progressLabel = new JLabel();
+		progressLabel.setVisible(false);
 
 		// Right: up/down arrows
 		JPanel arrowPanel = new JPanel(new GridLayout(2, 1, 0, 0));
@@ -128,7 +158,7 @@ public class GoalCard extends JPanel
 		arrowPanel.add(downButton);
 
 		add(leftPanel, BorderLayout.WEST);
-		add(centerPanel, BorderLayout.CENTER);
+		add(statusLabel, BorderLayout.CENTER);
 		add(arrowPanel, BorderLayout.EAST);
 	}
 
@@ -186,7 +216,6 @@ public class GoalCard extends JPanel
 	{
 		this.goal = goal;
 		nameLabel.setText(formatNameHtml());
-		progressLabel.setText(formatProgress());
 		statusLabel.setText(formatPercent());
 		repaint();
 	}
@@ -225,10 +254,19 @@ public class GoalCard extends JPanel
 		g2.setColor(tint);
 		g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
 
-		// Complete state: bright border
-		if (goal.getStatus() == GoalStatus.COMPLETE)
+		// Green glow: when goal is complete OR item goal meets/exceeds target
+		boolean showGreen = goal.getStatus() == GoalStatus.COMPLETE
+			|| (goal.getType() == GoalType.ITEM_GRIND && goal.getCurrentValue() >= 0
+				&& goal.getCurrentValue() >= goal.getTargetValue());
+
+		if (showGreen)
 		{
-			g2.setColor(baseColor);
+			// Green tint overlay
+			g2.setColor(new Color(76, 175, 80, 50));
+			g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
+
+			// Green border
+			g2.setColor(new Color(76, 175, 80));
 			g2.setStroke(new BasicStroke(2));
 			g2.drawRoundRect(1, 1, w - 2, h - 2, CORNER_RADIUS, CORNER_RADIUS);
 		}
@@ -253,11 +291,22 @@ public class GoalCard extends JPanel
 				line1 = goal.getSkillName() != null
 					? net.runelite.api.Skill.valueOf(goal.getSkillName()).getName()
 					: goal.getName();
-				line2 = formatProgress();
+				int currentLevel = goal.getCurrentValue() > 0
+					? net.runelite.api.Experience.getLevelForXp(goal.getCurrentValue()) : 0;
+				int targetLevel = goal.getTargetValue() > 0
+					? net.runelite.api.Experience.getLevelForXp(goal.getTargetValue()) : 0;
+				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case ITEM_GRIND:
 				line1 = truncate(goal.getName(), 22);
-				line2 = formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue());
+				if (goal.getCurrentValue() < 0)
+				{
+					line2 = "? / " + formatNumber(goal.getTargetValue());
+				}
+				else
+				{
+					line2 = formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue());
+				}
 				break;
 			case CUSTOM:
 			default:
@@ -277,6 +326,11 @@ public class GoalCard extends JPanel
 			+ escapeHtml(line2) + "</span></html>";
 	}
 
+	private static String formatXp(int xp)
+	{
+		return String.format("%,d", xp);
+	}
+
 	private static String truncate(String text, int maxLen)
 	{
 		if (text.length() <= maxLen) return text;
@@ -288,31 +342,6 @@ public class GoalCard extends JPanel
 		return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
 	}
 
-	/**
-	 * Progress text for the second line of the name area.
-	 * Used by formatNameHtml() for skill goals.
-	 */
-	private String formatProgress()
-	{
-		if (goal.getType() == GoalType.SKILL)
-		{
-			if (goal.getTargetValue() <= 0)
-			{
-				return "";
-			}
-			if (goal.getTargetValue() > 99)
-			{
-				return String.format("%s / %s XP",
-					formatNumber(goal.getCurrentValue()),
-					formatNumber(goal.getTargetValue()));
-			}
-			else
-			{
-				return String.format("Lv %d / %d", goal.getCurrentValue(), goal.getTargetValue());
-			}
-		}
-		return "";
-	}
 
 	private String formatPercent()
 	{
@@ -323,6 +352,19 @@ public class GoalCard extends JPanel
 		if (goal.getType() == GoalType.CUSTOM)
 		{
 			return "";
+		}
+		if (goal.getType() == GoalType.ITEM_GRIND && goal.getCurrentValue() < 0)
+		{
+			return "?";
+		}
+		if (goal.getType() == GoalType.SKILL && goal.getTargetValue() > 0)
+		{
+			int remaining = Math.max(0, goal.getTargetValue() - goal.getCurrentValue());
+			return "<html>"
+				+ formatNumber(goal.getCurrentValue()) + " / " + formatNumber(goal.getTargetValue())
+				+ " (" + String.format("%.0f%%", goal.getProgressPercent()) + ")"
+				+ "<br><span style='font-size:9px; color:#a0a0a0'>"
+				+ formatXp(remaining) + " left</span></html>";
 		}
 		return String.format("%.0f%%", goal.getProgressPercent());
 	}

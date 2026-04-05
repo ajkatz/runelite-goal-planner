@@ -12,6 +12,9 @@ import javax.inject.Inject;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
+import net.runelite.api.GameState;
+import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.StatChanged;
 import net.runelite.client.callback.ClientThread;
@@ -68,6 +71,8 @@ public class GoalTrackerPlugin extends Plugin
 
 	private GoalPanel panel;
 	private NavigationButton navButton;
+	private int tickCounter = 0;
+	private static final int SCAN_INTERVAL_TICKS = 25; // ~15 seconds (1 tick = 0.6s)
 
 	@Override
 	protected void startUp() throws Exception
@@ -76,7 +81,17 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch);
+		// Pre-warm item image cache for existing item goals
+		for (Goal goal : goalStore.getGoals())
+		{
+			if (goal.getType() == GoalType.ITEM_GRIND && goal.getItemId() > 0)
+			{
+				itemManager.getImage(goal.getItemId(), 1, false);
+			}
+		}
+
+		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch, this::scanBankForGoal);
+		panel.setClient(client);
 
 		BufferedImage icon;
 		try
@@ -97,6 +112,13 @@ public class GoalTrackerPlugin extends Plugin
 			.build();
 
 		clientToolbar.addNavigation(navButton);
+
+		// Delayed rebuild to catch async item images
+		new Thread(() ->
+		{
+			try { Thread.sleep(2000); } catch (InterruptedException ignored) {}
+			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+		}).start();
 	}
 
 	@Override
@@ -144,7 +166,7 @@ public class GoalTrackerPlugin extends Plugin
 								.description(GoalPanel.formatNumber(targetQty) + " total")
 								.itemId(itemId)
 								.targetValue(targetQty)
-								.currentValue(0)
+								.currentValue(-1)  // -1 = unscanned, will update on next bank/inventory change
 								.build();
 
 							goalStore.addGoal(goal);
@@ -154,6 +176,39 @@ public class GoalTrackerPlugin extends Plugin
 				});
 			})
 			.build();
+	}
+
+	/**
+	 * Manually scan bank/inventory for a specific item goal.
+	 */
+	public void scanBankForGoal(String goalId)
+	{
+		clientThread.invokeLater(() ->
+		{
+			boolean updated = itemTracker.checkGoals(goalStore.getGoals());
+			if (updated)
+			{
+				goalStore.save();
+			}
+			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+		});
+	}
+
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		tickCounter++;
+		if (tickCounter >= SCAN_INTERVAL_TICKS)
+		{
+			tickCounter = 0;
+			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
+			updated |= itemTracker.checkGoals(goalStore.getGoals());
+			if (updated)
+			{
+				goalStore.save();
+				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+			}
+		}
 	}
 
 	@Subscribe
