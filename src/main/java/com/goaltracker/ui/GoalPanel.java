@@ -301,6 +301,53 @@ public class GoalPanel extends PluginPanel
 
 		}
 
+		// Tag management
+		JMenuItem addTag = new JMenuItem("Add Tag");
+		addTag.addActionListener(e -> {
+			JPanel tagPanel = new JPanel(new GridLayout(0, 2, 8, 8));
+
+			JTextField tagLabel = new JTextField();
+			tagPanel.add(new JLabel("Tag:"));
+			tagPanel.add(tagLabel);
+
+			JComboBox<com.goaltracker.model.TagCategory> catCombo =
+				new JComboBox<>(com.goaltracker.model.TagCategory.values());
+			catCombo.setRenderer(new DefaultListCellRenderer()
+			{
+				@Override
+				public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+					boolean isSelected, boolean cellHasFocus)
+				{
+					super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+					if (value instanceof com.goaltracker.model.TagCategory)
+					{
+						setText(((com.goaltracker.model.TagCategory) value).getDisplayName());
+					}
+					return this;
+				}
+			});
+			tagPanel.add(new JLabel("Category:"));
+			tagPanel.add(catCombo);
+
+			int result = JOptionPane.showConfirmDialog(
+				this, tagPanel, "Add Tag", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
+			);
+			if (result == JOptionPane.OK_OPTION && !tagLabel.getText().trim().isEmpty())
+			{
+				if (goal.getTags() == null)
+				{
+					goal.setTags(new java.util.ArrayList<>());
+				}
+				goal.getTags().add(new com.goaltracker.model.ItemTag(
+					tagLabel.getText().trim(),
+					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem()
+				));
+				goalStore.updateGoal(goal);
+				rebuild();
+			}
+		});
+		menu.add(addTag);
+
 		JMenuItem remove = new JMenuItem("Remove");
 		remove.addActionListener(e -> {
 			goalStore.removeGoal(goal.getId());
