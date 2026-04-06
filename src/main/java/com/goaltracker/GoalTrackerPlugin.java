@@ -191,7 +191,6 @@ public class GoalTrackerPlugin extends Plugin
 				tags = new java.util.ArrayList<>(ItemSourceData.getTags(canonical));
 			}
 		}
-		log.debug("buildItemTags({}) -> {} tags", itemId, tags.size());
 
 		// Check for inherited attributes
 		boolean needsSlayerTag = false;
@@ -280,7 +279,6 @@ public class GoalTrackerPlugin extends Plugin
 			// Get the real item ID (noted items have different IDs)
 			final int realItemId = itemManager.canonicalize(itemId);
 			String itemName = itemManager.getItemComposition(realItemId).getName();
-			log.info("Add Goal: raw={} canon={} name='{}' tags={}", itemId, realItemId, itemName, ItemSourceData.getTags(realItemId).size());
 			final boolean fromCollectionLog = isCollectionLog;
 
 			// Add at index 1 to put it near the bottom of the menu
