@@ -348,6 +348,32 @@ public class GoalPanel extends PluginPanel
 		});
 		menu.add(addTag);
 
+		if (goal.getTags() != null && !goal.getTags().isEmpty())
+		{
+			JMenuItem removeTag = new JMenuItem("Remove Tag");
+			removeTag.addActionListener(e -> {
+				String[] tagNames = goal.getTags().stream()
+					.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
+					.toArray(String[]::new);
+
+				String selected = (String) JOptionPane.showInputDialog(
+					this, "Select tag to remove:", "Remove Tag",
+					JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
+				);
+				if (selected != null)
+				{
+					int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
+					if (idx >= 0)
+					{
+						goal.getTags().remove(idx);
+						goalStore.updateGoal(goal);
+						rebuild();
+					}
+				}
+			});
+			menu.add(removeTag);
+		}
+
 		JMenuItem remove = new JMenuItem("Remove");
 		remove.addActionListener(e -> {
 			goalStore.removeGoal(goal.getId());
