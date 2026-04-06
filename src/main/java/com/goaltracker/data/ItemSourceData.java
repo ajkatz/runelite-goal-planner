@@ -111,17 +111,24 @@ public final class ItemSourceData
 		source(12007, "Kraken", TagCategory.BOSS);  // Jar of dirt
 
 		// Abyssal Sire
-		source(13265, "Abyssal Sire", TagCategory.BOSS);  // Unsired
-		source(7979,  "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
-		source(13262, "Abyssal Sire", TagCategory.BOSS);  // Abyssal orphan
-		source(13275, "Abyssal Sire", TagCategory.BOSS);  // Jar of miasma
+		source(13273, "Abyssal Sire", TagCategory.BOSS);  // Unsired
+		source(13274, "Abyssal Sire", TagCategory.BOSS);  // Bludgeon spine
+		source(13275, "Abyssal Sire", TagCategory.BOSS);  // Bludgeon claw
+		source(13276, "Abyssal Sire", TagCategory.BOSS);  // Bludgeon axon
+		source(13265, "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
+		source(5883,  "Abyssal Sire", TagCategory.BOSS);  // Abyssal orphan
+		source(13277, "Abyssal Sire", TagCategory.BOSS);  // Jar of miasma
+		source(7979,  "Abyssal Sire", TagCategory.BOSS);  // Abyssal head
 
 		// Alchemical Hydra
 		source(22966, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's claw
-		source(22971, "Alchemical Hydra", TagCategory.BOSS);  // Hydra leather
-		source(22969, "Alchemical Hydra", TagCategory.BOSS);  // Hydra tail
-		source(22746, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
-		source(22973, "Alchemical Hydra", TagCategory.BOSS);  // Jar of chemicals
+		source(22983, "Alchemical Hydra", TagCategory.BOSS);  // Hydra leather
+		source(22988, "Alchemical Hydra", TagCategory.BOSS);  // Hydra tail
+		source(22973, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's eye
+		source(22971, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's fang
+		source(22969, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's heart
+		source(8492,  "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(23064, "Alchemical Hydra", TagCategory.BOSS);  // Jar of chemicals
 
 		// Kalphite Queen
 		source(12654, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess

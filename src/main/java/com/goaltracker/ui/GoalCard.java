@@ -44,7 +44,7 @@ public class GoalCard extends JPanel
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
 
 		setLayout(new BorderLayout(4, 0));
-		setBorder(new EmptyBorder(4, 10, hasTags ? 2 : 4, 4));
+		setBorder(new EmptyBorder(4, 10, 4, 4));
 		setPreferredSize(new Dimension(0, height));
 		setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
 		setOpaque(false);
@@ -107,29 +107,9 @@ public class GoalCard extends JPanel
 		arrowPanel.add(upButton);
 		arrowPanel.add(downButton);
 
-		// Main content row
-		JPanel mainRow = new JPanel(new BorderLayout(4, 0));
-		mainRow.setOpaque(false);
-		mainRow.add(leftPanel, BorderLayout.WEST);
-		mainRow.add(statusLabel, BorderLayout.CENTER);
-		mainRow.add(arrowPanel, BorderLayout.EAST);
-
-		add(mainRow, BorderLayout.CENTER);
-
-		// Tag pills row (if tags exist)
-		if (hasTags)
-		{
-			JPanel tagPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 3, 0));
-			tagPanel.setOpaque(false);
-			tagPanel.setPreferredSize(new Dimension(0, TAG_ROW_HEIGHT));
-
-			for (ItemTag tag : goal.getTags())
-			{
-				tagPanel.add(createTagPill(tag));
-			}
-
-			add(tagPanel, BorderLayout.SOUTH);
-		}
+		add(leftPanel, BorderLayout.WEST);
+		add(statusLabel, BorderLayout.CENTER);
+		add(arrowPanel, BorderLayout.EAST);
 	}
 
 	private static JLabel createTagPill(ItemTag tag)
@@ -312,13 +292,38 @@ public class GoalCard extends JPanel
 				break;
 		}
 
-		if (line2.isEmpty())
+		// Build tag HTML if tags exist
+		String tagHtml = "";
+		if (goal.getTags() != null && !goal.getTags().isEmpty())
+		{
+			StringBuilder sb = new StringBuilder();
+			for (ItemTag tag : goal.getTags())
+			{
+				Color c = tag.getCategory().getColor();
+				String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
+				sb.append("<span style='font-size:8px; color:").append(hex).append("'>");
+				sb.append("\u25CF ").append(FormatUtil.escapeHtml(tag.getLabel()));
+				sb.append("</span> ");
+			}
+			tagHtml = "<br>" + sb.toString().trim();
+		}
+
+		if (line2.isEmpty() && tagHtml.isEmpty())
 		{
 			return FormatUtil.escapeHtml(line1);
 		}
 
-		return "<html>" + FormatUtil.escapeHtml(line1) + "<br><span style='font-size:9px; color:#a0a0a0'>"
-			+ FormatUtil.escapeHtml(line2) + "</span></html>";
+		StringBuilder html = new StringBuilder("<html>");
+		html.append(FormatUtil.escapeHtml(line1));
+		if (!line2.isEmpty())
+		{
+			html.append("<br><span style='font-size:9px; color:#a0a0a0'>")
+				.append(FormatUtil.escapeHtml(line2))
+				.append("</span>");
+		}
+		html.append(tagHtml);
+		html.append("</html>");
+		return html.toString();
 	}
 
 
