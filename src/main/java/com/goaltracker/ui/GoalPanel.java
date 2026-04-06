@@ -340,7 +340,9 @@ public class GoalPanel extends PluginPanel
 			tagPanel.add(catLabel, gbc);
 
 			JComboBox<com.goaltracker.model.TagCategory> catCombo =
-				new JComboBox<>(com.goaltracker.model.TagCategory.values());
+				new JComboBox<>(java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+					.filter(c -> c != com.goaltracker.model.TagCategory.SPECIAL)
+					.toArray(com.goaltracker.model.TagCategory[]::new));
 			catCombo.setRenderer(new DefaultListCellRenderer()
 			{
 				@Override

@@ -61,8 +61,9 @@ public final class TagOptions
 			"Herblore", "Thieving", "Fletching", "Slayer", "Farming",
 			"Construction", "Hunter", "Sailing"
 		});
+		// SPECIAL is dev-only, not in OPTIONS
 		OPTIONS.put(TagCategory.OTHER, new String[]{
-			"Pet", "Quest Reward", "Achievement Diary", "Misc"
+			"Quest Reward", "Achievement Diary", "Misc"
 		});
 	}
 
