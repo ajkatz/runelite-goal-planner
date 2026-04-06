@@ -9,7 +9,7 @@ public enum GoalType
 	DIARY("Diary", new Color(255, 152, 0)),            // Orange
 	COLLECTION_LOG("Collection Log", new Color(156, 39, 176)),  // Purple
 	ITEM_GRIND("Item", new Color(255, 193, 7)),                  // Gold
-	COMBAT_ACHIEVEMENT("Combat Achievement", new Color(244, 67, 54)),  // Red
+	COMBAT_ACHIEVEMENT("Combat Achievement", new Color(139, 69, 19)),  // Saddle brown
 	CUSTOM("Custom", new Color(158, 158, 158));        // Gray
 
 	private final String displayName;

@@ -33,6 +33,7 @@ public class Goal
 	private String questName;     // For QUEST goals — matches net.runelite.api.Quest name
 	private int varbitId;         // For DIARY/COMBAT_ACHIEVEMENT goals
 	private int itemId;           // For ITEM_GRIND goals
+	private int spriteId;         // Optional sprite icon (e.g. CA tier sword); 0 = unset
 
 	// Tags (source/category labels for filtering and display)
 	@Builder.Default

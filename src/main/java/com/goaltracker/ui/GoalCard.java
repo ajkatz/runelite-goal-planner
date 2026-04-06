@@ -9,6 +9,7 @@ import com.goaltracker.util.FormatUtil;
 import net.runelite.api.Skill;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.SpriteManager;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -37,12 +38,15 @@ public class GoalCard extends JPanel
 	private final JButton downButton;
 
 	private final SkillIconManager skillIconManager;
+	private final SpriteManager spriteManager;
 
 	public GoalCard(Goal goal, ActionListener onMoveUp, ActionListener onMoveDown,
-					SkillIconManager skillIconManager, ItemManager itemManager)
+					SkillIconManager skillIconManager, ItemManager itemManager,
+					SpriteManager spriteManager)
 	{
 		this.goal = goal;
 		this.skillIconManager = skillIconManager;
+		this.spriteManager = spriteManager;
 
 		boolean hasTags = goal.getTags() != null && !goal.getTags().isEmpty();
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
@@ -75,6 +79,23 @@ public class GoalCard extends JPanel
 		{
 			iconLabel = new JLabel();
 			ItemImageCache.applyTo(iconLabel, goal.getItemId(), itemManager);
+		}
+		else if (goal.getSpriteId() > 0 && spriteManager != null)
+		{
+			final JLabel spriteLabel = new JLabel();
+			spriteManager.getSpriteAsync(goal.getSpriteId(), 0, img ->
+				SwingUtilities.invokeLater(() -> {
+					if (img == null) return;
+					java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(
+						18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+					Graphics2D g2d = scaled.createGraphics();
+					g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+						RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					g2d.drawImage(img, 0, 0, 18, 18, null);
+					g2d.dispose();
+					spriteLabel.setIcon(new ImageIcon(scaled));
+				}));
+			iconLabel = spriteLabel;
 		}
 		else
 		{

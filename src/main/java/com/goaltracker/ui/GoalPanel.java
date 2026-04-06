@@ -34,12 +34,14 @@ public class GoalPanel extends PluginPanel
 	private final GoalReorderingService reorderingService;
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
+	private final net.runelite.client.game.SpriteManager spriteManager;
 	private final java.util.function.IntConsumer itemSearchCallback;
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
+					 net.runelite.client.game.SpriteManager spriteManager,
 					 java.util.function.IntConsumer itemSearchCallback)
 	{
 		super(false);
@@ -47,6 +49,7 @@ public class GoalPanel extends PluginPanel
 		this.reorderingService = new GoalReorderingService(goalStore);
 		this.skillIconManager = skillIconManager;
 		this.itemManager = itemManager;
+		this.spriteManager = spriteManager;
 		this.itemSearchCallback = itemSearchCallback;
 
 		setLayout(new BorderLayout());
@@ -131,7 +134,8 @@ public class GoalPanel extends PluginPanel
 				e -> moveGoal(index, index - 1),
 				e -> moveGoal(index, index + 1),
 				skillIconManager,
-				itemManager
+				itemManager,
+				spriteManager
 			);
 
 			card.setFirstInList(i == 0);

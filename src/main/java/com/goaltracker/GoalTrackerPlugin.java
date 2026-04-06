@@ -1,5 +1,7 @@
 package com.goaltracker;
 
+import com.goaltracker.data.CombatAchievementData;
+import com.goaltracker.data.CombatAchievementData.Tier;
 import com.goaltracker.data.ItemSourceData;
 import com.goaltracker.data.SourceAttributes;
 import com.goaltracker.model.Goal;
@@ -32,6 +34,7 @@ import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
+import net.runelite.client.game.SpriteManager;
 import net.runelite.client.game.chatbox.ChatboxItemSearch;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
@@ -74,6 +77,9 @@ public class GoalTrackerPlugin extends Plugin
 	private ItemManager itemManager;
 
 	@Inject
+	private SpriteManager spriteManager;
+
+	@Inject
 	private ChatboxItemSearch chatboxItemSearch;
 
 	@Inject
@@ -91,7 +97,7 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 
-		panel = new GoalPanel(goalStore, skillIconManager, itemManager, this::openItemSearch);
+		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager, this::openItemSearch);
 		panel.setClient(client);
 
 		BufferedImage icon;
@@ -237,6 +243,70 @@ public class GoalTrackerPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * Read a row's child widget from a per-row dynamic-children container.
+	 * Returns null if the widget or the row index is out of range.
+	 */
+	private net.runelite.api.widgets.Widget getCaRowChild(int widgetId, int row)
+	{
+		net.runelite.api.widgets.Widget w = client.getWidget(widgetId);
+		if (w == null) return null;
+		net.runelite.api.widgets.Widget[] children = w.getDynamicChildren();
+		if (children == null || row < 0 || row >= children.length) return null;
+		return children[row];
+	}
+
+	/**
+	 * Build a combat achievement Goal from the clicked row index in the CA tasks interface.
+	 * Returns null if the row can't be resolved.
+	 */
+	private Goal buildCombatAchievementGoal(int row)
+	{
+		net.runelite.api.widgets.Widget nameW = getCaRowChild(CombatAchievementData.TASKS_NAME, row);
+		net.runelite.api.widgets.Widget tierW = getCaRowChild(CombatAchievementData.TASKS_TIER, row);
+		net.runelite.api.widgets.Widget monsterW = getCaRowChild(CombatAchievementData.TASKS_MONSTER, row);
+
+		if (nameW == null || tierW == null)
+		{
+			log.warn("CA row {} missing name/tier widget", row);
+			return null;
+		}
+
+		String name = nameW.getText();
+		if (name == null || name.isEmpty())
+		{
+			log.warn("CA row {} has empty name", row);
+			return null;
+		}
+
+		int tierSpriteId = tierW.getSpriteId();
+		Tier tier = CombatAchievementData.tierFromSpriteId(tierSpriteId);
+		String monster = monsterW != null ? CombatAchievementData.parseMonsterName(monsterW.getText()) : null;
+
+		java.util.List<ItemTag> tags = new java.util.ArrayList<>();
+		if (monster != null)
+		{
+			boolean isRaid = CombatAchievementData.isRaidBoss(monster);
+			String tagLabel = isRaid ? CombatAchievementData.abbreviateRaid(monster) : monster;
+			tags.add(new ItemTag(tagLabel, isRaid ? TagCategory.RAID : TagCategory.BOSS));
+		}
+
+		String description = tier != null
+			? tier.getDisplayName() + " Combat Achievement"
+			: "Combat Achievement";
+
+		return Goal.builder()
+			.type(GoalType.COMBAT_ACHIEVEMENT)
+			.name(name)
+			.description(description)
+			.targetValue(1)
+			.currentValue(0)
+			.spriteId(tierSpriteId > 0 ? tierSpriteId : 0)
+			.tags(tags)
+			.defaultTags(new java.util.ArrayList<>(tags))
+			.build();
+	}
+
 	@Subscribe
 	public void onMenuOpened(MenuOpened event)
 	{
@@ -249,11 +319,42 @@ public class GoalTrackerPlugin extends Plugin
 		// Find the first entry to determine context
 		MenuEntry first = entries[entries.length - 1];
 
-		// Look for item context: check each entry for item-related widgets
+		// Look for item or combat achievement context
 		for (MenuEntry entry : entries)
 		{
 			int widgetGroupId = entry.getParam1() >> 16;
 			int itemId = entry.getItemId();
+
+			// Combat achievements (CA_TASKS widget group 715)
+			boolean isCombatAchievement = widgetGroupId == CombatAchievementData.GROUP_ID
+				&& entry.getParam1() == CombatAchievementData.TASKS_BACKGROUND;
+			if (isCombatAchievement)
+			{
+				final int row = entry.getParam0();
+				final Goal preview = buildCombatAchievementGoal(row);
+				if (preview == null)
+				{
+					continue;
+				}
+
+				client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget(entry.getTarget())
+					.setType(MenuAction.RUNELITE)
+					.onClick(e ->
+					{
+						// Re-read at click time in case the list was re-filtered
+						Goal goal = buildCombatAchievementGoal(row);
+						if (goal == null)
+						{
+							log.warn("CA goal row {} no longer resolvable at click time", row);
+							return;
+						}
+						goalStore.addGoal(goal);
+						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+					});
+				break;
+			}
 
 			// Check if this is an inventory, bank, or collection log item
 			boolean isInventory = widgetGroupId == WidgetID.INVENTORY_GROUP_ID;
