@@ -281,7 +281,7 @@ public class GoalTrackerPlugin extends Plugin
 			final int realItemId = itemManager.canonicalize(itemId);
 			String itemName = itemManager.getItemComposition(realItemId).getName();
 			log.info("Add Goal: raw={} canon={} name='{}' tags={}", itemId, realItemId, itemName, ItemSourceData.getTags(realItemId).size());
-			int defaultQty = 1;
+			final boolean fromCollectionLog = isCollectionLog;
 
 			// Add at index 1 to put it near the bottom of the menu
 			client.createMenuEntry(1)
@@ -290,36 +290,42 @@ public class GoalTrackerPlugin extends Plugin
 				.setType(MenuAction.RUNELITE)
 				.onClick(e ->
 				{
-					String input = javax.swing.JOptionPane.showInputDialog(
-						panel,
-						"Target quantity for " + itemName + ":",
-						String.valueOf(defaultQty)
-					);
-					if (input != null)
+					int qty;
+					if (fromCollectionLog)
 					{
+						// Collection log items default to 1, skip the dialog
+						qty = 1;
+					}
+					else
+					{
+						String input = javax.swing.JOptionPane.showInputDialog(
+							panel,
+							"Target quantity for " + itemName + ":",
+							"1"
+						);
+						if (input == null) return;
 						try
 						{
-							int qty = Integer.parseInt(input.trim().replace(",", ""));
-							if (qty > 0)
-							{
-								java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
-								Goal goal = Goal.builder()
-									.type(GoalType.ITEM_GRIND)
-									.name(itemName)
-									.description(FormatUtil.formatNumber(qty) + " total")
-									.itemId(realItemId)
-									.targetValue(qty)
-									.currentValue(-1)
-									.tags(new java.util.ArrayList<>(autoTags))
-									.defaultTags(new java.util.ArrayList<>(autoTags))
-									.build();
-
-								goalStore.addGoal(goal);
-								javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-							}
+							qty = Integer.parseInt(input.trim().replace(",", ""));
+							if (qty <= 0) return;
 						}
-						catch (NumberFormatException ignored) {}
+						catch (NumberFormatException ignored) { return; }
 					}
+
+					java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
+					Goal goal = Goal.builder()
+						.type(GoalType.ITEM_GRIND)
+						.name(itemName)
+						.description(FormatUtil.formatNumber(qty) + " total")
+						.itemId(realItemId)
+						.targetValue(qty)
+						.currentValue(-1)
+						.tags(new java.util.ArrayList<>(autoTags))
+						.defaultTags(new java.util.ArrayList<>(autoTags))
+						.build();
+
+					goalStore.addGoal(goal);
+					javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 				});
 
 			// Only add one "Add Goal" entry
