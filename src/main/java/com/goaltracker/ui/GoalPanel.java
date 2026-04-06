@@ -61,12 +61,36 @@ public class GoalPanel extends PluginPanel
 		title.setForeground(Color.WHITE);
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
 
+		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+		headerButtons.setOpaque(false);
+
+		JButton clearButton = new JButton("\u2715");
+		clearButton.setToolTipText("Clear all goals");
+		clearButton.setFont(clearButton.getFont().deriveFont(10f));
+		clearButton.addActionListener(e -> {
+			int confirm = JOptionPane.showConfirmDialog(
+				this, "Remove ALL goals?", "Clear All",
+				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
+			);
+			if (confirm == JOptionPane.YES_OPTION)
+			{
+				while (!goalStore.getGoals().isEmpty())
+				{
+					goalStore.removeGoal(goalStore.getGoals().get(0).getId());
+				}
+				rebuild();
+			}
+		});
+
 		JButton addButton = new JButton("+");
 		addButton.setToolTipText("Add a new goal");
 		addButton.addActionListener(e -> showAddGoalDialog());
 
+		headerButtons.add(clearButton);
+		headerButtons.add(addButton);
+
 		header.add(title, BorderLayout.WEST);
-		header.add(addButton, BorderLayout.EAST);
+		header.add(headerButtons, BorderLayout.EAST);
 
 		// Scrollable goal list
 		goalListPanel = new JPanel();
