@@ -1,9 +1,11 @@
 package com.goaltracker;
 
 import com.goaltracker.data.ItemSourceData;
+import com.goaltracker.data.SourceAttributes;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
+import com.goaltracker.model.TagCategory;
 import com.goaltracker.persistence.GoalStore;
 import com.goaltracker.tracker.ItemTracker;
 import com.goaltracker.tracker.SkillTracker;
@@ -160,7 +162,7 @@ public class GoalTrackerPlugin extends Plugin
 								.itemId(itemId)
 								.targetValue(targetQty)
 								.currentValue(-1)
-								.tags(new java.util.ArrayList<>(ItemSourceData.getTags(itemId)))
+								.tags(buildItemTags(itemId))
 								.build();
 
 							goalStore.addGoal(goal);
@@ -170,6 +172,31 @@ public class GoalTrackerPlugin extends Plugin
 				});
 			})
 			.build();
+	}
+
+	/**
+	 * Build tags for an item, including source tags and inherited attributes (e.g., Slayer Task).
+	 */
+	private java.util.List<ItemTag> buildItemTags(int itemId)
+	{
+		java.util.List<ItemTag> tags = new java.util.ArrayList<>(ItemSourceData.getTags(itemId));
+
+		// Check for inherited attributes from sources
+		boolean needsSlayerTag = false;
+		for (ItemTag tag : tags)
+		{
+			if (SourceAttributes.isSlayerTask(tag.getLabel()))
+			{
+				needsSlayerTag = true;
+				break;
+			}
+		}
+		if (needsSlayerTag)
+		{
+			tags.add(new ItemTag("Slayer", TagCategory.SKILLING));
+		}
+
+		return tags;
 	}
 
 	@Subscribe
@@ -260,7 +287,7 @@ public class GoalTrackerPlugin extends Plugin
 									.itemId(realItemId)
 									.targetValue(qty)
 									.currentValue(-1)
-									.tags(new java.util.ArrayList<>(ItemSourceData.getTags(realItemId)))
+									.tags(buildItemTags(realItemId))
 									.build();
 
 								goalStore.addGoal(goal);
