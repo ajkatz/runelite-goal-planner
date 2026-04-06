@@ -211,9 +211,18 @@ public class GoalTrackerPlugin extends Plugin
 		}
 		if (isPet)
 		{
-			// Remove the generic "All Pets" tag and replace with a "Pet" tag
 			tags.removeIf(t -> "All Pets".equals(t.getLabel()));
 			tags.add(0, new ItemTag("Pet", TagCategory.OTHER));
+		}
+
+		// Collapse 3+ boss tags into a single "Multiple" tag
+		long bossCount = tags.stream()
+			.filter(t -> t.getCategory() == TagCategory.BOSS)
+			.count();
+		if (bossCount >= 3)
+		{
+			tags.removeIf(t -> t.getCategory() == TagCategory.BOSS);
+			tags.add(new ItemTag("Multiple", TagCategory.BOSS));
 		}
 
 		return tags;
