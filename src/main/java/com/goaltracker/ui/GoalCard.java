@@ -4,6 +4,7 @@ import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
+import com.goaltracker.model.TagCategory;
 import com.goaltracker.util.FormatUtil;
 import net.runelite.api.Skill;
 import net.runelite.client.game.ItemManager;
@@ -90,22 +91,31 @@ public class GoalCard extends JPanel
 		{
 			nameLabel.setToolTipText(goal.getName());
 		}
-		// Wrap name + tags vertically
-		JPanel nameAndTags = new JPanel();
-		nameAndTags.setLayout(new BoxLayout(nameAndTags, BoxLayout.Y_AXIS));
+		// Name + tags in a vertical BorderLayout
+		JPanel nameAndTags = new JPanel(new BorderLayout(0, 0));
 		nameAndTags.setOpaque(false);
-		nameAndTags.add(nameLabel);
+		nameAndTags.add(nameLabel, BorderLayout.CENTER);
 
 		if (hasTags)
 		{
 			JPanel tagRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
 			tagRow.setOpaque(false);
+			tagRow.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-			for (ItemTag tag : goal.getTags())
+			// Sort: SKILLING tags first (icons), then others (text pills)
+			java.util.List<ItemTag> sorted = new java.util.ArrayList<>(goal.getTags());
+			sorted.sort((a, b) -> {
+				boolean aSkill = a.getCategory() == TagCategory.SKILLING;
+				boolean bSkill = b.getCategory() == TagCategory.SKILLING;
+				if (aSkill != bSkill) return aSkill ? -1 : 1;
+				return 0;
+			});
+
+			for (ItemTag tag : sorted)
 			{
 				tagRow.add(createTagComponent(tag));
 			}
-			nameAndTags.add(tagRow);
+			nameAndTags.add(tagRow, BorderLayout.SOUTH);
 		}
 
 		leftPanel.add(nameAndTags, BorderLayout.CENTER);
@@ -142,8 +152,14 @@ public class GoalCard extends JPanel
 			{
 				net.runelite.api.Skill skill = net.runelite.api.Skill.valueOf(tag.getLabel().toUpperCase());
 				java.awt.image.BufferedImage img = skillIconManager.getSkillImage(skill, true);
-				JLabel iconLabel = new JLabel(new ImageIcon(img));
-				iconLabel.setPreferredSize(new Dimension(15, 15));
+				java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(11, 11, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+				java.awt.Graphics2D g2d = scaled.createGraphics();
+				g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+				g2d.drawImage(img, 0, 0, 11, 11, null);
+				g2d.dispose();
+				JLabel iconLabel = new JLabel(new ImageIcon(scaled));
+				iconLabel.setPreferredSize(new Dimension(11, 11));
+				iconLabel.setMaximumSize(new Dimension(11, 11));
 				iconLabel.setToolTipText(tag.getLabel());
 				return iconLabel;
 			}

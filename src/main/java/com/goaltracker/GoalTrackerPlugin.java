@@ -181,19 +181,29 @@ public class GoalTrackerPlugin extends Plugin
 	{
 		java.util.List<ItemTag> tags = new java.util.ArrayList<>(ItemSourceData.getTags(itemId));
 
-		// Check for inherited attributes from sources
+		// Check for inherited attributes
 		boolean needsSlayerTag = false;
+		boolean isPet = false;
 		for (ItemTag tag : tags)
 		{
 			if (SourceAttributes.isSlayerTask(tag.getLabel()))
 			{
 				needsSlayerTag = true;
-				break;
+			}
+			if ("All Pets".equals(tag.getLabel()))
+			{
+				isPet = true;
 			}
 		}
 		if (needsSlayerTag)
 		{
 			tags.add(new ItemTag("Slayer", TagCategory.SKILLING));
+		}
+		if (isPet)
+		{
+			// Remove the generic "All Pets" tag and replace with a "Pet" tag
+			tags.removeIf(t -> "All Pets".equals(t.getLabel()));
+			tags.add(0, new ItemTag("Pet", TagCategory.OTHER));
 		}
 
 		return tags;

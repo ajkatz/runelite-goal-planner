@@ -54,8 +54,16 @@ public final class TagOptions
 			"Tithe Farm", "Trouble Brewing", "Vale Totems", "Volcanic Mine"
 		});
 
-		OPTIONS.put(TagCategory.SKILLING, new String[]{});
-		OPTIONS.put(TagCategory.OTHER, new String[]{});
+		OPTIONS.put(TagCategory.SKILLING, new String[]{
+			"Attack", "Strength", "Defence", "Ranged", "Prayer", "Magic",
+			"Runecraft", "Hitpoints", "Crafting", "Mining", "Smithing",
+			"Fishing", "Cooking", "Firemaking", "Woodcutting", "Agility",
+			"Herblore", "Thieving", "Fletching", "Slayer", "Farming",
+			"Construction", "Hunter", "Sailing"
+		});
+		OPTIONS.put(TagCategory.OTHER, new String[]{
+			"Pet", "Quest Reward", "Achievement Diary", "Misc"
+		});
 	}
 
 	/**
