@@ -34,6 +34,15 @@ public class ItemTracker
 	 */
 	public boolean checkGoals(List<Goal> goals)
 	{
+		// We can only compute a trustworthy total if the bank container has been
+		// loaded at least once this session. Without it, inventory-only reads
+		// (including those triggered by login-time INVENTORY ItemContainerChanged
+		// events) would wipe persisted values to 0. Bail until the bank is open.
+		if (client.getItemContainer(InventoryID.BANK) == null)
+		{
+			return false;
+		}
+
 		boolean anyUpdated = false;
 
 		for (Goal goal : goals)

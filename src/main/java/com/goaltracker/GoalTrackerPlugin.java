@@ -175,6 +175,7 @@ public class GoalTrackerPlugin extends Plugin
 
 							goalStore.addGoal(goal);
 							panel.rebuild();
+							refreshItemGoalsNow();
 						}
 					});
 				});
@@ -352,6 +353,7 @@ public class GoalTrackerPlugin extends Plugin
 						}
 						goalStore.addGoal(goal);
 						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+						refreshItemGoalsNow();
 					});
 				break;
 			}
@@ -425,6 +427,7 @@ public class GoalTrackerPlugin extends Plugin
 
 					goalStore.addGoal(goal);
 					javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+					refreshItemGoalsNow();
 				});
 
 			// Only add one "Add Goal" entry
@@ -441,6 +444,26 @@ public class GoalTrackerPlugin extends Plugin
 			goalStore.save();
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
+	}
+
+	/**
+	 * Immediately recheck item goals against the currently-cached bank/inventory
+	 * containers. Runs on the client thread so ItemContainer reads are safe.
+	 * This lets a newly-added ITEM_GRIND goal get its count populated right away
+	 * if the bank is already open (otherwise it waits for the next
+	 * ItemContainerChanged event, which only fires on open).
+	 */
+	private void refreshItemGoalsNow()
+	{
+		clientThread.invokeLater(() ->
+		{
+			boolean updated = itemTracker.checkGoals(goalStore.getGoals());
+			if (updated)
+			{
+				goalStore.save();
+				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+			}
+		});
 	}
 
 	@Subscribe
