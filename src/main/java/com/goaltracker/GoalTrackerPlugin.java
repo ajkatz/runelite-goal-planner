@@ -212,7 +212,7 @@ public class GoalTrackerPlugin extends Plugin
 		if (isPet)
 		{
 			tags.removeIf(t -> "All Pets".equals(t.getLabel()));
-			tags.add(0, new ItemTag("Pet", TagCategory.OTHER));
+			tags.add(0, new ItemTag("Pet", TagCategory.SPECIAL));
 		}
 
 		return tags;

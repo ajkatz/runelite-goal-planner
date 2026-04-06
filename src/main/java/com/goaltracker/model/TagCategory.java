@@ -13,7 +13,8 @@ public enum TagCategory
 	CLUE("Clue", new Color(0, 188, 212)),          // Cyan
 	MINIGAME("Minigame", new Color(255, 152, 0)),  // Orange
 	SKILLING("Skilling", new Color(76, 175, 80)),  // Green
-	OTHER("Other", new Color(120, 120, 120));       // Gray
+	SPECIAL("Special", new Color(255, 105, 180)),    // Pink
+	OTHER("Other", new Color(120, 120, 120));        // Gray
 
 	private final String displayName;
 	private final Color color;
