@@ -35,10 +35,13 @@ public class GoalCard extends JPanel
 	private final JButton upButton;
 	private final JButton downButton;
 
+	private final SkillIconManager skillIconManager;
+
 	public GoalCard(Goal goal, ActionListener onMoveUp, ActionListener onMoveDown,
 					SkillIconManager skillIconManager, ItemManager itemManager)
 	{
 		this.goal = goal;
+		this.skillIconManager = skillIconManager;
 
 		boolean hasTags = goal.getTags() != null && !goal.getTags().isEmpty();
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
@@ -87,7 +90,25 @@ public class GoalCard extends JPanel
 		{
 			nameLabel.setToolTipText(goal.getName());
 		}
-		leftPanel.add(nameLabel, BorderLayout.CENTER);
+		// Wrap name + tags vertically
+		JPanel nameAndTags = new JPanel();
+		nameAndTags.setLayout(new BoxLayout(nameAndTags, BoxLayout.Y_AXIS));
+		nameAndTags.setOpaque(false);
+		nameAndTags.add(nameLabel);
+
+		if (hasTags)
+		{
+			JPanel tagRow = new JPanel(new FlowLayout(FlowLayout.LEFT, 2, 0));
+			tagRow.setOpaque(false);
+
+			for (ItemTag tag : goal.getTags())
+			{
+				tagRow.add(createTagComponent(tag));
+			}
+			nameAndTags.add(tagRow);
+		}
+
+		leftPanel.add(nameAndTags, BorderLayout.CENTER);
 
 		// Right side: status (XP, percent, etc.)
 		statusLabel = new JLabel(formatPercent());
@@ -110,6 +131,26 @@ public class GoalCard extends JPanel
 		add(leftPanel, BorderLayout.WEST);
 		add(statusLabel, BorderLayout.CENTER);
 		add(arrowPanel, BorderLayout.EAST);
+	}
+
+	private JComponent createTagComponent(ItemTag tag)
+	{
+		// For Skilling tags, try to show the skill icon
+		if (tag.getCategory() == com.goaltracker.model.TagCategory.SKILLING && skillIconManager != null)
+		{
+			try
+			{
+				net.runelite.api.Skill skill = net.runelite.api.Skill.valueOf(tag.getLabel().toUpperCase());
+				java.awt.image.BufferedImage img = skillIconManager.getSkillImage(skill, true);
+				JLabel iconLabel = new JLabel(new ImageIcon(img));
+				iconLabel.setPreferredSize(new Dimension(15, 15));
+				iconLabel.setToolTipText(tag.getLabel());
+				return iconLabel;
+			}
+			catch (Exception ignored) {}
+		}
+
+		return createTagPill(tag);
 	}
 
 	private static JLabel createTagPill(ItemTag tag)
@@ -292,38 +333,14 @@ public class GoalCard extends JPanel
 				break;
 		}
 
-		// Build tag HTML if tags exist
-		String tagHtml = "";
-		if (goal.getTags() != null && !goal.getTags().isEmpty())
-		{
-			StringBuilder sb = new StringBuilder();
-			for (ItemTag tag : goal.getTags())
-			{
-				Color c = tag.getCategory().getColor();
-				String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());
-				sb.append("<span style='font-size:8px; color:").append(hex).append("'>");
-				sb.append("\u25CF ").append(FormatUtil.escapeHtml(tag.getLabel()));
-				sb.append("</span> ");
-			}
-			tagHtml = "<br>" + sb.toString().trim();
-		}
-
-		if (line2.isEmpty() && tagHtml.isEmpty())
+		if (line2.isEmpty())
 		{
 			return FormatUtil.escapeHtml(line1);
 		}
 
-		StringBuilder html = new StringBuilder("<html>");
-		html.append(FormatUtil.escapeHtml(line1));
-		if (!line2.isEmpty())
-		{
-			html.append("<br><span style='font-size:9px; color:#a0a0a0'>")
-				.append(FormatUtil.escapeHtml(line2))
-				.append("</span>");
-		}
-		html.append(tagHtml);
-		html.append("</html>");
-		return html.toString();
+		return "<html>" + FormatUtil.escapeHtml(line1)
+			+ "<br><span style='font-size:9px; color:#a0a0a0'>"
+			+ FormatUtil.escapeHtml(line2) + "</span></html>";
 	}
 
 
