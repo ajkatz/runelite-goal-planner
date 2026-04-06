@@ -102,7 +102,7 @@ public class GoalCard extends JPanel
 			tagRow.setOpaque(false);
 			tagRow.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-			// Sort: SKILLING tags first (icons), then others (text pills)
+			// Sort: SKILLING first, then others
 			java.util.List<ItemTag> sorted = new java.util.ArrayList<>(goal.getTags());
 			sorted.sort((a, b) -> {
 				boolean aSkill = a.getCategory() == TagCategory.SKILLING;
@@ -111,10 +111,49 @@ public class GoalCard extends JPanel
 				return 0;
 			});
 
+			// Collapse 3+ boss tags into "Multiple" with tooltip
+			java.util.List<ItemTag> bossTags = new java.util.ArrayList<>();
+			java.util.List<ItemTag> otherTags = new java.util.ArrayList<>();
 			for (ItemTag tag : sorted)
+			{
+				if (tag.getCategory() == TagCategory.BOSS)
+				{
+					bossTags.add(tag);
+				}
+				else
+				{
+					otherTags.add(tag);
+				}
+			}
+
+			// Add non-boss tags
+			for (ItemTag tag : otherTags)
 			{
 				tagRow.add(createTagComponent(tag));
 			}
+
+			// Add boss tags (collapsed if 3+)
+			if (bossTags.size() >= 3)
+			{
+				ItemTag multiTag = new ItemTag("Multiple", TagCategory.BOSS);
+				JComponent pill = createTagComponent(multiTag);
+				StringBuilder tooltip = new StringBuilder("<html>Dropped by:<br>");
+				for (ItemTag bt : bossTags)
+				{
+					tooltip.append("• ").append(FormatUtil.escapeHtml(bt.getLabel())).append("<br>");
+				}
+				tooltip.append("</html>");
+				pill.setToolTipText(tooltip.toString());
+				tagRow.add(pill);
+			}
+			else
+			{
+				for (ItemTag tag : bossTags)
+				{
+					tagRow.add(createTagComponent(tag));
+				}
+			}
+
 			nameAndTags.add(tagRow, BorderLayout.SOUTH);
 		}
 
