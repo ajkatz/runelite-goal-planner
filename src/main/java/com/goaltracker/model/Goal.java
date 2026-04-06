@@ -38,6 +38,10 @@ public class Goal
 	@Builder.Default
 	private List<ItemTag> tags = new ArrayList<>();
 
+	// Default tags from auto-generation (for "Restore Defaults")
+	@Builder.Default
+	private List<ItemTag> defaultTags = new ArrayList<>();
+
 	// Integrations
 	private String wikiUrl;
 	private String inventorySetup;  // Inventory Setups loadout name

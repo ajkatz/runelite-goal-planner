@@ -155,6 +155,7 @@ public class GoalTrackerPlugin extends Plugin
 
 						if (confirm == javax.swing.JOptionPane.OK_OPTION)
 						{
+							java.util.List<ItemTag> autoTags = buildItemTags(itemId);
 							Goal goal = Goal.builder()
 								.type(GoalType.ITEM_GRIND)
 								.name(itemName)
@@ -162,7 +163,8 @@ public class GoalTrackerPlugin extends Plugin
 								.itemId(itemId)
 								.targetValue(targetQty)
 								.currentValue(-1)
-								.tags(buildItemTags(itemId))
+								.tags(new java.util.ArrayList<>(autoTags))
+								.defaultTags(new java.util.ArrayList<>(autoTags))
 								.build();
 
 							goalStore.addGoal(goal);
@@ -300,6 +302,7 @@ public class GoalTrackerPlugin extends Plugin
 							int qty = Integer.parseInt(input.trim().replace(",", ""));
 							if (qty > 0)
 							{
+								java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
 								Goal goal = Goal.builder()
 									.type(GoalType.ITEM_GRIND)
 									.name(itemName)
@@ -307,7 +310,8 @@ public class GoalTrackerPlugin extends Plugin
 									.itemId(realItemId)
 									.targetValue(qty)
 									.currentValue(-1)
-									.tags(buildItemTags(realItemId))
+									.tags(new java.util.ArrayList<>(autoTags))
+									.defaultTags(new java.util.ArrayList<>(autoTags))
 									.build();
 
 								goalStore.addGoal(goal);

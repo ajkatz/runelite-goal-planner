@@ -447,6 +447,19 @@ public class GoalPanel extends PluginPanel
 			menu.add(removeTag);
 		}
 
+		// Restore Defaults (only if tags have been customized)
+		if (goal.getDefaultTags() != null && !goal.getDefaultTags().isEmpty()
+			&& goal.getTags() != null && !goal.getTags().equals(goal.getDefaultTags()))
+		{
+			JMenuItem restore = new JMenuItem("Restore Defaults");
+			restore.addActionListener(e -> {
+				goal.setTags(new java.util.ArrayList<>(goal.getDefaultTags()));
+				goalStore.updateGoal(goal);
+				rebuild();
+			});
+			menu.add(restore);
+		}
+
 		JMenuItem remove = new JMenuItem("Remove");
 		remove.addActionListener(e -> {
 			goalStore.removeGoal(goal.getId());
