@@ -7,9 +7,8 @@ import java.util.*;
 
 /**
  * Maps item IDs to their drop sources.
- * Auto-generated from OSRS Wiki Collection Log (1600+ items).
- *
- * To add items manually: call source(itemId, "Source Name", TagCategory.XXX)
+ * Auto-generated from OSRS Wiki Collection Log with ALL item ID variants.
+ * 3800+ entries covering inventory, noted, collection log, and follower forms.
  */
 public final class ItemSourceData
 {
@@ -39,6 +38,8 @@ public final class ItemSourceData
 
 		// Abyssal Sire
 		source(5883, "Abyssal Sire", TagCategory.BOSS);  // Abyssal orphan
+		source(5884, "Abyssal Sire", TagCategory.BOSS);  // Abyssal orphan
+		source(13262, "Abyssal Sire", TagCategory.BOSS);  // Abyssal orphan
 		source(13273, "Abyssal Sire", TagCategory.BOSS);  // Unsired
 		source(7979, "Abyssal Sire", TagCategory.BOSS);  // Abyssal head
 		source(13274, "Abyssal Sire", TagCategory.BOSS);  // Bludgeon spine
@@ -46,10 +47,24 @@ public final class ItemSourceData
 		source(13276, "Abyssal Sire", TagCategory.BOSS);  // Bludgeon axon
 		source(13277, "Abyssal Sire", TagCategory.BOSS);  // Jar of miasma
 		source(13265, "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
+		source(13267, "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
+		source(13269, "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
+		source(13271, "Abyssal Sire", TagCategory.BOSS);  // Abyssal dagger
 		source(4151, "Abyssal Sire", TagCategory.BOSS);  // Abyssal whip
 
 		// Alchemical Hydra
 		source(8492, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8493, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8494, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8495, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8517, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8518, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8519, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(8520, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(22746, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(22748, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(22750, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
+		source(22752, "Alchemical Hydra", TagCategory.BOSS);  // Ikkle hydra
 		source(22966, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's claw
 		source(22988, "Alchemical Hydra", TagCategory.BOSS);  // Hydra tail
 		source(22983, "Alchemical Hydra", TagCategory.BOSS);  // Hydra leather
@@ -57,17 +72,27 @@ public final class ItemSourceData
 		source(22973, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's eye
 		source(22969, "Alchemical Hydra", TagCategory.BOSS);  // Hydra's heart
 		source(22804, "Alchemical Hydra", TagCategory.BOSS);  // Dragon knife
+		source(22806, "Alchemical Hydra", TagCategory.BOSS);  // Dragon knife
+		source(22808, "Alchemical Hydra", TagCategory.BOSS);  // Dragon knife
+		source(22810, "Alchemical Hydra", TagCategory.BOSS);  // Dragon knife
 		source(20849, "Alchemical Hydra", TagCategory.BOSS);  // Dragon thrownaxe
 		source(23064, "Alchemical Hydra", TagCategory.BOSS);  // Jar of chemicals
 		source(23077, "Alchemical Hydra", TagCategory.BOSS);  // Alchemical hydra heads
 
 		// Amoxliatl
 		source(14034, "Amoxliatl", TagCategory.BOSS);  // Moxi
+		source(14046, "Amoxliatl", TagCategory.BOSS);  // Moxi
+		source(30154, "Amoxliatl", TagCategory.BOSS);  // Moxi
 		source(29889, "Amoxliatl", TagCategory.BOSS);  // Glacial temotli
 		source(29895, "Amoxliatl", TagCategory.BOSS);  // Frozen tear
 
 		// Araxxor
 		source(13681, "Araxxor", TagCategory.BOSS);  // Nid
+		source(13682, "Araxxor", TagCategory.BOSS);  // Nid
+		source(13683, "Araxxor", TagCategory.BOSS);  // Nid
+		source(13684, "Araxxor", TagCategory.BOSS);  // Nid
+		source(29836, "Araxxor", TagCategory.BOSS);  // Nid
+		source(29838, "Araxxor", TagCategory.BOSS);  // Nid
 		source(29784, "Araxxor", TagCategory.BOSS);  // Araxyte venom sack
 		source(29782, "Araxxor", TagCategory.BOSS);  // Spider cave teleport
 		source(29799, "Araxxor", TagCategory.BOSS);  // Araxyte fang
@@ -80,41 +105,171 @@ public final class ItemSourceData
 
 		// Barrows Chests
 		source(4732, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
+		source(4928, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
+		source(4929, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
+		source(4930, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
+		source(4931, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
+		source(4932, "Barrows Chests", TagCategory.BOSS);  // Karil's coif
 		source(4736, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
+		source(4940, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
+		source(4941, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
+		source(4942, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
+		source(4943, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
+		source(4944, "Barrows Chests", TagCategory.BOSS);  // Karil's leathertop
 		source(4738, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
+		source(4946, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
+		source(4947, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
+		source(4948, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
+		source(4949, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
+		source(4950, "Barrows Chests", TagCategory.BOSS);  // Karil's leatherskirt
 		source(4734, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
+		source(4934, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
+		source(4935, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
+		source(4936, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
+		source(4937, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
+		source(4938, "Barrows Chests", TagCategory.BOSS);  // Karil's crossbow
 		source(4708, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
+		source(4856, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
+		source(4857, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
+		source(4858, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
+		source(4859, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
+		source(4860, "Barrows Chests", TagCategory.BOSS);  // Ahrim's hood
 		source(4712, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
+		source(4868, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
+		source(4869, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
+		source(4870, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
+		source(4871, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
+		source(4872, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robetop
 		source(4714, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
+		source(4874, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
+		source(4875, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
+		source(4876, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
+		source(4877, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
+		source(4878, "Barrows Chests", TagCategory.BOSS);  // Ahrim's robeskirt
 		source(4710, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
+		source(4862, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
+		source(4863, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
+		source(4864, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
+		source(4865, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
+		source(4866, "Barrows Chests", TagCategory.BOSS);  // Ahrim's staff
 		source(4716, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
+		source(4880, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
+		source(4881, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
+		source(4882, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
+		source(4883, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
+		source(4884, "Barrows Chests", TagCategory.BOSS);  // Dharok's helm
 		source(4720, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
+		source(4892, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
+		source(4893, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
+		source(4894, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
+		source(4895, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
+		source(4896, "Barrows Chests", TagCategory.BOSS);  // Dharok's platebody
 		source(4722, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
+		source(4898, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
+		source(4899, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
+		source(4900, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
+		source(4901, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
+		source(4902, "Barrows Chests", TagCategory.BOSS);  // Dharok's platelegs
 		source(4718, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
+		source(4886, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
+		source(4887, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
+		source(4888, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
+		source(4889, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
+		source(4890, "Barrows Chests", TagCategory.BOSS);  // Dharok's greataxe
 		source(4724, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
+		source(4904, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
+		source(4905, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
+		source(4906, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
+		source(4907, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
+		source(4908, "Barrows Chests", TagCategory.BOSS);  // Guthan's helm
 		source(4728, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
+		source(4916, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
+		source(4917, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
+		source(4918, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
+		source(4919, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
+		source(4920, "Barrows Chests", TagCategory.BOSS);  // Guthan's platebody
 		source(4730, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
+		source(4922, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
+		source(4923, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
+		source(4924, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
+		source(4925, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
+		source(4926, "Barrows Chests", TagCategory.BOSS);  // Guthan's chainskirt
 		source(4726, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
+		source(4910, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
+		source(4911, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
+		source(4912, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
+		source(4913, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
+		source(4914, "Barrows Chests", TagCategory.BOSS);  // Guthan's warspear
 		source(4745, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
+		source(4952, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
+		source(4953, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
+		source(4954, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
+		source(4955, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
+		source(4956, "Barrows Chests", TagCategory.BOSS);  // Torag's helm
 		source(4749, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
+		source(4964, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
+		source(4965, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
+		source(4966, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
+		source(4967, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
+		source(4968, "Barrows Chests", TagCategory.BOSS);  // Torag's platebody
 		source(4751, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
+		source(4970, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
+		source(4971, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
+		source(4972, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
+		source(4973, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
+		source(4974, "Barrows Chests", TagCategory.BOSS);  // Torag's platelegs
 		source(4747, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
+		source(4958, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
+		source(4959, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
+		source(4960, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
+		source(4961, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
+		source(4962, "Barrows Chests", TagCategory.BOSS);  // Torag's hammers
 		source(4753, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
+		source(4976, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
+		source(4977, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
+		source(4978, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
+		source(4979, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
+		source(4980, "Barrows Chests", TagCategory.BOSS);  // Verac's helm
 		source(4757, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
+		source(4988, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
+		source(4989, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
+		source(4990, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
+		source(4991, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
+		source(4992, "Barrows Chests", TagCategory.BOSS);  // Verac's brassard
 		source(4759, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
+		source(4994, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
+		source(4995, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
+		source(4996, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
+		source(4997, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
+		source(4998, "Barrows Chests", TagCategory.BOSS);  // Verac's plateskirt
 		source(4755, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
+		source(4982, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
+		source(4983, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
+		source(4984, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
+		source(4985, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
+		source(4986, "Barrows Chests", TagCategory.BOSS);  // Verac's flail
 		source(4740, "Barrows Chests", TagCategory.BOSS);  // Bolt rack
 
 		// Brutus
 		source(15631, "Brutus", TagCategory.BOSS);  // Beef
+		source(15633, "Brutus", TagCategory.BOSS);  // Beef
+		source(33124, "Brutus", TagCategory.BOSS);  // Beef
 		source(33101, "Brutus", TagCategory.BOSS);  // Mooleta
 		source(33093, "Brutus", TagCategory.BOSS);  // Cow slippers
+		source(33096, "Brutus", TagCategory.BOSS);  // Cow slippers
+		source(33097, "Brutus", TagCategory.BOSS);  // Cow slippers
+		source(33098, "Brutus", TagCategory.BOSS);  // Cow slippers
 
 		// Bryophyta
 		source(22372, "Bryophyta", TagCategory.BOSS);  // Bryophyta's essence
 
 		// Callisto and Artio
 		source(497, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
+		source(5558, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
+		source(11982, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
+		source(11986, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
+		source(13178, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
+		source(27649, "Callisto and Artio", TagCategory.BOSS);  // Callisto cub
 		source(12603, "Callisto and Artio", TagCategory.BOSS);  // Tyrannical ring
 		source(11920, "Callisto and Artio", TagCategory.BOSS);  // Dragon pickaxe
 		source(7158, "Callisto and Artio", TagCategory.BOSS);  // Dragon 2h sword
@@ -123,6 +278,8 @@ public final class ItemSourceData
 
 		// Cerberus
 		source(964, "Cerberus", TagCategory.BOSS);  // Hellpuppy
+		source(3099, "Cerberus", TagCategory.BOSS);  // Hellpuppy
+		source(13247, "Cerberus", TagCategory.BOSS);  // Hellpuppy
 		source(13227, "Cerberus", TagCategory.BOSS);  // Eternal crystal
 		source(13229, "Cerberus", TagCategory.BOSS);  // Pegasian crystal
 		source(13231, "Cerberus", TagCategory.BOSS);  // Primordial crystal
@@ -132,16 +289,22 @@ public final class ItemSourceData
 
 		// Chaos Elemental
 		source(2055, "Chaos Elemental", TagCategory.BOSS);  // Pet chaos elemental
+		source(5907, "Chaos Elemental", TagCategory.BOSS);  // Pet chaos elemental
+		source(11995, "Chaos Elemental", TagCategory.BOSS);  // Pet chaos elemental
 		source(11920, "Chaos Elemental", TagCategory.BOSS);  // Dragon pickaxe
 		source(7158, "Chaos Elemental", TagCategory.BOSS);  // Dragon 2h sword
 
 		// Chaos Fanatic
 		source(2055, "Chaos Fanatic", TagCategory.BOSS);  // Pet chaos elemental
+		source(5907, "Chaos Fanatic", TagCategory.BOSS);  // Pet chaos elemental
+		source(11995, "Chaos Fanatic", TagCategory.BOSS);  // Pet chaos elemental
 		source(11928, "Chaos Fanatic", TagCategory.BOSS);  // Odium shard 1
 		source(11931, "Chaos Fanatic", TagCategory.BOSS);  // Malediction shard 1
 
 		// Commander Zilyana
 		source(6633, "Commander Zilyana", TagCategory.BOSS);  // Pet zilyana
+		source(6646, "Commander Zilyana", TagCategory.BOSS);  // Pet zilyana
+		source(12651, "Commander Zilyana", TagCategory.BOSS);  // Pet zilyana
 		source(11785, "Commander Zilyana", TagCategory.BOSS);  // Armadyl crossbow
 		source(11814, "Commander Zilyana", TagCategory.BOSS);  // Saradomin hilt
 		source(11838, "Commander Zilyana", TagCategory.BOSS);  // Saradomin sword
@@ -152,6 +315,11 @@ public final class ItemSourceData
 
 		// Corporeal Beast
 		source(318, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
+		source(388, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
+		source(8008, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
+		source(8010, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
+		source(12816, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
+		source(22318, "Corporeal Beast", TagCategory.BOSS);  // Pet dark core
 		source(12819, "Corporeal Beast", TagCategory.BOSS);  // Elysian sigil
 		source(12823, "Corporeal Beast", TagCategory.BOSS);  // Spectral sigil
 		source(12827, "Corporeal Beast", TagCategory.BOSS);  // Arcane sigil
@@ -166,8 +334,14 @@ public final class ItemSourceData
 
 		// Dagannoth Kings
 		source(6627, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth prime
+		source(6629, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth prime
+		source(12644, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth prime
 		source(6626, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth supreme
+		source(6628, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth supreme
+		source(12643, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth supreme
 		source(6630, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth rex
+		source(6641, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth rex
+		source(12645, "Dagannoth Kings", TagCategory.BOSS);  // Pet dagannoth rex
 		source(6737, "Dagannoth Kings", TagCategory.BOSS);  // Berserker ring
 		source(6733, "Dagannoth Kings", TagCategory.BOSS);  // Archers ring
 		source(6731, "Dagannoth Kings", TagCategory.BOSS);  // Seers ring
@@ -180,7 +354,9 @@ public final class ItemSourceData
 		source(30895, "Deranged Archaeologist", TagCategory.BOSS);  // Steel ring
 
 		// Doom of Mokhaiotl
+		source(14519, "Doom of Mokhaiotl", TagCategory.BOSS);  // Dom
 		source(14785, "Doom of Mokhaiotl", TagCategory.BOSS);  // Dom
+		source(31130, "Doom of Mokhaiotl", TagCategory.BOSS);  // Dom
 		source(31088, "Doom of Mokhaiotl", TagCategory.BOSS);  // Avernic treads
 		source(31109, "Doom of Mokhaiotl", TagCategory.BOSS);  // Mokhaiotl cloth
 		source(31099, "Doom of Mokhaiotl", TagCategory.BOSS);  // Mokhaiotl waystone
@@ -188,6 +364,8 @@ public final class ItemSourceData
 
 		// Duke Sucellus
 		source(12155, "Duke Sucellus", TagCategory.BOSS);  // Baron
+		source(12159, "Duke Sucellus", TagCategory.BOSS);  // Baron
+		source(28250, "Duke Sucellus", TagCategory.BOSS);  // Baron
 		source(28321, "Duke Sucellus", TagCategory.BOSS);  // Eye of the duke
 		source(26241, "Duke Sucellus", TagCategory.BOSS);  // Virtus mask
 		source(26243, "Duke Sucellus", TagCategory.BOSS);  // Virtus robe top
@@ -200,10 +378,19 @@ public final class ItemSourceData
 
 		// The Fight Caves
 		source(5892, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
+		source(5893, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
+		source(10620, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
+		source(10625, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
+		source(13225, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
+		source(25519, "The Fight Caves", TagCategory.BOSS);  // Tzrek-jad
 		source(6570, "The Fight Caves", TagCategory.BOSS);  // Fire cape
+		source(20445, "The Fight Caves", TagCategory.BOSS);  // Fire cape
+		source(24223, "The Fight Caves", TagCategory.BOSS);  // Fire cape
 
 		// Fortis Colosseum
 		source(12767, "Fortis Colosseum", TagCategory.BOSS);  // Smol heredit
+		source(12857, "Fortis Colosseum", TagCategory.BOSS);  // Smol heredit
+		source(28960, "Fortis Colosseum", TagCategory.BOSS);  // Smol heredit
 		source(28936, "Fortis Colosseum", TagCategory.BOSS);  // Sunfire fanatic cuirass
 		source(28939, "Fortis Colosseum", TagCategory.BOSS);  // Sunfire fanatic chausses
 		source(28933, "Fortis Colosseum", TagCategory.BOSS);  // Sunfire fanatic helm
@@ -213,6 +400,11 @@ public final class ItemSourceData
 
 		// The Gauntlet
 		source(8729, "The Gauntlet", TagCategory.BOSS);  // Youngllef
+		source(8730, "The Gauntlet", TagCategory.BOSS);  // Youngllef
+		source(8737, "The Gauntlet", TagCategory.BOSS);  // Youngllef
+		source(8738, "The Gauntlet", TagCategory.BOSS);  // Youngllef
+		source(23757, "The Gauntlet", TagCategory.BOSS);  // Youngllef
+		source(23759, "The Gauntlet", TagCategory.BOSS);  // Youngllef
 		source(23956, "The Gauntlet", TagCategory.BOSS);  // Crystal armour seed
 		source(4207, "The Gauntlet", TagCategory.BOSS);  // Crystal weapon seed
 		source(25859, "The Gauntlet", TagCategory.BOSS);  // Enhanced crystal weapon seed
@@ -220,6 +412,8 @@ public final class ItemSourceData
 
 		// General Graardor
 		source(6632, "General Graardor", TagCategory.BOSS);  // Pet general graardor
+		source(6644, "General Graardor", TagCategory.BOSS);  // Pet general graardor
+		source(12650, "General Graardor", TagCategory.BOSS);  // Pet general graardor
 		source(11832, "General Graardor", TagCategory.BOSS);  // Bandos chestplate
 		source(11834, "General Graardor", TagCategory.BOSS);  // Bandos tassets
 		source(11836, "General Graardor", TagCategory.BOSS);  // Bandos boots
@@ -230,11 +424,21 @@ public final class ItemSourceData
 
 		// Giant Mole
 		source(6635, "Giant Mole", TagCategory.BOSS);  // Baby mole
+		source(6651, "Giant Mole", TagCategory.BOSS);  // Baby mole
+		source(10650, "Giant Mole", TagCategory.BOSS);  // Baby mole
+		source(10651, "Giant Mole", TagCategory.BOSS);  // Baby mole
+		source(12646, "Giant Mole", TagCategory.BOSS);  // Baby mole
+		source(25613, "Giant Mole", TagCategory.BOSS);  // Baby mole
 		source(7418, "Giant Mole", TagCategory.BOSS);  // Mole skin
 		source(7416, "Giant Mole", TagCategory.BOSS);  // Mole claw
 
 		// Grotesque Guardians
+		source(7890, "Grotesque Guardians", TagCategory.BOSS);  // Noon
 		source(7891, "Grotesque Guardians", TagCategory.BOSS);  // Noon
+		source(7892, "Grotesque Guardians", TagCategory.BOSS);  // Noon
+		source(7893, "Grotesque Guardians", TagCategory.BOSS);  // Noon
+		source(21748, "Grotesque Guardians", TagCategory.BOSS);  // Noon
+		source(21750, "Grotesque Guardians", TagCategory.BOSS);  // Noon
 		source(21730, "Grotesque Guardians", TagCategory.BOSS);  // Black tourmaline core
 		source(21736, "Grotesque Guardians", TagCategory.BOSS);  // Granite gloves
 		source(21739, "Grotesque Guardians", TagCategory.BOSS);  // Granite ring
@@ -244,12 +448,15 @@ public final class ItemSourceData
 
 		// Hespori
 		source(22994, "Hespori", TagCategory.BOSS);  // Bottomless compost bucket
+		source(22997, "Hespori", TagCategory.BOSS);  // Bottomless compost bucket
 		source(22883, "Hespori", TagCategory.BOSS);  // Iasor seed
 		source(22885, "Hespori", TagCategory.BOSS);  // Kronos seed
 		source(22881, "Hespori", TagCategory.BOSS);  // Attas seed
 
 		// The Hueycoatl
 		source(14033, "The Hueycoatl", TagCategory.BOSS);  // Huberte
+		source(14045, "The Hueycoatl", TagCategory.BOSS);  // Huberte
+		source(30152, "The Hueycoatl", TagCategory.BOSS);  // Huberte
 		source(30070, "The Hueycoatl", TagCategory.BOSS);  // Dragon hunter wand
 		source(30068, "The Hueycoatl", TagCategory.BOSS);  // Soiled page
 		source(30085, "The Hueycoatl", TagCategory.BOSS);  // Hueycoatl hide
@@ -257,10 +464,22 @@ public final class ItemSourceData
 
 		// The Inferno
 		source(7674, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(7675, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(8009, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(8011, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(21291, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(22319, "The Inferno", TagCategory.BOSS);  // Jal-nib-rek
+		source(21287, "The Inferno", TagCategory.BOSS);  // Infernal cape
 		source(21295, "The Inferno", TagCategory.BOSS);  // Infernal cape
+		source(24224, "The Inferno", TagCategory.BOSS);  // Infernal cape
 
 		// Kalphite Queen
+		source(6637, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
 		source(6638, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
+		source(6653, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
+		source(6654, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
+		source(12647, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
+		source(12654, "Kalphite Queen", TagCategory.BOSS);  // Kalphite princess
 		source(7981, "Kalphite Queen", TagCategory.BOSS);  // Kq head
 		source(12885, "Kalphite Queen", TagCategory.BOSS);  // Jar of sand
 		source(7158, "Kalphite Queen", TagCategory.BOSS);  // Dragon 2h sword
@@ -269,18 +488,26 @@ public final class ItemSourceData
 
 		// King Black Dragon
 		source(6636, "King Black Dragon", TagCategory.BOSS);  // Prince black dragon
+		source(6652, "King Black Dragon", TagCategory.BOSS);  // Prince black dragon
+		source(12653, "King Black Dragon", TagCategory.BOSS);  // Prince black dragon
 		source(7980, "King Black Dragon", TagCategory.BOSS);  // Kbd heads
 		source(11920, "King Black Dragon", TagCategory.BOSS);  // Dragon pickaxe
 		source(11286, "King Black Dragon", TagCategory.BOSS);  // Draconic visage
 
 		// Kraken
 		source(6640, "Kraken", TagCategory.BOSS);  // Pet kraken
+		source(6656, "Kraken", TagCategory.BOSS);  // Pet kraken
+		source(12655, "Kraken", TagCategory.BOSS);  // Pet kraken
 		source(12004, "Kraken", TagCategory.BOSS);  // Kraken tentacle
+		source(11905, "Kraken", TagCategory.BOSS);  // Trident of the seas
+		source(11907, "Kraken", TagCategory.BOSS);  // Trident of the seas
 		source(11908, "Kraken", TagCategory.BOSS);  // Trident of the seas
 		source(12007, "Kraken", TagCategory.BOSS);  // Jar of dirt
 
 		// Kree'arra
 		source(6631, "Kree'arra", TagCategory.BOSS);  // Pet kree'arra
+		source(6643, "Kree'arra", TagCategory.BOSS);  // Pet kree'arra
+		source(12649, "Kree'arra", TagCategory.BOSS);  // Pet kree'arra
 		source(11826, "Kree'arra", TagCategory.BOSS);  // Armadyl helmet
 		source(11828, "Kree'arra", TagCategory.BOSS);  // Armadyl chestplate
 		source(11830, "Kree'arra", TagCategory.BOSS);  // Armadyl chainskirt
@@ -291,6 +518,8 @@ public final class ItemSourceData
 
 		// K'ril Tsutsaroth
 		source(6634, "K'ril Tsutsaroth", TagCategory.BOSS);  // Pet k'ril tsutsaroth
+		source(6647, "K'ril Tsutsaroth", TagCategory.BOSS);  // Pet k'ril tsutsaroth
+		source(12652, "K'ril Tsutsaroth", TagCategory.BOSS);  // Pet k'ril tsutsaroth
 		source(11791, "K'ril Tsutsaroth", TagCategory.BOSS);  // Staff of the dead
 		source(11824, "K'ril Tsutsaroth", TagCategory.BOSS);  // Zamorakian spear
 		source(11787, "K'ril Tsutsaroth", TagCategory.BOSS);  // Steam battlestaff
@@ -301,6 +530,8 @@ public final class ItemSourceData
 
 		// The Leviathan
 		source(12156, "The Leviathan", TagCategory.BOSS);  // Lil'viathan
+		source(12160, "The Leviathan", TagCategory.BOSS);  // Lil'viathan
+		source(28252, "The Leviathan", TagCategory.BOSS);  // Lil'viathan
 		source(28325, "The Leviathan", TagCategory.BOSS);  // Leviathan's lure
 		source(26241, "The Leviathan", TagCategory.BOSS);  // Virtus mask
 		source(26243, "The Leviathan", TagCategory.BOSS);  // Virtus robe top
@@ -313,28 +544,53 @@ public final class ItemSourceData
 
 		// Moons of Peril
 		source(29004, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon chestplate
+		source(29031, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon chestplate
+		source(29049, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon chestplate
 		source(29007, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon tassets
+		source(29033, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon tassets
+		source(29052, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon tassets
 		source(29010, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon helm
+		source(29035, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon helm
+		source(29055, "Moons of Peril", TagCategory.BOSS);  // Eclipse moon helm
 		source(29000, "Moons of Peril", TagCategory.BOSS);  // Eclipse atlatl
 		source(29013, "Moons of Peril", TagCategory.BOSS);  // Blue moon chestplate
+		source(29037, "Moons of Peril", TagCategory.BOSS);  // Blue moon chestplate
+		source(29058, "Moons of Peril", TagCategory.BOSS);  // Blue moon chestplate
 		source(29016, "Moons of Peril", TagCategory.BOSS);  // Blue moon tassets
+		source(29039, "Moons of Peril", TagCategory.BOSS);  // Blue moon tassets
+		source(29061, "Moons of Peril", TagCategory.BOSS);  // Blue moon tassets
 		source(29019, "Moons of Peril", TagCategory.BOSS);  // Blue moon helm
+		source(29041, "Moons of Peril", TagCategory.BOSS);  // Blue moon helm
+		source(29064, "Moons of Peril", TagCategory.BOSS);  // Blue moon helm
 		source(28988, "Moons of Peril", TagCategory.BOSS);  // Blue moon spear
 		source(29022, "Moons of Peril", TagCategory.BOSS);  // Blood moon chestplate
+		source(29043, "Moons of Peril", TagCategory.BOSS);  // Blood moon chestplate
+		source(29067, "Moons of Peril", TagCategory.BOSS);  // Blood moon chestplate
 		source(29025, "Moons of Peril", TagCategory.BOSS);  // Blood moon tassets
+		source(29045, "Moons of Peril", TagCategory.BOSS);  // Blood moon tassets
+		source(29070, "Moons of Peril", TagCategory.BOSS);  // Blood moon tassets
 		source(29028, "Moons of Peril", TagCategory.BOSS);  // Blood moon helm
+		source(29047, "Moons of Peril", TagCategory.BOSS);  // Blood moon helm
+		source(29073, "Moons of Peril", TagCategory.BOSS);  // Blood moon helm
 		source(28997, "Moons of Peril", TagCategory.BOSS);  // Dual macuahuitl
 		source(28991, "Moons of Peril", TagCategory.BOSS);  // Atlatl dart
 
 		// Nex
 		source(11276, "Nex", TagCategory.BOSS);  // Nexling
+		source(11277, "Nex", TagCategory.BOSS);  // Nexling
+		source(26348, "Nex", TagCategory.BOSS);  // Nexling
 		source(26370, "Nex", TagCategory.BOSS);  // Ancient hilt
 		source(26372, "Nex", TagCategory.BOSS);  // Nihil horn
 		source(26235, "Nex", TagCategory.BOSS);  // Zaryte vambraces
 		source(26231, "Nex", TagCategory.BOSS);  // Nihil shard
 
 		// The Nightmare
+		source(8183, "The Nightmare", TagCategory.BOSS);  // Little nightmare
+		source(8541, "The Nightmare", TagCategory.BOSS);  // Little nightmare
 		source(9398, "The Nightmare", TagCategory.BOSS);  // Little nightmare
+		source(9399, "The Nightmare", TagCategory.BOSS);  // Little nightmare
+		source(24491, "The Nightmare", TagCategory.BOSS);  // Little nightmare
+		source(25836, "The Nightmare", TagCategory.BOSS);  // Little nightmare
 		source(24417, "The Nightmare", TagCategory.BOSS);  // Inquisitor's mace
 		source(24419, "The Nightmare", TagCategory.BOSS);  // Inquisitor's great helm
 		source(24420, "The Nightmare", TagCategory.BOSS);  // Inquisitor's hauberk
@@ -352,6 +608,14 @@ public final class ItemSourceData
 
 		// Phantom Muspah
 		source(12005, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(12006, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(12007, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(12014, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(12015, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(12016, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(27590, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(27592, "Phantom Muspah", TagCategory.BOSS);  // Muphin
+		source(27593, "Phantom Muspah", TagCategory.BOSS);  // Muphin
 		source(27614, "Phantom Muspah", TagCategory.BOSS);  // Venator shard
 		source(27627, "Phantom Muspah", TagCategory.BOSS);  // Ancient icon
 		source(27643, "Phantom Muspah", TagCategory.BOSS);  // Charged ice
@@ -360,6 +624,11 @@ public final class ItemSourceData
 
 		// Royal Titans
 		source(10476, "Royal Titans", TagCategory.BOSS);  // Bran
+		source(12592, "Royal Titans", TagCategory.BOSS);  // Bran
+		source(12593, "Royal Titans", TagCategory.BOSS);  // Bran
+		source(12595, "Royal Titans", TagCategory.BOSS);  // Bran
+		source(30622, "Royal Titans", TagCategory.BOSS);  // Bran
+		source(30624, "Royal Titans", TagCategory.BOSS);  // Bran
 		source(30626, "Royal Titans", TagCategory.BOSS);  // Deadeye prayer scroll
 		source(30627, "Royal Titans", TagCategory.BOSS);  // Mystic vigour prayer scroll
 		source(30628, "Royal Titans", TagCategory.BOSS);  // Ice element staff crown
@@ -368,28 +637,47 @@ public final class ItemSourceData
 
 		// Sarachnis
 		source(2143, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(2144, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(11157, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(11158, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(11159, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(11160, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(23495, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(25842, "Sarachnis", TagCategory.BOSS);  // Sraracha
+		source(25843, "Sarachnis", TagCategory.BOSS);  // Sraracha
 		source(23525, "Sarachnis", TagCategory.BOSS);  // Jar of eyes
 		source(23528, "Sarachnis", TagCategory.BOSS);  // Sarachnis cudgel
 		source(33133, "Sarachnis", TagCategory.BOSS);  // Pristine spider silk
 
 		// Scorpia
 		source(5547, "Scorpia", TagCategory.BOSS);  // Scorpia's offspring
+		source(5561, "Scorpia", TagCategory.BOSS);  // Scorpia's offspring
+		source(13181, "Scorpia", TagCategory.BOSS);  // Scorpia's offspring
 		source(11930, "Scorpia", TagCategory.BOSS);  // Odium shard 3
 		source(11933, "Scorpia", TagCategory.BOSS);  // Malediction shard 3
 		source(7158, "Scorpia", TagCategory.BOSS);  // Dragon 2h sword
 
 		// Scurrius
 		source(7219, "Scurrius", TagCategory.BOSS);  // Scurry
+		source(7616, "Scurrius", TagCategory.BOSS);  // Scurry
+		source(28801, "Scurrius", TagCategory.BOSS);  // Scurry
 		source(28798, "Scurrius", TagCategory.BOSS);  // Scurrius' spine
 
 		// Shellbane Gryphon
 		source(14931, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
+		source(14932, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
+		source(15059, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
+		source(15060, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
+		source(31285, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
+		source(31287, "Shellbane Gryphon", TagCategory.BOSS);  // Gull (pet)
 		source(32921, "Shellbane Gryphon", TagCategory.BOSS);  // Jar of feathers
 		source(31245, "Shellbane Gryphon", TagCategory.BOSS);  // Belle's folly (tarnished)
 		source(31235, "Shellbane Gryphon", TagCategory.BOSS);  // Gryphon feather
 
 		// Skotizo
 		source(425, "Skotizo", TagCategory.BOSS);  // Skotos
+		source(7671, "Skotizo", TagCategory.BOSS);  // Skotos
+		source(21273, "Skotizo", TagCategory.BOSS);  // Skotos
 		source(19701, "Skotizo", TagCategory.BOSS);  // Jar of darkness
 		source(21275, "Skotizo", TagCategory.BOSS);  // Dark claw
 		source(19685, "Skotizo", TagCategory.BOSS);  // Dark totem
@@ -398,6 +686,8 @@ public final class ItemSourceData
 
 		// Tempoross
 		source(10562, "Tempoross", TagCategory.BOSS);  // Tiny tempor
+		source(10637, "Tempoross", TagCategory.BOSS);  // Tiny tempor
+		source(25602, "Tempoross", TagCategory.BOSS);  // Tiny tempor
 		source(25559, "Tempoross", TagCategory.BOSS);  // Big harpoonfish
 		source(25592, "Tempoross", TagCategory.BOSS);  // Spirit angler headband
 		source(25594, "Tempoross", TagCategory.BOSS);  // Spirit angler top
@@ -406,11 +696,17 @@ public final class ItemSourceData
 		source(25578, "Tempoross", TagCategory.BOSS);  // Soaked page
 		source(25580, "Tempoross", TagCategory.BOSS);  // Tackle box
 		source(25582, "Tempoross", TagCategory.BOSS);  // Fish barrel
+		source(25584, "Tempoross", TagCategory.BOSS);  // Fish barrel
 		source(21028, "Tempoross", TagCategory.BOSS);  // Dragon harpoon
 		source(25588, "Tempoross", TagCategory.BOSS);  // Spirit flakes
 
 		// Thermonuclear smoke devil
 		source(6639, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
+		source(6655, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
+		source(8482, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
+		source(8483, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
+		source(12648, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
+		source(22663, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
 		source(12002, "Thermonuclear smoke devil", TagCategory.BOSS);  // Occult necklace
 		source(11998, "Thermonuclear smoke devil", TagCategory.BOSS);  // Smoke battlestaff
 		source(3140, "Thermonuclear smoke devil", TagCategory.BOSS);  // Dragon chainbody
@@ -418,6 +714,8 @@ public final class ItemSourceData
 
 		// Vardorvis
 		source(12154, "Vardorvis", TagCategory.BOSS);  // Butch
+		source(12158, "Vardorvis", TagCategory.BOSS);  // Butch
+		source(28248, "Vardorvis", TagCategory.BOSS);  // Butch
 		source(28319, "Vardorvis", TagCategory.BOSS);  // Executioner's axe head
 		source(26241, "Vardorvis", TagCategory.BOSS);  // Virtus mask
 		source(26243, "Vardorvis", TagCategory.BOSS);  // Virtus robe top
@@ -430,6 +728,11 @@ public final class ItemSourceData
 
 		// Venenatis and Spindel
 		source(495, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
+		source(5557, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
+		source(11981, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
+		source(11985, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
+		source(13177, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
+		source(27648, "Venenatis and Spindel", TagCategory.BOSS);  // Venenatis spiderling
 		source(12605, "Venenatis and Spindel", TagCategory.BOSS);  // Treasonous ring
 		source(11920, "Venenatis and Spindel", TagCategory.BOSS);  // Dragon pickaxe
 		source(7158, "Venenatis and Spindel", TagCategory.BOSS);  // Dragon 2h sword
@@ -438,6 +741,17 @@ public final class ItemSourceData
 
 		// Vet'ion and Calvar'ion
 		source(5536, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(5537, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(5559, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(5560, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(11983, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(11984, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(11987, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(11988, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(13179, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(13180, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(27650, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
+		source(27651, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Vet'ion jr.
 		source(12601, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Ring of the gods
 		source(11920, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Dragon pickaxe
 		source(7158, "Vet'ion and Calvar'ion", TagCategory.BOSS);  // Dragon 2h sword
@@ -446,6 +760,8 @@ public final class ItemSourceData
 
 		// Vorkath
 		source(8025, "Vorkath", TagCategory.BOSS);  // Vorki
+		source(8029, "Vorkath", TagCategory.BOSS);  // Vorki
+		source(21992, "Vorkath", TagCategory.BOSS);  // Vorki
 		source(21907, "Vorkath", TagCategory.BOSS);  // Vorkath's head
 		source(11286, "Vorkath", TagCategory.BOSS);  // Draconic visage
 		source(22006, "Vorkath", TagCategory.BOSS);  // Skeletal visage
@@ -454,6 +770,8 @@ public final class ItemSourceData
 
 		// The Whisperer
 		source(12153, "The Whisperer", TagCategory.BOSS);  // Wisp
+		source(12157, "The Whisperer", TagCategory.BOSS);  // Wisp
+		source(28246, "The Whisperer", TagCategory.BOSS);  // Wisp
 		source(28323, "The Whisperer", TagCategory.BOSS);  // Siren's staff
 		source(26241, "The Whisperer", TagCategory.BOSS);  // Virtus mask
 		source(26243, "The Whisperer", TagCategory.BOSS);  // Virtus robe top
@@ -465,7 +783,21 @@ public final class ItemSourceData
 		source(28334, "The Whisperer", TagCategory.BOSS);  // Awakener's orb
 
 		// Wintertodt
+		source(3077, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3078, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3079, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3080, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3081, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3082, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3083, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(3084, "Wintertodt", TagCategory.BOSS);  // Phoenix
 		source(7368, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(7370, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(20693, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(24483, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(24484, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(24485, "Wintertodt", TagCategory.BOSS);  // Phoenix
+		source(24486, "Wintertodt", TagCategory.BOSS);  // Phoenix
 		source(20718, "Wintertodt", TagCategory.BOSS);  // Burnt page
 		source(20704, "Wintertodt", TagCategory.BOSS);  // Pyromancer garb
 		source(20708, "Wintertodt", TagCategory.BOSS);  // Pyromancer hood
@@ -477,6 +809,8 @@ public final class ItemSourceData
 
 		// Yama
 		source(14203, "Yama", TagCategory.BOSS);  // Yami
+		source(14204, "Yama", TagCategory.BOSS);  // Yami
+		source(30888, "Yama", TagCategory.BOSS);  // Yami
 		source(30775, "Yama", TagCategory.BOSS);  // Chasm teleport scroll
 		source(30765, "Yama", TagCategory.BOSS);  // Oathplate shards
 		source(30750, "Yama", TagCategory.BOSS);  // Oathplate helm
@@ -486,15 +820,26 @@ public final class ItemSourceData
 		source(30806, "Yama", TagCategory.BOSS);  // Rite of vile transference
 		source(30763, "Yama", TagCategory.BOSS);  // Forgotten lockbox
 		source(30803, "Yama", TagCategory.BOSS);  // Dossier
+		source(30805, "Yama", TagCategory.BOSS);  // Dossier
 
 		// Zalcano
 		source(8731, "Zalcano", TagCategory.BOSS);  // Smolcano
+		source(8739, "Zalcano", TagCategory.BOSS);  // Smolcano
+		source(23760, "Zalcano", TagCategory.BOSS);  // Smolcano
 		source(23953, "Zalcano", TagCategory.BOSS);  // Crystal tool seed
 		source(23908, "Zalcano", TagCategory.BOSS);  // Zalcano shard
 		source(6571, "Zalcano", TagCategory.BOSS);  // Uncut onyx
 
 		// Zulrah
 		source(2127, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(2128, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(2129, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(2130, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(2131, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(2132, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(12921, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(12939, "Zulrah", TagCategory.BOSS);  // Pet snakeling
+		source(12940, "Zulrah", TagCategory.BOSS);  // Pet snakeling
 		source(13200, "Zulrah", TagCategory.BOSS);  // Tanzanite mutagen
 		source(13201, "Zulrah", TagCategory.BOSS);  // Magma mutagen
 		source(12936, "Zulrah", TagCategory.BOSS);  // Jar of swamp
@@ -509,6 +854,29 @@ public final class ItemSourceData
 
 		// Chambers of Xeric
 		source(7519, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(7520, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8196, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8197, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8198, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8199, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8200, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8201, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8202, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8203, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8204, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(8205, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(9511, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(9512, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(9513, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(9514, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(20851, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(22376, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(22378, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(22380, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(22382, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(22384, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(24656, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
+		source(24658, "Chambers of Xeric", TagCategory.RAID);  // Olmlet
 		source(22386, "Chambers of Xeric", TagCategory.RAID);  // Metamorphic dust
 		source(20997, "Chambers of Xeric", TagCategory.RAID);  // Twisted bow
 		source(21003, "Chambers of Xeric", TagCategory.RAID);  // Elder maul
@@ -534,6 +902,23 @@ public final class ItemSourceData
 
 		// Theatre of Blood
 		source(8336, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(8337, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10761, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10762, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10763, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10764, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10765, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10870, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10871, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10872, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10873, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(10874, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(22473, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(25748, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(25749, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(25750, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(25751, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
+		source(25752, "Theatre of Blood", TagCategory.RAID);  // Lil' zik
 		source(22324, "Theatre of Blood", TagCategory.RAID);  // Ghrazi rapier
 		source(22326, "Theatre of Blood", TagCategory.RAID);  // Justiciar faceguard
 		source(22327, "Theatre of Blood", TagCategory.RAID);  // Justiciar chestguard
@@ -551,6 +936,29 @@ public final class ItemSourceData
 
 		// Tombs of Amascut
 		source(11652, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11653, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11812, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11813, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11840, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11841, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11842, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11843, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11844, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11845, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11846, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11847, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11848, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11849, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11850, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(11851, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27352, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27354, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27382, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27383, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27384, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27385, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27386, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
+		source(27387, "Tombs of Amascut", TagCategory.RAID);  // Tumeken's guardian
 		source(25985, "Tombs of Amascut", TagCategory.RAID);  // Elidinis' ward
 		source(27226, "Tombs of Amascut", TagCategory.RAID);  // Masori mask
 		source(27229, "Tombs of Amascut", TagCategory.RAID);  // Masori body
@@ -844,6 +1252,7 @@ public final class ItemSourceData
 		source(12349, "Medium Treasure Trails", TagCategory.CLUE);  // Gold elegant legs
 		source(12345, "Medium Treasure Trails", TagCategory.CLUE);  // Gold elegant skirt
 		source(20275, "Medium Treasure Trails", TagCategory.CLUE);  // Gnomish firelighter
+		source(20278, "Medium Treasure Trails", TagCategory.CLUE);  // Gnomish firelighter
 		source(10364, "Medium Treasure Trails", TagCategory.CLUE);  // Strength amulet (t)
 		source(10282, "Medium Treasure Trails", TagCategory.CLUE);  // Yew comp bow
 
@@ -980,7 +1389,13 @@ public final class ItemSourceData
 		source(19918, "Hard Treasure Trails", TagCategory.CLUE);  // Nunchaku
 		source(23206, "Hard Treasure Trails", TagCategory.CLUE);  // Dual sai
 		source(12379, "Hard Treasure Trails", TagCategory.CLUE);  // Rune cane
+		source(10354, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
+		source(10356, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
+		source(10358, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
+		source(10360, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
 		source(10362, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
+		source(11964, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
+		source(11966, "Hard Treasure Trails", TagCategory.CLUE);  // Amulet of glory (t)
 		source(10284, "Hard Treasure Trails", TagCategory.CLUE);  // Magic comp bow
 
 		// Elite Treasure Trails
@@ -1046,6 +1461,8 @@ public final class ItemSourceData
 
 		// Master Treasure Trails
 		source(6296, "Master Treasure Trails", TagCategory.CLUE);  // Bloodhound
+		source(7232, "Master Treasure Trails", TagCategory.CLUE);  // Bloodhound
+		source(19730, "Master Treasure Trails", TagCategory.CLUE);  // Bloodhound
 		source(23185, "Master Treasure Trails", TagCategory.CLUE);  // Ring of 3rd age
 		source(20068, "Master Treasure Trails", TagCategory.CLUE);  // Armadyl godsword ornament kit
 		source(20071, "Master Treasure Trails", TagCategory.CLUE);  // Bandos godsword ornament kit
@@ -1252,6 +1669,7 @@ public final class ItemSourceData
 		source(12642, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Lumberyard teleport
 		source(12410, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Iorwerth camp teleport
 		source(21387, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Master scroll book
+		source(21389, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Master scroll book
 		source(7329, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Red firelighter
 		source(7330, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Green firelighter
 		source(7331, "Shared Treasure Trail Rewards", TagCategory.CLUE);  // Blue firelighter
@@ -1279,14 +1697,29 @@ public final class ItemSourceData
 
 		// Barbarian Assault
 		source(6642, "Barbarian Assault", TagCategory.MINIGAME);  // Pet penance queen
+		source(6674, "Barbarian Assault", TagCategory.MINIGAME);  // Pet penance queen
+		source(12703, "Barbarian Assault", TagCategory.MINIGAME);  // Pet penance queen
 		source(10548, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter hat
+		source(20507, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter hat
+		source(24173, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter hat
 		source(10550, "Barbarian Assault", TagCategory.MINIGAME);  // Ranger hat
+		source(20509, "Barbarian Assault", TagCategory.MINIGAME);  // Ranger hat
+		source(24174, "Barbarian Assault", TagCategory.MINIGAME);  // Ranger hat
 		source(10549, "Barbarian Assault", TagCategory.MINIGAME);  // Runner hat
+		source(24531, "Barbarian Assault", TagCategory.MINIGAME);  // Runner hat
+		source(24533, "Barbarian Assault", TagCategory.MINIGAME);  // Runner hat
 		source(10547, "Barbarian Assault", TagCategory.MINIGAME);  // Healer hat
+		source(20511, "Barbarian Assault", TagCategory.MINIGAME);  // Healer hat
+		source(24172, "Barbarian Assault", TagCategory.MINIGAME);  // Healer hat
 		source(10551, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter torso
+		source(20513, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter torso
+		source(24175, "Barbarian Assault", TagCategory.MINIGAME);  // Fighter torso
 		source(10555, "Barbarian Assault", TagCategory.MINIGAME);  // Penance skirt
+		source(20515, "Barbarian Assault", TagCategory.MINIGAME);  // Penance skirt
+		source(24176, "Barbarian Assault", TagCategory.MINIGAME);  // Penance skirt
 		source(10552, "Barbarian Assault", TagCategory.MINIGAME);  // Runner boots
 		source(10553, "Barbarian Assault", TagCategory.MINIGAME);  // Penance gloves
+		source(10554, "Barbarian Assault", TagCategory.MINIGAME);  // Penance gloves
 		source(10589, "Barbarian Assault", TagCategory.MINIGAME);  // Granite helm
 		source(10564, "Barbarian Assault", TagCategory.MINIGAME);  // Granite body
 
@@ -1306,11 +1739,17 @@ public final class ItemSourceData
 		source(29482, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Brimhaven voucher
 		source(2997, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Pirate's hook
 		source(21061, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful hood (Agility Arena)
+		source(21063, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful hood (Agility Arena)
 		source(21067, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful top (Agility Arena)
+		source(21069, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful top (Agility Arena)
 		source(21070, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful legs (Agility Arena)
+		source(21072, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful legs (Agility Arena)
 		source(21073, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful gloves (Agility Arena)
+		source(21075, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful gloves (Agility Arena)
 		source(21076, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful boots (Agility Arena)
+		source(21078, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful boots (Agility Arena)
 		source(21064, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful cape (Agility Arena)
+		source(21066, "Brimhaven Agility Arena", TagCategory.MINIGAME);  // Graceful cape (Agility Arena)
 
 		// Castle Wars
 		source(4071, "Castle Wars", TagCategory.MINIGAME);  // Decorative helm (red)
@@ -1330,28 +1769,64 @@ public final class ItemSourceData
 		source(11894, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (white plateskirt)
 		source(25167, "Castle Wars", TagCategory.MINIGAME);  // Decorative boots (white)
 		source(4511, "Castle Wars", TagCategory.MINIGAME);  // Decorative helm (gold)
+		source(20489, "Castle Wars", TagCategory.MINIGAME);  // Decorative helm (gold)
+		source(24160, "Castle Wars", TagCategory.MINIGAME);  // Decorative helm (gold)
+		source(25157, "Castle Wars", TagCategory.MINIGAME);  // Decorative full helm (gold)
 		source(25174, "Castle Wars", TagCategory.MINIGAME);  // Decorative full helm (gold)
+		source(25176, "Castle Wars", TagCategory.MINIGAME);  // Decorative full helm (gold)
 		source(4509, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platebody)
+		source(20485, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platebody)
+		source(24158, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platebody)
 		source(4508, "Castle Wars", TagCategory.MINIGAME);  // Decorative sword (gold)
+		source(20483, "Castle Wars", TagCategory.MINIGAME);  // Decorative sword (gold)
+		source(24157, "Castle Wars", TagCategory.MINIGAME);  // Decorative sword (gold)
 		source(4512, "Castle Wars", TagCategory.MINIGAME);  // Decorative shield (gold)
+		source(20491, "Castle Wars", TagCategory.MINIGAME);  // Decorative shield (gold)
+		source(24161, "Castle Wars", TagCategory.MINIGAME);  // Decorative shield (gold)
 		source(4510, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platelegs)
+		source(20487, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platelegs)
+		source(24159, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold platelegs)
 		source(11895, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold plateskirt)
+		source(20493, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold plateskirt)
+		source(24162, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (gold plateskirt)
+		source(25155, "Castle Wars", TagCategory.MINIGAME);  // Decorative boots (gold)
 		source(25171, "Castle Wars", TagCategory.MINIGAME);  // Decorative boots (gold)
+		source(25173, "Castle Wars", TagCategory.MINIGAME);  // Decorative boots (gold)
 		source(4513, "Castle Wars", TagCategory.MINIGAME);  // Castlewars hood (Saradomin)
 		source(4514, "Castle Wars", TagCategory.MINIGAME);  // Castlewars cloak (Saradomin)
 		source(4515, "Castle Wars", TagCategory.MINIGAME);  // Castlewars hood (Zamorak)
 		source(4516, "Castle Wars", TagCategory.MINIGAME);  // Castlewars cloak (Zamorak)
 		source(4037, "Castle Wars", TagCategory.MINIGAME);  // Saradomin banner
+		source(11891, "Castle Wars", TagCategory.MINIGAME);  // Saradomin banner
 		source(4039, "Castle Wars", TagCategory.MINIGAME);  // Zamorak banner
+		source(11892, "Castle Wars", TagCategory.MINIGAME);  // Zamorak banner
 		source(11898, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic hat)
+		source(20499, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic hat)
+		source(24165, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic hat)
 		source(11896, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic top)
+		source(20495, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic top)
+		source(24163, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic top)
 		source(11897, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic legs)
+		source(20497, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic legs)
+		source(24164, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (magic legs)
 		source(11899, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged top)
+		source(20501, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged top)
+		source(24166, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged top)
 		source(11900, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged legs)
+		source(20503, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged legs)
+		source(24167, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (ranged legs)
 		source(11901, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (quiver)
+		source(20505, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (quiver)
+		source(24168, "Castle Wars", TagCategory.MINIGAME);  // Decorative armour (quiver)
 		source(12637, "Castle Wars", TagCategory.MINIGAME);  // Saradomin halo
+		source(20537, "Castle Wars", TagCategory.MINIGAME);  // Saradomin halo
+		source(24169, "Castle Wars", TagCategory.MINIGAME);  // Saradomin halo
 		source(12638, "Castle Wars", TagCategory.MINIGAME);  // Zamorak halo
+		source(20539, "Castle Wars", TagCategory.MINIGAME);  // Zamorak halo
+		source(24170, "Castle Wars", TagCategory.MINIGAME);  // Zamorak halo
 		source(12639, "Castle Wars", TagCategory.MINIGAME);  // Guthix halo
+		source(20541, "Castle Wars", TagCategory.MINIGAME);  // Guthix halo
+		source(24171, "Castle Wars", TagCategory.MINIGAME);  // Guthix halo
 
 		// Fishing Trawler
 		source(13258, "Fishing Trawler", TagCategory.MINIGAME);  // Angler hat
@@ -1378,6 +1853,8 @@ public final class ItemSourceData
 
 		// Guardians of the Rift
 		source(11402, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal protector
+		source(11429, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal protector
+		source(26901, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal protector
 		source(26792, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal pearls
 		source(26798, "Guardians of the Rift", TagCategory.MINIGAME);  // Catalytic talisman
 		source(26813, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal needle
@@ -1385,14 +1862,40 @@ public final class ItemSourceData
 		source(26809, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal blue dye
 		source(26811, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal red dye
 		source(26850, "Guardians of the Rift", TagCategory.MINIGAME);  // Hat of the eye
+		source(26858, "Guardians of the Rift", TagCategory.MINIGAME);  // Hat of the eye
+		source(26864, "Guardians of the Rift", TagCategory.MINIGAME);  // Hat of the eye
+		source(26870, "Guardians of the Rift", TagCategory.MINIGAME);  // Hat of the eye
 		source(26852, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe top of the eye
+		source(26860, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe top of the eye
+		source(26866, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe top of the eye
+		source(26872, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe top of the eye
 		source(26854, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe bottoms of the eye
+		source(26862, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe bottoms of the eye
+		source(26868, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe bottoms of the eye
+		source(26874, "Guardians of the Rift", TagCategory.MINIGAME);  // Robe bottoms of the eye
 		source(26856, "Guardians of the Rift", TagCategory.MINIGAME);  // Boots of the eye
 		source(26815, "Guardians of the Rift", TagCategory.MINIGAME);  // Ring of the elements
+		source(26818, "Guardians of the Rift", TagCategory.MINIGAME);  // Ring of the elements
 		source(26822, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26824, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26826, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26828, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26830, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26832, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26834, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26836, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26838, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26840, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26842, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26844, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26846, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
+		source(26848, "Guardians of the Rift", TagCategory.MINIGAME);  // Abyssal lantern
 		source(26820, "Guardians of the Rift", TagCategory.MINIGAME);  // Guardian's eye
 		source(26908, "Guardians of the Rift", TagCategory.MINIGAME);  // Intricate pouch
 		source(26912, "Guardians of the Rift", TagCategory.MINIGAME);  // Lost bag
+		source(26984, "Guardians of the Rift", TagCategory.MINIGAME);  // Lost bag
+		source(26986, "Guardians of the Rift", TagCategory.MINIGAME);  // Lost bag
+		source(26988, "Guardians of the Rift", TagCategory.MINIGAME);  // Lost bag
 		source(26910, "Guardians of the Rift", TagCategory.MINIGAME);  // Tarnished locket
 
 		// Hallowed Sepulchre
@@ -1405,23 +1908,58 @@ public final class ItemSourceData
 		source(24731, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Hallowed ring
 		source(24729, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Dark dye
 		source(24733, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Dark acorn
+		source(24738, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Strange old lockpick
 		source(24740, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Strange old lockpick
+		source(24736, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Ring of endurance
 		source(24844, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Ring of endurance
 		source(24763, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24765, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24767, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24769, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24771, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
 		source(24763, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24765, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24767, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24769, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24771, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
 		source(24763, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24765, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24767, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24769, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24771, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
 		source(24763, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24765, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24767, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24769, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24771, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
 		source(24763, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24765, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24767, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24769, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
+		source(24771, "Hallowed Sepulchre", TagCategory.MINIGAME);  // Mysterious page
 
 		// Last Man Standing
+		source(13317, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's chest#Cosmetic
 		source(24189, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's chest#Cosmetic
+		source(13318, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's legs#Cosmetic
 		source(24190, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's legs#Cosmetic
+		source(13319, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's cape#Cosmetic
 		source(24191, "Last Man Standing", TagCategory.MINIGAME);  // Deadman's cape#Cosmetic
+		source(24147, "Last Man Standing", TagCategory.MINIGAME);  // Armadyl halo
 		source(24192, "Last Man Standing", TagCategory.MINIGAME);  // Armadyl halo
+		source(24194, "Last Man Standing", TagCategory.MINIGAME);  // Armadyl halo
+		source(24149, "Last Man Standing", TagCategory.MINIGAME);  // Bandos halo
 		source(24195, "Last Man Standing", TagCategory.MINIGAME);  // Bandos halo
+		source(24197, "Last Man Standing", TagCategory.MINIGAME);  // Bandos halo
+		source(24151, "Last Man Standing", TagCategory.MINIGAME);  // Seren halo
 		source(24198, "Last Man Standing", TagCategory.MINIGAME);  // Seren halo
+		source(24200, "Last Man Standing", TagCategory.MINIGAME);  // Seren halo
+		source(24153, "Last Man Standing", TagCategory.MINIGAME);  // Ancient halo
 		source(24201, "Last Man Standing", TagCategory.MINIGAME);  // Ancient halo
+		source(24203, "Last Man Standing", TagCategory.MINIGAME);  // Ancient halo
+		source(24155, "Last Man Standing", TagCategory.MINIGAME);  // Brassica halo
 		source(24204, "Last Man Standing", TagCategory.MINIGAME);  // Brassica halo
+		source(24206, "Last Man Standing", TagCategory.MINIGAME);  // Brassica halo
 		source(24207, "Last Man Standing", TagCategory.MINIGAME);  // Victor's cape (1)
 		source(24209, "Last Man Standing", TagCategory.MINIGAME);  // Victor's cape (10)
 		source(24211, "Last Man Standing", TagCategory.MINIGAME);  // Victor's cape (50)
@@ -1467,22 +2005,46 @@ public final class ItemSourceData
 
 		// Mastering Mixology
 		source(29974, "Mastering Mixology", TagCategory.MINIGAME);  // Prescription goggles
+		source(29976, "Mastering Mixology", TagCategory.MINIGAME);  // Prescription goggles
 		source(29978, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist labcoat
+		source(29980, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist labcoat
 		source(29982, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist pants
+		source(29984, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist pants
 		source(29986, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist gloves
 		source(29988, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist's amulet
+		source(29990, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist's amulet
+		source(29992, "Mastering Mixology", TagCategory.MINIGAME);  // Alchemist's amulet
 		source(29996, "Mastering Mixology", TagCategory.MINIGAME);  // Reagent pouch
+		source(29998, "Mastering Mixology", TagCategory.MINIGAME);  // Reagent pouch
 
 		// Pest Control
 		source(8841, "Pest Control", TagCategory.MINIGAME);  // Void knight mace
+		source(20473, "Pest Control", TagCategory.MINIGAME);  // Void knight mace
+		source(24181, "Pest Control", TagCategory.MINIGAME);  // Void knight mace
 		source(8839, "Pest Control", TagCategory.MINIGAME);  // Void knight top
+		source(20465, "Pest Control", TagCategory.MINIGAME);  // Void knight top
+		source(24177, "Pest Control", TagCategory.MINIGAME);  // Void knight top
 		source(8840, "Pest Control", TagCategory.MINIGAME);  // Void knight robe
+		source(20469, "Pest Control", TagCategory.MINIGAME);  // Void knight robe
+		source(24179, "Pest Control", TagCategory.MINIGAME);  // Void knight robe
 		source(8842, "Pest Control", TagCategory.MINIGAME);  // Void knight gloves
+		source(20475, "Pest Control", TagCategory.MINIGAME);  // Void knight gloves
+		source(24182, "Pest Control", TagCategory.MINIGAME);  // Void knight gloves
 		source(11663, "Pest Control", TagCategory.MINIGAME);  // Void mage helm
+		source(20477, "Pest Control", TagCategory.MINIGAME);  // Void mage helm
+		source(24183, "Pest Control", TagCategory.MINIGAME);  // Void mage helm
 		source(11665, "Pest Control", TagCategory.MINIGAME);  // Void melee helm
+		source(20481, "Pest Control", TagCategory.MINIGAME);  // Void melee helm
+		source(24185, "Pest Control", TagCategory.MINIGAME);  // Void melee helm
 		source(11664, "Pest Control", TagCategory.MINIGAME);  // Void ranger helm
+		source(20479, "Pest Control", TagCategory.MINIGAME);  // Void ranger helm
+		source(24184, "Pest Control", TagCategory.MINIGAME);  // Void ranger helm
 		source(13072, "Pest Control", TagCategory.MINIGAME);  // Elite void top
+		source(20467, "Pest Control", TagCategory.MINIGAME);  // Elite void top
+		source(24178, "Pest Control", TagCategory.MINIGAME);  // Elite void top
 		source(13073, "Pest Control", TagCategory.MINIGAME);  // Elite void robe
+		source(20471, "Pest Control", TagCategory.MINIGAME);  // Elite void robe
+		source(24180, "Pest Control", TagCategory.MINIGAME);  // Elite void robe
 
 		// Rogues' Den
 		source(5554, "Rogues' Den", TagCategory.MINIGAME);  // Rogue mask
@@ -1493,6 +2055,7 @@ public final class ItemSourceData
 
 		// Shades of Mort'ton
 		source(12851, "Shades of Mort'ton", TagCategory.MINIGAME);  // Amulet of the damned
+		source(12853, "Shades of Mort'ton", TagCategory.MINIGAME);  // Amulet of the damned
 		source(12854, "Shades of Mort'ton", TagCategory.MINIGAME);  // Flamtaer bag
 		source(3470, "Shades of Mort'ton", TagCategory.MINIGAME);  // Fine cloth
 		source(25442, "Shades of Mort'ton", TagCategory.MINIGAME);  // Bronze locks
@@ -1509,7 +2072,13 @@ public final class ItemSourceData
 
 		// Soul Wars
 		source(2833, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
+		source(3564, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
+		source(3566, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
+		source(5008, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
+		source(25348, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
+		source(25350, "Soul Wars", TagCategory.MINIGAME);  // Lil' creator
 		source(25344, "Soul Wars", TagCategory.MINIGAME);  // Soul cape
+		source(25346, "Soul Wars", TagCategory.MINIGAME);  // Soul cape
 		source(25340, "Soul Wars", TagCategory.MINIGAME);  // Ectoplasmator
 
 		// Temple Trekking
@@ -1520,12 +2089,17 @@ public final class ItemSourceData
 
 		// Tithe Farm
 		source(13646, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's strawhat
+		source(13647, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's strawhat
 		source(13642, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's jacket
 		source(13640, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's boro trousers
+		source(13641, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's boro trousers
 		source(13644, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's boots
+		source(13645, "Tithe Farm", TagCategory.MINIGAME);  // Farmer's boots
 		source(13639, "Tithe Farm", TagCategory.MINIGAME);  // Seed box
+		source(24482, "Tithe Farm", TagCategory.MINIGAME);  // Seed box
 		source(13353, "Tithe Farm", TagCategory.MINIGAME);  // Gricoller's can
 		source(13226, "Tithe Farm", TagCategory.MINIGAME);  // Herb sack
+		source(24478, "Tithe Farm", TagCategory.MINIGAME);  // Herb sack
 
 		// Trouble Brewing
 		source(8952, "Trouble Brewing", TagCategory.MINIGAME);  // Blue naval shirt
@@ -1564,15 +2138,25 @@ public final class ItemSourceData
 		source(31052, "Vale Totems", TagCategory.MINIGAME);  // Bow string spool
 		source(31032, "Vale Totems", TagCategory.MINIGAME);  // Ent branch
 		source(31034, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31037, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31038, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31039, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31040, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31041, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
+		source(31042, "Vale Totems", TagCategory.MINIGAME);  // Greenman mask
 
 		// Volcanic Mine
 		source(21697, "Volcanic Mine", TagCategory.MINIGAME);  // Ash covered tome
 		source(21541, "Volcanic Mine", TagCategory.MINIGAME);  // Volcanic mine teleport
 		source(27695, "Volcanic Mine", TagCategory.MINIGAME);  // Dragon pickaxe (broken)
 		source(12013, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector helmet
+		source(29472, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector helmet
 		source(12014, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector jacket
+		source(29474, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector jacket
 		source(12015, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector legs
+		source(29476, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector legs
 		source(12016, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector boots
+		source(29478, "Volcanic Mine", TagCategory.MINIGAME);  // Prospector boots
 
 		// ==================== OTHER ====================
 
@@ -1589,68 +2173,1996 @@ public final class ItemSourceData
 
 		// All Pets
 		source(5883, "All Pets", TagCategory.OTHER);  // Abyssal orphan
+		source(5884, "All Pets", TagCategory.OTHER);  // Abyssal orphan
+		source(13262, "All Pets", TagCategory.OTHER);  // Abyssal orphan
 		source(8492, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8493, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8494, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8495, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8517, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8518, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8519, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(8520, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(22746, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(22748, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(22750, "All Pets", TagCategory.OTHER);  // Ikkle hydra
+		source(22752, "All Pets", TagCategory.OTHER);  // Ikkle hydra
 		source(497, "All Pets", TagCategory.OTHER);  // Callisto cub
+		source(5558, "All Pets", TagCategory.OTHER);  // Callisto cub
+		source(11982, "All Pets", TagCategory.OTHER);  // Callisto cub
+		source(11986, "All Pets", TagCategory.OTHER);  // Callisto cub
+		source(13178, "All Pets", TagCategory.OTHER);  // Callisto cub
+		source(27649, "All Pets", TagCategory.OTHER);  // Callisto cub
 		source(964, "All Pets", TagCategory.OTHER);  // Hellpuppy
+		source(3099, "All Pets", TagCategory.OTHER);  // Hellpuppy
+		source(13247, "All Pets", TagCategory.OTHER);  // Hellpuppy
 		source(2055, "All Pets", TagCategory.OTHER);  // Pet chaos elemental
+		source(5907, "All Pets", TagCategory.OTHER);  // Pet chaos elemental
+		source(11995, "All Pets", TagCategory.OTHER);  // Pet chaos elemental
 		source(6633, "All Pets", TagCategory.OTHER);  // Pet zilyana
+		source(6646, "All Pets", TagCategory.OTHER);  // Pet zilyana
+		source(12651, "All Pets", TagCategory.OTHER);  // Pet zilyana
 		source(318, "All Pets", TagCategory.OTHER);  // Pet dark core
+		source(388, "All Pets", TagCategory.OTHER);  // Pet dark core
+		source(8008, "All Pets", TagCategory.OTHER);  // Pet dark core
+		source(8010, "All Pets", TagCategory.OTHER);  // Pet dark core
+		source(12816, "All Pets", TagCategory.OTHER);  // Pet dark core
+		source(22318, "All Pets", TagCategory.OTHER);  // Pet dark core
 		source(6627, "All Pets", TagCategory.OTHER);  // Pet dagannoth prime
+		source(6629, "All Pets", TagCategory.OTHER);  // Pet dagannoth prime
+		source(12644, "All Pets", TagCategory.OTHER);  // Pet dagannoth prime
 		source(6626, "All Pets", TagCategory.OTHER);  // Pet dagannoth supreme
+		source(6628, "All Pets", TagCategory.OTHER);  // Pet dagannoth supreme
+		source(12643, "All Pets", TagCategory.OTHER);  // Pet dagannoth supreme
 		source(6630, "All Pets", TagCategory.OTHER);  // Pet dagannoth rex
+		source(6641, "All Pets", TagCategory.OTHER);  // Pet dagannoth rex
+		source(12645, "All Pets", TagCategory.OTHER);  // Pet dagannoth rex
 		source(5892, "All Pets", TagCategory.OTHER);  // Tzrek-jad
+		source(5893, "All Pets", TagCategory.OTHER);  // Tzrek-jad
+		source(10620, "All Pets", TagCategory.OTHER);  // Tzrek-jad
+		source(10625, "All Pets", TagCategory.OTHER);  // Tzrek-jad
+		source(13225, "All Pets", TagCategory.OTHER);  // Tzrek-jad
+		source(25519, "All Pets", TagCategory.OTHER);  // Tzrek-jad
 		source(6632, "All Pets", TagCategory.OTHER);  // Pet general graardor
+		source(6644, "All Pets", TagCategory.OTHER);  // Pet general graardor
+		source(12650, "All Pets", TagCategory.OTHER);  // Pet general graardor
 		source(6635, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(6651, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(10650, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(10651, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(12646, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(25613, "All Pets", TagCategory.OTHER);  // Baby mole
+		source(7890, "All Pets", TagCategory.OTHER);  // Noon
 		source(7891, "All Pets", TagCategory.OTHER);  // Noon
+		source(7892, "All Pets", TagCategory.OTHER);  // Noon
+		source(7893, "All Pets", TagCategory.OTHER);  // Noon
+		source(21748, "All Pets", TagCategory.OTHER);  // Noon
+		source(21750, "All Pets", TagCategory.OTHER);  // Noon
 		source(7674, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(7675, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(8009, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(8011, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(21291, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(22319, "All Pets", TagCategory.OTHER);  // Jal-nib-rek
+		source(6637, "All Pets", TagCategory.OTHER);  // Kalphite princess
 		source(6638, "All Pets", TagCategory.OTHER);  // Kalphite princess
+		source(6653, "All Pets", TagCategory.OTHER);  // Kalphite princess
+		source(6654, "All Pets", TagCategory.OTHER);  // Kalphite princess
+		source(12647, "All Pets", TagCategory.OTHER);  // Kalphite princess
+		source(12654, "All Pets", TagCategory.OTHER);  // Kalphite princess
 		source(6636, "All Pets", TagCategory.OTHER);  // Prince black dragon
+		source(6652, "All Pets", TagCategory.OTHER);  // Prince black dragon
+		source(12653, "All Pets", TagCategory.OTHER);  // Prince black dragon
 		source(6640, "All Pets", TagCategory.OTHER);  // Pet kraken
+		source(6656, "All Pets", TagCategory.OTHER);  // Pet kraken
+		source(12655, "All Pets", TagCategory.OTHER);  // Pet kraken
 		source(6631, "All Pets", TagCategory.OTHER);  // Pet kree'arra
+		source(6643, "All Pets", TagCategory.OTHER);  // Pet kree'arra
+		source(12649, "All Pets", TagCategory.OTHER);  // Pet kree'arra
 		source(6634, "All Pets", TagCategory.OTHER);  // Pet k'ril tsutsaroth
+		source(6647, "All Pets", TagCategory.OTHER);  // Pet k'ril tsutsaroth
+		source(12652, "All Pets", TagCategory.OTHER);  // Pet k'ril tsutsaroth
 		source(5547, "All Pets", TagCategory.OTHER);  // Scorpia's offspring
+		source(5561, "All Pets", TagCategory.OTHER);  // Scorpia's offspring
+		source(13181, "All Pets", TagCategory.OTHER);  // Scorpia's offspring
 		source(425, "All Pets", TagCategory.OTHER);  // Skotos
+		source(7671, "All Pets", TagCategory.OTHER);  // Skotos
+		source(21273, "All Pets", TagCategory.OTHER);  // Skotos
 		source(6639, "All Pets", TagCategory.OTHER);  // Pet smoke devil
+		source(6655, "All Pets", TagCategory.OTHER);  // Pet smoke devil
+		source(8482, "All Pets", TagCategory.OTHER);  // Pet smoke devil
+		source(8483, "All Pets", TagCategory.OTHER);  // Pet smoke devil
+		source(12648, "All Pets", TagCategory.OTHER);  // Pet smoke devil
+		source(22663, "All Pets", TagCategory.OTHER);  // Pet smoke devil
 		source(495, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
+		source(5557, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
+		source(11981, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
+		source(11985, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
+		source(13177, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
+		source(27648, "All Pets", TagCategory.OTHER);  // Venenatis spiderling
 		source(5536, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(5537, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(5559, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(5560, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(11983, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(11984, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(11987, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(11988, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(13179, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(13180, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(27650, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
+		source(27651, "All Pets", TagCategory.OTHER);  // Vet'ion jr.
 		source(8025, "All Pets", TagCategory.OTHER);  // Vorki
+		source(8029, "All Pets", TagCategory.OTHER);  // Vorki
+		source(21992, "All Pets", TagCategory.OTHER);  // Vorki
+		source(3077, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3078, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3079, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3080, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3081, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3082, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3083, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(3084, "All Pets", TagCategory.OTHER);  // Phoenix
 		source(7368, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(7370, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(20693, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(24483, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(24484, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(24485, "All Pets", TagCategory.OTHER);  // Phoenix
+		source(24486, "All Pets", TagCategory.OTHER);  // Phoenix
 		source(2127, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(2128, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(2129, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(2130, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(2131, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(2132, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(12921, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(12939, "All Pets", TagCategory.OTHER);  // Pet snakeling
+		source(12940, "All Pets", TagCategory.OTHER);  // Pet snakeling
 		source(7519, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(7520, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8196, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8197, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8198, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8199, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8200, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8201, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8202, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8203, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8204, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(8205, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(9511, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(9512, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(9513, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(9514, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(20851, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(22376, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(22378, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(22380, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(22382, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(22384, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(24656, "All Pets", TagCategory.OTHER);  // Olmlet
+		source(24658, "All Pets", TagCategory.OTHER);  // Olmlet
 		source(8336, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(8337, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10761, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10762, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10763, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10764, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10765, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10870, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10871, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10872, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10873, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(10874, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(22473, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(25748, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(25749, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(25750, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(25751, "All Pets", TagCategory.OTHER);  // Lil' zik
+		source(25752, "All Pets", TagCategory.OTHER);  // Lil' zik
 		source(6296, "All Pets", TagCategory.OTHER);  // Bloodhound
+		source(7232, "All Pets", TagCategory.OTHER);  // Bloodhound
+		source(19730, "All Pets", TagCategory.OTHER);  // Bloodhound
 		source(6642, "All Pets", TagCategory.OTHER);  // Pet penance queen
+		source(6674, "All Pets", TagCategory.OTHER);  // Pet penance queen
+		source(12703, "All Pets", TagCategory.OTHER);  // Pet penance queen
 		source(6715, "All Pets", TagCategory.OTHER);  // Heron
+		source(6722, "All Pets", TagCategory.OTHER);  // Heron
+		source(6817, "All Pets", TagCategory.OTHER);  // Heron
+		source(10636, "All Pets", TagCategory.OTHER);  // Heron
+		source(13320, "All Pets", TagCategory.OTHER);  // Heron
+		source(25600, "All Pets", TagCategory.OTHER);  // Heron
+		source(2182, "All Pets", TagCategory.OTHER);  // Rock golem
 		source(7439, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7440, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7441, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7442, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7443, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7444, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7445, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7446, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7447, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7448, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7449, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7450, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7451, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7452, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7453, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7454, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7455, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7642, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7643, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7644, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7645, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7646, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7647, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7648, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7711, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7736, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7737, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7738, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7739, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7740, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(7741, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(13321, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(14923, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(14924, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(14925, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(15051, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(15052, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(15053, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21187, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21188, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21189, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21190, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21191, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21192, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21193, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21194, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21195, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21196, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21197, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21340, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21358, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21359, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(21360, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(31276, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(31277, "All Pets", TagCategory.OTHER);  // Rock golem
+		source(31278, "All Pets", TagCategory.OTHER);  // Rock golem
 		source(12169, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12170, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12171, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12172, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12173, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12174, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12175, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12176, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12177, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12178, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12181, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12182, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12183, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12184, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12185, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12186, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12187, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12188, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12189, "All Pets", TagCategory.OTHER);  // Beaver
+		source(12190, "All Pets", TagCategory.OTHER);  // Beaver
+		source(13322, "All Pets", TagCategory.OTHER);  // Beaver
+		source(14926, "All Pets", TagCategory.OTHER);  // Beaver
+		source(14927, "All Pets", TagCategory.OTHER);  // Beaver
+		source(14928, "All Pets", TagCategory.OTHER);  // Beaver
+		source(14929, "All Pets", TagCategory.OTHER);  // Beaver
+		source(15054, "All Pets", TagCategory.OTHER);  // Beaver
+		source(15055, "All Pets", TagCategory.OTHER);  // Beaver
+		source(15056, "All Pets", TagCategory.OTHER);  // Beaver
+		source(15057, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28229, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28230, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28231, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28232, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28233, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28234, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28235, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28236, "All Pets", TagCategory.OTHER);  // Beaver
+		source(28237, "All Pets", TagCategory.OTHER);  // Beaver
+		source(31279, "All Pets", TagCategory.OTHER);  // Beaver
+		source(31280, "All Pets", TagCategory.OTHER);  // Beaver
+		source(31281, "All Pets", TagCategory.OTHER);  // Beaver
+		source(31282, "All Pets", TagCategory.OTHER);  // Beaver
+		source(6718, "All Pets", TagCategory.OTHER);  // Baby chinchompa
 		source(6719, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6720, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6721, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6756, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6757, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6758, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6759, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13323, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13324, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13325, "All Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13326, "All Pets", TagCategory.OTHER);  // Baby chinchompa
 		source(7334, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(7351, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(9637, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(9638, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(14032, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(14044, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(20659, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(24701, "All Pets", TagCategory.OTHER);  // Giant squirrel
+		source(30151, "All Pets", TagCategory.OTHER);  // Giant squirrel
 		source(7335, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(7352, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9492, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9493, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9494, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9495, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9496, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9497, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9498, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9499, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9500, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(9501, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(20661, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(24555, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(24557, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(24559, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(24561, "All Pets", TagCategory.OTHER);  // Tangleroot
+		source(24563, "All Pets", TagCategory.OTHER);  // Tangleroot
 		source(7336, "All Pets", TagCategory.OTHER);  // Rocky
+		source(7353, "All Pets", TagCategory.OTHER);  // Rocky
+		source(9850, "All Pets", TagCategory.OTHER);  // Rocky
+		source(9851, "All Pets", TagCategory.OTHER);  // Rocky
+		source(9852, "All Pets", TagCategory.OTHER);  // Rocky
+		source(9853, "All Pets", TagCategory.OTHER);  // Rocky
+		source(20663, "All Pets", TagCategory.OTHER);  // Rocky
+		source(24847, "All Pets", TagCategory.OTHER);  // Rocky
+		source(24849, "All Pets", TagCategory.OTHER);  // Rocky
 		source(7337, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7338, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7339, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7340, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7341, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7342, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7343, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7344, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7345, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7346, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7347, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7348, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7349, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7350, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7354, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7355, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7356, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7357, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7358, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7359, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7360, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7361, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7362, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7363, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7364, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7365, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7366, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(7367, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(8024, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(8028, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(11401, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(11428, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20665, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20667, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20669, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20671, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20673, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20675, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20677, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20679, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20681, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20683, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20685, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20687, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20689, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(20691, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(21990, "All Pets", TagCategory.OTHER);  // Rift guardian
+		source(26899, "All Pets", TagCategory.OTHER);  // Rift guardian
 		source(7759, "All Pets", TagCategory.OTHER);  // Herbi
+		source(7760, "All Pets", TagCategory.OTHER);  // Herbi
+		source(21509, "All Pets", TagCategory.OTHER);  // Herbi
 		source(4001, "All Pets", TagCategory.OTHER);  // Chompy chick
+		source(4002, "All Pets", TagCategory.OTHER);  // Chompy chick
+		source(13071, "All Pets", TagCategory.OTHER);  // Chompy chick
 		source(2143, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(2144, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(11157, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(11158, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(11159, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(11160, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(23495, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(25842, "All Pets", TagCategory.OTHER);  // Sraracha
+		source(25843, "All Pets", TagCategory.OTHER);  // Sraracha
 		source(8731, "All Pets", TagCategory.OTHER);  // Smolcano
+		source(8739, "All Pets", TagCategory.OTHER);  // Smolcano
+		source(23760, "All Pets", TagCategory.OTHER);  // Smolcano
 		source(8729, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(8730, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(8737, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(8738, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(23757, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(23759, "All Pets", TagCategory.OTHER);  // Youngllef
+		source(8183, "All Pets", TagCategory.OTHER);  // Little nightmare
+		source(8541, "All Pets", TagCategory.OTHER);  // Little nightmare
 		source(9398, "All Pets", TagCategory.OTHER);  // Little nightmare
+		source(9399, "All Pets", TagCategory.OTHER);  // Little nightmare
+		source(24491, "All Pets", TagCategory.OTHER);  // Little nightmare
+		source(25836, "All Pets", TagCategory.OTHER);  // Little nightmare
 		source(2833, "All Pets", TagCategory.OTHER);  // Lil' creator
+		source(3564, "All Pets", TagCategory.OTHER);  // Lil' creator
+		source(3566, "All Pets", TagCategory.OTHER);  // Lil' creator
+		source(5008, "All Pets", TagCategory.OTHER);  // Lil' creator
+		source(25348, "All Pets", TagCategory.OTHER);  // Lil' creator
+		source(25350, "All Pets", TagCategory.OTHER);  // Lil' creator
 		source(10562, "All Pets", TagCategory.OTHER);  // Tiny tempor
+		source(10637, "All Pets", TagCategory.OTHER);  // Tiny tempor
+		source(25602, "All Pets", TagCategory.OTHER);  // Tiny tempor
 		source(11276, "All Pets", TagCategory.OTHER);  // Nexling
+		source(11277, "All Pets", TagCategory.OTHER);  // Nexling
+		source(26348, "All Pets", TagCategory.OTHER);  // Nexling
 		source(11402, "All Pets", TagCategory.OTHER);  // Abyssal protector
+		source(11429, "All Pets", TagCategory.OTHER);  // Abyssal protector
+		source(26901, "All Pets", TagCategory.OTHER);  // Abyssal protector
 		source(11652, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11653, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11812, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11813, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11840, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11841, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11842, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11843, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11844, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11845, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11846, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11847, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11848, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11849, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11850, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(11851, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27352, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27354, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27382, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27383, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27384, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27385, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27386, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
+		source(27387, "All Pets", TagCategory.OTHER);  // Tumeken's guardian
 		source(12005, "All Pets", TagCategory.OTHER);  // Muphin
+		source(12006, "All Pets", TagCategory.OTHER);  // Muphin
+		source(12007, "All Pets", TagCategory.OTHER);  // Muphin
+		source(12014, "All Pets", TagCategory.OTHER);  // Muphin
+		source(12015, "All Pets", TagCategory.OTHER);  // Muphin
+		source(12016, "All Pets", TagCategory.OTHER);  // Muphin
+		source(27590, "All Pets", TagCategory.OTHER);  // Muphin
+		source(27592, "All Pets", TagCategory.OTHER);  // Muphin
+		source(27593, "All Pets", TagCategory.OTHER);  // Muphin
 		source(12153, "All Pets", TagCategory.OTHER);  // Wisp
+		source(12157, "All Pets", TagCategory.OTHER);  // Wisp
+		source(28246, "All Pets", TagCategory.OTHER);  // Wisp
 		source(12155, "All Pets", TagCategory.OTHER);  // Baron
+		source(12159, "All Pets", TagCategory.OTHER);  // Baron
+		source(28250, "All Pets", TagCategory.OTHER);  // Baron
 		source(12154, "All Pets", TagCategory.OTHER);  // Butch
+		source(12158, "All Pets", TagCategory.OTHER);  // Butch
+		source(28248, "All Pets", TagCategory.OTHER);  // Butch
 		source(12156, "All Pets", TagCategory.OTHER);  // Lil'viathan
+		source(12160, "All Pets", TagCategory.OTHER);  // Lil'viathan
+		source(28252, "All Pets", TagCategory.OTHER);  // Lil'viathan
 		source(7219, "All Pets", TagCategory.OTHER);  // Scurry
+		source(7616, "All Pets", TagCategory.OTHER);  // Scurry
+		source(28801, "All Pets", TagCategory.OTHER);  // Scurry
 		source(12767, "All Pets", TagCategory.OTHER);  // Smol heredit
+		source(12857, "All Pets", TagCategory.OTHER);  // Smol heredit
+		source(28960, "All Pets", TagCategory.OTHER);  // Smol heredit
 		source(12768, "All Pets", TagCategory.OTHER);  // Quetzin
+		source(12858, "All Pets", TagCategory.OTHER);  // Quetzin
+		source(28962, "All Pets", TagCategory.OTHER);  // Quetzin
 		source(13681, "All Pets", TagCategory.OTHER);  // Nid
+		source(13682, "All Pets", TagCategory.OTHER);  // Nid
+		source(13683, "All Pets", TagCategory.OTHER);  // Nid
+		source(13684, "All Pets", TagCategory.OTHER);  // Nid
+		source(29836, "All Pets", TagCategory.OTHER);  // Nid
+		source(29838, "All Pets", TagCategory.OTHER);  // Nid
 		source(14033, "All Pets", TagCategory.OTHER);  // Huberte
+		source(14045, "All Pets", TagCategory.OTHER);  // Huberte
+		source(30152, "All Pets", TagCategory.OTHER);  // Huberte
 		source(14034, "All Pets", TagCategory.OTHER);  // Moxi
+		source(14046, "All Pets", TagCategory.OTHER);  // Moxi
+		source(30154, "All Pets", TagCategory.OTHER);  // Moxi
 		source(10476, "All Pets", TagCategory.OTHER);  // Bran
+		source(12592, "All Pets", TagCategory.OTHER);  // Bran
+		source(12593, "All Pets", TagCategory.OTHER);  // Bran
+		source(12595, "All Pets", TagCategory.OTHER);  // Bran
+		source(30622, "All Pets", TagCategory.OTHER);  // Bran
+		source(30624, "All Pets", TagCategory.OTHER);  // Bran
 		source(14203, "All Pets", TagCategory.OTHER);  // Yami
+		source(14204, "All Pets", TagCategory.OTHER);  // Yami
+		source(30888, "All Pets", TagCategory.OTHER);  // Yami
+		source(14519, "All Pets", TagCategory.OTHER);  // Dom
+		source(14785, "All Pets", TagCategory.OTHER);  // Dom
+		source(31130, "All Pets", TagCategory.OTHER);  // Dom
+		source(14930, "All Pets", TagCategory.OTHER);  // Soup
+		source(15058, "All Pets", TagCategory.OTHER);  // Soup
+		source(31283, "All Pets", TagCategory.OTHER);  // Soup
+		source(14931, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(14932, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(15059, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(15060, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(31285, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(31287, "All Pets", TagCategory.OTHER);  // Gull (pet)
+		source(15631, "All Pets", TagCategory.OTHER);  // Beef
+		source(15633, "All Pets", TagCategory.OTHER);  // Beef
+		source(33124, "All Pets", TagCategory.OTHER);  // Beef
+
+		// Boat Paints
+		source(32087, "Boat Paints", TagCategory.OTHER);  // Barracuda paint
+		source(32090, "Boat Paints", TagCategory.OTHER);  // Shark paint
+		source(32093, "Boat Paints", TagCategory.OTHER);  // Inky paint
+		source(32096, "Boat Paints", TagCategory.OTHER);  // Angler's paint
+		source(32099, "Boat Paints", TagCategory.OTHER);  // Salvor's paint
+		source(32102, "Boat Paints", TagCategory.OTHER);  // Armadylean paint
+		source(32104, "Boat Paints", TagCategory.OTHER);  // Zamorakian paint
+		source(32106, "Boat Paints", TagCategory.OTHER);  // Guthixian paint
+		source(32108, "Boat Paints", TagCategory.OTHER);  // Saradominist paint
+		source(32110, "Boat Paints", TagCategory.OTHER);  // Merchant's paint
+		source(32113, "Boat Paints", TagCategory.OTHER);  // Sandy paint
+
+		// Camdozaal
+		source(25625, "Camdozaal", TagCategory.OTHER);  // Barronite mace
+		source(25641, "Camdozaal", TagCategory.OTHER);  // Barronite mace
+		source(25643, "Camdozaal", TagCategory.OTHER);  // Barronite mace
+		source(25635, "Camdozaal", TagCategory.OTHER);  // Barronite head
+		source(25637, "Camdozaal", TagCategory.OTHER);  // Barronite handle
+		source(25639, "Camdozaal", TagCategory.OTHER);  // Barronite guard
+		source(25686, "Camdozaal", TagCategory.OTHER);  // Ancient globe
+		source(25688, "Camdozaal", TagCategory.OTHER);  // Ancient ledger
+		source(25690, "Camdozaal", TagCategory.OTHER);  // Ancient astroscope
+		source(25692, "Camdozaal", TagCategory.OTHER);  // Ancient treatise
+		source(25694, "Camdozaal", TagCategory.OTHER);  // Ancient carcanet
+		source(25633, "Camdozaal", TagCategory.OTHER);  // Imcando hammer
+		source(25644, "Camdozaal", TagCategory.OTHER);  // Imcando hammer
+
+		// Champion's Challenge
+		source(6798, "Champion's Challenge", TagCategory.OTHER);  // Earth warrior champion scroll
+		source(6799, "Champion's Challenge", TagCategory.OTHER);  // Ghoul champion scroll
+		source(6800, "Champion's Challenge", TagCategory.OTHER);  // Giant champion scroll
+		source(6801, "Champion's Challenge", TagCategory.OTHER);  // Goblin champion scroll
+		source(6802, "Champion's Challenge", TagCategory.OTHER);  // Hobgoblin champion scroll
+		source(6803, "Champion's Challenge", TagCategory.OTHER);  // Imp champion scroll
+		source(6804, "Champion's Challenge", TagCategory.OTHER);  // Jogre champion scroll
+		source(6805, "Champion's Challenge", TagCategory.OTHER);  // Lesser demon champion scroll
+		source(6806, "Champion's Challenge", TagCategory.OTHER);  // Skeleton champion scroll
+		source(6807, "Champion's Challenge", TagCategory.OTHER);  // Zombie champion scroll
+		source(21439, "Champion's Challenge", TagCategory.OTHER);  // Champion's cape
+
+		// Chompy Bird Hunting
+		source(4001, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy chick
+		source(4002, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy chick
+		source(13071, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy chick
+		source(2978, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre bowman)
+		source(2979, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (bowman)
+		source(2980, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre yeoman)
+		source(2981, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (yeoman)
+		source(2982, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre marksman)
+		source(2983, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (marksman)
+		source(2984, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre woodsman)
+		source(2985, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (woodsman)
+		source(2986, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre forester)
+		source(2987, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (forester)
+		source(2988, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre bowmaster)
+		source(2989, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (bowmaster)
+		source(2990, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre expert)
+		source(2991, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (expert)
+		source(2992, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (ogre dragon archer)
+		source(2993, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (dragon archer)
+		source(2994, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (expert ogre dragon archer)
+		source(2995, "Chompy Bird Hunting", TagCategory.OTHER);  // Chompy bird hat (expert dragon archer)
+
+		// Colossal Wyrm Agility
+		source(30040, "Colossal Wyrm Agility", TagCategory.OTHER);  // Colossal wyrm teleport scroll
+		source(30042, "Colossal Wyrm Agility", TagCategory.OTHER);  // Calcified acorn
+		source(30045, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful hood (Varlamore)
+		source(30047, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful hood (Varlamore)
+		source(30051, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful top (Varlamore)
+		source(30053, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful top (Varlamore)
+		source(30054, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful legs (Varlamore)
+		source(30056, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful legs (Varlamore)
+		source(30057, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful gloves (Varlamore)
+		source(30059, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful gloves (Varlamore)
+		source(30060, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful boots (Varlamore)
+		source(30062, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful boots (Varlamore)
+		source(30048, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful cape (Varlamore)
+		source(30050, "Colossal Wyrm Agility", TagCategory.OTHER);  // Graceful cape (Varlamore)
+
+		// Creature Creation
+		source(10859, "Creature Creation", TagCategory.OTHER);  // Tea flask
+		source(10877, "Creature Creation", TagCategory.OTHER);  // Plain satchel
+		source(10878, "Creature Creation", TagCategory.OTHER);  // Green satchel
+		source(10879, "Creature Creation", TagCategory.OTHER);  // Red satchel
+		source(10880, "Creature Creation", TagCategory.OTHER);  // Black satchel
+		source(10881, "Creature Creation", TagCategory.OTHER);  // Gold satchel
+		source(10882, "Creature Creation", TagCategory.OTHER);  // Rune satchel
+
+		// Cyclopes
+		source(8844, "Cyclopes", TagCategory.OTHER);  // Bronze defender
+		source(20449, "Cyclopes", TagCategory.OTHER);  // Bronze defender
+		source(24136, "Cyclopes", TagCategory.OTHER);  // Bronze defender
+		source(8845, "Cyclopes", TagCategory.OTHER);  // Iron defender
+		source(20451, "Cyclopes", TagCategory.OTHER);  // Iron defender
+		source(24137, "Cyclopes", TagCategory.OTHER);  // Iron defender
+		source(8846, "Cyclopes", TagCategory.OTHER);  // Steel defender
+		source(20453, "Cyclopes", TagCategory.OTHER);  // Steel defender
+		source(24138, "Cyclopes", TagCategory.OTHER);  // Steel defender
+		source(8847, "Cyclopes", TagCategory.OTHER);  // Black defender
+		source(20455, "Cyclopes", TagCategory.OTHER);  // Black defender
+		source(24139, "Cyclopes", TagCategory.OTHER);  // Black defender
+		source(8848, "Cyclopes", TagCategory.OTHER);  // Mithril defender
+		source(20457, "Cyclopes", TagCategory.OTHER);  // Mithril defender
+		source(24140, "Cyclopes", TagCategory.OTHER);  // Mithril defender
+		source(8849, "Cyclopes", TagCategory.OTHER);  // Adamant defender
+		source(20459, "Cyclopes", TagCategory.OTHER);  // Adamant defender
+		source(24141, "Cyclopes", TagCategory.OTHER);  // Adamant defender
+		source(8850, "Cyclopes", TagCategory.OTHER);  // Rune defender
+		source(20461, "Cyclopes", TagCategory.OTHER);  // Rune defender
+		source(24142, "Cyclopes", TagCategory.OTHER);  // Rune defender
+		source(12954, "Cyclopes", TagCategory.OTHER);  // Dragon defender
+		source(20463, "Cyclopes", TagCategory.OTHER);  // Dragon defender
+		source(24143, "Cyclopes", TagCategory.OTHER);  // Dragon defender
+
+		// Elder Chaos Druids
+		source(20517, "Elder Chaos Druids", TagCategory.OTHER);  // Elder chaos top
+		source(20520, "Elder Chaos Druids", TagCategory.OTHER);  // Elder chaos robe
+		source(20595, "Elder Chaos Druids", TagCategory.OTHER);  // Elder chaos hood
+
+		// Forestry
+		source(28626, "Forestry", TagCategory.OTHER);  // Fox whistle
+		source(28663, "Forestry", TagCategory.OTHER);  // Golden pheasant egg
+		source(10941, "Forestry", TagCategory.OTHER);  // Lumberjack hat
+		source(10939, "Forestry", TagCategory.OTHER);  // Lumberjack top
+		source(10940, "Forestry", TagCategory.OTHER);  // Lumberjack legs
+		source(10933, "Forestry", TagCategory.OTHER);  // Lumberjack boots
+		source(28173, "Forestry", TagCategory.OTHER);  // Forestry hat
+		source(28169, "Forestry", TagCategory.OTHER);  // Forestry top
+		source(28171, "Forestry", TagCategory.OTHER);  // Forestry legs
+		source(28175, "Forestry", TagCategory.OTHER);  // Forestry boots
+		source(28630, "Forestry", TagCategory.OTHER);  // Twitcher's gloves
+		source(28138, "Forestry", TagCategory.OTHER);  // Funky shaped log
+		source(28140, "Forestry", TagCategory.OTHER);  // Log basket
+		source(28142, "Forestry", TagCategory.OTHER);  // Log basket
+		source(28146, "Forestry", TagCategory.OTHER);  // Log brace
+		source(28166, "Forestry", TagCategory.OTHER);  // Clothes pouch blueprint
+		source(28613, "Forestry", TagCategory.OTHER);  // Cape pouch
+		source(28177, "Forestry", TagCategory.OTHER);  // Felling axe handle
+		source(28620, "Forestry", TagCategory.OTHER);  // Pheasant hat
+		source(28622, "Forestry", TagCategory.OTHER);  // Pheasant legs
+		source(28618, "Forestry", TagCategory.OTHER);  // Pheasant boots
+		source(28616, "Forestry", TagCategory.OTHER);  // Pheasant cape
+		source(28655, "Forestry", TagCategory.OTHER);  // Petal garland
+		source(28674, "Forestry", TagCategory.OTHER);  // Sturdy beehive parts
+
+		// Fossil Island Notes
+		source(21664, "Fossil Island Notes", TagCategory.OTHER);  // Scribbled note
+		source(21666, "Fossil Island Notes", TagCategory.OTHER);  // Partial note
+		source(21668, "Fossil Island Notes", TagCategory.OTHER);  // Ancient note
+		source(21670, "Fossil Island Notes", TagCategory.OTHER);  // Ancient writings
+		source(21672, "Fossil Island Notes", TagCategory.OTHER);  // Experimental note
+		source(21674, "Fossil Island Notes", TagCategory.OTHER);  // Paragraph of text
+		source(21676, "Fossil Island Notes", TagCategory.OTHER);  // Musty smelling note
+		source(21678, "Fossil Island Notes", TagCategory.OTHER);  // Hastily scrawled note
+		source(21680, "Fossil Island Notes", TagCategory.OTHER);  // Old writing
+		source(21682, "Fossil Island Notes", TagCategory.OTHER);  // Short note
+
+		// Glough's Experiments
+		source(19529, "Glough's Experiments", TagCategory.OTHER);  // Zenyte shard
+		source(19586, "Glough's Experiments", TagCategory.OTHER);  // Light frame
+		source(19589, "Glough's Experiments", TagCategory.OTHER);  // Heavy frame
+		source(19592, "Glough's Experiments", TagCategory.OTHER);  // Ballista limbs
+		source(19610, "Glough's Experiments", TagCategory.OTHER);  // Monkey tail
+		source(19601, "Glough's Experiments", TagCategory.OTHER);  // Ballista spring
+
+		// Hunter Guild
+		source(12768, "Hunter Guild", TagCategory.OTHER);  // Quetzin
+		source(12858, "Hunter Guild", TagCategory.OTHER);  // Quetzin
+		source(28962, "Hunter Guild", TagCategory.OTHER);  // Quetzin
+		source(29309, "Hunter Guild", TagCategory.OTHER);  // Huntsman's kit
+		source(29263, "Hunter Guild", TagCategory.OTHER);  // Guild hunter headwear
+		source(29265, "Hunter Guild", TagCategory.OTHER);  // Guild hunter top
+		source(29267, "Hunter Guild", TagCategory.OTHER);  // Guild hunter legs
+		source(29269, "Hunter Guild", TagCategory.OTHER);  // Guild hunter boots
+
+		// Lost Schematics
+		source(32401, "Lost Schematics", TagCategory.OTHER);  // Salvaging station schematic
+		source(32402, "Lost Schematics", TagCategory.OTHER);  // Gale catcher schematic
+		source(32403, "Lost Schematics", TagCategory.OTHER);  // Eternal brazier schematic
+		source(32405, "Lost Schematics", TagCategory.OTHER);  // Rosewood cargo hold schematic
+		source(32407, "Lost Schematics", TagCategory.OTHER);  // Rosewood hull schematic
+		source(32408, "Lost Schematics", TagCategory.OTHER);  // Rosewood & cotton sails schematic
+		source(32409, "Lost Schematics", TagCategory.OTHER);  // Dragon helm schematic
+		source(32410, "Lost Schematics", TagCategory.OTHER);  // Dragon keel schematic
+		source(32404, "Lost Schematics", TagCategory.OTHER);  // Dragon salvaging hook schematic
+		source(32406, "Lost Schematics", TagCategory.OTHER);  // Dragon cannon schematic
+		source(33143, "Lost Schematics", TagCategory.OTHER);  // Ballistic attractor schematic
+
+		// Monkey Backpacks
+		source(24862, "Monkey Backpacks", TagCategory.OTHER);  // Karamjan monkey (item)
+		source(24866, "Monkey Backpacks", TagCategory.OTHER);  // Kruk jr
+		source(24864, "Monkey Backpacks", TagCategory.OTHER);  // Maniacal monkey (item)
+		source(24867, "Monkey Backpacks", TagCategory.OTHER);  // Princely monkey
+		source(24865, "Monkey Backpacks", TagCategory.OTHER);  // Skeleton monkey (item)
+		source(24863, "Monkey Backpacks", TagCategory.OTHER);  // Zombie monkey (item)
+
+		// Motherlode Mine
+		source(12019, "Motherlode Mine", TagCategory.OTHER);  // Coal bag
+		source(24480, "Motherlode Mine", TagCategory.OTHER);  // Coal bag
+		source(12020, "Motherlode Mine", TagCategory.OTHER);  // Gem bag
+		source(24481, "Motherlode Mine", TagCategory.OTHER);  // Gem bag
+		source(12013, "Motherlode Mine", TagCategory.OTHER);  // Prospector helmet
+		source(29472, "Motherlode Mine", TagCategory.OTHER);  // Prospector helmet
+		source(12014, "Motherlode Mine", TagCategory.OTHER);  // Prospector jacket
+		source(29474, "Motherlode Mine", TagCategory.OTHER);  // Prospector jacket
+		source(12015, "Motherlode Mine", TagCategory.OTHER);  // Prospector legs
+		source(29476, "Motherlode Mine", TagCategory.OTHER);  // Prospector legs
+		source(12016, "Motherlode Mine", TagCategory.OTHER);  // Prospector boots
+		source(29478, "Motherlode Mine", TagCategory.OTHER);  // Prospector boots
+
+		// My Notes
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11341, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11342, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11343, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11344, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11345, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11346, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11347, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11348, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11349, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11350, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11351, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11352, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11353, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11354, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11355, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11356, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11357, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11358, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11359, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11360, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11361, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11362, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11363, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11364, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11365, "My Notes", TagCategory.OTHER);  // Ancient page
+		source(11366, "My Notes", TagCategory.OTHER);  // Ancient page
+
+		// Ocean Encounters
+		source(31770, "Ocean Encounters", TagCategory.OTHER);  // Tiny pearl
+		source(31773, "Ocean Encounters", TagCategory.OTHER);  // Small pearl
+		source(31776, "Ocean Encounters", TagCategory.OTHER);  // Shiny pearl
+		source(31779, "Ocean Encounters", TagCategory.OTHER);  // Bright pearl
+		source(31782, "Ocean Encounters", TagCategory.OTHER);  // Big pearl
+		source(31785, "Ocean Encounters", TagCategory.OTHER);  // Huge pearl
+		source(31788, "Ocean Encounters", TagCategory.OTHER);  // Enormous pearl
+		source(31791, "Ocean Encounters", TagCategory.OTHER);  // Shimmering pearl
+		source(31794, "Ocean Encounters", TagCategory.OTHER);  // Glistening pearl
+		source(31797, "Ocean Encounters", TagCategory.OTHER);  // Brilliant pearl
+		source(31800, "Ocean Encounters", TagCategory.OTHER);  // Radiant pearl
+
+		// Random Events
+		source(6654, "Random Events", TagCategory.OTHER);  // Camo top
+		source(6655, "Random Events", TagCategory.OTHER);  // Camo bottoms
+		source(6656, "Random Events", TagCategory.OTHER);  // Camo helmet
+		source(6180, "Random Events", TagCategory.OTHER);  // Lederhosen top
+		source(6181, "Random Events", TagCategory.OTHER);  // Lederhosen shorts
+		source(6182, "Random Events", TagCategory.OTHER);  // Lederhosen hat
+		source(7592, "Random Events", TagCategory.OTHER);  // Zombie shirt
+		source(7593, "Random Events", TagCategory.OTHER);  // Zombie trousers
+		source(7594, "Random Events", TagCategory.OTHER);  // Zombie mask
+		source(7595, "Random Events", TagCategory.OTHER);  // Zombie gloves
+		source(7596, "Random Events", TagCategory.OTHER);  // Zombie boots
+		source(3057, "Random Events", TagCategory.OTHER);  // Mime mask
+		source(3058, "Random Events", TagCategory.OTHER);  // Mime top
+		source(3059, "Random Events", TagCategory.OTHER);  // Mime legs
+		source(3060, "Random Events", TagCategory.OTHER);  // Mime gloves
+		source(3061, "Random Events", TagCategory.OTHER);  // Mime boots
+		source(6183, "Random Events", TagCategory.OTHER);  // Frog token
+		source(20590, "Random Events", TagCategory.OTHER);  // Stale baguette
+		source(25129, "Random Events", TagCategory.OTHER);  // Beekeeper's hat
+		source(25131, "Random Events", TagCategory.OTHER);  // Beekeeper's top
+		source(25133, "Random Events", TagCategory.OTHER);  // Beekeeper's legs
+		source(25135, "Random Events", TagCategory.OTHER);  // Beekeeper's gloves
+		source(25137, "Random Events", TagCategory.OTHER);  // Beekeeper's boots
+
+		// Revenants
+		source(22557, "Revenants", TagCategory.OTHER);  // Amulet of avarice
+		source(21804, "Revenants", TagCategory.OTHER);  // Ancient crystal
+		source(22305, "Revenants", TagCategory.OTHER);  // Ancient relic
+		source(22302, "Revenants", TagCategory.OTHER);  // Ancient effigy
+		source(22299, "Revenants", TagCategory.OTHER);  // Ancient medallion
+		source(21813, "Revenants", TagCategory.OTHER);  // Ancient statuette
+		source(21810, "Revenants", TagCategory.OTHER);  // Ancient totem
+		source(21807, "Revenants", TagCategory.OTHER);  // Ancient emblem
+		source(21802, "Revenants", TagCategory.OTHER);  // Revenant cave teleport
+		source(21820, "Revenants", TagCategory.OTHER);  // Revenant ether
+
+		// Rooftop Agility
+		source(11849, "Rooftop Agility", TagCategory.OTHER);  // Mark of grace
+		source(11850, "Rooftop Agility", TagCategory.OTHER);  // Graceful hood
+		source(11851, "Rooftop Agility", TagCategory.OTHER);  // Graceful hood
+		source(11852, "Rooftop Agility", TagCategory.OTHER);  // Graceful cape
+		source(11853, "Rooftop Agility", TagCategory.OTHER);  // Graceful cape
+		source(11854, "Rooftop Agility", TagCategory.OTHER);  // Graceful top
+		source(11855, "Rooftop Agility", TagCategory.OTHER);  // Graceful top
+		source(11856, "Rooftop Agility", TagCategory.OTHER);  // Graceful legs
+		source(11857, "Rooftop Agility", TagCategory.OTHER);  // Graceful legs
+		source(11858, "Rooftop Agility", TagCategory.OTHER);  // Graceful gloves
+		source(11859, "Rooftop Agility", TagCategory.OTHER);  // Graceful gloves
+		source(11860, "Rooftop Agility", TagCategory.OTHER);  // Graceful boots
+		source(11861, "Rooftop Agility", TagCategory.OTHER);  // Graceful boots
+
+		// Sailing Miscellaneous
+		source(31996, "Sailing Miscellaneous", TagCategory.OTHER);  // Dragon metal sheet
+		source(31406, "Sailing Miscellaneous", TagCategory.OTHER);  // Dragon nails
+		source(31916, "Sailing Miscellaneous", TagCategory.OTHER);  // Dragon cannonball
+		source(31946, "Sailing Miscellaneous", TagCategory.OTHER);  // Echo pearl
+		source(31952, "Sailing Miscellaneous", TagCategory.OTHER);  // Swift albatross feather
+		source(31954, "Sailing Miscellaneous", TagCategory.OTHER);  // Narwhal horn
+		source(31959, "Sailing Miscellaneous", TagCategory.OTHER);  // Ray barbs
+		source(31961, "Sailing Miscellaneous", TagCategory.OTHER);  // Broken dragon hook
+		source(31949, "Sailing Miscellaneous", TagCategory.OTHER);  // Bottled storm
+		source(32115, "Sailing Miscellaneous", TagCategory.OTHER);  // Dragon cannon barrel
+
+		// Sea Treasures
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32388, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32389, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32390, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32391, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32392, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32393, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32394, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32395, "Sea Treasures", TagCategory.OTHER);  // Medallion fragment
+		source(32398, "Sea Treasures", TagCategory.OTHER);  // Sailors' amulet
+		source(32399, "Sea Treasures", TagCategory.OTHER);  // Sailors' amulet
+		source(32863, "Sea Treasures", TagCategory.OTHER);  // Rusty locket
+		source(32864, "Sea Treasures", TagCategory.OTHER);  // Mouldy block
+		source(32865, "Sea Treasures", TagCategory.OTHER);  // Dull knife
+		source(32866, "Sea Treasures", TagCategory.OTHER);  // Broken compass
+		source(32867, "Sea Treasures", TagCategory.OTHER);  // Rusty coin
+		source(32868, "Sea Treasures", TagCategory.OTHER);  // Broken sextant
+		source(32869, "Sea Treasures", TagCategory.OTHER);  // Mouldy doll
+		source(32870, "Sea Treasures", TagCategory.OTHER);  // Smashed mirror
+
+		// Shayzien Armour
+		source(13357, "Shayzien Armour", TagCategory.OTHER);  // Shayzien gloves (1)
+		source(13358, "Shayzien Armour", TagCategory.OTHER);  // Shayzien boots (1)
+		source(13359, "Shayzien Armour", TagCategory.OTHER);  // Shayzien helm (1)
+		source(13360, "Shayzien Armour", TagCategory.OTHER);  // Shayzien greaves (1)
+		source(13361, "Shayzien Armour", TagCategory.OTHER);  // Shayzien platebody (1)
+		source(13362, "Shayzien Armour", TagCategory.OTHER);  // Shayzien gloves (2)
+		source(13363, "Shayzien Armour", TagCategory.OTHER);  // Shayzien boots (2)
+		source(13364, "Shayzien Armour", TagCategory.OTHER);  // Shayzien helm (2)
+		source(13365, "Shayzien Armour", TagCategory.OTHER);  // Shayzien greaves (2)
+		source(13366, "Shayzien Armour", TagCategory.OTHER);  // Shayzien platebody (2)
+		source(13367, "Shayzien Armour", TagCategory.OTHER);  // Shayzien gloves (3)
+		source(13368, "Shayzien Armour", TagCategory.OTHER);  // Shayzien boots (3)
+		source(13369, "Shayzien Armour", TagCategory.OTHER);  // Shayzien helm (3)
+		source(13370, "Shayzien Armour", TagCategory.OTHER);  // Shayzien greaves (3)
+		source(13371, "Shayzien Armour", TagCategory.OTHER);  // Shayzien platebody (3)
+		source(13372, "Shayzien Armour", TagCategory.OTHER);  // Shayzien gloves (4)
+		source(13373, "Shayzien Armour", TagCategory.OTHER);  // Shayzien boots (4)
+		source(13374, "Shayzien Armour", TagCategory.OTHER);  // Shayzien helm (4)
+		source(13375, "Shayzien Armour", TagCategory.OTHER);  // Shayzien greaves (4)
+		source(13376, "Shayzien Armour", TagCategory.OTHER);  // Shayzien platebody (4)
+		source(13377, "Shayzien Armour", TagCategory.OTHER);  // Shayzien gloves (5)
+		source(13378, "Shayzien Armour", TagCategory.OTHER);  // Shayzien boots (5)
+		source(13379, "Shayzien Armour", TagCategory.OTHER);  // Shayzien helm (5)
+		source(13380, "Shayzien Armour", TagCategory.OTHER);  // Shayzien greaves (5)
+		source(13381, "Shayzien Armour", TagCategory.OTHER);  // Shayzien body (5)
+
+		// Shooting Stars
+		source(25547, "Shooting Stars", TagCategory.OTHER);  // Star fragment
+
+		// Skilling Pets
+		source(6715, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(6722, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(6817, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(10636, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(13320, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(25600, "Skilling Pets", TagCategory.OTHER);  // Heron
+		source(2182, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7439, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7440, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7441, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7442, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7443, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7444, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7445, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7446, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7447, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7448, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7449, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7450, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7451, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7452, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7453, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7454, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7455, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7642, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7643, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7644, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7645, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7646, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7647, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7648, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7711, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7736, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7737, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7738, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7739, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7740, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(7741, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(13321, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(14923, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(14924, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(14925, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(15051, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(15052, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(15053, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21187, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21188, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21189, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21190, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21191, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21192, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21193, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21194, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21195, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21196, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21197, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21340, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21358, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21359, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(21360, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(31276, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(31277, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(31278, "Skilling Pets", TagCategory.OTHER);  // Rock golem
+		source(12169, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12170, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12171, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12172, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12173, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12174, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12175, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12176, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12177, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12178, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12181, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12182, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12183, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12184, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12185, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12186, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12187, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12188, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12189, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(12190, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(13322, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(14926, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(14927, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(14928, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(14929, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(15054, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(15055, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(15056, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(15057, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28229, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28230, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28231, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28232, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28233, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28234, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28235, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28236, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(28237, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(31279, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(31280, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(31281, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(31282, "Skilling Pets", TagCategory.OTHER);  // Beaver
+		source(6718, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6719, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6720, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6721, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6756, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6757, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6758, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(6759, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13323, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13324, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13325, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(13326, "Skilling Pets", TagCategory.OTHER);  // Baby chinchompa
+		source(7334, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(7351, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(9637, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(9638, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(14032, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(14044, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(20659, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(24701, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(30151, "Skilling Pets", TagCategory.OTHER);  // Giant squirrel
+		source(7335, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(7352, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9492, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9493, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9494, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9495, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9496, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9497, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9498, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9499, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9500, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(9501, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(20661, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(24555, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(24557, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(24559, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(24561, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(24563, "Skilling Pets", TagCategory.OTHER);  // Tangleroot
+		source(7336, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(7353, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(9850, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(9851, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(9852, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(9853, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(20663, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(24847, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(24849, "Skilling Pets", TagCategory.OTHER);  // Rocky
+		source(7337, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7338, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7339, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7340, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7341, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7342, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7343, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7344, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7345, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7346, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7347, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7348, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7349, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7350, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7354, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7355, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7356, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7357, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7358, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7359, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7360, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7361, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7362, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7363, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7364, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7365, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7366, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(7367, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(8024, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(8028, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(11401, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(11428, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20665, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20667, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20669, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20671, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20673, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20675, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20677, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20679, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20681, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20683, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20685, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20687, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20689, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(20691, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(21990, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(26899, "Skilling Pets", TagCategory.OTHER);  // Rift guardian
+		source(14930, "Skilling Pets", TagCategory.OTHER);  // Soup
+		source(15058, "Skilling Pets", TagCategory.OTHER);  // Soup
+		source(31283, "Skilling Pets", TagCategory.OTHER);  // Soup
+
+		// Slayer
+		source(7975, "Slayer", TagCategory.OTHER);  // Crawling hand (item)
+		source(7976, "Slayer", TagCategory.OTHER);  // Cockatrice head
+		source(7977, "Slayer", TagCategory.OTHER);  // Basilisk head
+		source(7978, "Slayer", TagCategory.OTHER);  // Kurask head
+		source(7979, "Slayer", TagCategory.OTHER);  // Abyssal head
+		source(20724, "Slayer", TagCategory.OTHER);  // Imbued heart
+		source(21270, "Slayer", TagCategory.OTHER);  // Eternal gem
+		source(20736, "Slayer", TagCategory.OTHER);  // Dust battlestaff
+		source(20730, "Slayer", TagCategory.OTHER);  // Mist battlestaff
+		source(4151, "Slayer", TagCategory.OTHER);  // Abyssal whip
+		source(4153, "Slayer", TagCategory.OTHER);  // Granite maul
+		source(12848, "Slayer", TagCategory.OTHER);  // Granite maul
+		source(6665, "Slayer", TagCategory.OTHER);  // Mudskipper hat
+		source(6666, "Slayer", TagCategory.OTHER);  // Flippers
+		source(11037, "Slayer", TagCategory.OTHER);  // Brine sabre
+		source(11902, "Slayer", TagCategory.OTHER);  // Leaf-bladed sword
+		source(20727, "Slayer", TagCategory.OTHER);  // Leaf-bladed battleaxe
+		source(21646, "Slayer", TagCategory.OTHER);  // Granite longsword
+		source(21643, "Slayer", TagCategory.OTHER);  // Granite boots
+		source(21637, "Slayer", TagCategory.OTHER);  // Wyvern visage
+		source(6809, "Slayer", TagCategory.OTHER);  // Granite legs
+		source(10589, "Slayer", TagCategory.OTHER);  // Granite helm
+		source(11286, "Slayer", TagCategory.OTHER);  // Draconic visage
+		source(4119, "Slayer", TagCategory.OTHER);  // Bronze boots
+		source(4121, "Slayer", TagCategory.OTHER);  // Iron boots
+		source(4123, "Slayer", TagCategory.OTHER);  // Steel boots
+		source(4125, "Slayer", TagCategory.OTHER);  // Black boots
+		source(4127, "Slayer", TagCategory.OTHER);  // Mithril boots
+		source(4129, "Slayer", TagCategory.OTHER);  // Adamant boots
+		source(4131, "Slayer", TagCategory.OTHER);  // Rune boots
+		source(11840, "Slayer", TagCategory.OTHER);  // Dragon boots
+		source(13265, "Slayer", TagCategory.OTHER);  // Abyssal dagger
+		source(13267, "Slayer", TagCategory.OTHER);  // Abyssal dagger
+		source(13269, "Slayer", TagCategory.OTHER);  // Abyssal dagger
+		source(13271, "Slayer", TagCategory.OTHER);  // Abyssal dagger
+		source(12004, "Slayer", TagCategory.OTHER);  // Kraken tentacle
+		source(11235, "Slayer", TagCategory.OTHER);  // Dark bow
+		source(12765, "Slayer", TagCategory.OTHER);  // Dark bow
+		source(12766, "Slayer", TagCategory.OTHER);  // Dark bow
+		source(12767, "Slayer", TagCategory.OTHER);  // Dark bow
+		source(12768, "Slayer", TagCategory.OTHER);  // Dark bow
+		source(12002, "Slayer", TagCategory.OTHER);  // Occult necklace
+		source(3140, "Slayer", TagCategory.OTHER);  // Dragon chainbody
+		source(20849, "Slayer", TagCategory.OTHER);  // Dragon thrownaxe
+		source(21028, "Slayer", TagCategory.OTHER);  // Dragon harpoon
+		source(21009, "Slayer", TagCategory.OTHER);  // Dragon sword
+		source(22804, "Slayer", TagCategory.OTHER);  // Dragon knife
+		source(22806, "Slayer", TagCategory.OTHER);  // Dragon knife
+		source(22808, "Slayer", TagCategory.OTHER);  // Dragon knife
+		source(22810, "Slayer", TagCategory.OTHER);  // Dragon knife
+		source(22963, "Slayer", TagCategory.OTHER);  // Broken dragon hasta
+		source(22960, "Slayer", TagCategory.OTHER);  // Drake's tooth
+		source(22957, "Slayer", TagCategory.OTHER);  // Drake's claw
+		source(22988, "Slayer", TagCategory.OTHER);  // Hydra tail
+		source(22971, "Slayer", TagCategory.OTHER);  // Hydra's fang
+		source(22973, "Slayer", TagCategory.OTHER);  // Hydra's eye
+		source(22969, "Slayer", TagCategory.OTHER);  // Hydra's heart
+		source(4109, "Slayer", TagCategory.OTHER);  // Mystic hat (light)
+		source(4111, "Slayer", TagCategory.OTHER);  // Mystic robe top (light)
+		source(4113, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (light)
+		source(4115, "Slayer", TagCategory.OTHER);  // Mystic gloves (light)
+		source(4117, "Slayer", TagCategory.OTHER);  // Mystic boots (light)
+		source(4099, "Slayer", TagCategory.OTHER);  // Mystic hat (dark)
+		source(4101, "Slayer", TagCategory.OTHER);  // Mystic robe top (dark)
+		source(4103, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (dark)
+		source(4105, "Slayer", TagCategory.OTHER);  // Mystic gloves (dark)
+		source(4107, "Slayer", TagCategory.OTHER);  // Mystic boots (dark)
+		source(23047, "Slayer", TagCategory.OTHER);  // Mystic hat (dusk)
+		source(23050, "Slayer", TagCategory.OTHER);  // Mystic robe top (dusk)
+		source(23053, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (dusk)
+		source(23056, "Slayer", TagCategory.OTHER);  // Mystic gloves (dusk)
+		source(23059, "Slayer", TagCategory.OTHER);  // Mystic boots (dusk)
+		source(24268, "Slayer", TagCategory.OTHER);  // Basilisk jaw
+		source(32876, "Slayer", TagCategory.OTHER);  // Aquanite tendon
+		source(24288, "Slayer", TagCategory.OTHER);  // Dagon'hai hat
+		source(24291, "Slayer", TagCategory.OTHER);  // Dagon'hai robe top
+		source(24294, "Slayer", TagCategory.OTHER);  // Dagon'hai robe bottom
+		source(24777, "Slayer", TagCategory.OTHER);  // Blood shard
+		source(26225, "Slayer", TagCategory.OTHER);  // Ancient ceremonial mask
+		source(26221, "Slayer", TagCategory.OTHER);  // Ancient ceremonial top
+		source(26223, "Slayer", TagCategory.OTHER);  // Ancient ceremonial legs
+		source(26227, "Slayer", TagCategory.OTHER);  // Ancient ceremonial gloves
+		source(26229, "Slayer", TagCategory.OTHER);  // Ancient ceremonial boots
+		source(29084, "Slayer", TagCategory.OTHER);  // Sulphur blades
+		source(29455, "Slayer", TagCategory.OTHER);  // Teleport anchoring scroll
+		source(29806, "Slayer", TagCategory.OTHER);  // Aranea boots
+		source(29889, "Slayer", TagCategory.OTHER);  // Glacial temotli
+		source(29895, "Slayer", TagCategory.OTHER);  // Frozen tear
+		source(30957, "Slayer", TagCategory.OTHER);  // Earthbound tecpatl
+		source(31081, "Slayer", TagCategory.OTHER);  // Antler guard
+		source(31084, "Slayer", TagCategory.OTHER);  // Alchemist's signet
+		source(31086, "Slayer", TagCategory.OTHER);  // Broken antler
+		source(31996, "Slayer", TagCategory.OTHER);  // Dragon metal sheet
+		source(31235, "Slayer", TagCategory.OTHER);  // Gryphon feather
+
+		// Tormented Demons
+		source(29580, "Tormented Demons", TagCategory.OTHER);  // Tormented synapse
+		source(29574, "Tormented Demons", TagCategory.OTHER);  // Burning claw
+		source(29684, "Tormented Demons", TagCategory.OTHER);  // Guthixian temple teleport
+
+		// TzHaar
+		source(6568, "TzHaar", TagCategory.OTHER);  // Obsidian cape
+		source(6524, "TzHaar", TagCategory.OTHER);  // Toktz-ket-xil
+		source(6528, "TzHaar", TagCategory.OTHER);  // Tzhaar-ket-om
+		source(6523, "TzHaar", TagCategory.OTHER);  // Toktz-xil-ak
+		source(6525, "TzHaar", TagCategory.OTHER);  // Toktz-xil-ek
+		source(6526, "TzHaar", TagCategory.OTHER);  // Toktz-mej-tal
+		source(6522, "TzHaar", TagCategory.OTHER);  // Toktz-xil-ul
+		source(21298, "TzHaar", TagCategory.OTHER);  // Obsidian helmet
+		source(21301, "TzHaar", TagCategory.OTHER);  // Obsidian platebody
+		source(21304, "TzHaar", TagCategory.OTHER);  // Obsidian platelegs
+
+		// Miscellaneous
+		source(7759, "Miscellaneous", TagCategory.OTHER);  // Herbi
+		source(7760, "Miscellaneous", TagCategory.OTHER);  // Herbi
+		source(21509, "Miscellaneous", TagCategory.OTHER);  // Herbi
+		source(4001, "Miscellaneous", TagCategory.OTHER);  // Chompy chick
+		source(4002, "Miscellaneous", TagCategory.OTHER);  // Chompy chick
+		source(13071, "Miscellaneous", TagCategory.OTHER);  // Chompy chick
+		source(13576, "Miscellaneous", TagCategory.OTHER);  // Dragon warhammer
+		source(7991, "Miscellaneous", TagCategory.OTHER);  // Big swordfish
+		source(7993, "Miscellaneous", TagCategory.OTHER);  // Big shark
+		source(7989, "Miscellaneous", TagCategory.OTHER);  // Big bass
+		source(31408, "Miscellaneous", TagCategory.OTHER);  // Giant blue krill
+		source(31412, "Miscellaneous", TagCategory.OTHER);  // Golden haddock
+		source(31416, "Miscellaneous", TagCategory.OTHER);  // Orangefin
+		source(31420, "Miscellaneous", TagCategory.OTHER);  // Huge halibut
+		source(31424, "Miscellaneous", TagCategory.OTHER);  // Purplefin
+		source(31428, "Miscellaneous", TagCategory.OTHER);  // Swift marlin
+		source(10976, "Miscellaneous", TagCategory.OTHER);  // Long bone
+		source(10977, "Miscellaneous", TagCategory.OTHER);  // Curved bone
+		source(11942, "Miscellaneous", TagCategory.OTHER);  // Ecumenical key
+		source(19679, "Miscellaneous", TagCategory.OTHER);  // Dark totem base
+		source(19681, "Miscellaneous", TagCategory.OTHER);  // Dark totem middle
+		source(19683, "Miscellaneous", TagCategory.OTHER);  // Dark totem top
+		source(11338, "Miscellaneous", TagCategory.OTHER);  // Chewed bones
+		source(11335, "Miscellaneous", TagCategory.OTHER);  // Dragon full helm
+		source(2366, "Miscellaneous", TagCategory.OTHER);  // Shield left half
+		source(22100, "Miscellaneous", TagCategory.OTHER);  // Dragon metal slice
+		source(22103, "Miscellaneous", TagCategory.OTHER);  // Dragon metal lump
+		source(21918, "Miscellaneous", TagCategory.OTHER);  // Dragon limbs
+		source(1249, "Miscellaneous", TagCategory.OTHER);  // Dragon spear
+		source(1263, "Miscellaneous", TagCategory.OTHER);  // Dragon spear
+		source(3176, "Miscellaneous", TagCategory.OTHER);  // Dragon spear
+		source(5716, "Miscellaneous", TagCategory.OTHER);  // Dragon spear
+		source(5730, "Miscellaneous", TagCategory.OTHER);  // Dragon spear
+		source(19707, "Miscellaneous", TagCategory.OTHER);  // Amulet of eternal glory
+		source(21838, "Miscellaneous", TagCategory.OTHER);  // Shaman mask
+		source(20439, "Miscellaneous", TagCategory.OTHER);  // Evil chicken head
+		source(20436, "Miscellaneous", TagCategory.OTHER);  // Evil chicken wings
+		source(20442, "Miscellaneous", TagCategory.OTHER);  // Evil chicken legs
+		source(20433, "Miscellaneous", TagCategory.OTHER);  // Evil chicken feet
+		source(21343, "Miscellaneous", TagCategory.OTHER);  // Mining gloves
+		source(21345, "Miscellaneous", TagCategory.OTHER);  // Superior mining gloves
+		source(21392, "Miscellaneous", TagCategory.OTHER);  // Expert mining gloves
+		source(9007, "Miscellaneous", TagCategory.OTHER);  // Right skull half
+		source(9008, "Miscellaneous", TagCategory.OTHER);  // Left skull half
+		source(9010, "Miscellaneous", TagCategory.OTHER);  // Top of sceptre
+		source(9011, "Miscellaneous", TagCategory.OTHER);  // Bottom of sceptre
+		source(22374, "Miscellaneous", TagCategory.OTHER);  // Mossy key
+		source(20754, "Miscellaneous", TagCategory.OTHER);  // Giant key
+		source(22875, "Miscellaneous", TagCategory.OTHER);  // Hespori seed
+		source(7536, "Miscellaneous", TagCategory.OTHER);  // Fresh crab claw
+		source(7538, "Miscellaneous", TagCategory.OTHER);  // Fresh crab shell
+		source(23522, "Miscellaneous", TagCategory.OTHER);  // Mask of ranul
+		source(23943, "Miscellaneous", TagCategory.OTHER);  // Elven signet
+		source(24000, "Miscellaneous", TagCategory.OTHER);  // Crystal grail
+		source(23959, "Miscellaneous", TagCategory.OTHER);  // Enhanced crystal teleport seed
+		source(24034, "Miscellaneous", TagCategory.OTHER);  // Dragonstone full helm
+		source(24037, "Miscellaneous", TagCategory.OTHER);  // Dragonstone platebody
+		source(24040, "Miscellaneous", TagCategory.OTHER);  // Dragonstone platelegs
+		source(24046, "Miscellaneous", TagCategory.OTHER);  // Dragonstone gauntlets
+		source(24043, "Miscellaneous", TagCategory.OTHER);  // Dragonstone boots
+		source(6571, "Miscellaneous", TagCategory.OTHER);  // Uncut onyx
+		source(21649, "Miscellaneous", TagCategory.OTHER);  // Merfolk trident
+		source(25844, "Miscellaneous", TagCategory.OTHER);  // Orange egg sac
+		source(25846, "Miscellaneous", TagCategory.OTHER);  // Blue egg sac
+		source(28813, "Miscellaneous", TagCategory.OTHER);  // Broken zombie axe
+		source(30324, "Miscellaneous", TagCategory.OTHER);  // Broken zombie helmet
+		source(30111, "Miscellaneous", TagCategory.OTHER);  // Helmet of the moon
+		source(31572, "Miscellaneous", TagCategory.OTHER);  // Squid beak
 	}
 }
