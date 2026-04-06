@@ -328,11 +328,16 @@ public class GoalPanel extends PluginPanel
 		// Tag management
 		JMenuItem addTag = new JMenuItem("Add Tag");
 		addTag.addActionListener(e -> {
-			JPanel tagPanel = new JPanel(new GridLayout(0, 2, 8, 8));
+			JPanel tagPanel = new JPanel(new java.awt.GridBagLayout());
+			java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+			gbc.insets = new Insets(4, 4, 4, 4);
+			gbc.anchor = java.awt.GridBagConstraints.WEST;
 
-			JTextField tagLabel = new JTextField();
-			tagPanel.add(new JLabel("Tag:"));
-			tagPanel.add(tagLabel);
+			// Category selector
+			JLabel catLabel = new JLabel("Category:");
+			catLabel.setPreferredSize(new Dimension(80, 24));
+			gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
+			tagPanel.add(catLabel, gbc);
 
 			JComboBox<com.goaltracker.model.TagCategory> catCombo =
 				new JComboBox<>(com.goaltracker.model.TagCategory.values());
@@ -350,24 +355,66 @@ public class GoalPanel extends PluginPanel
 					return this;
 				}
 			});
-			tagPanel.add(new JLabel("Category:"));
-			tagPanel.add(catCombo);
+			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+			tagPanel.add(catCombo, gbc);
+
+			// Tag label — dropdown or freeform based on category
+			JLabel nameLabel = new JLabel("Tag:");
+			nameLabel.setPreferredSize(new Dimension(80, 24));
+			gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
+			tagPanel.add(nameLabel, gbc);
+
+			JComboBox<String> dropdownField = new JComboBox<>();
+			JTextField freeField = new JTextField(15);
+			JPanel fieldSwap = new JPanel(new java.awt.CardLayout());
+			fieldSwap.add(dropdownField, "DROPDOWN");
+			fieldSwap.add(freeField, "FREEFORM");
+			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+			tagPanel.add(fieldSwap, gbc);
+
+			// Update field when category changes
+			Runnable updateField = () -> {
+				com.goaltracker.model.TagCategory cat =
+					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+				String[] opts = com.goaltracker.data.TagOptions.getOptions(cat);
+				if (opts.length > 0)
+				{
+					dropdownField.removeAllItems();
+					for (String opt : opts) dropdownField.addItem(opt);
+					((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
+				}
+				else
+				{
+					((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "FREEFORM");
+				}
+			};
+			catCombo.addActionListener(ev -> updateField.run());
+			updateField.run();
+
+			tagPanel.setPreferredSize(new Dimension(300, tagPanel.getPreferredSize().height));
 
 			int result = JOptionPane.showConfirmDialog(
 				this, tagPanel, "Add Tag", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
 			);
-			if (result == JOptionPane.OK_OPTION && !tagLabel.getText().trim().isEmpty())
+			if (result == JOptionPane.OK_OPTION)
 			{
-				if (goal.getTags() == null)
+				com.goaltracker.model.TagCategory selectedCat =
+					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+				String[] opts = com.goaltracker.data.TagOptions.getOptions(selectedCat);
+				String tagText = opts.length > 0
+					? (String) dropdownField.getSelectedItem()
+					: freeField.getText().trim();
+
+				if (tagText != null && !tagText.isEmpty())
 				{
-					goal.setTags(new java.util.ArrayList<>());
+					if (goal.getTags() == null)
+					{
+						goal.setTags(new java.util.ArrayList<>());
+					}
+					goal.getTags().add(new com.goaltracker.model.ItemTag(tagText, selectedCat));
+					goalStore.updateGoal(goal);
+					rebuild();
 				}
-				goal.getTags().add(new com.goaltracker.model.ItemTag(
-					tagLabel.getText().trim(),
-					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem()
-				));
-				goalStore.updateGoal(goal);
-				rebuild();
 			}
 		});
 		menu.add(addTag);
