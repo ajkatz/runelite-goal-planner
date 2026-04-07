@@ -108,9 +108,16 @@ public class GoalCard extends JPanel
 		nameLabel.setForeground(TEXT_PRIMARY);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
-		if (goal.getName().length() > 22)
+		// Prefer a custom tooltip (e.g. CA full description) over the name-truncation fallback.
+		// Applied to the whole card so hover works anywhere on it, not just the name label.
+		String customTooltip = goal.getTooltip();
+		if (customTooltip != null && !customTooltip.isEmpty())
 		{
-			nameLabel.setToolTipText(goal.getName());
+			setToolTipText(customTooltip);
+		}
+		else if (goal.getName().length() > 22)
+		{
+			setToolTipText(goal.getName());
 		}
 		// Name + tags in a vertical BorderLayout
 		JPanel nameAndTags = new JPanel(new BorderLayout(0, 0));
@@ -428,6 +435,12 @@ public class GoalCard extends JPanel
 			return "\u2713";
 		}
 		if (goal.getType() == GoalType.CUSTOM)
+		{
+			return "";
+		}
+		// Combat achievements are binary and have no meaningful progress metric; show nothing
+		// until the goal is marked complete (handled above via the check mark).
+		if (goal.getType() == GoalType.COMBAT_ACHIEVEMENT)
 		{
 			return "";
 		}

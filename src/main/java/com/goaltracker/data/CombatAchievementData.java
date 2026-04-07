@@ -20,6 +20,7 @@ public final class CombatAchievementData
 	public static final int TASKS_BACKGROUND = 46858249; // clicked row layer (param1)
 	public static final int TASKS_NAME = 46858250;
 	public static final int TASKS_MONSTER = 46858252;
+	public static final int TASKS_DESCRIPTION = 46858253;
 	public static final int TASKS_TIER = 46858255;
 
 	// Tier sprite range
@@ -146,6 +147,21 @@ public final class CombatAchievementData
 			return null;
 		}
 		return tiers[idx];
+	}
+
+	/**
+	 * Strip the "Description: " prefix and all &lt;col=...&gt; tags from a description field.
+	 * The TASKS_DESCRIPTION widget is single-instance and only populated for the currently
+	 * expanded row, so callers should treat a null/empty result as "not available".
+	 */
+	public static String parseDescription(String raw)
+	{
+		if (raw == null) return null;
+		String stripped = raw.replaceFirst("^Description:\\s*", "")
+			.replaceAll("<col=[^>]*>", "")
+			.replaceAll("</col>", "")
+			.trim();
+		return stripped.isEmpty() ? null : stripped;
 	}
 
 	/**

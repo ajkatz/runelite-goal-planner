@@ -4,6 +4,7 @@ import com.goaltracker.data.CombatAchievementData;
 import com.goaltracker.data.CombatAchievementData.Tier;
 import com.goaltracker.data.ItemSourceData;
 import com.goaltracker.data.SourceAttributes;
+import com.goaltracker.data.WikiCaRepository;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
@@ -80,6 +81,9 @@ public class GoalTrackerPlugin extends Plugin
 	private SpriteManager spriteManager;
 
 	@Inject
+	private WikiCaRepository wikiCaRepository;
+
+	@Inject
 	private ChatboxItemSearch chatboxItemSearch;
 
 	@Inject
@@ -96,6 +100,7 @@ public class GoalTrackerPlugin extends Plugin
 		log.info("Goal Tracker started");
 
 		goalStore.load();
+		wikiCaRepository.loadAsync();
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager, this::openItemSearch);
 		panel.setClient(client);
@@ -284,6 +289,23 @@ public class GoalTrackerPlugin extends Plugin
 		Tier tier = CombatAchievementData.tierFromSpriteId(tierSpriteId);
 		String monster = monsterW != null ? CombatAchievementData.parseMonsterName(monsterW.getText()) : null;
 
+		// Prefer the wiki repository for description (works for any row, expanded or not).
+		// Fall back to the widget if the wiki cache hasn't populated yet — TASKS_DESCRIPTION
+		// is single-instance (only for the currently expanded row), so that fallback is
+		// best-effort.
+		String fullDesc = null;
+		WikiCaRepository.CaInfo wiki = wikiCaRepository.get(name);
+		if (wiki != null && wiki.task != null && !wiki.task.isEmpty())
+		{
+			fullDesc = wiki.task;
+		}
+		else
+		{
+			net.runelite.api.widgets.Widget descW = client.getWidget(CombatAchievementData.TASKS_DESCRIPTION);
+			fullDesc = descW != null ? CombatAchievementData.parseDescription(descW.getText()) : null;
+		}
+		String tooltip = fullDesc != null ? name + " \u2014 " + fullDesc : null;
+
 		java.util.List<ItemTag> tags = new java.util.ArrayList<>();
 		if (monster != null)
 		{
@@ -300,6 +322,7 @@ public class GoalTrackerPlugin extends Plugin
 			.type(GoalType.COMBAT_ACHIEVEMENT)
 			.name(name)
 			.description(description)
+			.tooltip(tooltip)
 			.targetValue(1)
 			.currentValue(0)
 			.spriteId(tierSpriteId > 0 ? tierSpriteId : 0)

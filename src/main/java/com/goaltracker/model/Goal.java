@@ -34,6 +34,7 @@ public class Goal
 	private int varbitId;         // For DIARY/COMBAT_ACHIEVEMENT goals
 	private int itemId;           // For ITEM_GRIND goals
 	private int spriteId;         // Optional sprite icon (e.g. CA tier sword); 0 = unset
+	private String tooltip;       // Optional hover tooltip text (e.g. CA full description)
 
 	// Tags (source/category labels for filtering and display)
 	@Builder.Default
