@@ -75,10 +75,30 @@ public class GoalReorderingService
 	}
 
 	/**
-	 * Enforce that for the same skill, lower targets are always above higher targets.
+	 * Enforce same-skill ordering across every section. Each section is
+	 * processed independently so we never swap goals across section boundaries.
 	 */
 	public void enforceSkillOrdering()
 	{
+		java.util.Set<String> sectionIds = new java.util.HashSet<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (g.getSectionId() != null) sectionIds.add(g.getSectionId());
+		}
+		for (String sectionId : sectionIds)
+		{
+			enforceSkillOrderingInSection(sectionId);
+		}
+	}
+
+	/**
+	 * Enforce same-skill ordering within a single section: for any pair of
+	 * same-skill goals, the one with the lower target must come first.
+	 * Goals in other sections are not touched.
+	 */
+	public void enforceSkillOrderingInSection(String sectionId)
+	{
+		if (sectionId == null) return;
 		List<Goal> goals = goalStore.getGoals();
 		boolean fixed = true;
 		int maxPasses = goals.size();
@@ -89,13 +109,14 @@ public class GoalReorderingService
 			for (int i = 0; i < goals.size(); i++)
 			{
 				Goal a = goals.get(i);
-				if (!isActiveSkillGoal(a))
+				if (!isActiveSkillGoal(a) || !sectionId.equals(a.getSectionId()))
 				{
 					continue;
 				}
 				for (int j = i + 1; j < goals.size(); j++)
 				{
 					Goal b = goals.get(j);
+					if (!sectionId.equals(b.getSectionId())) continue;
 					if (isSameSkillChain(a, b) && a.getTargetValue() > b.getTargetValue())
 					{
 						goalStore.reorder(j, i);
@@ -110,18 +131,21 @@ public class GoalReorderingService
 	}
 
 	/**
-	 * Find the correct insertion index for a new skill goal
-	 * (just above the first same-skill goal with a higher target).
-	 * Returns -1 if no specific position needed.
+	 * Find the correct insertion index for a new skill goal within the given
+	 * section: just above the first same-skill same-section goal with a higher
+	 * target. Returns -1 if no specific position needed (or sectionId is null).
+	 * Section-scoped so the returned index never crosses section boundaries.
 	 */
-	public int findInsertionIndex(String skillName, int targetXp)
+	public int findInsertionIndex(String skillName, int targetXp, String sectionId)
 	{
+		if (sectionId == null) return -1;
 		List<Goal> goals = goalStore.getGoals();
 		for (int i = 0; i < goals.size(); i++)
 		{
 			Goal g = goals.get(i);
 			if (g.getType() == GoalType.SKILL
 				&& skillName.equals(g.getSkillName())
+				&& sectionId.equals(g.getSectionId())
 				&& g.getStatus() != GoalStatus.COMPLETE
 				&& g.getTargetValue() > targetXp)
 			{

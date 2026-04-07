@@ -106,7 +106,10 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 		goalStore.addGoal(goal);
 		// Auto-position within the same-skill chain (lower targets above higher).
-		int insertBefore = reorderingService.findInsertionIndex(skill.name(), targetXp);
+		// Section-scoped: only considers goals in the new goal's own section so
+		// the returned index never crosses a section boundary.
+		int insertBefore = reorderingService.findInsertionIndex(
+			skill.name(), targetXp, goal.getSectionId());
 		if (insertBefore >= 0)
 		{
 			goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
@@ -686,7 +689,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.public markGoalComplete(goalId={})", goalId);
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
-		if (g == null || g.getType() != GoalType.CUSTOM) return false;
+		if (g == null) return false;
+		// CUSTOM and ITEM_GRIND can be manually marked complete. ITEM_GRIND is
+		// "sticky": the next ItemTracker pass will revert via recordGoalProgress
+		// if the actual inventory+bank count is below target. CUSTOM stays
+		// permanently. Other types (skill/quest/diary/CA) are purely game-driven.
+		if (g.getType() != GoalType.CUSTOM && g.getType() != GoalType.ITEM_GRIND) return false;
 		g.setCompletedAt(System.currentTimeMillis());
 		g.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
 		goalStore.updateGoal(g);
@@ -701,7 +709,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.public markGoalIncomplete(goalId={})", goalId);
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
-		if (g == null || g.getType() != GoalType.CUSTOM) return false;
+		if (g == null) return false;
+		if (g.getType() != GoalType.CUSTOM && g.getType() != GoalType.ITEM_GRIND) return false;
 		g.setCompletedAt(0);
 		g.setStatus(com.goaltracker.model.GoalStatus.ACTIVE);
 		goalStore.updateGoal(g);
@@ -874,7 +883,18 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal moveGoalToSection(goalId={}, sectionId={})", goalId, sectionId);
 		boolean moved = goalStore.moveGoalToSection(goalId, sectionId);
-		if (moved) onGoalsChanged.run();
+		if (moved)
+		{
+			// Skill chain ordering applies in every section, not just Incomplete.
+			// After a SKILL goal lands in a new section, bubble it to the right
+			// position relative to other same-skill goals already there.
+			Goal g = findGoal(goalId);
+			if (g != null && g.getType() == com.goaltracker.model.GoalType.SKILL)
+			{
+				reorderingService.enforceSkillOrderingInSection(sectionId);
+			}
+			onGoalsChanged.run();
+		}
 		return moved;
 	}
 

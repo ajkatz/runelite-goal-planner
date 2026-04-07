@@ -150,8 +150,10 @@ public class GoalReorderingServiceTest
 		goalStore.addGoal(makeSkill("Prayer", xpFor(99)));
 		goalStore.addGoal(makeSkill("Attack", xpFor(99)));
 
-		// Adding Attack94 should go before Attack99
-		int idx = service.findInsertionIndex("Attack", xpFor(94));
+		// Adding Attack94 should go before Attack99 — same section as the
+		// existing goals (Incomplete, the default for goalStore.addGoal).
+		String sectionId = goalStore.getIncompleteSection().getId();
+		int idx = service.findInsertionIndex("Attack", xpFor(94), sectionId);
 		assertEquals(1, idx);
 	}
 
@@ -160,8 +162,9 @@ public class GoalReorderingServiceTest
 	{
 		goalStore.addGoal(makeSkill("Prayer", xpFor(99)));
 
-		// No existing Attack goals
-		int idx = service.findInsertionIndex("Attack", xpFor(94));
+		// No existing Attack goals in the Incomplete section
+		String sectionId = goalStore.getIncompleteSection().getId();
+		int idx = service.findInsertionIndex("Attack", xpFor(94), sectionId);
 		assertEquals(-1, idx);
 	}
 
@@ -221,6 +224,12 @@ public class GoalReorderingServiceTest
 		@Override
 		public void addGoal(Goal goal)
 		{
+			// Mirror real GoalStore.addGoal: drop into Incomplete by default so
+			// section-scoped reordering logic has a section to operate on.
+			if (goal.getSectionId() == null)
+			{
+				goal.setSectionId(getIncompleteSection().getId());
+			}
 			goal.setPriority(goals.size());
 			goals.add(goal);
 		}

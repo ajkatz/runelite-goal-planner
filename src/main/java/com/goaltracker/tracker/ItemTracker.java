@@ -24,6 +24,13 @@ public class ItemTracker
 	private final Client client;
 	private final GoalTrackerApiImpl api;
 
+	/**
+	 * Sticky for the lifetime of the plugin session: true once we've ever seen
+	 * a non-null bank container. Used to drop the bank-null guard once the
+	 * user has opened their bank at least once.
+	 */
+	private boolean bankSeenThisSession = false;
+
 	@Inject
 	public ItemTracker(Client client, GoalTrackerApiImpl api)
 	{
@@ -34,17 +41,19 @@ public class ItemTracker
 	/**
 	 * Update all item grind goals with current counts from inventory + bank.
 	 * Returns true if any goal was updated.
+	 *
+	 * <p>Pre-bank-visit policy: before the bank has ever been seen this
+	 * session, we allow updates ONLY when the new (inventory-only) count is
+	 * strictly greater than the persisted value. This lets users see their
+	 * inventory grow on a fresh session without risking a wipe of persisted
+	 * values from a partial inventory-only snapshot. After the first bank
+	 * visit, the guard drops and full bank+inventory counts apply.
 	 */
 	public boolean checkGoals(List<Goal> goals)
 	{
-		// We can only compute a trustworthy total if the bank container has been
-		// loaded at least once this session. Without it, inventory-only reads
-		// (including those triggered by login-time INVENTORY ItemContainerChanged
-		// events) would wipe persisted values to 0. Bail until the bank is open.
-		if (client.getItemContainer(InventoryID.BANK) == null)
-		{
-			return false;
-		}
+		boolean bankAvailable = client.getItemContainer(InventoryID.BANK) != null;
+		if (bankAvailable) bankSeenThisSession = true;
+		boolean canTrustFullCount = bankSeenThisSession;
 
 		boolean anyUpdated = false;
 
@@ -61,6 +70,14 @@ public class ItemTracker
 			}
 
 			int totalCount = countItem(goal.getItemId());
+
+			// Pre-bank-visit guard: only allow upward updates so we never
+			// shrink a persisted value with a partial inventory-only snapshot.
+			if (!canTrustFullCount && totalCount <= goal.getCurrentValue())
+			{
+				continue;
+			}
+
 			if (api.recordGoalProgress(goal.getId(), totalCount))
 			{
 				anyUpdated = true;

@@ -800,6 +800,10 @@ public class GoalTrackerPlugin extends Plugin
 		boolean updated = skillTracker.checkGoals(goalStore.getGoals());
 		if (updated)
 		{
+			// Same reconcile-after-tracker pattern as the GameTick and
+			// ItemContainerChanged handlers — newly-COMPLETE skill goals need
+			// to be pulled into the Completed section in the same EDT batch.
+			goalStore.reconcileCompletedSection();
 			goalStore.save();
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
@@ -839,6 +843,11 @@ public class GoalTrackerPlugin extends Plugin
 		boolean updated = itemTracker.checkGoals(goalStore.getGoals());
 		if (updated)
 		{
+			// Reconcile so newly-COMPLETE goals get pulled into the Completed
+			// section. Without this, item goals could flip to COMPLETE but
+			// remain visually parked in their original section until the next
+			// GameTick pass (which DOES reconcile).
+			goalStore.reconcileCompletedSection();
 			goalStore.save();
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}

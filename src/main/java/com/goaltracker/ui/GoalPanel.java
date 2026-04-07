@@ -115,7 +115,7 @@ public class GoalPanel extends PluginPanel
 		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
 		addButton.setToolTipText("Add a new goal");
 		addButton.setMargin(new Insets(3, 6, 3, 6));
-		addButton.addActionListener(e -> showAddGoalDialog());
+		addButton.addActionListener(e -> showAddGoalDialog(null));
 
 		// Order: gray pair (clear/add goal) | separator | blue pair (clear/add section)
 		headerButtons.add(clearButton);
@@ -467,20 +467,25 @@ public class GoalPanel extends PluginPanel
 			menu.addSeparator();
 		}
 
-		// Manual completion is CUSTOM-only. Verifiable types (quest/diary/CA/item/skill)
-		// are purely game-driven; CAs without a tracking varbit simply stay incomplete
-		// until the runelite-api version is updated to expose them.
-		if (goal.isComplete() && goal.getType() == GoalType.CUSTOM)
+		// Manual completion: CUSTOM and ITEM_GRIND. Skill/quest/diary/CA are
+		// purely game-driven. ITEM_GRIND is "sticky" — the next tracker pass
+		// will revert if inventory+bank don't actually have the target qty.
+		boolean manuallyToggleable = goal.getType() == GoalType.CUSTOM
+			|| goal.getType() == GoalType.ITEM_GRIND;
+		if (manuallyToggleable)
 		{
-			JMenuItem reopen = new JMenuItem("Mark Incomplete");
-			reopen.addActionListener(e -> api.markGoalIncomplete(goal.getId()));
-			menu.add(reopen);
-		}
-		else if (!goal.isComplete() && goal.getType() == GoalType.CUSTOM)
-		{
-			JMenuItem complete = new JMenuItem("Mark Complete");
-			complete.addActionListener(e -> api.markGoalComplete(goal.getId()));
-			menu.add(complete);
+			if (goal.isComplete())
+			{
+				JMenuItem reopen = new JMenuItem("Mark Incomplete");
+				reopen.addActionListener(e -> api.markGoalIncomplete(goal.getId()));
+				menu.add(reopen);
+			}
+			else
+			{
+				JMenuItem complete = new JMenuItem("Mark Complete");
+				complete.addActionListener(e -> api.markGoalComplete(goal.getId()));
+				menu.add(complete);
+			}
 		}
 
 		if (goal.getType() == GoalType.CUSTOM && !goal.isComplete())
@@ -826,7 +831,14 @@ public class GoalPanel extends PluginPanel
 		menu.add(header);
 		menu.addSeparator();
 
-		// 1. Move to Section
+		// 1. Move to Section — only if at least one selected goal is non-complete.
+		// Completed goals are pinned to Completed and the API rejects the move,
+		// so showing the option for an all-completed selection would be a no-op.
+		boolean anyMovable = false;
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) { anyMovable = true; break; }
+		}
 		java.util.List<com.goaltracker.api.SectionView> allSections = api.queryAllSections();
 		java.util.List<com.goaltracker.api.SectionView> destinations = new java.util.ArrayList<>();
 		for (com.goaltracker.api.SectionView sv : allSections)
@@ -835,7 +847,7 @@ public class GoalPanel extends PluginPanel
 			if ("COMPLETED".equals(sv.kind)) continue;
 			destinations.add(sv);
 		}
-		if (!destinations.isEmpty())
+		if (anyMovable && !destinations.isEmpty())
 		{
 			JMenu moveToSection = new JMenu("Move to Section");
 			for (com.goaltracker.api.SectionView dest : destinations)
@@ -1060,6 +1072,16 @@ public class GoalPanel extends PluginPanel
 
 		JPopupMenu menu = new JPopupMenu();
 
+		// Add Goal — opens the regular Add Goal dialog and drops the new goal
+		// directly into this section. Hidden on Completed (auto-managed).
+		if (!"COMPLETED".equals(section.kind))
+		{
+			JMenuItem addGoalHere = new JMenuItem("Add Goal");
+			addGoalHere.addActionListener(e -> showAddGoalDialog(section.id));
+			menu.add(addGoalHere);
+			menu.addSeparator();
+		}
+
 		// Select / Deselect All in Section — label flips when every goal in the
 		// section is already selected. Computed against the current selection
 		// snapshot at menu-build time.
@@ -1231,7 +1253,7 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
-	private void showAddGoalDialog()
+	private void showAddGoalDialog(String preferredSectionId)
 	{
 		// Use GridBagLayout for reliable sizing in JOptionPane
 		JPanel panel = new JPanel(new GridBagLayout());
@@ -1365,7 +1387,7 @@ public class GoalPanel extends PluginPanel
 
 			if (selectedType == GoalType.SKILL)
 			{
-				addSkillGoal(skillCombo, skillTargetForm);
+				addSkillGoal(skillCombo, skillTargetForm, preferredSectionId);
 			}
 			else if (selectedType == GoalType.ITEM_GRIND)
 			{
@@ -1387,12 +1409,12 @@ public class GoalPanel extends PluginPanel
 			}
 			else if (selectedType == GoalType.CUSTOM)
 			{
-				addCustomGoal(nameField, descField);
+				addCustomGoal(nameField, descField, preferredSectionId);
 			}
 		}
 	}
 
-	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form)
+	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form, String preferredSectionId)
 	{
 		Skill skill = (Skill) skillCombo.getSelectedItem();
 		int targetXp = form.getTargetXp();
@@ -1411,11 +1433,12 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 
-		api.addSkillGoal(skill, targetXp);
+		String createdId = api.addSkillGoal(skill, targetXp);
+		moveToPreferredSection(createdId, preferredSectionId);
 		// API callback rebuilds the panel.
 	}
 
-	private void addCustomGoal(JTextField nameField, JTextField descField)
+	private void addCustomGoal(JTextField nameField, JTextField descField, String preferredSectionId)
 	{
 		String name = nameField.getText().trim();
 		if (name.isEmpty())
@@ -1424,8 +1447,23 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 
-		api.addCustomGoal(name, descField.getText().trim());
+		String createdId = api.addCustomGoal(name, descField.getText().trim());
+		moveToPreferredSection(createdId, preferredSectionId);
 		// API callback rebuilds the panel.
+	}
+
+	/**
+	 * Move a freshly-created goal to a section other than the default Incomplete.
+	 * Used by the section header "Add Goal" entry to drop new goals directly
+	 * into the section the user right-clicked. No-op when preferredSectionId is
+	 * null (the toolbar + button) or the goal didn't actually get created.
+	 */
+	private void moveToPreferredSection(String goalId, String preferredSectionId)
+	{
+		if (goalId != null && preferredSectionId != null)
+		{
+			api.moveGoalToSection(goalId, preferredSectionId);
+		}
 	}
 
 	/**

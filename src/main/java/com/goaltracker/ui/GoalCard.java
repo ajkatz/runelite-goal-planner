@@ -486,7 +486,14 @@ public class GoalCard extends JPanel
 				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case "ITEM_GRIND":
-				line1 = fitName(view.name);
+				// Prepend target qty so the display reads "200x Cannonballs"
+				// instead of just "Cannonballs". Skip the prefix when target is
+				// 1 (e.g. "Jar of Miasma" not "1x Jar of Miasma" — uniques read
+				// more naturally without the qty marker).
+				String itemTitle = view.targetValue > 1
+					? FormatUtil.formatNumber(view.targetValue) + "x " + view.name
+					: view.name;
+				line1 = fitName(itemTitle);
 				if (view.currentValue < 0)
 				{
 					line2 = "? / " + FormatUtil.formatNumber(view.targetValue);
@@ -562,6 +569,12 @@ public class GoalCard extends JPanel
 		if ("ITEM_GRIND".equals(type) && view.currentValue < 0)
 		{
 			return "?";
+		}
+		// Hide the percentage on item goals until you actually have at least
+		// one of the item — "0%" reads as noise on a fresh goal.
+		if ("ITEM_GRIND".equals(type) && view.currentValue <= 0)
+		{
+			return "";
 		}
 		if ("SKILL".equals(type) && view.targetValue > 0)
 		{
