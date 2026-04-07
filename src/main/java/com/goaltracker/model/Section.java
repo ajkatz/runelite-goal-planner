@@ -50,6 +50,14 @@ public class Section
 	@Builder.Default
 	private boolean collapsed = false;
 
+	/**
+	 * User-set color override for the section header, packed as 0xRRGGBB.
+	 * -1 means "use the default neutral border color". Built-in sections ignore
+	 * this (their header is fixed).
+	 */
+	@Builder.Default
+	private int colorRgb = -1;
+
 	/** Non-null for built-in sections (Incomplete / Completed). Null for user sections. */
 	private BuiltInKind builtInKind;
 

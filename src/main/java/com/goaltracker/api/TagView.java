@@ -8,8 +8,12 @@ public class TagView
 	public String label;
 	/** Category name as a string. One of: BOSS, RAID, CLUE, MINIGAME, SKILLING, SPECIAL, OTHER. */
 	public String category;
-	/** Packed RGB color (0xRRGGBB) for the tag pill, derived from the category. */
+	/** Current tag pill color — user override if set, else the category default. */
 	public int colorRgb;
+	/** Category default color, even when an override is set. */
+	public int defaultColorRgb;
+	/** True when {@link #colorRgb} is a user override. */
+	public boolean colorOverridden;
 
 	public TagView() {}
 
@@ -18,5 +22,16 @@ public class TagView
 		this.label = label;
 		this.category = category;
 		this.colorRgb = colorRgb;
+		this.defaultColorRgb = colorRgb;
+		this.colorOverridden = false;
+	}
+
+	public TagView(String label, String category, int colorRgb, int defaultColorRgb, boolean overridden)
+	{
+		this.label = label;
+		this.category = category;
+		this.colorRgb = colorRgb;
+		this.defaultColorRgb = defaultColorRgb;
+		this.colorOverridden = overridden;
 	}
 }

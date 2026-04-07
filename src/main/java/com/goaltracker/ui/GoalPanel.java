@@ -192,12 +192,9 @@ public class GoalPanel extends PluginPanel
 				api.toggleSectionCollapsed(sectionIdRef);
 				// API callback rebuilds the panel.
 			});
-			// User-defined sections get a right-click menu (rename/delete/reorder).
-			// Built-in sections (Incomplete/Completed) are immutable.
-			if (!section.builtIn)
-			{
-				attachSectionContextMenu(headerRow, section, sectionViews);
-			}
+			// All sections get a right-click menu. User sections get the full
+			// rename/move/delete/color menu; built-ins get only Change Color.
+			attachSectionContextMenu(headerRow, section, sectionViews);
 			goalListPanel.add(headerRow);
 			goalListPanel.add(Box.createVerticalStrut(2));
 
@@ -390,6 +387,14 @@ public class GoalPanel extends PluginPanel
 				}
 			});
 			menu.add(editDesc);
+		}
+
+		// Change Color is available on ALL goal types — override persists on the
+		// goal model so rebuilds don't clobber it.
+		{
+			JMenuItem changeGoalColor = new JMenuItem("Change Color");
+			changeGoalColor.addActionListener(e -> showGoalColorDialog(goal));
+			menu.add(changeGoalColor);
 		}
 
 		// Skill-specific options
@@ -599,6 +604,18 @@ public class GoalPanel extends PluginPanel
 			removableTags = java.util.Collections.emptyList();
 		}
 
+		// Recolor Tag is available on any non-completed goal that has tags.
+		// Completed cards hide their tag row so recoloring would have no effect.
+		java.util.List<com.goaltracker.model.ItemTag> allGoalTags = goal.getTags() != null
+			? new java.util.ArrayList<>(goal.getTags())
+			: java.util.Collections.emptyList();
+		if (!goal.isComplete() && !allGoalTags.isEmpty())
+		{
+			JMenuItem recolorTag = new JMenuItem("Recolor Tag");
+			recolorTag.addActionListener(e -> showRecolorTagDialog(goal, allGoalTags));
+			menu.add(recolorTag);
+		}
+
 		if (!removableTags.isEmpty())
 		{
 			JMenuItem removeTag = new JMenuItem("Remove Tag");
@@ -708,40 +725,49 @@ public class GoalPanel extends PluginPanel
 
 		JPopupMenu menu = new JPopupMenu();
 
-		JMenuItem rename = new JMenuItem("Rename");
-		rename.addActionListener(e -> showRenameSectionDialog(section));
-		menu.add(rename);
+		// Change Color is available on every section, built-in or user.
+		JMenuItem changeColor = new JMenuItem("Change Color");
+		changeColor.addActionListener(e -> showSectionColorDialog(section));
+		menu.add(changeColor);
 
-		if (currentUserIndex > 0)
+		// User-section-only items: rename, move up/down, delete.
+		if (!section.builtIn)
 		{
-			JMenuItem moveUp = new JMenuItem("Move Up");
-			moveUp.addActionListener(e -> api.reorderSection(section.id, currentUserIndex - 1));
-			menu.add(moveUp);
-		}
-		if (currentUserIndex >= 0 && currentUserIndex < userSections.size() - 1)
-		{
-			JMenuItem moveDown = new JMenuItem("Move Down");
-			moveDown.addActionListener(e -> api.reorderSection(section.id, currentUserIndex + 1));
-			menu.add(moveDown);
-		}
+			JMenuItem rename = new JMenuItem("Rename");
+			rename.addActionListener(e -> showRenameSectionDialog(section));
+			menu.add(rename);
 
-		menu.addSeparator();
-
-		JMenuItem delete = new JMenuItem("Delete Section");
-		delete.addActionListener(e -> {
-			int confirm = JOptionPane.showConfirmDialog(
-				this,
-				"Delete section \"" + section.name + "\"?\nGoals in it will be moved to Incomplete.",
-				"Delete Section",
-				JOptionPane.YES_NO_OPTION,
-				JOptionPane.WARNING_MESSAGE
-			);
-			if (confirm == JOptionPane.YES_OPTION)
+			if (currentUserIndex > 0)
 			{
-				api.deleteSection(section.id);
+				JMenuItem moveUp = new JMenuItem("Move Up");
+				moveUp.addActionListener(e -> api.reorderSection(section.id, currentUserIndex - 1));
+				menu.add(moveUp);
 			}
-		});
-		menu.add(delete);
+			if (currentUserIndex >= 0 && currentUserIndex < userSections.size() - 1)
+			{
+				JMenuItem moveDown = new JMenuItem("Move Down");
+				moveDown.addActionListener(e -> api.reorderSection(section.id, currentUserIndex + 1));
+				menu.add(moveDown);
+			}
+
+			menu.addSeparator();
+
+			JMenuItem delete = new JMenuItem("Delete Section");
+			delete.addActionListener(e -> {
+				int confirm = JOptionPane.showConfirmDialog(
+					this,
+					"Delete section \"" + section.name + "\"?\nGoals in it will be moved to Incomplete.",
+					"Delete Section",
+					JOptionPane.YES_NO_OPTION,
+					JOptionPane.WARNING_MESSAGE
+				);
+				if (confirm == JOptionPane.YES_OPTION)
+				{
+					api.deleteSection(section.id);
+				}
+			});
+			menu.add(delete);
+		}
 
 		row.addMouseListener(new MouseAdapter()
 		{
@@ -772,6 +798,64 @@ public class GoalPanel extends PluginPanel
 		{
 			JOptionPane.showMessageDialog(this, ex.getMessage(), "Invalid name",
 				JOptionPane.WARNING_MESSAGE);
+		}
+	}
+
+	private void showSectionColorDialog(com.goaltracker.api.SectionView section)
+	{
+		int current = section.colorOverridden ? section.colorRgb : -1;
+		ColorPickerField picker = new ColorPickerField(current, section.defaultColorRgb);
+		int result = JOptionPane.showConfirmDialog(this, picker,
+			"Section Color — " + section.name,
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION) return;
+		api.setSectionColor(section.id, picker.getSelectedRgb());
+	}
+
+	private void showGoalColorDialog(Goal goal)
+	{
+		int defaultRgb;
+		java.awt.Color c = goal.getType().getColor();
+		defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+		ColorPickerField picker = new ColorPickerField(goal.getCustomColorRgb(), defaultRgb);
+		int result = JOptionPane.showConfirmDialog(this, picker,
+			"Goal Color — " + goal.getName(),
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION) return;
+		api.setGoalColor(goal.getId(), picker.getSelectedRgb());
+	}
+
+	private void showRecolorTagDialog(Goal goal, java.util.List<com.goaltracker.model.ItemTag> tags)
+	{
+		// Step 1: pick which tag
+		String[] tagNames = tags.stream()
+			.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
+			.toArray(String[]::new);
+		String selected = (String) JOptionPane.showInputDialog(
+			this, "Select tag to recolor:", "Recolor Tag",
+			JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
+		);
+		if (selected == null) return;
+		int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
+		if (idx < 0) return;
+		com.goaltracker.model.ItemTag tag = tags.get(idx);
+
+		// Step 2: open the picker seeded with the tag's current override (or -1
+		// for "use default") and the category default for preview/reset.
+		java.awt.Color catC = tag.getCategory().getColor();
+		int defaultRgb = (catC.getRed() << 16) | (catC.getGreen() << 8) | catC.getBlue();
+		ColorPickerField picker = new ColorPickerField(tag.getColorRgb(), defaultRgb);
+		int result = JOptionPane.showConfirmDialog(this, picker,
+			"Color for " + tag.getLabel(),
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION) return;
+
+		boolean ok = api.setTagColor(goal.getId(), tag.getLabel(), picker.getSelectedRgb());
+		if (!ok)
+		{
+			JOptionPane.showMessageDialog(this,
+				"Could not recolor tag.",
+				"Recolor failed", JOptionPane.WARNING_MESSAGE);
 		}
 	}
 

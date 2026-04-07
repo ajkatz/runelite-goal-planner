@@ -43,6 +43,14 @@ public class Goal
 	@Builder.Default
 	private int caTaskId = -1;
 
+	/**
+	 * User-set background color override packed as 0xRRGGBB. -1 means "use the
+	 * GoalType default color". Only custom goals can meaningfully set this
+	 * (enforced by API) — other types have category-driven colors.
+	 */
+	@Builder.Default
+	private int customColorRgb = -1;
+
 	// Tags (source/category labels for filtering and display)
 	@Builder.Default
 	private List<ItemTag> tags = new ArrayList<>();

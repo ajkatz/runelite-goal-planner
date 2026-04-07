@@ -43,8 +43,13 @@ public class GoalView
 
 	/** RuneLite sprite id for the icon, or 0 if no sprite. */
 	public int spriteId;
-	/** Packed RGB color (0xRRGGBB) for the card background tint. */
+	/** Packed RGB color (0xRRGGBB) for the card background tint — override or default. */
 	public int backgroundColorRgb;
+	/** The type-default background color, even when an override is set. Lets
+	 *  the UI preview what "reset to default" would revert to. */
+	public int defaultBackgroundColorRgb;
+	/** True when {@link #backgroundColorRgb} is a user override (not the type default). */
+	public boolean backgroundColorOverridden;
 	/** Auto-generated tags from goal creation (boss/raid/tier/etc).
 	 *  Cannot be removed by the user; restored by Restore Defaults. */
 	public List<TagView> defaultTags;

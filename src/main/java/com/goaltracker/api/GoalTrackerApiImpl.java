@@ -416,9 +416,21 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		v.sectionId = g.getSectionId();
 		v.spriteId = g.getSpriteId();
 
-		// Background color from goal type, packed as 0xRRGGBB
-		java.awt.Color c = g.getType().getColor();
-		v.backgroundColorRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+		// Background color: type default + optional user override. DTO carries both
+		// so consumers can show "reset to default" affordances with the right preview.
+		java.awt.Color typeC = g.getType().getColor();
+		int typeRgb = (typeC.getRed() << 16) | (typeC.getGreen() << 8) | typeC.getBlue();
+		v.defaultBackgroundColorRgb = typeRgb;
+		if (g.getCustomColorRgb() >= 0)
+		{
+			v.backgroundColorRgb = g.getCustomColorRgb();
+			v.backgroundColorOverridden = true;
+		}
+		else
+		{
+			v.backgroundColorRgb = typeRgb;
+			v.backgroundColorOverridden = false;
+		}
 
 		// Tag splitting: defaultTags is the snapshot from creation; customTags is
 		// whatever is in `tags` but NOT in defaultTags. Matches the existing
@@ -487,6 +499,9 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return v;
 	}
 
+	/** Neutral default section header color (matches SectionHeaderRow BORDER_COLOR). */
+	private static final int SECTION_DEFAULT_COLOR_RGB = (60 << 16) | (60 << 8) | 60;
+
 	private static SectionView toSectionView(Section s)
 	{
 		SectionView v = new SectionView();
@@ -496,14 +511,31 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		v.collapsed = s.isCollapsed();
 		v.builtIn = s.isBuiltIn();
 		v.kind = s.getBuiltInKind() != null ? s.getBuiltInKind().name() : null;
+		v.defaultColorRgb = SECTION_DEFAULT_COLOR_RGB;
+		if (s.getColorRgb() >= 0)
+		{
+			v.colorRgb = s.getColorRgb();
+			v.colorOverridden = true;
+		}
+		else
+		{
+			v.colorRgb = SECTION_DEFAULT_COLOR_RGB;
+			v.colorOverridden = false;
+		}
 		return v;
 	}
 
 	private static TagView toTagView(ItemTag t)
 	{
 		java.awt.Color c = t.getCategory().getColor();
-		int rgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
-		return new TagView(t.getLabel(), t.getCategory().name(), rgb);
+		int defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+		if (t.getColorRgb() >= 0)
+		{
+			return new TagView(t.getLabel(), t.getCategory().name(),
+				t.getColorRgb(), defaultRgb, true);
+		}
+		return new TagView(t.getLabel(), t.getCategory().name(),
+			defaultRgb, defaultRgb, false);
 	}
 
 	// ===== Mutation API =====
@@ -845,5 +877,62 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		int removed = goalStore.removeAllUserSections();
 		if (removed > 0) onGoalsChanged.run();
 		return removed;
+	}
+
+	// ---------------------------------------------------------------------
+	// Color overrides (Phase 3)
+	// ---------------------------------------------------------------------
+
+	@Override
+	public boolean setSectionColor(String sectionId, int colorRgb)
+	{
+		log.debug("API.internal setSectionColor(sectionId={}, colorRgb={})", sectionId, colorRgb);
+		Section section = goalStore.findSection(sectionId);
+		if (section == null) return false;
+		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
+		if (section.getColorRgb() == normalized) return false;
+		section.setColorRgb(normalized);
+		goalStore.save();
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public boolean setGoalColor(String goalId, int colorRgb)
+	{
+		log.debug("API.internal setGoalColor(goalId={}, colorRgb={})", goalId, colorRgb);
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
+		if (g.getCustomColorRgb() == normalized) return false;
+		g.setCustomColorRgb(normalized);
+		goalStore.save();
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public boolean setTagColor(String goalId, String tagLabel, int colorRgb)
+	{
+		log.debug("API.internal setTagColor(goalId={}, tagLabel={}, colorRgb={})",
+			goalId, tagLabel, colorRgb);
+		Goal g = findGoal(goalId);
+		if (g == null || tagLabel == null) return false;
+		List<ItemTag> tags = g.getTags() != null
+			? g.getTags() : java.util.Collections.emptyList();
+
+		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
+		boolean changed = false;
+		for (ItemTag t : tags)
+		{
+			if (!tagLabel.equals(t.getLabel())) continue;
+			if (t.getColorRgb() == normalized) continue;
+			t.setColorRgb(normalized);
+			changed = true;
+		}
+		if (!changed) return false;
+		goalStore.save();
+		onGoalsChanged.run();
+		return true;
 	}
 }

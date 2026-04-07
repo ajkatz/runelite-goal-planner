@@ -114,4 +114,38 @@ public interface GoalTrackerInternalApi
 	 * @return number of sections deleted
 	 */
 	int removeAllUserSections();
+
+	// ---------------------------------------------------------------------
+	// Color overrides (Phase 3)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Set a section's color override. Works on user-defined and built-in
+	 * sections alike. Pass -1 to clear the override and revert to the
+	 * neutral default.
+	 *
+	 * @param colorRgb packed 0xRRGGBB, or -1 to clear the override
+	 * @return true if the color changed, false on: not found or no-op
+	 */
+	boolean setSectionColor(String sectionId, int colorRgb);
+
+	/**
+	 * Set a goal's background color override. Works on all goal types —
+	 * the override survives rebuilds because it's persisted on the goal model.
+	 * Pass -1 to clear the override and revert to the GoalType default color.
+	 *
+	 * @param colorRgb packed 0xRRGGBB, or -1 to clear the override
+	 * @return true if the color changed, false on: not found or no-op
+	 */
+	boolean setGoalColor(String goalId, int colorRgb);
+
+	/**
+	 * Set a tag's color override. Works on default and custom tags alike.
+	 * Pass -1 to clear the override and revert to the TagCategory default.
+	 *
+	 * @param colorRgb packed 0xRRGGBB, or -1 to clear the override
+	 * @return true if the color changed, false on: goal or tag not found,
+	 *         or no-op
+	 */
+	boolean setTagColor(String goalId, String tagLabel, int colorRgb);
 }
