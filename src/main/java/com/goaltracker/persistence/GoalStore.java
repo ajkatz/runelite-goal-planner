@@ -209,6 +209,20 @@ public class GoalStore
 		return goals;
 	}
 
+	/**
+	 * True if any existing goal matches the given predicate. Used as a unified
+	 * duplicate-guard for goal types that have a natural identity check (quest
+	 * name, diary area+tier, combat achievement task id, etc.).
+	 */
+	public boolean exists(java.util.function.Predicate<Goal> predicate)
+	{
+		for (Goal g : goals)
+		{
+			if (predicate.test(g)) return true;
+		}
+		return false;
+	}
+
 	public List<Section> getSections()
 	{
 		return sections;

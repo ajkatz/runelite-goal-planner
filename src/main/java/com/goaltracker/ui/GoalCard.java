@@ -23,6 +23,7 @@ import java.awt.event.ActionListener;
 public class GoalCard extends JPanel
 {
 	private static final Color BACKGROUND = new Color(30, 30, 30);
+	private static final Color BACKGROUND_COMPLETE = new Color(50, 50, 50);
 	private static final Color TEXT_PRIMARY = new Color(230, 230, 230);
 	private static final Color TEXT_SECONDARY = new Color(160, 160, 160);
 	private static final Color ARROW_COLOR = new Color(180, 180, 180);
@@ -349,7 +350,7 @@ public class GoalCard extends JPanel
 		Color baseColor = goal.getType().getColor();
 
 		// Background: type-colored tint — same intensity for all goals of that type
-		g2.setColor(BACKGROUND);
+		g2.setColor(goal.isComplete() ? BACKGROUND_COMPLETE : BACKGROUND);
 		g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
 
 		Color tint = new Color(

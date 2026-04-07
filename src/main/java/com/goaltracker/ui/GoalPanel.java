@@ -194,7 +194,7 @@ public class GoalPanel extends PluginPanel
 					card.setLastInList(i == sectionEnd);
 				}
 
-				addContextMenu(card, goal, index, goals.size());
+				addContextMenu(card, goal, index, sectionStart, sectionEnd);
 				cardMap.put(goal.getId(), card);
 
 				goalListPanel.add(card);
@@ -255,27 +255,29 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
-	private void addContextMenu(GoalCard card, Goal goal, int index, int totalGoals)
+	private void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
 	{
 		JPopupMenu menu = new JPopupMenu();
 
-		// Reorder options are hidden in the Completed section (read-only ordering).
+		// Reorder options are hidden in the Completed section (read-only ordering)
+		// and gated on section bounds so they don't appear when there's nowhere to
+		// move within the section. Move-to-Top/Bottom now stay inside the section.
 		if (!goal.isComplete())
 		{
-			if (index > 0)
+			if (index > sectionStart)
 			{
 				JMenuItem moveFirst = new JMenuItem("Move to Top");
 				moveFirst.addActionListener(e -> {
-					moveGoalTo(index, 0);
+					moveGoalTo(index, sectionStart);
 				});
 				menu.add(moveFirst);
 			}
 
-			if (index < totalGoals - 1)
+			if (index < sectionEnd)
 			{
 				JMenuItem moveLast = new JMenuItem("Move to Bottom");
 				moveLast.addActionListener(e -> {
-					moveGoalTo(index, totalGoals - 1);
+					moveGoalTo(index, sectionEnd);
 				});
 				menu.add(moveLast);
 			}
@@ -469,12 +471,15 @@ public class GoalPanel extends PluginPanel
 			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 			tagPanel.add(fieldSwap, gbc);
 
-			// Update field when category changes
+			// Update field when category changes. For non-custom goals the category
+			// dropdown is locked to OTHER and the value should be freeform text — there
+			// are no curated TagOptions to pick from at that point.
+			final boolean forceFreeform = goal.getType() != GoalType.CUSTOM;
 			Runnable updateField = () -> {
 				com.goaltracker.model.TagCategory cat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
 				String[] opts = com.goaltracker.data.TagOptions.getOptions(cat);
-				if (opts.length > 0)
+				if (!forceFreeform && opts.length > 0)
 				{
 					dropdownField.removeAllItems();
 					for (String opt : opts) dropdownField.addItem(opt);
@@ -498,7 +503,7 @@ public class GoalPanel extends PluginPanel
 				com.goaltracker.model.TagCategory selectedCat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
 				String[] opts = com.goaltracker.data.TagOptions.getOptions(selectedCat);
-				String tagText = opts.length > 0
+				String tagText = (!forceFreeform && opts.length > 0)
 					? (String) dropdownField.getSelectedItem()
 					: freeField.getText().trim();
 
@@ -520,11 +525,36 @@ public class GoalPanel extends PluginPanel
 			menu.add(addTag);
 		}
 
+		// Removable tags: for CUSTOM goals, anything. For everything else, only
+		// user-added tags (not in defaultTags). This prevents users from accidentally
+		// stripping the auto-generated boss/raid/tier tags off a quest/diary/CA goal.
+		java.util.List<com.goaltracker.model.ItemTag> removableTags;
 		if (goal.getTags() != null && !goal.getTags().isEmpty())
+		{
+			if (goal.getType() == GoalType.CUSTOM)
+			{
+				removableTags = new java.util.ArrayList<>(goal.getTags());
+			}
+			else
+			{
+				java.util.List<com.goaltracker.model.ItemTag> defaults = goal.getDefaultTags() != null
+					? goal.getDefaultTags()
+					: java.util.Collections.emptyList();
+				removableTags = goal.getTags().stream()
+					.filter(t -> !defaults.contains(t))
+					.collect(java.util.stream.Collectors.toList());
+			}
+		}
+		else
+		{
+			removableTags = java.util.Collections.emptyList();
+		}
+
+		if (!removableTags.isEmpty())
 		{
 			JMenuItem removeTag = new JMenuItem("Remove Tag");
 			removeTag.addActionListener(e -> {
-				String[] tagNames = goal.getTags().stream()
+				String[] tagNames = removableTags.stream()
 					.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
 					.toArray(String[]::new);
 
@@ -537,7 +567,7 @@ public class GoalPanel extends PluginPanel
 					int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
 					if (idx >= 0)
 					{
-						goal.getTags().remove(idx);
+						goal.getTags().remove(removableTags.get(idx));
 						goalStore.updateGoal(goal);
 						rebuild();
 					}

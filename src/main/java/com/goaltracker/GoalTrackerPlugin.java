@@ -510,17 +510,14 @@ public class GoalTrackerPlugin extends Plugin
 						{
 							Goal goal = buildDiaryGoal(areaDisplayName, tier);
 							if (goal == null) return;
-							// Duplicate guard: same area + tier can't be added twice
-							for (Goal existing : goalStore.getGoals())
+							String tierDescription = tier.getDisplayName() + " Achievement Diary";
+							if (goalStore.exists(g ->
+								g.getType() == GoalType.DIARY
+									&& areaDisplayName.equalsIgnoreCase(g.getName())
+									&& tierDescription.equalsIgnoreCase(g.getDescription())))
 							{
-								if (existing.getType() == GoalType.DIARY
-									&& areaDisplayName.equalsIgnoreCase(existing.getName())
-									&& (tier.getDisplayName() + " Achievement Diary")
-										.equalsIgnoreCase(existing.getDescription()))
-								{
-									log.info("Diary goal already exists: {} {}", areaDisplayName, tier);
-									return;
-								}
+								log.info("Diary goal already exists: {} {}", areaDisplayName, tier);
+								return;
 							}
 							goalStore.addGoal(goal);
 							javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
@@ -553,16 +550,13 @@ public class GoalTrackerPlugin extends Plugin
 							log.warn("Quest goal build failed at click time for '{}'", menuTarget);
 							return;
 						}
-						// Check for duplicate — don't add the same quest twice
 						String questName = goal.getQuestName();
-						for (Goal existing : goalStore.getGoals())
+						if (goalStore.exists(g ->
+							g.getType() == GoalType.QUEST
+								&& questName.equals(g.getQuestName())))
 						{
-							if (existing.getType() == GoalType.QUEST
-								&& questName.equals(existing.getQuestName()))
-							{
-								log.info("Quest goal already exists: {}", goal.getName());
-								return;
-							}
+							log.info("Quest goal already exists: {}", goal.getName());
+							return;
 						}
 						goalStore.addGoal(goal);
 						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
@@ -597,18 +591,17 @@ public class GoalTrackerPlugin extends Plugin
 						}
 						// Duplicate guard: prefer caTaskId match (stable across rebuilds);
 						// fall back to name match for legacy goals without a task id.
-						String newName = goal.getName();
-						int newTaskId = goal.getCaTaskId();
-						for (Goal existing : goalStore.getGoals())
+						final String newName = goal.getName();
+						final int newTaskId = goal.getCaTaskId();
+						if (goalStore.exists(g -> {
+							if (g.getType() != GoalType.COMBAT_ACHIEVEMENT) return false;
+							boolean sameTask = newTaskId >= 0 && g.getCaTaskId() == newTaskId;
+							boolean sameName = newName != null && newName.equalsIgnoreCase(g.getName());
+							return sameTask || sameName;
+						}))
 						{
-							if (existing.getType() != GoalType.COMBAT_ACHIEVEMENT) continue;
-							boolean sameTask = newTaskId >= 0 && existing.getCaTaskId() == newTaskId;
-							boolean sameName = newName != null && newName.equalsIgnoreCase(existing.getName());
-							if (sameTask || sameName)
-							{
-								log.info("CA goal already exists: {}", newName);
-								return;
-							}
+							log.info("CA goal already exists: {}", newName);
+							return;
 						}
 						goalStore.addGoal(goal);
 						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
