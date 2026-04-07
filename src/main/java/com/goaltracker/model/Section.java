@@ -29,8 +29,12 @@ public class Section
 		COMPLETED
 	}
 
-	/** Order value for the Incomplete built-in section (always first). */
-	public static final int ORDER_INCOMPLETE = 0;
+	/**
+	 * Order value for the Incomplete built-in section. Pinned just above
+	 * Completed, so user-defined sections (1..N) render first, then
+	 * Incomplete, then Completed.
+	 */
+	public static final int ORDER_INCOMPLETE = Integer.MAX_VALUE - 1;
 
 	/** Order value for the Completed built-in section (always last). */
 	public static final int ORDER_COMPLETED = Integer.MAX_VALUE;

@@ -788,4 +788,62 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		}
 		return false;
 	}
+
+	// ---------------------------------------------------------------------
+	// User-defined section CRUD (Phase 2)
+	// ---------------------------------------------------------------------
+
+	@Override
+	public String createSection(String name)
+	{
+		log.debug("API.internal createSection(name={})", name);
+		Section created = goalStore.createUserSection(name);
+		onGoalsChanged.run();
+		return created.getId();
+	}
+
+	@Override
+	public boolean renameSection(String sectionId, String newName)
+	{
+		log.debug("API.internal renameSection(sectionId={}, newName={})", sectionId, newName);
+		boolean changed = goalStore.renameUserSection(sectionId, newName);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean deleteSection(String sectionId)
+	{
+		log.debug("API.internal deleteSection(sectionId={})", sectionId);
+		boolean deleted = goalStore.deleteUserSection(sectionId);
+		if (deleted) onGoalsChanged.run();
+		return deleted;
+	}
+
+	@Override
+	public boolean reorderSection(String sectionId, int newUserIndex)
+	{
+		log.debug("API.internal reorderSection(sectionId={}, newUserIndex={})", sectionId, newUserIndex);
+		boolean changed = goalStore.reorderUserSection(sectionId, newUserIndex);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean moveGoalToSection(String goalId, String sectionId)
+	{
+		log.debug("API.internal moveGoalToSection(goalId={}, sectionId={})", goalId, sectionId);
+		boolean moved = goalStore.moveGoalToSection(goalId, sectionId);
+		if (moved) onGoalsChanged.run();
+		return moved;
+	}
+
+	@Override
+	public int removeAllUserSections()
+	{
+		log.debug("API.internal removeAllUserSections()");
+		int removed = goalStore.removeAllUserSections();
+		if (removed > 0) onGoalsChanged.run();
+		return removed;
+	}
 }

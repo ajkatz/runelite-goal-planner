@@ -70,7 +70,12 @@ public class SectionHeaderRow extends JPanel
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
-				if (onToggle != null) onToggle.run();
+				// Only left-click toggles. Right-click is reserved for the
+				// context menu attached by GoalPanel for user-defined sections.
+				if (e.getButton() == MouseEvent.BUTTON1 && onToggle != null)
+				{
+					onToggle.run();
+				}
 			}
 		});
 	}

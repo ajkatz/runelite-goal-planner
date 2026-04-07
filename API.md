@@ -307,6 +307,72 @@ boolean restoreDefaultTags(String goalId);
 Reset a goal's tags to its default snapshot from creation, discarding any
 user-added tags.
 
+## Internal API (plugin-private)
+
+The following methods exist on `GoalTrackerInternalApi` and are **not** bound
+publicly via `Plugin.configure(Binder)`. They are used by the goal tracker
+plugin's own UI to dogfood the canonical mutation surface, but external
+consumer plugins cannot reach them through the standard `@PluginDependency`
+injection path.
+
+Existing internal methods (Phase 1): `moveGoal`, `removeAllGoals`,
+`setSectionCollapsed`, `toggleSectionCollapsed`.
+
+### User-defined section CRUD (Phase 2)
+
+#### `createSection(String)`
+
+```java
+String createSection(String name);
+```
+
+Create a user-defined section, inserted at the bottom of the user-section band
+(just above Completed). Idempotent on case-insensitive name match: returns the
+existing section's id if a user section with the same name already exists.
+
+Validation: name is trimmed; must be non-empty, max 40 characters, and may not
+collide with built-in names ("Incomplete" / "Completed", case-insensitive).
+Throws `IllegalArgumentException` on invalid input.
+
+#### `renameSection(String, String)`
+
+```java
+boolean renameSection(String sectionId, String newName);
+```
+
+Rename a user-defined section. Returns false on: not found, built-in, invalid
+name, duplicate name, or no-op (same name).
+
+#### `deleteSection(String)`
+
+```java
+boolean deleteSection(String sectionId);
+```
+
+Delete a user-defined section. All goals in the section are reassigned to the
+end of Incomplete; reconcile may then pull completed ones back to Completed.
+Returns false if not found or built-in.
+
+#### `reorderSection(String, int)`
+
+```java
+boolean reorderSection(String sectionId, int newUserIndex);
+```
+
+Reorder a user-defined section to a new position **within the user-section
+band**. `newUserIndex` is 0-based among user sections only — built-ins are not
+counted. Out-of-range values are clamped. Built-ins cannot be reordered.
+
+#### `moveGoalToSection(String, String)`
+
+```java
+boolean moveGoalToSection(String goalId, String sectionId);
+```
+
+Move a goal to a different section, appended at the end of the destination
+section. If the goal is COMPLETE, the move is rejected unless the destination
+is the Completed section (reconcile would pull it back otherwise).
+
 ## Versioning and stability
 
 The API is currently in v1. The interface is intentionally minimal and will

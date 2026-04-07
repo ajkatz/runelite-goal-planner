@@ -48,4 +48,70 @@ public interface GoalTrackerInternalApi
 	 *         returns the unchanged state if the section doesn't exist
 	 */
 	boolean toggleSectionCollapsed(String sectionId);
+
+	// ---------------------------------------------------------------------
+	// User-defined section CRUD (Phase 2)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Create a user-defined section. Inserted at the bottom of the user-section
+	 * band, just above the Completed built-in. Idempotent on case-insensitive
+	 * name match: returns the existing section's id if a user section with the
+	 * same name already exists.
+	 *
+	 * @param name display name; trimmed; must be non-empty after trim, max 40
+	 *             characters, and not collide with built-in names
+	 *             ("Incomplete"/"Completed", case-insensitive)
+	 * @return section id (newly created or existing)
+	 * @throws IllegalArgumentException if the name is invalid
+	 */
+	String createSection(String name);
+
+	/**
+	 * Rename a user-defined section. Built-in sections cannot be renamed.
+	 *
+	 * @return true if renamed, false on: not found, built-in, invalid name,
+	 *         duplicate name, or no-op (same name)
+	 */
+	boolean renameSection(String sectionId, String newName);
+
+	/**
+	 * Delete a user-defined section. All goals in the section are reassigned to
+	 * the end of Incomplete (then reconcile may pull completed ones to
+	 * Completed). Built-in sections cannot be deleted.
+	 *
+	 * @return true if deleted, false if not found or built-in
+	 */
+	boolean deleteSection(String sectionId);
+
+	/**
+	 * Reorder a user-defined section to a new position WITHIN the user-section
+	 * band. {@code newUserIndex} is 0-based among user sections only; built-ins
+	 * are not counted. Out-of-range values are clamped. Built-in sections
+	 * cannot be reordered.
+	 *
+	 * @return true if reordered, false on: not found, built-in, or no-op
+	 */
+	boolean reorderSection(String sectionId, int newUserIndex);
+
+	/**
+	 * Move a goal to a different section. The goal is appended at the end of
+	 * the destination section. If the goal is COMPLETE, the move is rejected
+	 * unless the destination is the Completed section (reconcile would just
+	 * pull it back otherwise).
+	 *
+	 * @return true if moved, false on: unknown goal id, unknown section id,
+	 *         no-op (already in that section), or complete-goal-to-non-completed
+	 */
+	boolean moveGoalToSection(String goalId, String sectionId);
+
+	/**
+	 * Delete all user-defined sections in one shot. Goals belonging to deleted
+	 * sections are reassigned to the end of Incomplete (reconcile then pulls
+	 * any completed ones to Completed). Built-in sections are preserved.
+	 * Idempotent — safe to call when no user sections exist.
+	 *
+	 * @return number of sections deleted
+	 */
+	int removeAllUserSections();
 }

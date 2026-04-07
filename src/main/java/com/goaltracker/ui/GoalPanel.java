@@ -86,12 +86,36 @@ public class GoalPanel extends PluginPanel
 			}
 		});
 
+		JButton clearSectionsButton = new JButton(ShapeIcons.minus(10, new Color(140, 180, 220)));
+		clearSectionsButton.setToolTipText("Delete all custom sections");
+		clearSectionsButton.setMargin(new Insets(2, 4, 2, 4));
+		clearSectionsButton.addActionListener(e -> {
+			int confirm = JOptionPane.showConfirmDialog(
+				this,
+				"Delete ALL custom sections?\nGoals in them will be moved to Incomplete.",
+				"Delete All Sections",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE
+			);
+			if (confirm == JOptionPane.YES_OPTION)
+			{
+				api.removeAllUserSections();
+			}
+		});
+
+		JButton addSectionButton = new JButton(ShapeIcons.plus(10, new Color(140, 180, 220)));
+		addSectionButton.setToolTipText("Add a new section");
+		addSectionButton.setMargin(new Insets(2, 4, 2, 4));
+		addSectionButton.addActionListener(e -> showCreateSectionDialog());
+
 		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
 		addButton.setToolTipText("Add a new goal");
 		addButton.setMargin(new Insets(2, 4, 2, 4));
 		addButton.addActionListener(e -> showAddGoalDialog());
 
 		headerButtons.add(clearButton);
+		headerButtons.add(clearSectionsButton);
+		headerButtons.add(addSectionButton);
 		headerButtons.add(addButton);
 
 		header.add(title, BorderLayout.WEST);
@@ -153,17 +177,28 @@ public class GoalPanel extends PluginPanel
 			}
 			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
 
-			// Hide section headers for empty sections (built-in or user).
-			if (sectionCount == 0) continue;
+			// Hide section headers for empty BUILT-IN sections only. User-defined
+			// sections are always shown — even when empty — so a freshly created
+			// section is visible and can be right-clicked / dropped into.
+			if (sectionCount == 0 && section.builtIn) continue;
 			final String sectionIdRef = section.id;
-			goalListPanel.add(new SectionHeaderRow(section, sectionCount, () -> {
+			SectionHeaderRow headerRow = new SectionHeaderRow(section, sectionCount, () -> {
 				api.toggleSectionCollapsed(sectionIdRef);
 				// API callback rebuilds the panel.
-			}));
+			});
+			// User-defined sections get a right-click menu (rename/delete/reorder).
+			// Built-in sections (Incomplete/Completed) are immutable.
+			if (!section.builtIn)
+			{
+				attachSectionContextMenu(headerRow, section, sectionViews);
+			}
+			goalListPanel.add(headerRow);
 			goalListPanel.add(Box.createVerticalStrut(2));
 
-			// Skip rendering goal cards while the section is collapsed.
-			if (section.collapsed)
+			// Skip rendering goal cards while the section is collapsed, or when
+			// the section is empty (sectionStart == -1 → guard against the
+			// goalViews.get(i) loop below running with i = -1).
+			if (section.collapsed || sectionCount == 0)
 			{
 				continue;
 			}
@@ -556,6 +591,32 @@ public class GoalPanel extends PluginPanel
 			menu.add(restore);
 		}
 
+		// "Move to section →" submenu — only for non-completed goals, only if there
+		// is at least one valid destination section (Incomplete + user sections,
+		// excluding the goal's current section, excluding Completed).
+		if (!goal.isComplete())
+		{
+			java.util.List<com.goaltracker.api.SectionView> allSections = api.queryAllSections();
+			java.util.List<com.goaltracker.api.SectionView> destinations = new java.util.ArrayList<>();
+			for (com.goaltracker.api.SectionView sv : allSections)
+			{
+				if ("COMPLETED".equals(sv.kind)) continue;
+				if (sv.id.equals(goal.getSectionId())) continue;
+				destinations.add(sv);
+			}
+			if (!destinations.isEmpty())
+			{
+				JMenu moveToSection = new JMenu("Move to Section");
+				for (com.goaltracker.api.SectionView dest : destinations)
+				{
+					JMenuItem item = new JMenuItem(dest.name);
+					item.addActionListener(e -> api.moveGoalToSection(goal.getId(), dest.id));
+					moveToSection.add(item);
+				}
+				menu.add(moveToSection);
+			}
+		}
+
 		JMenuItem remove = new JMenuItem("Remove");
 		remove.addActionListener(e -> api.removeGoal(goal.getId()));
 		menu.add(remove);
@@ -580,6 +641,111 @@ public class GoalPanel extends PluginPanel
 				}
 			}
 		});
+	}
+
+	/**
+	 * Attach a right-click context menu to a user-defined section header
+	 * (rename, delete, move up, move down). Built-in sections never call this.
+	 */
+	private void attachSectionContextMenu(SectionHeaderRow row,
+		com.goaltracker.api.SectionView section,
+		java.util.List<com.goaltracker.api.SectionView> allSections)
+	{
+		// Compute this section's index within the user-section band so we can
+		// gate the move-up / move-down items correctly.
+		java.util.List<com.goaltracker.api.SectionView> userSections = new java.util.ArrayList<>();
+		for (com.goaltracker.api.SectionView sv : allSections)
+		{
+			if (!sv.builtIn) userSections.add(sv);
+		}
+		int userIndex = -1;
+		for (int i = 0; i < userSections.size(); i++)
+		{
+			if (userSections.get(i).id.equals(section.id)) { userIndex = i; break; }
+		}
+		final int currentUserIndex = userIndex;
+
+		JPopupMenu menu = new JPopupMenu();
+
+		JMenuItem rename = new JMenuItem("Rename");
+		rename.addActionListener(e -> showRenameSectionDialog(section));
+		menu.add(rename);
+
+		if (currentUserIndex > 0)
+		{
+			JMenuItem moveUp = new JMenuItem("Move Up");
+			moveUp.addActionListener(e -> api.reorderSection(section.id, currentUserIndex - 1));
+			menu.add(moveUp);
+		}
+		if (currentUserIndex >= 0 && currentUserIndex < userSections.size() - 1)
+		{
+			JMenuItem moveDown = new JMenuItem("Move Down");
+			moveDown.addActionListener(e -> api.reorderSection(section.id, currentUserIndex + 1));
+			menu.add(moveDown);
+		}
+
+		menu.addSeparator();
+
+		JMenuItem delete = new JMenuItem("Delete Section");
+		delete.addActionListener(e -> {
+			int confirm = JOptionPane.showConfirmDialog(
+				this,
+				"Delete section \"" + section.name + "\"?\nGoals in it will be moved to Incomplete.",
+				"Delete Section",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE
+			);
+			if (confirm == JOptionPane.YES_OPTION)
+			{
+				api.deleteSection(section.id);
+			}
+		});
+		menu.add(delete);
+
+		row.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e)
+			{
+				if (e.isPopupTrigger()) menu.show(row, e.getX(), e.getY());
+			}
+
+			@Override
+			public void mouseReleased(MouseEvent e)
+			{
+				if (e.isPopupTrigger()) menu.show(row, e.getX(), e.getY());
+			}
+		});
+	}
+
+	private void showCreateSectionDialog()
+	{
+		String input = JOptionPane.showInputDialog(this, "Section name:", "New Section",
+			JOptionPane.PLAIN_MESSAGE);
+		if (input == null) return;
+		try
+		{
+			api.createSection(input);
+		}
+		catch (IllegalArgumentException ex)
+		{
+			JOptionPane.showMessageDialog(this, ex.getMessage(), "Invalid name",
+				JOptionPane.WARNING_MESSAGE);
+		}
+	}
+
+	private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
+	{
+		String input = (String) JOptionPane.showInputDialog(this, "New name:", "Rename Section",
+			JOptionPane.PLAIN_MESSAGE, null, null, section.name);
+		if (input == null) return;
+		boolean ok = api.renameSection(section.id, input);
+		if (!ok)
+		{
+			JOptionPane.showMessageDialog(this,
+				"Could not rename section. Name may be invalid, duplicate, or unchanged.",
+				"Rename failed", JOptionPane.WARNING_MESSAGE);
+		}
 	}
 
 	private void showAddGoalDialog()
