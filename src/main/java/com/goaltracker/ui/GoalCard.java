@@ -438,9 +438,12 @@ public class GoalCard extends JPanel
 		{
 			return "";
 		}
-		// Combat achievements and quests are binary and have no meaningful progress metric;
-		// show nothing until the goal is marked complete (handled above via the check mark).
-		if (goal.getType() == GoalType.COMBAT_ACHIEVEMENT || goal.getType() == GoalType.QUEST)
+		// Combat achievements, quests, and diaries are binary and have no meaningful
+		// progress metric; show nothing until the goal is marked complete (handled above
+		// via the check mark).
+		if (goal.getType() == GoalType.COMBAT_ACHIEVEMENT
+			|| goal.getType() == GoalType.QUEST
+			|| goal.getType() == GoalType.DIARY)
 		{
 			return "";
 		}

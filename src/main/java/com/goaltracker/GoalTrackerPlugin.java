@@ -1,5 +1,6 @@
 package com.goaltracker;
 
+import com.goaltracker.data.AchievementDiaryData;
 import com.goaltracker.data.CombatAchievementData;
 import com.goaltracker.data.CombatAchievementData.Tier;
 import com.goaltracker.data.ItemSourceData;
@@ -70,6 +71,9 @@ public class GoalTrackerPlugin extends Plugin
 
 	@Inject
 	private com.goaltracker.tracker.QuestTracker questTracker;
+
+	@Inject
+	private com.goaltracker.tracker.DiaryTracker diaryTracker;
 
 	@Inject
 	private ItemTracker itemTracker;
@@ -243,6 +247,7 @@ public class GoalTrackerPlugin extends Plugin
 			tickCounter = 0;
 			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
 			updated |= questTracker.checkGoals(goalStore.getGoals());
+			updated |= diaryTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
 				goalStore.save();
@@ -251,6 +256,33 @@ public class GoalTrackerPlugin extends Plugin
 			// Rebuild to refresh state and images
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
+	}
+
+	/**
+	 * Build an achievement diary Goal for a given area + tier. Stores the completion
+	 * varbit on the Goal so DiaryTracker can poll it (0 if no varbit is exposed, e.g.
+	 * Karamja Easy/Medium/Hard — those stay manual).
+	 */
+	private Goal buildDiaryGoal(String areaDisplayName, AchievementDiaryData.Tier tier)
+	{
+		if (areaDisplayName == null || tier == null) return null;
+
+		int varbitId = AchievementDiaryData.completionVarbit(areaDisplayName, tier);
+		if (varbitId == 0)
+		{
+			log.info("Diary goal '{} {}' has no tracking varbit; will be manual-only",
+				areaDisplayName, tier);
+		}
+
+		return Goal.builder()
+			.type(GoalType.DIARY)
+			.name(areaDisplayName)
+			.description(tier.getDisplayName() + " Achievement Diary")
+			.targetValue(1)
+			.currentValue(0)
+			.spriteId(AchievementDiaryData.DIARY_SPRITE_ID)
+			.varbitId(varbitId)
+			.build();
 	}
 
 	/** Quest list widget group ID (InterfaceID.QUESTLIST). */
@@ -414,6 +446,48 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			int widgetGroupId = entry.getParam1() >> 16;
 			int itemId = entry.getItemId();
+
+			// Achievement diary: right-click an area row -> add 4 "Add Goal: <Tier>" entries
+			boolean isDiaryRow = widgetGroupId == AchievementDiaryData.GROUP_ID
+				&& entry.getParam1() == AchievementDiaryData.TASKBOX;
+			if (isDiaryRow)
+			{
+				String areaDisplayName = AchievementDiaryData.parseAreaFromOption(entry.getOption());
+				if (areaDisplayName == null)
+				{
+					continue;
+				}
+				// Add one menu entry per tier. createMenuEntry(1) inserts at index 1 and
+				// RuneLite renders higher indices above lower ones, so iterating Easy→Elite
+				// puts Easy at the top of the added group and Elite at the bottom.
+				for (final AchievementDiaryData.Tier tier : AchievementDiaryData.Tier.values())
+				{
+					client.createMenuEntry(1)
+						.setOption("Add Goal: " + tier.getDisplayName())
+						.setTarget("<col=ff9040>" + areaDisplayName + "</col>")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e ->
+						{
+							Goal goal = buildDiaryGoal(areaDisplayName, tier);
+							if (goal == null) return;
+							// Duplicate guard: same area + tier can't be added twice
+							for (Goal existing : goalStore.getGoals())
+							{
+								if (existing.getType() == GoalType.DIARY
+									&& areaDisplayName.equalsIgnoreCase(existing.getName())
+									&& (tier.getDisplayName() + " Achievement Diary")
+										.equalsIgnoreCase(existing.getDescription()))
+								{
+									log.info("Diary goal already exists: {} {}", areaDisplayName, tier);
+									return;
+								}
+							}
+							goalStore.addGoal(goal);
+							javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+						});
+				}
+				break;
+			}
 
 			// Quest list: right-click a row -> add Quest goal
 			boolean isQuestList = widgetGroupId == QUESTLIST_GROUP_ID
