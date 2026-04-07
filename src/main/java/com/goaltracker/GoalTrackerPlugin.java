@@ -319,6 +319,67 @@ public class GoalTrackerPlugin extends Plugin
 			.build();
 	}
 
+	/**
+	 * Map from Skills-tab widget id (InterfaceID.Stats.&lt;SKILL&gt;) to the
+	 * corresponding {@link net.runelite.api.Skill}. Used by the right-click handler
+	 * to inject "Add Goal" on a hovered skill row.
+	 */
+	private static final java.util.Map<Integer, net.runelite.api.Skill> SKILL_TAB_WIDGET_TO_SKILL;
+	static
+	{
+		java.util.Map<Integer, net.runelite.api.Skill> m = new java.util.HashMap<>();
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.ATTACK, net.runelite.api.Skill.ATTACK);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.STRENGTH, net.runelite.api.Skill.STRENGTH);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.DEFENCE, net.runelite.api.Skill.DEFENCE);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.RANGED, net.runelite.api.Skill.RANGED);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.PRAYER, net.runelite.api.Skill.PRAYER);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.MAGIC, net.runelite.api.Skill.MAGIC);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.RUNECRAFT, net.runelite.api.Skill.RUNECRAFT);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.CONSTRUCTION, net.runelite.api.Skill.CONSTRUCTION);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.HITPOINTS, net.runelite.api.Skill.HITPOINTS);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.AGILITY, net.runelite.api.Skill.AGILITY);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.HERBLORE, net.runelite.api.Skill.HERBLORE);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.THIEVING, net.runelite.api.Skill.THIEVING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.CRAFTING, net.runelite.api.Skill.CRAFTING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.FLETCHING, net.runelite.api.Skill.FLETCHING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.SLAYER, net.runelite.api.Skill.SLAYER);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.HUNTER, net.runelite.api.Skill.HUNTER);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.MINING, net.runelite.api.Skill.MINING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.SMITHING, net.runelite.api.Skill.SMITHING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.FISHING, net.runelite.api.Skill.FISHING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.COOKING, net.runelite.api.Skill.COOKING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.FIREMAKING, net.runelite.api.Skill.FIREMAKING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.WOODCUTTING, net.runelite.api.Skill.WOODCUTTING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.FARMING, net.runelite.api.Skill.FARMING);
+		m.put(net.runelite.api.gameval.InterfaceID.Stats.SAILING, net.runelite.api.Skill.SAILING);
+		SKILL_TAB_WIDGET_TO_SKILL = java.util.Collections.unmodifiableMap(m);
+	}
+
+	/**
+	 * Prompt the user for a Level/XP target and add a skill goal via the API.
+	 * Called from the right-click handler on the Skills tab.
+	 */
+	private void promptAndAddSkillGoal(net.runelite.api.Skill skill)
+	{
+		com.goaltracker.ui.SkillTargetForm form = new com.goaltracker.ui.SkillTargetForm(99);
+
+		int result = javax.swing.JOptionPane.showConfirmDialog(panel, form,
+			"Add " + skill.getName() + " Goal",
+			javax.swing.JOptionPane.OK_CANCEL_OPTION,
+			javax.swing.JOptionPane.PLAIN_MESSAGE);
+		if (result != javax.swing.JOptionPane.OK_OPTION) return;
+
+		int targetXp = form.getTargetXp();
+		if (targetXp < 0)
+		{
+			javax.swing.JOptionPane.showMessageDialog(panel,
+				"Enter a valid level (1–99) or XP (0–200,000,000).",
+				"Invalid", javax.swing.JOptionPane.WARNING_MESSAGE);
+			return;
+		}
+		goalTrackerApi.addSkillGoal(skill, targetXp);
+	}
+
 	/** Quest list widget group ID (InterfaceID.QUESTLIST). */
 	private static final int QUESTLIST_GROUP_ID = 399;
 
@@ -516,6 +577,23 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			int widgetGroupId = entry.getParam1() >> 16;
 			int itemId = entry.getItemId();
+
+			// Skills tab: right-click a skill row -> add Skill goal. Each skill has
+			// its own widget id under InterfaceID.Stats.<SKILL>; we map param1 → Skill
+			// and prompt for Level / XP via a small dialog.
+			net.runelite.api.Skill skillFromWidget = SKILL_TAB_WIDGET_TO_SKILL
+				.get(entry.getParam1());
+			if (skillFromWidget != null)
+			{
+				final net.runelite.api.Skill skill = skillFromWidget;
+				client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget("<col=ff9040>" + skill.getName() + "</col>")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> javax.swing.SwingUtilities.invokeLater(() ->
+						promptAndAddSkillGoal(skill)));
+				break;
+			}
 
 			// Achievement diary: right-click an area row -> add 4 "Add Goal: <Tier>" entries
 			boolean isDiaryRow = widgetGroupId == AchievementDiaryData.GROUP_ID

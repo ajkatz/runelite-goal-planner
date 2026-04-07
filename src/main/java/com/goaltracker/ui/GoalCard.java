@@ -33,6 +33,14 @@ public class GoalCard extends JPanel
 	private static final int TAG_ROW_HEIGHT = 18;
 	private static final int CORNER_RADIUS = 8;
 
+	/**
+	 * Approximate width in pixels available to the goal-name label after icon,
+	 * status, and arrow components are subtracted from the sidebar. Used by the
+	 * pixel-based truncation helper so we don't lose characters to char-count
+	 * truncation followed by Swing's hard clip on overflow.
+	 */
+	private static final int NAME_WIDTH_PX = 130;
+
 	private GoalView view;
 	private final JLabel nameLabel;
 	private final JLabel statusLabel;
@@ -50,7 +58,9 @@ public class GoalCard extends JPanel
 		this.skillIconManager = skillIconManager;
 		this.spriteManager = spriteManager;
 
-		List<TagView> allTags = combinedTags(view);
+		// Tags are hidden on completed cards to save vertical space — completed
+		// goals are reference history, not active tracking, so the tag row is noise.
+		List<TagView> allTags = view.completedAt > 0 ? java.util.Collections.emptyList() : combinedTags(view);
 		boolean hasTags = !allTags.isEmpty();
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
 
@@ -103,20 +113,23 @@ public class GoalCard extends JPanel
 		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		// Right: up/down arrows
-		JPanel arrowPanel = new JPanel(new GridLayout(2, 1, 0, 0));
-		arrowPanel.setOpaque(false);
-		arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
-
+		// Right: up/down arrows. Hidden for completed cards (no reordering) so the
+		// status label gets full right-side width instead of leaving a dead gap.
 		upButton = createArrowButton(true, onMoveUp);
 		downButton = createArrowButton(false, onMoveDown);
 
-		arrowPanel.add(upButton);
-		arrowPanel.add(downButton);
-
 		add(leftPanel, BorderLayout.WEST);
 		add(statusLabel, BorderLayout.CENTER);
-		add(arrowPanel, BorderLayout.EAST);
+
+		if (!isComplete())
+		{
+			JPanel arrowPanel = new JPanel(new GridLayout(2, 1, 0, 0));
+			arrowPanel.setOpaque(false);
+			arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
+			arrowPanel.add(upButton);
+			arrowPanel.add(downButton);
+			add(arrowPanel, BorderLayout.EAST);
+		}
 	}
 
 	/** Combine default + custom tags into a single render list. */
@@ -392,6 +405,58 @@ public class GoalCard extends JPanel
 		super.paintComponent(g);
 	}
 
+	/**
+	 * Truncate {@code text} to fit within {@code maxPx} pixels using the given
+	 * font, appending an ellipsis when truncation is needed. Uses
+	 * {@link FontMetrics#stringWidth} for accurate per-glyph width — replaces
+	 * char-count truncation which double-clipped wide CA titles.
+	 */
+	/** Throwaway component used solely to obtain FontMetrics in a label-independent
+	 *  way. Avoids the order-of-init issue where formatNameHtml() runs as an
+	 *  argument to {@code new JLabel(...)} before the nameLabel field is assigned.
+	 */
+	private static final Canvas FONT_METRICS_CANVAS = new Canvas();
+
+	private String truncateToWidth(String text, Font font, int maxPx)
+	{
+		if (text == null || text.isEmpty()) return text;
+		FontMetrics fm = FONT_METRICS_CANVAS.getFontMetrics(font);
+		if (fm.stringWidth(text) <= maxPx) return text;
+		String ellipsis = "\u2026";
+		int ellipsisWidth = fm.stringWidth(ellipsis);
+		int budget = maxPx - ellipsisWidth;
+		if (budget <= 0) return ellipsis;
+		StringBuilder sb = new StringBuilder();
+		int width = 0;
+		for (int i = 0; i < text.length(); i++)
+		{
+			int cw = fm.charWidth(text.charAt(i));
+			if (width + cw > budget) break;
+			sb.append(text.charAt(i));
+			width += cw;
+		}
+		return sb.toString().trim() + ellipsis;
+	}
+
+	// Use FlatLaf default UI font as the base — matches what JLabel.getFont()
+	// resolves to without depending on the nameLabel field being initialized.
+	private static final Font NAME_FONT = UIManager.getFont("Label.font") != null
+		? UIManager.getFont("Label.font").deriveFont(Font.BOLD, 12f)
+		: new Font(Font.DIALOG, Font.BOLD, 12);
+	private static final Font DESC_FONT = UIManager.getFont("Label.font") != null
+		? UIManager.getFont("Label.font").deriveFont(Font.PLAIN, 9f)
+		: new Font(Font.DIALOG, Font.PLAIN, 9);
+
+	private String fitName(String text)
+	{
+		return truncateToWidth(text, NAME_FONT, NAME_WIDTH_PX);
+	}
+
+	private String fitDescription(String text)
+	{
+		return truncateToWidth(text, DESC_FONT, NAME_WIDTH_PX);
+	}
+
 	private String formatNameHtml()
 	{
 		String line1;
@@ -409,7 +474,7 @@ public class GoalCard extends JPanel
 				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case "ITEM_GRIND":
-				line1 = FormatUtil.truncate(view.name, 22);
+				line1 = fitName(view.name);
 				if (view.currentValue < 0)
 				{
 					line2 = "? / " + FormatUtil.formatNumber(view.targetValue);
@@ -428,17 +493,17 @@ public class GoalCard extends JPanel
 					? tier.substring(0, 1) + tier.substring(1).toLowerCase()
 					: "";
 				line1 = tierWord.isEmpty()
-					? FormatUtil.truncate(view.name, 22)
-					: FormatUtil.truncate(view.name + " - " + tierWord, 22);
+					? fitName(view.name)
+					: fitName(view.name + " - " + tierWord);
 				line2 = (view.description != null && !view.description.isEmpty())
-					? FormatUtil.truncate(view.description, 30)
+					? fitDescription(view.description)
 					: "";
 				break;
 			case "CUSTOM":
 			default:
-				line1 = FormatUtil.truncate(view.name, 22);
+				line1 = fitName(view.name);
 				line2 = (view.description != null && !view.description.isEmpty())
-					? FormatUtil.truncate(view.description, 30)
+					? fitDescription(view.description)
 					: "";
 				break;
 		}

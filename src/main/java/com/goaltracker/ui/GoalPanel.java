@@ -68,12 +68,16 @@ public class GoalPanel extends PluginPanel
 		title.setForeground(Color.WHITE);
 		title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
 
-		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
+		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 0));
 		headerButtons.setOpaque(false);
+
+		// Visual separator between the section-button pair (blue) and the
+		// goal-button pair (gray). 8px strut renders as a thin gap.
+		java.awt.Component buttonGroupSeparator = Box.createHorizontalStrut(6);
 
 		JButton clearButton = new JButton(ShapeIcons.minus(10, new Color(200, 200, 200)));
 		clearButton.setToolTipText("Clear all goals");
-		clearButton.setMargin(new Insets(2, 4, 2, 4));
+		clearButton.setMargin(new Insets(3, 6, 3, 6));
 		clearButton.addActionListener(e -> {
 			int confirm = JOptionPane.showConfirmDialog(
 				this, "Remove ALL goals?", "Clear All",
@@ -88,7 +92,7 @@ public class GoalPanel extends PluginPanel
 
 		JButton clearSectionsButton = new JButton(ShapeIcons.minus(10, new Color(140, 180, 220)));
 		clearSectionsButton.setToolTipText("Delete all custom sections");
-		clearSectionsButton.setMargin(new Insets(2, 4, 2, 4));
+		clearSectionsButton.setMargin(new Insets(3, 6, 3, 6));
 		clearSectionsButton.addActionListener(e -> {
 			int confirm = JOptionPane.showConfirmDialog(
 				this,
@@ -105,18 +109,20 @@ public class GoalPanel extends PluginPanel
 
 		JButton addSectionButton = new JButton(ShapeIcons.plus(10, new Color(140, 180, 220)));
 		addSectionButton.setToolTipText("Add a new section");
-		addSectionButton.setMargin(new Insets(2, 4, 2, 4));
+		addSectionButton.setMargin(new Insets(3, 6, 3, 6));
 		addSectionButton.addActionListener(e -> showCreateSectionDialog());
 
 		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
 		addButton.setToolTipText("Add a new goal");
-		addButton.setMargin(new Insets(2, 4, 2, 4));
+		addButton.setMargin(new Insets(3, 6, 3, 6));
 		addButton.addActionListener(e -> showAddGoalDialog());
 
+		// Order: gray pair (clear/add goal) | separator | blue pair (clear/add section)
 		headerButtons.add(clearButton);
+		headerButtons.add(addButton);
+		headerButtons.add(buttonGroupSeparator);
 		headerButtons.add(clearSectionsButton);
 		headerButtons.add(addSectionButton);
-		headerButtons.add(addButton);
 
 		header.add(title, BorderLayout.WEST);
 		header.add(headerButtons, BorderLayout.EAST);
@@ -195,6 +201,19 @@ public class GoalPanel extends PluginPanel
 			goalListPanel.add(headerRow);
 			goalListPanel.add(Box.createVerticalStrut(2));
 
+			// Empty user-section placeholder: a single italic hint row directly under
+			// the header, so a freshly created section doesn't look broken.
+			if (sectionCount == 0 && !section.builtIn && !section.collapsed)
+			{
+				JLabel placeholder = new JLabel("Empty — right-click goals to move them here");
+				placeholder.setForeground(new Color(120, 120, 120));
+				placeholder.setFont(placeholder.getFont().deriveFont(Font.ITALIC, 10f));
+				placeholder.setAlignmentX(Component.CENTER_ALIGNMENT);
+				placeholder.setBorder(new EmptyBorder(2, 4, 6, 4));
+				goalListPanel.add(placeholder);
+				continue;
+			}
+
 			// Skip rendering goal cards while the section is collapsed, or when
 			// the section is empty (sectionStart == -1 → guard against the
 			// goalViews.get(i) loop below running with i = -1).
@@ -247,11 +266,33 @@ public class GoalPanel extends PluginPanel
 
 		if (goalViews.isEmpty())
 		{
-			JLabel empty = new JLabel("No goals yet. Click + to add one.");
-			empty.setForeground(new Color(120, 120, 120));
-			empty.setAlignmentX(Component.CENTER_ALIGNMENT);
-			empty.setBorder(new EmptyBorder(20, 0, 0, 0));
-			goalListPanel.add(empty);
+			JPanel emptyPanel = new JPanel();
+			emptyPanel.setLayout(new BoxLayout(emptyPanel, BoxLayout.Y_AXIS));
+			emptyPanel.setOpaque(false);
+			emptyPanel.setBorder(new EmptyBorder(32, 8, 8, 8));
+			emptyPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+			JLabel headline = new JLabel("No goals yet");
+			headline.setForeground(new Color(180, 180, 180));
+			headline.setFont(headline.getFont().deriveFont(Font.BOLD, 13f));
+			headline.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+			JLabel hintGoal = new JLabel("Click + to add a goal");
+			hintGoal.setForeground(new Color(130, 130, 130));
+			hintGoal.setFont(hintGoal.getFont().deriveFont(11f));
+			hintGoal.setAlignmentX(Component.CENTER_ALIGNMENT);
+			hintGoal.setBorder(new EmptyBorder(8, 0, 0, 0));
+
+			JLabel hintSection = new JLabel("Or + to add a custom section");
+			hintSection.setForeground(new Color(130, 130, 130));
+			hintSection.setFont(hintSection.getFont().deriveFont(11f));
+			hintSection.setAlignmentX(Component.CENTER_ALIGNMENT);
+			hintSection.setBorder(new EmptyBorder(2, 0, 0, 0));
+
+			emptyPanel.add(headline);
+			emptyPanel.add(hintGoal);
+			emptyPanel.add(hintSection);
+			goalListPanel.add(emptyPanel);
 		}
 
 		goalListPanel.revalidate();
@@ -823,18 +864,20 @@ public class GoalPanel extends PluginPanel
 		panel.add(field1Panel, gbc);
 
 		// Row 2: Field 2
-		JLabel label2 = new JLabel("Target Level/XP:");
+		JLabel label2 = new JLabel("Target:");
 		label2.setPreferredSize(new Dimension(labelWidth, 24));
 		gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
 		panel.add(label2, gbc);
 
-		JTextField targetField = new JTextField("99", 15);
 		JTextField descField = new JTextField(15);
 		JLabel itemHint = new JLabel("<html><i>Item search opens in-game</i></html>");
 		itemHint.setForeground(new Color(140, 140, 140));
 
+		// Skill row uses the shared SkillTargetForm with synced Level/XP fields.
+		SkillTargetForm skillTargetForm = new SkillTargetForm(99);
+
 		JPanel field2Panel = new JPanel(new CardLayout());
-		field2Panel.add(targetField, "SKILL");
+		field2Panel.add(skillTargetForm, "SKILL");
 		field2Panel.add(itemHint, "ITEM_GRIND");
 		field2Panel.add(descField, "CUSTOM");
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
@@ -852,7 +895,7 @@ public class GoalPanel extends PluginPanel
 			{
 				case SKILL:
 					label1.setText("Skill:");
-					label2.setText("Target Level:");
+					label2.setText("Target:");
 					break;
 				case ITEM_GRIND:
 					label1.setText("Quantity:");
@@ -880,7 +923,7 @@ public class GoalPanel extends PluginPanel
 
 			if (selectedType == GoalType.SKILL)
 			{
-				addSkillGoal(skillCombo, targetField);
+				addSkillGoal(skillCombo, skillTargetForm);
 			}
 			else if (selectedType == GoalType.ITEM_GRIND)
 			{
@@ -907,36 +950,27 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
-	private void addSkillGoal(JComboBox<Skill> skillCombo, JTextField targetField)
+	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form)
 	{
-		try
+		Skill skill = (Skill) skillCombo.getSelectedItem();
+		int targetXp = form.getTargetXp();
+		if (targetXp < 0)
 		{
-			Skill skill = (Skill) skillCombo.getSelectedItem();
-			int targetLevel = Integer.parseInt(targetField.getText().trim().replace(",", ""));
-
-			if (targetLevel < 1 || targetLevel > 99)
-			{
-				JOptionPane.showMessageDialog(this, "Target level must be between 1 and 99.", "Error", JOptionPane.ERROR_MESSAGE);
-				return;
-			}
-
-			int targetXp = net.runelite.api.Experience.getXpForLevel(targetLevel);
-
-			String conflict = checkSkillConflict(skill, targetXp);
-			if (conflict != null)
-			{
-				JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
-				return;
-			}
-
-			// Route through the public API. Returns the goal id (or existing id on dup).
-			api.addSkillGoalForLevel(skill, targetLevel);
-			// API callback rebuilds the panel.
+			JOptionPane.showMessageDialog(this,
+				"Enter a valid target level (1–99) or XP (0–200,000,000).",
+				"Error", JOptionPane.ERROR_MESSAGE);
+			return;
 		}
-		catch (NumberFormatException e)
+
+		String conflict = checkSkillConflict(skill, targetXp);
+		if (conflict != null)
 		{
-			JOptionPane.showMessageDialog(this, "Invalid target value.", "Error", JOptionPane.ERROR_MESSAGE);
+			JOptionPane.showMessageDialog(this, conflict, "Conflict", JOptionPane.WARNING_MESSAGE);
+			return;
 		}
+
+		api.addSkillGoal(skill, targetXp);
+		// API callback rebuilds the panel.
 	}
 
 	private void addCustomGoal(JTextField nameField, JTextField descField)
