@@ -22,9 +22,24 @@ dependencies {
 	compileOnly 'org.projectlombok:lombok:1.18.30'
 	annotationProcessor 'org.projectlombok:lombok:1.18.30'
 
-	testImplementation 'junit:junit:4.12'
+	// JUnit 5 (Jupiter) is the primary test framework. JUnit Vintage runs any
+	// remaining JUnit 4 tests during the migration. Mockito for mocking
+	// stateless deps (Client, ItemManager, etc); hand-rolled fakes for stateful
+	// stores (GoalStore, ConfigManager).
+	testImplementation 'org.junit.jupiter:junit-jupiter-api:5.10.2'
+	testImplementation 'org.junit.jupiter:junit-jupiter-params:5.10.2'
+	testRuntimeOnly 'org.junit.jupiter:junit-jupiter-engine:5.10.2'
+	testRuntimeOnly 'org.junit.vintage:junit-vintage-engine:5.10.2'
+	testImplementation 'junit:junit:4.13.2'
+	testImplementation 'org.mockito:mockito-core:5.11.0'
+	testImplementation 'org.mockito:mockito-junit-jupiter:5.11.0'
+
 	testImplementation group: 'net.runelite', name:'client', version: runeLiteVersion
 	testImplementation group: 'net.runelite', name:'jshell', version: runeLiteVersion
+}
+
+tasks.named('test', Test) {
+	useJUnitPlatform()
 }
 
 group = 'com.goaltracker'

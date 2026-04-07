@@ -16,8 +16,10 @@ public class GoalTest
 	@Test
 	public void testProgressPercentCompleteCustom()
 	{
+		// Mission 11+: completion is canonically tracked by completedAt > 0,
+		// not status. Build the goal with both for clarity.
 		Goal goal = Goal.builder().type(GoalType.CUSTOM).name("Test").targetValue(0)
-			.status(GoalStatus.COMPLETE).build();
+			.status(GoalStatus.COMPLETE).completedAt(System.currentTimeMillis()).build();
 		assertEquals(100.0, goal.getProgressPercent(), 0.01);
 	}
 
@@ -38,18 +40,33 @@ public class GoalTest
 	}
 
 	@Test
-	public void testIsCompleteByValue()
+	public void testIsCompleteByCompletedAt()
 	{
+		// Mission 11+: completion is iff completedAt > 0. The tracker's
+		// recordGoalProgress sets this when meetsTarget() flips true.
 		Goal goal = Goal.builder().type(GoalType.SKILL).name("Mining").targetValue(100)
-			.currentValue(100).build();
+			.currentValue(100).completedAt(System.currentTimeMillis()).build();
 		assertTrue(goal.isComplete());
 	}
 
 	@Test
-	public void testIsCompleteByStatus()
+	public void testMeetsTargetWithoutCompletedAt()
 	{
+		// A goal that meets its target but hasn't been stamped (e.g. before the
+		// next tracker tick) is NOT considered complete. meetsTarget and
+		// isComplete are intentionally separate concerns.
+		Goal goal = Goal.builder().type(GoalType.SKILL).name("Mining").targetValue(100)
+			.currentValue(100).build();
+		assertTrue(goal.meetsTarget());
+		assertFalse(goal.isComplete());
+	}
+
+	@Test
+	public void testIsCompleteByCompletedAtCustom()
+	{
+		// Custom goals are marked complete via the API which stamps completedAt.
 		Goal goal = Goal.builder().type(GoalType.CUSTOM).name("Test")
-			.status(GoalStatus.COMPLETE).build();
+			.status(GoalStatus.COMPLETE).completedAt(System.currentTimeMillis()).build();
 		assertTrue(goal.isComplete());
 	}
 

@@ -59,7 +59,14 @@ public class ItemTracker
 
 		for (Goal goal : goals)
 		{
-			if (goal.getType() != GoalType.ITEM_GRIND || goal.getStatus() != GoalStatus.ACTIVE)
+			// NB: we intentionally do NOT filter on status != ACTIVE here.
+			// Item quantities can decrease at any time (drop, sell, use as
+			// material), so a previously-COMPLETE item goal must still be
+			// checked every tick — recordGoalProgress's symmetric un-complete
+			// branch (Mission 14) reverts it if the value drops below target.
+			// Other trackers (skill/quest/diary/CA) can skip COMPLETE goals
+			// because their underlying state never decreases.
+			if (goal.getType() != GoalType.ITEM_GRIND)
 			{
 				continue;
 			}
