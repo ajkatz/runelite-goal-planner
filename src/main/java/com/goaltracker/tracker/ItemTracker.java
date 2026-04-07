@@ -64,10 +64,10 @@ public class ItemTracker
 				goal.setCurrentValue(totalCount);
 				anyUpdated = true;
 
-				if (goal.isComplete())
+				if (goal.meetsTarget() && !goal.isComplete())
 				{
-					goal.setStatus(GoalStatus.COMPLETE);
 					goal.setCompletedAt(System.currentTimeMillis());
+					goal.setStatus(GoalStatus.COMPLETE);
 					log.info("Item goal complete: {}", goal.getName());
 				}
 			}

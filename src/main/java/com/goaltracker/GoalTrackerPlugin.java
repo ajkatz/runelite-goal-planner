@@ -76,6 +76,9 @@ public class GoalTrackerPlugin extends Plugin
 	private com.goaltracker.tracker.DiaryTracker diaryTracker;
 
 	@Inject
+	private com.goaltracker.tracker.CombatAchievementTracker combatAchievementTracker;
+
+	@Inject
 	private ItemTracker itemTracker;
 
 	@Inject
@@ -108,6 +111,10 @@ public class GoalTrackerPlugin extends Plugin
 
 		goalStore.load();
 		wikiCaRepository.loadAsync();
+		// Migrate any pre-existing CA goals (from before the bit-packed varp tracking
+		// switch) by looking up their wiki id by name. No-op if the wiki cache hasn't
+		// populated yet — they'll get filled on a later startup.
+		migrateCaTaskIds();
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager, this::openItemSearch);
 		panel.setClient(client);
@@ -248,8 +255,10 @@ public class GoalTrackerPlugin extends Plugin
 			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
 			updated |= questTracker.checkGoals(goalStore.getGoals());
 			updated |= diaryTracker.checkGoals(goalStore.getGoals());
+			updated |= combatAchievementTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
+				goalStore.reconcileCompletedSection();
 				goalStore.save();
 			}
 
@@ -404,6 +413,10 @@ public class GoalTrackerPlugin extends Plugin
 		}
 		String tooltip = fullDesc != null ? name + " \u2014 " + fullDesc : null;
 
+		// Wiki provides the canonical CA task id; the tracker uses it to read the
+		// bit-packed CA_TASK_COMPLETED varplayers. -1 = unknown.
+		int caTaskId = (wiki != null) ? wiki.id : -1;
+
 		java.util.List<ItemTag> tags = new java.util.ArrayList<>();
 		if (monster != null)
 		{
@@ -424,9 +437,36 @@ public class GoalTrackerPlugin extends Plugin
 			.targetValue(1)
 			.currentValue(0)
 			.spriteId(tierSpriteId > 0 ? tierSpriteId : 0)
+			.caTaskId(caTaskId)
 			.tags(tags)
 			.defaultTags(new java.util.ArrayList<>(tags))
 			.build();
+	}
+
+	/**
+	 * Backfill caTaskId for existing CA goals by looking up their name in the wiki repo.
+	 * Run on startup once the wiki cache is loaded; no-op if the cache hasn't populated yet.
+	 */
+	private void migrateCaTaskIds()
+	{
+		if (wikiCaRepository.size() == 0) return;
+		int filled = 0;
+		for (Goal g : goalStore.getGoals())
+		{
+			if (g.getType() != GoalType.COMBAT_ACHIEVEMENT) continue;
+			if (g.getCaTaskId() >= 0) continue;
+			WikiCaRepository.CaInfo info = wikiCaRepository.get(g.getName());
+			if (info != null)
+			{
+				g.setCaTaskId(info.id);
+				filled++;
+			}
+		}
+		if (filled > 0)
+		{
+			log.info("Backfilled caTaskId for {} existing CA goals", filled);
+			goalStore.save();
+		}
 	}
 
 	@Subscribe
@@ -555,6 +595,21 @@ public class GoalTrackerPlugin extends Plugin
 							log.warn("CA goal row {} no longer resolvable at click time", row);
 							return;
 						}
+						// Duplicate guard: prefer caTaskId match (stable across rebuilds);
+						// fall back to name match for legacy goals without a task id.
+						String newName = goal.getName();
+						int newTaskId = goal.getCaTaskId();
+						for (Goal existing : goalStore.getGoals())
+						{
+							if (existing.getType() != GoalType.COMBAT_ACHIEVEMENT) continue;
+							boolean sameTask = newTaskId >= 0 && existing.getCaTaskId() == newTaskId;
+							boolean sameName = newName != null && newName.equalsIgnoreCase(existing.getName());
+							if (sameTask || sameName)
+							{
+								log.info("CA goal already exists: {}", newName);
+								return;
+							}
+						}
 						goalStore.addGoal(goal);
 						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 						refreshItemGoalsNow();
@@ -664,6 +719,7 @@ public class GoalTrackerPlugin extends Plugin
 			boolean updated = itemTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
+				goalStore.reconcileCompletedSection();
 				goalStore.save();
 				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 			}

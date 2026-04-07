@@ -38,14 +38,16 @@ import java.util.Map;
 public class WikiCaRepository
 {
 	private static final String CONFIG_GROUP = "goaltracker";
-	private static final String CACHE_KEY = "caWikiCache";
-	private static final String CACHE_TS_KEY = "caWikiCacheTs";
+	// v2 schema: includes 'id' in the bucket query so groupIndex can be computed
+	// for varbit-mapping. Bumped to force a refetch on existing installs.
+	private static final String CACHE_KEY = "caWikiCacheV2";
+	private static final String CACHE_TS_KEY = "caWikiCacheV2Ts";
 	private static final long CACHE_MAX_AGE_MS = 7L * 24 * 60 * 60 * 1000; // 7 days
 
 	private static final HttpUrl WIKI_API = HttpUrl.parse("https://oldschool.runescape.wiki/api.php");
 	private static final String BUCKET_QUERY =
 		"bucket('combat_achievement')"
-			+ ".select('name','task','tier','monster','type')"
+			+ ".select('id','name','task','tier','monster','type')"
 			+ ".limit(5000).run()";
 
 	private final OkHttpClient httpClient;
@@ -172,12 +174,15 @@ public class WikiCaRepository
 		if (bucketEl == null || !bucketEl.isJsonArray()) return Collections.emptyMap();
 
 		JsonArray rows = bucketEl.getAsJsonArray();
-		Map<String, CaInfo> out = new HashMap<>(rows.size() * 2);
+
+		// First pass: collect CaInfo objects with id parsed
+		java.util.List<CaInfo> all = new java.util.ArrayList<>(rows.size());
 		for (JsonElement el : rows)
 		{
 			if (!el.isJsonObject()) continue;
 			JsonObject o = el.getAsJsonObject();
 			CaInfo info = new CaInfo();
+			info.id = asInt(o, "id");
 			info.name = asString(o, "name");
 			info.task = asString(o, "task");
 			info.tier = asString(o, "tier");
@@ -185,10 +190,40 @@ public class WikiCaRepository
 			info.type = asString(o, "type");
 			if (info.name != null && !info.name.isEmpty())
 			{
-				out.put(info.name.toLowerCase(Locale.ROOT), info);
+				all.add(info);
 			}
 		}
+
+		// Sort by id so groupIndex is deterministic and matches the game's internal order
+		all.sort(java.util.Comparator.comparingInt(c -> c.id));
+
+		// Second pass: compute 1-based groupIndex per (monster, type) pair so it lines up
+		// with the trailing index in CA_TASK_<MONSTER>_<TYPE>_<INDEX>_COMPLETED varbits.
+		java.util.Map<String, Integer> groupCounters = new HashMap<>();
+		for (CaInfo info : all)
+		{
+			String groupKey = (info.monster == null ? "" : info.monster) + "|"
+				+ (info.type == null ? "" : info.type);
+			int n = groupCounters.getOrDefault(groupKey, 0) + 1;
+			groupCounters.put(groupKey, n);
+			info.groupIndex = n;
+		}
+
+		// Build name-keyed map for lookup
+		Map<String, CaInfo> out = new HashMap<>(all.size() * 2);
+		for (CaInfo info : all)
+		{
+			out.put(info.name.toLowerCase(Locale.ROOT), info);
+		}
 		return out;
+	}
+
+	private static int asInt(JsonObject o, String key)
+	{
+		JsonElement e = o.get(key);
+		if (e == null || e.isJsonNull()) return 0;
+		try { return e.getAsInt(); }
+		catch (Exception ex) { return 0; }
 	}
 
 	private static String asString(JsonObject o, String key)
@@ -210,10 +245,12 @@ public class WikiCaRepository
 	 */
 	public static class CaInfo
 	{
+		public int id;         // wiki-provided global id
 		public String name;
 		public String task;    // full description text (e.g. "Kill Amoxiatl in less than 30 seconds.")
 		public String tier;    // "Easy", "Medium", ...
 		public String monster; // raw monster field from the wiki
 		public String type;    // "Kill Count", "Perfection", ...
+		public int groupIndex; // 1-based index within the (monster, type) group, sorted by id
 	}
 }

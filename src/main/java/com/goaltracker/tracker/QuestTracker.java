@@ -60,10 +60,10 @@ public class QuestTracker
 					goal.setCurrentValue(newValue);
 					anyUpdated = true;
 
-					if (goal.isComplete())
+					if (goal.meetsTarget() && !goal.isComplete())
 					{
-						goal.setStatus(GoalStatus.COMPLETE);
 						goal.setCompletedAt(System.currentTimeMillis());
+						goal.setStatus(GoalStatus.COMPLETE);
 						log.info("Quest goal complete: {}", goal.getName());
 					}
 				}

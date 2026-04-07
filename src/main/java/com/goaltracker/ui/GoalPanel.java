@@ -122,30 +122,83 @@ public class GoalPanel extends PluginPanel
 		goalListPanel.removeAll();
 		cardMap.clear();
 
+		// Ensure the flat list is ordered by (section.order, priority) so that
+		// per-section slices are contiguous; arrow reorder indices stay valid.
+		goalStore.normalizeOrder();
 		List<Goal> goals = goalStore.getGoals();
+		java.util.List<com.goaltracker.model.Section> sections = new java.util.ArrayList<>(
+			goalStore.getSections());
+		sections.sort(java.util.Comparator.comparingInt(com.goaltracker.model.Section::getOrder));
 
-		for (int i = 0; i < goals.size(); i++)
+		for (com.goaltracker.model.Section section : sections)
 		{
-			final int index = i;
-			Goal goal = goals.get(i);
+			// Find contiguous slice of goals in this section
+			int sectionStart = -1;
+			int sectionEnd = -1;
+			for (int i = 0; i < goals.size(); i++)
+			{
+				if (section.getId().equals(goals.get(i).getSectionId()))
+				{
+					if (sectionStart == -1) sectionStart = i;
+					sectionEnd = i;
+				}
+			}
+			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
 
-			GoalCard card = new GoalCard(
-				goal,
-				e -> moveGoal(index, index - 1),
-				e -> moveGoal(index, index + 1),
-				skillIconManager,
-				itemManager,
-				spriteManager
-			);
+			// Hide section headers for empty sections (built-in or user).
+			if (sectionCount == 0) continue;
+			final com.goaltracker.model.Section sectionRef = section;
+			goalListPanel.add(new SectionHeaderRow(section, sectionCount, () -> {
+				sectionRef.setCollapsed(!sectionRef.isCollapsed());
+				goalStore.save();
+				rebuild();
+			}));
+			goalListPanel.add(Box.createVerticalStrut(2));
 
-			card.setFirstInList(i == 0);
-			card.setLastInList(i == goals.size() - 1);
+			// Skip rendering goal cards while the section is collapsed.
+			if (section.isCollapsed())
+			{
+				continue;
+			}
 
-			addContextMenu(card, goal, index, goals.size());
-			cardMap.put(goal.getId(), card);
+			boolean isCompletedSection =
+				section.getBuiltInKind() == com.goaltracker.model.Section.BuiltInKind.COMPLETED;
 
-			goalListPanel.add(card);
-			goalListPanel.add(Box.createVerticalStrut(4));
+			for (int i = sectionStart; i <= sectionEnd; i++)
+			{
+				final int index = i;
+				Goal goal = goals.get(i);
+
+				final int secStart = sectionStart;
+				final int secEnd = sectionEnd;
+
+				GoalCard card = new GoalCard(
+					goal,
+					e -> moveGoalBounded(index, index - 1, secStart, secEnd),
+					e -> moveGoalBounded(index, index + 1, secStart, secEnd),
+					skillIconManager,
+					itemManager,
+					spriteManager
+				);
+
+				// Completed section is read-only ordering — no reorder arrows.
+				if (isCompletedSection)
+				{
+					card.setFirstInList(true);
+					card.setLastInList(true);
+				}
+				else
+				{
+					card.setFirstInList(i == sectionStart);
+					card.setLastInList(i == sectionEnd);
+				}
+
+				addContextMenu(card, goal, index, goals.size());
+				cardMap.put(goal.getId(), card);
+
+				goalListPanel.add(card);
+				goalListPanel.add(Box.createVerticalStrut(4));
+			}
 		}
 
 		if (goals.isEmpty())
@@ -159,6 +212,17 @@ public class GoalPanel extends PluginPanel
 
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
+	}
+
+	/**
+	 * Move a goal by one slot, but only within its current section's bounds.
+	 * Prevents arrow reorder from accidentally crossing section boundaries.
+	 */
+	private void moveGoalBounded(int fromIndex, int toIndex, int minIndex, int maxIndex)
+	{
+		if (toIndex < minIndex || toIndex > maxIndex) return;
+		reorderingService.moveGoal(fromIndex, toIndex);
+		rebuild();
 	}
 
 	private void moveGoalTo(int fromIndex, int toIndex)
@@ -194,22 +258,26 @@ public class GoalPanel extends PluginPanel
 	{
 		JPopupMenu menu = new JPopupMenu();
 
-		if (index > 0)
+		// Reorder options are hidden in the Completed section (read-only ordering).
+		if (!goal.isComplete())
 		{
-			JMenuItem moveFirst = new JMenuItem("Move to Top");
-			moveFirst.addActionListener(e -> {
-				moveGoalTo(index, 0);
-			});
-			menu.add(moveFirst);
-		}
+			if (index > 0)
+			{
+				JMenuItem moveFirst = new JMenuItem("Move to Top");
+				moveFirst.addActionListener(e -> {
+					moveGoalTo(index, 0);
+				});
+				menu.add(moveFirst);
+			}
 
-		if (index < totalGoals - 1)
-		{
-			JMenuItem moveLast = new JMenuItem("Move to Bottom");
-			moveLast.addActionListener(e -> {
-				moveGoalTo(index, totalGoals - 1);
-			});
-			menu.add(moveLast);
+			if (index < totalGoals - 1)
+			{
+				JMenuItem moveLast = new JMenuItem("Move to Bottom");
+				moveLast.addActionListener(e -> {
+					moveGoalTo(index, totalGoals - 1);
+				});
+				menu.add(moveLast);
+			}
 		}
 
 		if (menu.getComponentCount() > 0)
@@ -217,27 +285,36 @@ public class GoalPanel extends PluginPanel
 			menu.addSeparator();
 		}
 
-		if (goal.getStatus() == GoalStatus.COMPLETE)
+		// Manual completion is CUSTOM-only. Verifiable types (quest/diary/CA/item/skill)
+		// are purely game-driven; CAs without a tracking varbit simply stay incomplete
+		// until the runelite-api version is updated to expose them.
+		if (goal.isComplete() && goal.getType() == GoalType.CUSTOM)
 		{
 			JMenuItem reopen = new JMenuItem("Mark Incomplete");
 			reopen.addActionListener(e -> {
-				goal.setStatus(GoalStatus.ACTIVE);
 				goal.setCompletedAt(0);
+				goal.setStatus(GoalStatus.ACTIVE);
 				goalStore.updateGoal(goal);
+				goalStore.reconcileCompletedSection();
 				rebuild();
 			});
 			menu.add(reopen);
 		}
-		else if (goal.getType() == GoalType.CUSTOM)
+		else if (!goal.isComplete() && goal.getType() == GoalType.CUSTOM)
 		{
 			JMenuItem complete = new JMenuItem("Mark Complete");
 			complete.addActionListener(e -> {
-				goal.setStatus(GoalStatus.COMPLETE);
 				goal.setCompletedAt(System.currentTimeMillis());
+				goal.setStatus(GoalStatus.COMPLETE);
 				goalStore.updateGoal(goal);
+				goalStore.reconcileCompletedSection();
 				rebuild();
 			});
 			menu.add(complete);
+		}
+
+		if (goal.getType() == GoalType.CUSTOM && !goal.isComplete())
+		{
 
 			JMenuItem editName = new JMenuItem("Change Name");
 			editName.addActionListener(e -> {
@@ -266,7 +343,7 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Skill-specific options
-		if (goal.getType() == GoalType.SKILL && goal.getStatus() != GoalStatus.COMPLETE)
+		if (goal.getType() == GoalType.SKILL && !goal.isComplete())
 		{
 			JMenuItem editLevel = new JMenuItem("Change Target");
 			editLevel.addActionListener(e -> {
@@ -300,7 +377,7 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Item-specific options
-		if (goal.getType() == GoalType.ITEM_GRIND && goal.getStatus() != GoalStatus.COMPLETE)
+		if (goal.getType() == GoalType.ITEM_GRIND && !goal.isComplete())
 		{
 			JMenuItem editQty = new JMenuItem("Change Target");
 			editQty.addActionListener(e -> {
@@ -343,10 +420,23 @@ public class GoalPanel extends PluginPanel
 			gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
 			tagPanel.add(catLabel, gbc);
 
-			JComboBox<com.goaltracker.model.TagCategory> catCombo =
-				new JComboBox<>(java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+			// Tag categories: full list for CUSTOM goals; restricted to OTHER ("custom"
+			// catch-all) for everything else, since auto-generated goal types should not
+			// have user-added boss/raid/skilling/etc. tags layered on.
+			com.goaltracker.model.TagCategory[] categories;
+			if (goal.getType() == GoalType.CUSTOM)
+			{
+				categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
 					.filter(c -> c != com.goaltracker.model.TagCategory.SPECIAL)
-					.toArray(com.goaltracker.model.TagCategory[]::new));
+					.toArray(com.goaltracker.model.TagCategory[]::new);
+			}
+			else
+			{
+				categories = new com.goaltracker.model.TagCategory[]{
+					com.goaltracker.model.TagCategory.OTHER
+				};
+			}
+			JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
 			catCombo.setRenderer(new DefaultListCellRenderer()
 			{
 				@Override
@@ -423,7 +513,11 @@ public class GoalPanel extends PluginPanel
 				}
 			}
 		});
-		menu.add(addTag);
+		// Completed goals are tag-frozen.
+		if (!goal.isComplete())
+		{
+			menu.add(addTag);
+		}
 
 		if (goal.getTags() != null && !goal.getTags().isEmpty())
 		{
@@ -734,7 +828,7 @@ public class GoalPanel extends PluginPanel
 			{
 				continue;
 			}
-			if (existing.getStatus() == GoalStatus.COMPLETE)
+			if (existing.isComplete())
 			{
 				continue;
 			}

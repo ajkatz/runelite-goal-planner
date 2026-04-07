@@ -61,10 +61,10 @@ public class DiaryTracker
 				goal.setCurrentValue(newValue);
 				anyUpdated = true;
 
-				if (goal.isComplete())
+				if (goal.meetsTarget() && !goal.isComplete())
 				{
-					goal.setStatus(GoalStatus.COMPLETE);
 					goal.setCompletedAt(System.currentTimeMillis());
+					goal.setStatus(GoalStatus.COMPLETE);
 					log.info("Diary goal complete: {}", goal.getName());
 				}
 			}

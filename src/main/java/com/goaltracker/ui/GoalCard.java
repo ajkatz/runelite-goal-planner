@@ -353,22 +353,8 @@ public class GoalCard extends JPanel
 		g2.setColor(tint);
 		g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
 
-		// Green glow: when goal is complete OR item goal meets/exceeds target
-		boolean showGreen = goal.getStatus() == GoalStatus.COMPLETE
-			|| (goal.getType() == GoalType.ITEM_GRIND && goal.getCurrentValue() >= 0
-				&& goal.getCurrentValue() >= goal.getTargetValue());
-
-		if (showGreen)
-		{
-			// Green tint overlay
-			g2.setColor(new Color(76, 175, 80, 50));
-			g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
-
-			// Green border
-			g2.setColor(new Color(76, 175, 80));
-			g2.setStroke(new BasicStroke(2));
-			g2.drawRoundRect(1, 1, w - 2, h - 2, CORNER_RADIUS, CORNER_RADIUS);
-		}
+		// Completed goals now live in the dedicated Completed section; no per-card
+		// green glow needed. (Intentionally removed in sections phase 1.)
 
 		g2.dispose();
 		super.paintComponent(g);
@@ -407,6 +393,23 @@ public class GoalCard extends JPanel
 					line2 = FormatUtil.formatNumber(goal.getCurrentValue()) + " / " + FormatUtil.formatNumber(goal.getTargetValue());
 				}
 				break;
+			case DIARY:
+				// Diary title carries tier suffix so the date description on completed
+				// cards doesn't drop the tier info. Tier is parsed from the description
+				// (e.g. "Hard Achievement Diary" -> "Hard").
+				String tierWord = "";
+				if (goal.getDescription() != null && goal.getDescription().endsWith(" Achievement Diary"))
+				{
+					tierWord = goal.getDescription()
+						.substring(0, goal.getDescription().length() - " Achievement Diary".length());
+				}
+				line1 = tierWord.isEmpty()
+					? FormatUtil.truncate(goal.getName(), 22)
+					: FormatUtil.truncate(goal.getName() + " - " + tierWord, 22);
+				line2 = (goal.getDescription() != null && !goal.getDescription().isEmpty())
+					? FormatUtil.truncate(goal.getDescription(), 30)
+					: "";
+				break;
 			case CUSTOM:
 			default:
 				line1 = FormatUtil.truncate(goal.getName(), 22);
@@ -414,6 +417,14 @@ public class GoalCard extends JPanel
 					? FormatUtil.truncate(goal.getDescription(), 30)
 					: "";
 				break;
+		}
+
+		// Completed goals: replace line 2 with completion date.
+		// completedAt is the canonical "is complete" check; without a timestamp the
+		// goal isn't considered complete, so we don't need a defensive check here.
+		if (goal.isComplete())
+		{
+			line2 = "Completed " + formatCompletionDate(goal.getCompletedAt());
 		}
 
 		if (line2.isEmpty())
@@ -428,9 +439,15 @@ public class GoalCard extends JPanel
 
 
 
+	private static String formatCompletionDate(long epochMillis)
+	{
+		java.text.SimpleDateFormat fmt = new java.text.SimpleDateFormat("MMM d, yyyy");
+		return fmt.format(new java.util.Date(epochMillis));
+	}
+
 	private String formatPercent()
 	{
-		if (goal.getStatus() == GoalStatus.COMPLETE)
+		if (goal.isComplete())
 		{
 			return "\u2713";
 		}

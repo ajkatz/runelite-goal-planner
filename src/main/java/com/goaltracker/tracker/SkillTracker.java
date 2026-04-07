@@ -58,10 +58,10 @@ public class SkillTracker
 					goal.setCurrentValue(currentXp);
 					anyUpdated = true;
 
-					if (goal.isComplete())
+					if (goal.meetsTarget() && !goal.isComplete())
 					{
-						goal.setStatus(GoalStatus.COMPLETE);
 						goal.setCompletedAt(System.currentTimeMillis());
+						goal.setStatus(GoalStatus.COMPLETE);
 						log.info("Goal complete: {}", goal.getName());
 					}
 				}
