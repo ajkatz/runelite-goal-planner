@@ -47,6 +47,9 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	/** Optional UI-refresh hook the plugin sets after the panel is constructed. */
 	private Runnable onGoalsChanged = () -> {};
 
+	/** Ephemeral selection set — not persisted, lost on plugin restart. */
+	private final java.util.Set<String> selectedGoalIds = new java.util.LinkedHashSet<>();
+
 	@Inject
 	public GoalTrackerApiImpl(
 		GoalStore goalStore,
@@ -403,7 +406,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return out;
 	}
 
-	private static GoalView toGoalView(Goal g)
+	private GoalView toGoalView(Goal g)
 	{
 		GoalView v = new GoalView();
 		v.id = g.getId();
@@ -415,6 +418,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		v.completedAt = g.getCompletedAt();
 		v.sectionId = g.getSectionId();
 		v.spriteId = g.getSpriteId();
+		v.selected = selectedGoalIds.contains(g.getId());
 
 		// Background color: type default + optional user override. DTO carries both
 		// so consumers can show "reset to default" affordances with the right preview.
@@ -548,6 +552,9 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
 		goalStore.removeGoal(goalId);
+		// Drop the removed goal from the ephemeral selection set so callers
+		// don't end up with a stale id pointing at nothing.
+		selectedGoalIds.remove(goalId);
 		onGoalsChanged.run();
 		return true;
 	}
@@ -780,6 +787,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		{
 			goalStore.removeGoal(goalStore.getGoals().get(0).getId());
 		}
+		selectedGoalIds.clear();
 		onGoalsChanged.run();
 	}
 
@@ -972,5 +980,58 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				g.getId(), g.getName());
 		}
 		return true;
+	}
+
+	// ---------------------------------------------------------------------
+	// Selection (Phase 5) — ephemeral, not persisted
+	// ---------------------------------------------------------------------
+
+	@Override
+	public boolean replaceGoalSelection(java.util.Collection<String> goalIds)
+	{
+		log.debug("API.internal replaceGoalSelection(size={})", goalIds == null ? 0 : goalIds.size());
+		java.util.Set<String> next = new java.util.LinkedHashSet<>();
+		if (goalIds != null) next.addAll(goalIds);
+		if (next.equals(selectedGoalIds)) return false;
+		selectedGoalIds.clear();
+		selectedGoalIds.addAll(next);
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public boolean addToGoalSelection(String goalId)
+	{
+		log.debug("API.internal addToGoalSelection(goalId={})", goalId);
+		if (goalId == null) return false;
+		if (!selectedGoalIds.add(goalId)) return false;
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public boolean removeFromGoalSelection(String goalId)
+	{
+		log.debug("API.internal removeFromGoalSelection(goalId={})", goalId);
+		if (goalId == null) return false;
+		if (!selectedGoalIds.remove(goalId)) return false;
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public boolean clearGoalSelection()
+	{
+		log.debug("API.internal clearGoalSelection()");
+		if (selectedGoalIds.isEmpty()) return false;
+		selectedGoalIds.clear();
+		onGoalsChanged.run();
+		return true;
+	}
+
+	@Override
+	public java.util.Set<String> getSelectedGoalIds()
+	{
+		return java.util.Collections.unmodifiableSet(selectedGoalIds);
 	}
 }

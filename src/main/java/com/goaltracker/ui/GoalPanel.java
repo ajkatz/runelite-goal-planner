@@ -254,6 +254,7 @@ public class GoalPanel extends PluginPanel
 				}
 
 				addContextMenu(card, goal, index, sectionStart, sectionEnd);
+				attachSelectionClick(card, view);
 				cardMap.put(goal.getId(), card);
 
 				goalListPanel.add(card);
@@ -316,9 +317,70 @@ public class GoalPanel extends PluginPanel
 	}
 
 
+	/**
+	 * Attach a left-click MouseListener that routes selection clicks through
+	 * the API. Coexists with the existing right-click context menu — only
+	 * BUTTON1 events are handled here, BUTTON3 falls through to the popup.
+	 *
+	 * <p>Click semantics:
+	 * <ul>
+	 *   <li>Plain click on UNSELECTED → replace selection with just this card</li>
+	 *   <li>Plain click on SELECTED → clear selection entirely</li>
+	 *   <li>Cmd/Ctrl+click on UNSELECTED → add this card to selection</li>
+	 *   <li>Cmd/Ctrl+click on SELECTED → remove this card from selection</li>
+	 * </ul>
+	 */
+	private void attachSelectionClick(GoalCard card, com.goaltracker.api.GoalView view)
+	{
+		final String goalId = view.id;
+		final boolean wasSelected = view.selected;
+		card.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if (e.getButton() != MouseEvent.BUTTON1) return;
+				boolean modifier = e.isMetaDown() || e.isControlDown();
+				if (modifier)
+				{
+					if (wasSelected) api.removeFromGoalSelection(goalId);
+					else api.addToGoalSelection(goalId);
+				}
+				else
+				{
+					if (wasSelected) api.clearGoalSelection();
+					else api.replaceGoalSelection(java.util.Collections.singleton(goalId));
+				}
+			}
+		});
+	}
+
 	private void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
 	{
 		JPopupMenu menu = new JPopupMenu();
+
+		// Selection toggle — first item so it's predictable. Label flips based on
+		// the goal's current selection state. Routes through the same internal API
+		// the click handler uses, so multi-select state stays consistent.
+		java.util.Set<String> selectedIds = api.getSelectedGoalIds();
+		boolean currentlySelected = selectedIds.contains(goal.getId());
+		JMenuItem selectToggle = new JMenuItem(currentlySelected ? "Deselect" : "Select");
+		selectToggle.addActionListener(e -> {
+			if (currentlySelected) api.removeFromGoalSelection(goal.getId());
+			else api.addToGoalSelection(goal.getId());
+		});
+		menu.add(selectToggle);
+
+		// "Deselect All" appears on every card whenever ANY card is selected,
+		// so the user has a quick escape from a multi-selection.
+		if (!selectedIds.isEmpty())
+		{
+			JMenuItem deselectAll = new JMenuItem("Deselect All");
+			deselectAll.addActionListener(e -> api.clearGoalSelection());
+			menu.add(deselectAll);
+		}
+
+		menu.addSeparator();
 
 		// Reorder options are hidden in the Completed section (read-only ordering)
 		// and gated on section bounds so they don't appear when there's nowhere to

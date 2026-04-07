@@ -177,4 +177,44 @@ public interface GoalTrackerInternalApi
 	 * @return true if the goal was mutated, false if no change
 	 */
 	boolean recordGoalProgress(String goalId, int newValue);
+
+	// ---------------------------------------------------------------------
+	// Selection (Phase 5) — ephemeral, not persisted
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Replace the current selection with exactly this set of goal ids.
+	 * Used by single-click "select only this card" semantics. Pass an empty
+	 * collection to clear selection.
+	 *
+	 * @return true if the selection actually changed
+	 */
+	boolean replaceGoalSelection(java.util.Collection<String> goalIds);
+
+	/**
+	 * Add a single goal id to the current selection (no-op if already in).
+	 * Used by cmd/ctrl-click "add to multi-selection" semantics.
+	 *
+	 * @return true if the goal was newly added
+	 */
+	boolean addToGoalSelection(String goalId);
+
+	/**
+	 * Remove a single goal id from the current selection (no-op if not in).
+	 * Used by cmd/ctrl-click on an already-selected card.
+	 *
+	 * @return true if the goal was removed
+	 */
+	boolean removeFromGoalSelection(String goalId);
+
+	/**
+	 * Clear the entire selection. Used by single-click on an already-selected
+	 * card per the click semantics in Mission 15.
+	 *
+	 * @return true if the selection was non-empty before
+	 */
+	boolean clearGoalSelection();
+
+	/** @return an unmodifiable snapshot of the currently-selected goal ids. */
+	java.util.Set<String> getSelectedGoalIds();
 }

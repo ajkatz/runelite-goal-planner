@@ -50,6 +50,9 @@ public class GoalView
 	public int defaultBackgroundColorRgb;
 	/** True when {@link #backgroundColorRgb} is a user override (not the type default). */
 	public boolean backgroundColorOverridden;
+	/** Ephemeral UI selection state — true when this card is currently selected
+	 *  in the panel. Lost on plugin restart. */
+	public boolean selected;
 	/** Auto-generated tags from goal creation (boss/raid/tier/etc).
 	 *  Cannot be removed by the user; restored by Restore Defaults. */
 	public List<TagView> defaultTags;

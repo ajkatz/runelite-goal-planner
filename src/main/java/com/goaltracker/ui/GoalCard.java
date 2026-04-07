@@ -401,6 +401,18 @@ public class GoalCard extends JPanel
 		g2.setColor(tint);
 		g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
 
+		// Selection indicator: 2px outline around the rounded rect. White on
+		// active goals, grey on completed goals — completed cards can be
+		// selected for bulk tag/recolor ops but cannot be moved, so the muted
+		// outline communicates "selectable but not reorderable".
+		if (view.selected)
+		{
+			g2.setStroke(new java.awt.BasicStroke(2f));
+			g2.setColor(isComplete() ? new Color(140, 140, 140) : Color.WHITE);
+			// Inset by 1px on each side so the 2px stroke sits cleanly inside the bounds.
+			g2.drawRoundRect(1, 1, w - 2, h - 2, CORNER_RADIUS, CORNER_RADIUS);
+		}
+
 		g2.dispose();
 		super.paintComponent(g);
 	}
