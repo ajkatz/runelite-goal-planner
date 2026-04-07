@@ -1,11 +1,11 @@
 package com.goaltracker.tracker;
 
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
-import net.runelite.api.Experience;
 import net.runelite.api.Skill;
 
 import javax.inject.Inject;
@@ -21,16 +21,21 @@ import java.util.List;
 public class SkillTracker
 {
 	private final Client client;
+	private final GoalTrackerApiImpl api;
 
 	@Inject
-	public SkillTracker(Client client)
+	public SkillTracker(Client client, GoalTrackerApiImpl api)
 	{
 		this.client = client;
+		this.api = api;
 	}
 
 	/**
 	 * Update all skill goals with current XP from the game.
-	 * Returns true if any goal was updated.
+	 * Returns true if any goal was updated. Mutations route through
+	 * {@link GoalTrackerApiImpl#recordGoalProgress(String, int)} which does
+	 * NOT save or fire the panel rebuild callback — the plugin's GameTick
+	 * handler flushes once per tick.
 	 */
 	public boolean checkGoals(List<Goal> goals)
 	{
@@ -52,18 +57,9 @@ public class SkillTracker
 			{
 				Skill skill = Skill.valueOf(goal.getSkillName());
 				int currentXp = client.getSkillExperience(skill);
-
-				if (currentXp != goal.getCurrentValue())
+				if (api.recordGoalProgress(goal.getId(), currentXp))
 				{
-					goal.setCurrentValue(currentXp);
 					anyUpdated = true;
-
-					if (goal.meetsTarget() && !goal.isComplete())
-					{
-						goal.setCompletedAt(System.currentTimeMillis());
-						goal.setStatus(GoalStatus.COMPLETE);
-						log.info("Goal complete: {}", goal.getName());
-					}
 				}
 			}
 			catch (IllegalArgumentException e)

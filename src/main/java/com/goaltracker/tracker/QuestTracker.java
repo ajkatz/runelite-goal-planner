@@ -1,5 +1,6 @@
 package com.goaltracker.tracker;
 
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
@@ -21,16 +22,19 @@ import java.util.List;
 public class QuestTracker
 {
 	private final Client client;
+	private final GoalTrackerApiImpl api;
 
 	@Inject
-	public QuestTracker(Client client)
+	public QuestTracker(Client client, GoalTrackerApiImpl api)
 	{
 		this.client = client;
+		this.api = api;
 	}
 
 	/**
 	 * Update all quest goals with current state from the game.
-	 * Returns true if any goal was updated.
+	 * Returns true if any goal was updated. Mutations route through
+	 * {@link GoalTrackerApiImpl#recordGoalProgress(String, int)}.
 	 */
 	public boolean checkGoals(List<Goal> goals)
 	{
@@ -52,20 +56,10 @@ public class QuestTracker
 			{
 				Quest quest = Quest.valueOf(goal.getQuestName());
 				QuestState state = quest.getState(client);
-
 				int newValue = state == QuestState.FINISHED ? 1 : 0;
-
-				if (newValue != goal.getCurrentValue())
+				if (api.recordGoalProgress(goal.getId(), newValue))
 				{
-					goal.setCurrentValue(newValue);
 					anyUpdated = true;
-
-					if (goal.meetsTarget() && !goal.isComplete())
-					{
-						goal.setCompletedAt(System.currentTimeMillis());
-						goal.setStatus(GoalStatus.COMPLETE);
-						log.info("Quest goal complete: {}", goal.getName());
-					}
 				}
 			}
 			catch (IllegalArgumentException e)

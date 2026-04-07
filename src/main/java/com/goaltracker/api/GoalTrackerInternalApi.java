@@ -148,4 +148,33 @@ public interface GoalTrackerInternalApi
 	 *         or no-op
 	 */
 	boolean setTagColor(String goalId, String tagLabel, int colorRgb);
+
+	// ---------------------------------------------------------------------
+	// Tracker write path (Phase 4)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Record a new progress value for a goal from a tracker loop.
+	 *
+	 * <p>Semantics:
+	 * <ul>
+	 *   <li>If {@code newValue} equals the goal's current value, no-op.</li>
+	 *   <li>Otherwise sets {@code currentValue = newValue}.</li>
+	 *   <li>If the new value meets target and the goal was NOT complete,
+	 *       stamps {@code completedAt} and sets status to COMPLETE.</li>
+	 *   <li>If the new value is below target and the goal WAS complete
+	 *       (rare — happens on custom toggle or target change), clears
+	 *       {@code completedAt} and reverts status to ACTIVE.</li>
+	 * </ul>
+	 *
+	 * <p><b>Does NOT save, reconcile, or fire onGoalsChanged.</b> Trackers
+	 * run in batches on each game tick; the plugin's GameTick handler
+	 * performs a single {@code goalStore.save() + reconcileCompletedSection()
+	 * + panel.rebuild()} once at the end of each tick if anything updated.
+	 * Firing the callback per goal would defeat the over-querying cleanup
+	 * from Mission 10.
+	 *
+	 * @return true if the goal was mutated, false if no change
+	 */
+	boolean recordGoalProgress(String goalId, int newValue);
 }

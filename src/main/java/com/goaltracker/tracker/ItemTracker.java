@@ -1,5 +1,6 @@
 package com.goaltracker.tracker;
 
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
@@ -21,11 +22,13 @@ import java.util.List;
 public class ItemTracker
 {
 	private final Client client;
+	private final GoalTrackerApiImpl api;
 
 	@Inject
-	public ItemTracker(Client client)
+	public ItemTracker(Client client, GoalTrackerApiImpl api)
 	{
 		this.client = client;
+		this.api = api;
 	}
 
 	/**
@@ -58,18 +61,9 @@ public class ItemTracker
 			}
 
 			int totalCount = countItem(goal.getItemId());
-
-			if (totalCount != goal.getCurrentValue())
+			if (api.recordGoalProgress(goal.getId(), totalCount))
 			{
-				goal.setCurrentValue(totalCount);
 				anyUpdated = true;
-
-				if (goal.meetsTarget() && !goal.isComplete())
-				{
-					goal.setCompletedAt(System.currentTimeMillis());
-					goal.setStatus(GoalStatus.COMPLETE);
-					log.info("Item goal complete: {}", goal.getName());
-				}
 			}
 		}
 

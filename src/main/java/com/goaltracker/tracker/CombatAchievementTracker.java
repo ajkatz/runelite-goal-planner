@@ -1,5 +1,6 @@
 package com.goaltracker.tracker;
 
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
@@ -55,11 +56,13 @@ public class CombatAchievementTracker
 	private static final int MAX_TASK_ID = CA_VARPS.length * 32 - 1; // 639
 
 	private final Client client;
+	private final GoalTrackerApiImpl api;
 
 	@Inject
-	public CombatAchievementTracker(Client client)
+	public CombatAchievementTracker(Client client, GoalTrackerApiImpl api)
 	{
 		this.client = client;
+		this.api = api;
 	}
 
 	public boolean checkGoals(List<Goal> goals)
@@ -86,18 +89,9 @@ public class CombatAchievementTracker
 			int varpValue = client.getVarpValue(varpId);
 			boolean done = ((varpValue >> bitIndex) & 1) == 1;
 			int newValue = done ? 1 : 0;
-
-			if (newValue != goal.getCurrentValue())
+			if (api.recordGoalProgress(goal.getId(), newValue))
 			{
-				goal.setCurrentValue(newValue);
 				anyUpdated = true;
-
-				if (goal.meetsTarget() && !goal.isComplete())
-				{
-					goal.setCompletedAt(System.currentTimeMillis());
-					goal.setStatus(GoalStatus.COMPLETE);
-					log.info("CA goal complete: {}", goal.getName());
-				}
 			}
 		}
 

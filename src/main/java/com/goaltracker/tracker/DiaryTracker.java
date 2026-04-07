@@ -1,5 +1,6 @@
 package com.goaltracker.tracker;
 
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
@@ -24,16 +25,19 @@ import java.util.List;
 public class DiaryTracker
 {
 	private final Client client;
+	private final GoalTrackerApiImpl api;
 
 	@Inject
-	public DiaryTracker(Client client)
+	public DiaryTracker(Client client, GoalTrackerApiImpl api)
 	{
 		this.client = client;
+		this.api = api;
 	}
 
 	/**
 	 * Update all diary goals with current state from the game.
-	 * Returns true if any goal was updated.
+	 * Returns true if any goal was updated. Mutations route through
+	 * {@link GoalTrackerApiImpl#recordGoalProgress(String, int)}.
 	 */
 	public boolean checkGoals(List<Goal> goals)
 	{
@@ -55,18 +59,9 @@ public class DiaryTracker
 
 			int varbitValue = client.getVarbitValue(varbitId);
 			int newValue = varbitValue > 0 ? 1 : 0;
-
-			if (newValue != goal.getCurrentValue())
+			if (api.recordGoalProgress(goal.getId(), newValue))
 			{
-				goal.setCurrentValue(newValue);
 				anyUpdated = true;
-
-				if (goal.meetsTarget() && !goal.isComplete())
-				{
-					goal.setCompletedAt(System.currentTimeMillis());
-					goal.setStatus(GoalStatus.COMPLETE);
-					log.info("Diary goal complete: {}", goal.getName());
-				}
 			}
 		}
 

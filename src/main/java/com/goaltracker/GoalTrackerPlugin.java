@@ -278,6 +278,12 @@ public class GoalTrackerPlugin extends Plugin
 		if (tickCounter >= SCAN_INTERVAL_TICKS)
 		{
 			tickCounter = 0;
+			// Tracker batch contract: each tracker's checkGoals() mutates via
+			// GoalTrackerApiImpl.recordGoalProgress() which intentionally does
+			// NOT save/reconcile/fire onGoalsChanged. We flush once here if any
+			// tracker reports an update, so the UI rebuild + store save happen
+			// exactly once per tick instead of per-goal. Preserves the
+			// over-querying cleanup from Mission 10.
 			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
 			updated |= questTracker.checkGoals(goalStore.getGoals());
 			updated |= diaryTracker.checkGoals(goalStore.getGoals());
@@ -286,7 +292,6 @@ public class GoalTrackerPlugin extends Plugin
 			{
 				goalStore.reconcileCompletedSection();
 				goalStore.save();
-				// Only rebuild when something actually changed.
 				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 			}
 		}

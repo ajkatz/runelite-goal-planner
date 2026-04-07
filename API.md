@@ -373,6 +373,34 @@ Move a goal to a different section, appended at the end of the destination
 section. If the goal is COMPLETE, the move is rejected unless the destination
 is the Completed section (reconcile would pull it back otherwise).
 
+### Tracker write path (Phase 4)
+
+#### `recordGoalProgress(String, int)`
+
+```java
+boolean recordGoalProgress(String goalId, int newValue);
+```
+
+Record a new progress value for a goal from a tracker loop. Used by the five
+bundled trackers (`SkillTracker`, `QuestTracker`, `DiaryTracker`,
+`CombatAchievementTracker`, `ItemTracker`) to route all per-tick goal mutations
+through the API.
+
+Semantics:
+- If `newValue` equals the goal's current value, no-op (returns false).
+- Otherwise sets `currentValue = newValue`.
+- If the new value meets target and the goal was NOT complete, stamps
+  `completedAt` and sets status to COMPLETE.
+- If the new value is below target and the goal WAS complete (rare — happens
+  on custom toggle or target change), clears `completedAt` and reverts
+  status to ACTIVE.
+
+**Does NOT save, reconcile, or fire `onGoalsChanged`.** Trackers run in
+batches on each game tick; the plugin's `GameTick` handler performs a single
+`goalStore.save() + reconcileCompletedSection() + panel.rebuild()` once at
+the end of each tick if anything updated. Firing the callback per goal would
+defeat the over-querying cleanup from Mission 10.
+
 ## Versioning and stability
 
 The API is currently in v1. The interface is intentionally minimal and will

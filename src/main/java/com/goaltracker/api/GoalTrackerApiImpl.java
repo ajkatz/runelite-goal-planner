@@ -935,4 +935,42 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		onGoalsChanged.run();
 		return true;
 	}
+
+	// ---------------------------------------------------------------------
+	// Tracker write path (Phase 4)
+	// ---------------------------------------------------------------------
+
+	@Override
+	public boolean recordGoalProgress(String goalId, int newValue)
+	{
+		// Intentionally NO save/reconcile/onGoalsChanged here — see Javadoc on
+		// the interface. Trackers batch via the plugin's GameTick handler.
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		if (g.getCurrentValue() == newValue) return false;
+
+		g.setCurrentValue(newValue);
+
+		boolean meetsTarget = g.meetsTarget();
+		boolean wasComplete = g.isComplete();
+
+		if (meetsTarget && !wasComplete)
+		{
+			g.setCompletedAt(System.currentTimeMillis());
+			g.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
+			log.info("API.internal recordGoalProgress: goal complete {} ({})",
+				g.getId(), g.getName());
+		}
+		else if (!meetsTarget && wasComplete)
+		{
+			// Rare: target was raised or value decreased. Revert to ACTIVE so
+			// the reconcile-on-tick pulls the card back out of the Completed
+			// section on the next flush.
+			g.setCompletedAt(0);
+			g.setStatus(com.goaltracker.model.GoalStatus.ACTIVE);
+			log.info("API.internal recordGoalProgress: goal un-completed {} ({})",
+				g.getId(), g.getName());
+		}
+		return true;
+	}
 }
