@@ -69,6 +69,9 @@ public class GoalTrackerPlugin extends Plugin
 	private SkillTracker skillTracker;
 
 	@Inject
+	private com.goaltracker.tracker.QuestTracker questTracker;
+
+	@Inject
 	private ItemTracker itemTracker;
 
 	@Inject
@@ -239,6 +242,7 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			tickCounter = 0;
 			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
+			updated |= questTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
 				goalStore.save();
@@ -247,6 +251,68 @@ public class GoalTrackerPlugin extends Plugin
 			// Rebuild to refresh state and images
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
+	}
+
+	/** Quest list widget group ID (InterfaceID.QUESTLIST). */
+	private static final int QUESTLIST_GROUP_ID = 399;
+
+	/** Widget ID of the clickable list inside the quest list (InterfaceID.Questlist.LIST). */
+	private static final int QUESTLIST_LIST_WIDGET = 26148871;
+
+	/** Sprite ID for the blue quest tab icon (SpriteID.SideIcons.QUEST). */
+	private static final int QUEST_SPRITE_ID = 899;
+
+	/**
+	 * Strip &lt;col=...&gt; tags from a menu target string and trim whitespace.
+	 */
+	private static String stripColorTags(String raw)
+	{
+		if (raw == null) return null;
+		return raw.replaceAll("<col=[^>]*>", "")
+			.replaceAll("</col>", "")
+			.trim();
+	}
+
+	/**
+	 * Reverse-lookup a {@link net.runelite.api.Quest} by display name. Case-insensitive.
+	 * Returns null if no quest matches.
+	 */
+	private static net.runelite.api.Quest findQuestByDisplayName(String displayName)
+	{
+		if (displayName == null || displayName.isEmpty()) return null;
+		for (net.runelite.api.Quest q : net.runelite.api.Quest.values())
+		{
+			if (displayName.equalsIgnoreCase(q.getName()))
+			{
+				return q;
+			}
+		}
+		return null;
+	}
+
+	/**
+	 * Build a quest Goal from a quest-list menu entry's target string.
+	 * Returns null if the target can't be mapped to a known Quest.
+	 */
+	private Goal buildQuestGoal(String menuTarget)
+	{
+		String displayName = stripColorTags(menuTarget);
+		net.runelite.api.Quest quest = findQuestByDisplayName(displayName);
+		if (quest == null)
+		{
+			log.warn("Quest list right-click: unknown quest '{}'", displayName);
+			return null;
+		}
+
+		return Goal.builder()
+			.type(GoalType.QUEST)
+			.name(quest.getName())
+			.description("Quest")
+			.questName(quest.name())
+			.targetValue(1)
+			.currentValue(0)
+			.spriteId(QUEST_SPRITE_ID)
+			.build();
 	}
 
 	/**
@@ -348,6 +414,47 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			int widgetGroupId = entry.getParam1() >> 16;
 			int itemId = entry.getItemId();
+
+			// Quest list: right-click a row -> add Quest goal
+			boolean isQuestList = widgetGroupId == QUESTLIST_GROUP_ID
+				&& entry.getParam1() == QUESTLIST_LIST_WIDGET;
+			if (isQuestList)
+			{
+				final String menuTarget = entry.getTarget();
+				final Goal preview = buildQuestGoal(menuTarget);
+				if (preview == null)
+				{
+					continue;
+				}
+
+				client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget(menuTarget)
+					.setType(MenuAction.RUNELITE)
+					.onClick(e ->
+					{
+						Goal goal = buildQuestGoal(menuTarget);
+						if (goal == null)
+						{
+							log.warn("Quest goal build failed at click time for '{}'", menuTarget);
+							return;
+						}
+						// Check for duplicate — don't add the same quest twice
+						String questName = goal.getQuestName();
+						for (Goal existing : goalStore.getGoals())
+						{
+							if (existing.getType() == GoalType.QUEST
+								&& questName.equals(existing.getQuestName()))
+							{
+								log.info("Quest goal already exists: {}", goal.getName());
+								return;
+							}
+						}
+						goalStore.addGoal(goal);
+						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+					});
+				break;
+			}
 
 			// Combat achievements (CA_TASKS widget group 715)
 			boolean isCombatAchievement = widgetGroupId == CombatAchievementData.GROUP_ID
