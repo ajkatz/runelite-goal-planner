@@ -621,6 +621,24 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			return false; // CA/quest/diary targets are immutable
 		}
 		g.setTargetValue(newTarget);
+		// Regenerate the display string from the new target. Both SKILL name
+		// and ITEM_GRIND description are mechanically derived from the target,
+		// so the API owns this — callers no longer need to mutate the display
+		// string and re-save behind our back.
+		if (g.getType() == GoalType.SKILL && g.getSkillName() != null)
+		{
+			try
+			{
+				net.runelite.api.Skill skill = net.runelite.api.Skill.valueOf(g.getSkillName());
+				int level = Experience.getLevelForXp(newTarget);
+				g.setName(skill.getName() + " \u2192 Level " + level);
+			}
+			catch (IllegalArgumentException ignored) {}
+		}
+		else if (g.getType() == GoalType.ITEM_GRIND)
+		{
+			g.setDescription(com.goaltracker.util.FormatUtil.formatNumber(newTarget) + " total");
+		}
 		goalStore.updateGoal(g);
 		onGoalsChanged.run();
 		return true;
@@ -1070,6 +1088,31 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		}
 		if (added > 0) onGoalsChanged.run();
 		return added;
+	}
+
+	@Override
+	public boolean addTagWithCategory(String goalId, String label, String categoryName)
+	{
+		log.debug("API.internal addTagWithCategory(goalId={}, label={}, category={})",
+			goalId, label, categoryName);
+		if (goalId == null || label == null || label.trim().isEmpty()) return false;
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		TagCategory category;
+		try
+		{
+			category = TagCategory.valueOf(categoryName);
+		}
+		catch (IllegalArgumentException ex)
+		{
+			log.warn("addTagWithCategory: unknown category {}", categoryName);
+			return false;
+		}
+		if (g.getTags() == null) g.setTags(new ArrayList<>());
+		g.getTags().add(new ItemTag(label.trim(), category));
+		goalStore.updateGoal(g);
+		onGoalsChanged.run();
+		return true;
 	}
 
 	@Override

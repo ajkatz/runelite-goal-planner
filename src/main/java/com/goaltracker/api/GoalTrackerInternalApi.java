@@ -237,4 +237,19 @@ public interface GoalTrackerInternalApi
 	 * @return the number of goals removed from the selection
 	 */
 	int deselectAllInSection(String sectionId);
+
+	/**
+	 * Add a tag with an explicit category. The public {@link GoalTrackerApi#addTag}
+	 * forces every external-API tag to {@link com.goaltracker.model.TagCategory#OTHER}
+	 * because external consumers don't have a stable contract for the category enum.
+	 * The plugin's own UI needs to preserve user-picked categories from the Add Tag
+	 * dialog (BOSS/RAID/CLUE/etc), so it uses this internal variant.
+	 *
+	 * @param goalId target goal id
+	 * @param label tag label; trimmed; must be non-empty
+	 * @param categoryName one of the {@link com.goaltracker.model.TagCategory} enum names
+	 * @return true if the tag was added, false on: not found, blank label,
+	 *         unknown category
+	 */
+	boolean addTagWithCategory(String goalId, String label, String categoryName);
 }

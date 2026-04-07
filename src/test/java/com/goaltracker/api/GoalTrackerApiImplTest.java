@@ -578,4 +578,105 @@ class GoalTrackerApiImplTest
 				"recordGoalProgress must not fire onGoalsChanged — trackers batch via the GameTick handler");
 		}
 	}
+
+	// ====================================================================
+	// Mission 19: changeTarget regenerates display strings
+	// ====================================================================
+
+	@Nested
+	@DisplayName("changeTarget display-string regeneration")
+	class ChangeTargetDisplayStringTests
+	{
+		@Test
+		@DisplayName("regenerates SKILL goal name from new XP target")
+		void regeneratesSkillName()
+		{
+			String id = api.addSkillGoal(Skill.PRAYER, 13_034_431);
+			assertEquals("Prayer \u2192 Level 99", store.getGoals().get(0).getName());
+
+			api.changeTarget(id, 9_684_577); // L96
+			assertEquals("Prayer \u2192 Level 96", store.getGoals().get(0).getName());
+		}
+
+		@Test
+		@DisplayName("regenerates ITEM_GRIND description from new quantity")
+		void regeneratesItemDescription()
+		{
+			Goal g = Goal.builder().type(GoalType.ITEM_GRIND).name("Cannonballs")
+				.itemId(2).targetValue(100).description("100 total").build();
+			store.addGoal(g);
+
+			api.changeTarget(g.getId(), 5000);
+			assertEquals("5K total", g.getDescription());
+		}
+
+		@Test
+		@DisplayName("rejects target change for non-SKILL/non-ITEM_GRIND types")
+		void rejectsNonEditableTypes()
+		{
+			Goal quest = Goal.builder().type(GoalType.QUEST).name("Quest")
+				.questName("DRAGON_SLAYER_II").targetValue(1).build();
+			store.addGoal(quest);
+			assertFalse(api.changeTarget(quest.getId(), 2));
+		}
+	}
+
+	// ====================================================================
+	// Mission 19: addTagWithCategory (legacy panel direct-mutation removal)
+	// ====================================================================
+
+	@Nested
+	@DisplayName("addTagWithCategory")
+	class AddTagWithCategoryTests
+	{
+		@Test
+		@DisplayName("adds a tag with the requested category and fires callback")
+		void addsTagWithCategory()
+		{
+			String id = api.addCustomGoal("Custom", "");
+			callbackFireCount.set(0);
+
+			assertTrue(api.addTagWithCategory(id, "Zulrah", "BOSS"));
+
+			Goal g = store.getGoals().get(0);
+			assertEquals(1, g.getTags().size());
+			assertEquals("Zulrah", g.getTags().get(0).getLabel());
+			assertEquals(TagCategory.BOSS, g.getTags().get(0).getCategory());
+			assertEquals(1, callbackFireCount.get());
+		}
+
+		@Test
+		@DisplayName("rejects unknown category names")
+		void rejectsUnknownCategory()
+		{
+			String id = api.addCustomGoal("Custom", "");
+			assertFalse(api.addTagWithCategory(id, "Test", "NONEXISTENT_CATEGORY"));
+		}
+
+		@Test
+		@DisplayName("rejects null/blank label")
+		void rejectsBlankLabel()
+		{
+			String id = api.addCustomGoal("Custom", "");
+			assertFalse(api.addTagWithCategory(id, null, "BOSS"));
+			assertFalse(api.addTagWithCategory(id, "", "BOSS"));
+			assertFalse(api.addTagWithCategory(id, "   ", "BOSS"));
+		}
+
+		@Test
+		@DisplayName("rejects unknown goal id")
+		void rejectsUnknownGoalId()
+		{
+			assertFalse(api.addTagWithCategory("nonexistent", "Test", "BOSS"));
+		}
+
+		@Test
+		@DisplayName("trims whitespace from the label")
+		void trimsWhitespace()
+		{
+			String id = api.addCustomGoal("Custom", "");
+			api.addTagWithCategory(id, "  Vorkath  ", "BOSS");
+			assertEquals("Vorkath", store.getGoals().get(0).getTags().get(0).getLabel());
+		}
+	}
 }

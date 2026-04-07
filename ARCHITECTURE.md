@@ -45,10 +45,17 @@ If you're looking for an overview of features, see [README.md](README.md).
 
 **The single most important rule:** every mutation goes through
 `GoalTrackerApiImpl`. The panel calls it, the trackers call it, the right-
-click handlers call it. Direct `goalStore.X()` mutations from the UI layer
-are an anti-pattern (a few legacy ones remain in the panel for the add-tag
-dialog where the API enforces a category restriction the dialog needs to
-override; everything else routes through the API).
+click handlers call it. As of Mission 19 there are zero direct
+`goalStore.X()` mutations from the UI layer. Two bridge methods on the
+internal API exist specifically to support panel patterns that needed
+more than the public API offered:
+
+- `addTagWithCategory(goalId, label, categoryName)` — the public `addTag`
+  forces every external-API tag to `OTHER`; the panel's Add Tag dialog
+  preserves user-picked categories via this internal variant
+- `changeTarget` regenerates the display string (`SKILL` name from XP
+  level, `ITEM_GRIND` description from quantity) so callers don't need to
+  re-mutate the goal after a target change
 
 ## Public vs internal API
 

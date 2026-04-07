@@ -541,13 +541,9 @@ public class GoalPanel extends PluginPanel
 						if (newLevel >= 1 && newLevel <= 99)
 						{
 							int newXp = net.runelite.api.Experience.getXpForLevel(newLevel);
+							// changeTarget regenerates the display name from the new
+							// XP target as of Mission 19; no follow-up mutation needed.
 							api.changeTarget(goal.getId(), newXp);
-							// Name update isn't part of the public changeTarget contract
-							// (it's a display-side concern), so still update directly here.
-							goal.setName(net.runelite.api.Skill.valueOf(goal.getSkillName()).getName()
-								+ " \u2192 Level " + newLevel);
-							goalStore.updateGoal(goal);
-							rebuild();
 						}
 					}
 					catch (NumberFormatException ignored) {}
@@ -573,11 +569,9 @@ public class GoalPanel extends PluginPanel
 						int newQty = Integer.parseInt(input.trim().replace(",", ""));
 						if (newQty > 0)
 						{
+							// changeTarget regenerates the description from the new
+							// quantity as of Mission 19; no follow-up mutation needed.
 							api.changeTarget(goal.getId(), newQty);
-							// Description update is a display concern
-							goal.setDescription(FormatUtil.formatNumber(newQty) + " total");
-							goalStore.updateGoal(goal);
-							rebuild();
 						}
 					}
 					catch (NumberFormatException ignored) {}
@@ -686,13 +680,7 @@ public class GoalPanel extends PluginPanel
 
 				if (tagText != null && !tagText.isEmpty())
 				{
-					if (goal.getTags() == null)
-					{
-						goal.setTags(new java.util.ArrayList<>());
-					}
-					goal.getTags().add(new com.goaltracker.model.ItemTag(tagText, selectedCat));
-					goalStore.updateGoal(goal);
-					rebuild();
+					api.addTagWithCategory(goal.getId(), tagText, selectedCat.name());
 				}
 			}
 		});
@@ -1017,16 +1005,16 @@ public class GoalPanel extends PluginPanel
 			: freeField.getText().trim();
 		if (tagText == null || tagText.isEmpty()) return;
 
-		// Apply the tag to every selected goal. Use direct goalStore mutation
-		// (same path as the single-item add-tag dialog) to preserve category;
-		// api.addTag would force OTHER. Single rebuild at the end.
+		// Route through the internal API so the bulk path matches the single-item
+		// path post-Mission 19. addTagWithCategory preserves the user-picked
+		// category (api.addTag would force OTHER). Each call fires onGoalsChanged,
+		// which fires N rebuilds for N selected goals — acceptable tradeoff for
+		// keeping the API the canonical mutation surface; the user clicks OK once
+		// so the cumulative work is bounded.
 		for (Goal g : selectedGoals)
 		{
-			if (g.getTags() == null) g.setTags(new java.util.ArrayList<>());
-			g.getTags().add(new com.goaltracker.model.ItemTag(tagText, selectedCat));
-			goalStore.updateGoal(g);
+			api.addTagWithCategory(g.getId(), tagText, selectedCat.name());
 		}
-		rebuild();
 	}
 
 	/**
