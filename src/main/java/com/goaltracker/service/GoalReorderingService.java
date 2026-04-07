@@ -5,6 +5,7 @@ import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 
+import javax.inject.Inject;
 import java.util.List;
 
 /**
@@ -19,6 +20,7 @@ public class GoalReorderingService
 {
 	private final GoalStore goalStore;
 
+	@Inject
 	public GoalReorderingService(GoalStore goalStore)
 	{
 		this.goalStore = goalStore;

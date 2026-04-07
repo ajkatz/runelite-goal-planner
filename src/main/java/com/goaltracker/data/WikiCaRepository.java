@@ -104,6 +104,19 @@ public class WikiCaRepository
 		return byName.get(name.toLowerCase(Locale.ROOT));
 	}
 
+	/**
+	 * Look up a CA by its wiki/in-game task id. Returns null if not in the repository.
+	 * Linear scan over the loaded entries — fine for ~670 entries.
+	 */
+	public CaInfo getById(int id)
+	{
+		for (CaInfo info : byName.values())
+		{
+			if (info.id == id) return info;
+		}
+		return null;
+	}
+
 	/** Number of entries currently loaded. */
 	public int size()
 	{

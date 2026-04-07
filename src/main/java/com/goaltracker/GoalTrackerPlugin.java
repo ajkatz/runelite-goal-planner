@@ -1,11 +1,14 @@
 package com.goaltracker;
 
+import com.goaltracker.api.GoalTrackerApi;
+import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.data.AchievementDiaryData;
 import com.goaltracker.data.CombatAchievementData;
 import com.goaltracker.data.CombatAchievementData.Tier;
 import com.goaltracker.data.ItemSourceData;
 import com.goaltracker.data.SourceAttributes;
 import com.goaltracker.data.WikiCaRepository;
+import com.google.inject.Binder;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
@@ -99,10 +102,24 @@ public class GoalTrackerPlugin extends Plugin
 	@Inject
 	private ClientThread clientThread;
 
+	@Inject
+	private GoalTrackerApiImpl goalTrackerApi;
+
 	private GoalPanel panel;
 	private NavigationButton navButton;
 	private int tickCounter = 0;
 	private static final int SCAN_INTERVAL_TICKS = 25; // ~15 seconds (1 tick = 0.6s)
+
+	/**
+	 * Bind the public {@link GoalTrackerApi} interface to its implementation so
+	 * other plugins can {@code @Inject GoalTrackerApi} after declaring
+	 * {@code @PluginDependency(GoalTrackerPlugin.class)}.
+	 */
+	@Override
+	public void configure(Binder binder)
+	{
+		binder.bind(GoalTrackerApi.class).to(GoalTrackerApiImpl.class);
+	}
 
 	@Override
 	protected void startUp() throws Exception
@@ -118,6 +135,11 @@ public class GoalTrackerPlugin extends Plugin
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager, this::openItemSearch);
 		panel.setClient(client);
+
+		// Wire the API's UI-refresh hook so external addGoal calls trigger a rebuild
+		// on the Swing thread.
+		goalTrackerApi.setOnGoalsChanged(
+			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild()));
 
 		BufferedImage icon;
 		try
@@ -532,8 +554,10 @@ public class GoalTrackerPlugin extends Plugin
 			if (isQuestList)
 			{
 				final String menuTarget = entry.getTarget();
-				final Goal preview = buildQuestGoal(menuTarget);
-				if (preview == null)
+				// Resolve the quest from the menu target up front so we can skip
+				// adding the menu entry if the name doesn't match a known Quest.
+				final net.runelite.api.Quest quest = findQuestByDisplayName(stripColorTags(menuTarget));
+				if (quest == null)
 				{
 					continue;
 				}
@@ -544,22 +568,14 @@ public class GoalTrackerPlugin extends Plugin
 					.setType(MenuAction.RUNELITE)
 					.onClick(e ->
 					{
-						Goal goal = buildQuestGoal(menuTarget);
-						if (goal == null)
+						// Smoke test: route the existing right-click flow through the
+						// public API to prove it's the canonical entry point. The API
+						// handles validation, duplicate guard, and the UI refresh hook.
+						String createdId = goalTrackerApi.addQuestGoal(quest);
+						if (createdId == null)
 						{
-							log.warn("Quest goal build failed at click time for '{}'", menuTarget);
-							return;
+							log.warn("addQuestGoal returned null for {}", quest);
 						}
-						String questName = goal.getQuestName();
-						if (goalStore.exists(g ->
-							g.getType() == GoalType.QUEST
-								&& questName.equals(g.getQuestName())))
-						{
-							log.info("Quest goal already exists: {}", goal.getName());
-							return;
-						}
-						goalStore.addGoal(goal);
-						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 					});
 				break;
 			}
