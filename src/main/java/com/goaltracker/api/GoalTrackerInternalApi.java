@@ -217,4 +217,24 @@ public interface GoalTrackerInternalApi
 
 	/** @return an unmodifiable snapshot of the currently-selected goal ids. */
 	java.util.Set<String> getSelectedGoalIds();
+
+	/**
+	 * Add every goal currently in the given section to the selection. Existing
+	 * selection is preserved (additive); use {@link #clearGoalSelection()}
+	 * first if you want to replace it. Used by the section header right-click
+	 * "Select All in Section" entry.
+	 *
+	 * @return the number of goals newly added to the selection
+	 */
+	int selectAllInSection(String sectionId);
+
+	/**
+	 * Remove every goal currently in the given section from the selection.
+	 * Symmetric counterpart to {@link #selectAllInSection(String)}; lets the
+	 * section header right-click toggle between select-all and deselect-all
+	 * based on whether the section is fully selected.
+	 *
+	 * @return the number of goals removed from the selection
+	 */
+	int deselectAllInSection(String sectionId);
 }

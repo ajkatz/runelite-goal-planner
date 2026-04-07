@@ -1034,4 +1034,38 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		return java.util.Collections.unmodifiableSet(selectedGoalIds);
 	}
+
+	@Override
+	public int selectAllInSection(String sectionId)
+	{
+		log.debug("API.internal selectAllInSection(sectionId={})", sectionId);
+		if (sectionId == null) return 0;
+		int added = 0;
+		for (Goal g : goalStore.getGoals())
+		{
+			if (sectionId.equals(g.getSectionId()))
+			{
+				if (selectedGoalIds.add(g.getId())) added++;
+			}
+		}
+		if (added > 0) onGoalsChanged.run();
+		return added;
+	}
+
+	@Override
+	public int deselectAllInSection(String sectionId)
+	{
+		log.debug("API.internal deselectAllInSection(sectionId={})", sectionId);
+		if (sectionId == null) return 0;
+		int removed = 0;
+		for (Goal g : goalStore.getGoals())
+		{
+			if (sectionId.equals(g.getSectionId()))
+			{
+				if (selectedGoalIds.remove(g.getId())) removed++;
+			}
+		}
+		if (removed > 0) onGoalsChanged.run();
+		return removed;
+	}
 }

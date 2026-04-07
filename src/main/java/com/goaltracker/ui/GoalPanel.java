@@ -305,6 +305,7 @@ public class GoalPanel extends PluginPanel
 	private void moveGoalBounded(String goalId, int fromIndex, int toIndex, int minIndex, int maxIndex)
 	{
 		if (toIndex < minIndex || toIndex > maxIndex) return;
+		clearSelectionIfNotMember(goalId);
 		api.moveGoal(goalId, toIndex);
 		// API callback rebuilds the panel.
 	}
@@ -312,8 +313,23 @@ public class GoalPanel extends PluginPanel
 	/** Move a goal directly to a target index within its section. */
 	private void moveGoalTo(String goalId, int toIndex)
 	{
+		clearSelectionIfNotMember(goalId);
 		api.moveGoal(goalId, toIndex);
 		// API callback rebuilds the panel.
+	}
+
+	/**
+	 * Rule 1 enforcement: any action on an unselected card auto-deselects the
+	 * existing multi-selection first. Used by arrow-button moves; the right-
+	 * click menu show path applies the same rule inline.
+	 */
+	private void clearSelectionIfNotMember(String goalId)
+	{
+		java.util.Set<String> sel = api.getSelectedGoalIds();
+		if (!sel.isEmpty() && !sel.contains(goalId))
+		{
+			api.clearGoalSelection();
+		}
 	}
 
 
@@ -356,6 +372,46 @@ public class GoalPanel extends PluginPanel
 	}
 
 	private void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
+	{
+		card.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mousePressed(MouseEvent e) { maybeShowPopup(e); }
+
+			@Override
+			public void mouseReleased(MouseEvent e) { maybeShowPopup(e); }
+
+			private void maybeShowPopup(MouseEvent e)
+			{
+				if (!e.isPopupTrigger()) return;
+				// Rule 1: action on an unselected card auto-deselects all first.
+				// Right-clicking is "the action" here for the menu-driven flow.
+				java.util.Set<String> sel = api.getSelectedGoalIds();
+				if (!sel.contains(goal.getId()) && !sel.isEmpty())
+				{
+					api.clearGoalSelection();
+					sel = api.getSelectedGoalIds();
+				}
+				JPopupMenu popup;
+				if (sel.contains(goal.getId()) && sel.size() >= 2)
+				{
+					popup = buildBulkMenu();
+				}
+				else
+				{
+					popup = buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+				}
+				popup.show(card, e.getX(), e.getY());
+			}
+		});
+	}
+
+	/**
+	 * Builds the normal per-card right-click menu. Called lazily on each
+	 * popup show so the contents reflect current selection / completion / tag
+	 * state without needing to be rebuilt at panel.rebuild() time.
+	 */
+	private JPopupMenu buildSingleItemMenu(Goal goal, int index, int sectionStart, int sectionEnd)
 	{
 		JPopupMenu menu = new JPopupMenu();
 
@@ -741,26 +797,243 @@ public class GoalPanel extends PluginPanel
 		remove.addActionListener(e -> api.removeGoal(goal.getId()));
 		menu.add(remove);
 
-		card.addMouseListener(new MouseAdapter()
-		{
-			@Override
-			public void mousePressed(MouseEvent e)
-			{
-				if (e.isPopupTrigger())
-				{
-					menu.show(card, e.getX(), e.getY());
-				}
-			}
+		return menu;
+	}
 
-			@Override
-			public void mouseReleased(MouseEvent e)
+	/**
+	 * Builds the streamlined bulk-action menu shown when the right-clicked
+	 * card is part of a multi-selection (size >= 2). Five items only:
+	 * Move to Section, Add Tag, Change Color, Remove, Mark as Complete.
+	 */
+	private JPopupMenu buildBulkMenu()
+	{
+		JPopupMenu menu = new JPopupMenu();
+		java.util.Set<String> selectedIds = api.getSelectedGoalIds();
+		int selectionSize = selectedIds.size();
+
+		// Snapshot the selected Goal objects up front so all handlers operate
+		// on a consistent set even if the underlying selection mutates between
+		// menu open and item pick.
+		java.util.List<Goal> selectedGoals = new java.util.ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (selectedIds.contains(g.getId())) selectedGoals.add(g);
+		}
+
+		// Header label so the user knows the menu applies to N cards
+		JMenuItem header = new JMenuItem(selectionSize + " selected");
+		header.setEnabled(false);
+		menu.add(header);
+		menu.addSeparator();
+
+		// 1. Move to Section
+		java.util.List<com.goaltracker.api.SectionView> allSections = api.queryAllSections();
+		java.util.List<com.goaltracker.api.SectionView> destinations = new java.util.ArrayList<>();
+		for (com.goaltracker.api.SectionView sv : allSections)
+		{
+			// Completed is auto-managed; bulk-move can't target it.
+			if ("COMPLETED".equals(sv.kind)) continue;
+			destinations.add(sv);
+		}
+		if (!destinations.isEmpty())
+		{
+			JMenu moveToSection = new JMenu("Move to Section");
+			for (com.goaltracker.api.SectionView dest : destinations)
 			{
-				if (e.isPopupTrigger())
+				JMenuItem item = new JMenuItem(dest.name);
+				item.addActionListener(e -> {
+					for (Goal g : selectedGoals)
+					{
+						api.moveGoalToSection(g.getId(), dest.id);
+					}
+				});
+				moveToSection.add(item);
+			}
+			menu.add(moveToSection);
+		}
+
+		// 2. Add Tag
+		JMenuItem addTag = new JMenuItem("Add Tag");
+		addTag.addActionListener(e -> showBulkAddTagDialog(selectedGoals));
+		menu.add(addTag);
+
+		// 3. Change Color
+		JMenuItem changeColor = new JMenuItem("Change Color");
+		changeColor.addActionListener(e -> showBulkChangeColorDialog(selectedGoals));
+		menu.add(changeColor);
+
+		// 4. Mark as Complete — only when ALL selected are CUSTOM (per locked design)
+		boolean allCustom = !selectedGoals.isEmpty();
+		for (Goal g : selectedGoals)
+		{
+			if (g.getType() != GoalType.CUSTOM) { allCustom = false; break; }
+		}
+		if (allCustom)
+		{
+			JMenuItem markComplete = new JMenuItem("Mark as Complete");
+			markComplete.addActionListener(e -> {
+				for (Goal g : selectedGoals)
 				{
-					menu.show(card, e.getX(), e.getY());
+					api.markGoalComplete(g.getId());
 				}
+			});
+			menu.add(markComplete);
+		}
+
+		menu.addSeparator();
+
+		// 5. Remove
+		JMenuItem remove = new JMenuItem("Remove");
+		remove.addActionListener(e -> {
+			int confirm = JOptionPane.showConfirmDialog(
+				this,
+				"Remove " + selectionSize + " goals?",
+				"Remove Goals",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.WARNING_MESSAGE
+			);
+			if (confirm != JOptionPane.YES_OPTION) return;
+			for (Goal g : selectedGoals)
+			{
+				api.removeGoal(g.getId());
 			}
 		});
+		menu.add(remove);
+
+		return menu;
+	}
+
+	/**
+	 * Bulk Add Tag dialog. Reuses the single-item Add Tag dialog's structure
+	 * but applies the result to every selected goal. Category dropdown is
+	 * locked to OTHER unless ALL selected are CUSTOM (mirrors single-item rule).
+	 */
+	private void showBulkAddTagDialog(java.util.List<Goal> selectedGoals)
+	{
+		boolean allCustom = !selectedGoals.isEmpty();
+		for (Goal g : selectedGoals)
+		{
+			if (g.getType() != GoalType.CUSTOM) { allCustom = false; break; }
+		}
+		final boolean forceFreeform = !allCustom;
+
+		JPanel tagPanel = new JPanel(new java.awt.GridBagLayout());
+		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+		gbc.insets = new Insets(4, 4, 4, 4);
+		gbc.anchor = java.awt.GridBagConstraints.WEST;
+
+		JLabel catLabel = new JLabel("Category:");
+		catLabel.setPreferredSize(new Dimension(80, 24));
+		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
+		tagPanel.add(catLabel, gbc);
+
+		com.goaltracker.model.TagCategory[] categories;
+		if (allCustom)
+		{
+			categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+				.filter(c -> c != com.goaltracker.model.TagCategory.SPECIAL)
+				.toArray(com.goaltracker.model.TagCategory[]::new);
+		}
+		else
+		{
+			categories = new com.goaltracker.model.TagCategory[]{
+				com.goaltracker.model.TagCategory.OTHER
+			};
+		}
+		JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
+		catCombo.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+				boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof com.goaltracker.model.TagCategory)
+				{
+					setText(((com.goaltracker.model.TagCategory) value).getDisplayName());
+				}
+				return this;
+			}
+		});
+		gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		tagPanel.add(catCombo, gbc);
+
+		JLabel nameLabel = new JLabel("Tag:");
+		nameLabel.setPreferredSize(new Dimension(80, 24));
+		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
+		tagPanel.add(nameLabel, gbc);
+
+		JComboBox<String> dropdownField = new JComboBox<>();
+		JTextField freeField = new JTextField(15);
+		JPanel fieldSwap = new JPanel(new java.awt.CardLayout());
+		fieldSwap.add(dropdownField, "DROPDOWN");
+		fieldSwap.add(freeField, "FREEFORM");
+		gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		tagPanel.add(fieldSwap, gbc);
+
+		Runnable updateField = () -> {
+			com.goaltracker.model.TagCategory cat =
+				(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+			String[] opts = com.goaltracker.data.TagOptions.getOptions(cat);
+			if (!forceFreeform && opts.length > 0)
+			{
+				dropdownField.removeAllItems();
+				for (String opt : opts) dropdownField.addItem(opt);
+				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
+			}
+			else
+			{
+				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "FREEFORM");
+			}
+		};
+		catCombo.addActionListener(ev -> updateField.run());
+		updateField.run();
+
+		tagPanel.setPreferredSize(new Dimension(300, tagPanel.getPreferredSize().height));
+
+		int result = JOptionPane.showConfirmDialog(
+			this, tagPanel, "Add Tag to " + selectedGoals.size() + " goals",
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
+		);
+		if (result != JOptionPane.OK_OPTION) return;
+
+		com.goaltracker.model.TagCategory selectedCat =
+			(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+		String[] opts = com.goaltracker.data.TagOptions.getOptions(selectedCat);
+		String tagText = (!forceFreeform && opts.length > 0)
+			? (String) dropdownField.getSelectedItem()
+			: freeField.getText().trim();
+		if (tagText == null || tagText.isEmpty()) return;
+
+		// Apply the tag to every selected goal. Use direct goalStore mutation
+		// (same path as the single-item add-tag dialog) to preserve category;
+		// api.addTag would force OTHER. Single rebuild at the end.
+		for (Goal g : selectedGoals)
+		{
+			if (g.getTags() == null) g.setTags(new java.util.ArrayList<>());
+			g.getTags().add(new com.goaltracker.model.ItemTag(tagText, selectedCat));
+			goalStore.updateGoal(g);
+		}
+		rebuild();
+	}
+
+	/**
+	 * Bulk Change Color dialog. Opens the ColorPickerField with a neutral
+	 * default (mixed selections have no single sensible default), then applies
+	 * the chosen color via api.setGoalColor for every selected goal.
+	 */
+	private void showBulkChangeColorDialog(java.util.List<Goal> selectedGoals)
+	{
+		ColorPickerField picker = new ColorPickerField(-1, 0x3C3C3C);
+		int result = JOptionPane.showConfirmDialog(this, picker,
+			"Color for " + selectedGoals.size() + " goals",
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION) return;
+		int rgb = picker.getSelectedRgb();
+		for (Goal g : selectedGoals)
+		{
+			api.setGoalColor(g.getId(), rgb);
+		}
 	}
 
 	/**
@@ -786,6 +1059,29 @@ public class GoalPanel extends PluginPanel
 		final int currentUserIndex = userIndex;
 
 		JPopupMenu menu = new JPopupMenu();
+
+		// Select / Deselect All in Section — label flips when every goal in the
+		// section is already selected. Computed against the current selection
+		// snapshot at menu-build time.
+		java.util.Set<String> currentSel = api.getSelectedGoalIds();
+		java.util.List<String> sectionGoalIds = new java.util.ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (section.id.equals(g.getSectionId())) sectionGoalIds.add(g.getId());
+		}
+		boolean allSelected = !sectionGoalIds.isEmpty() && currentSel.containsAll(sectionGoalIds);
+		JMenuItem selectAll = new JMenuItem(allSelected
+			? "Deselect All in Section"
+			: "Select All in Section");
+		selectAll.addActionListener(e -> {
+			if (allSelected) api.deselectAllInSection(section.id);
+			else api.selectAllInSection(section.id);
+		});
+		// Disable on empty sections — nothing to (de)select.
+		if (sectionGoalIds.isEmpty()) selectAll.setEnabled(false);
+		menu.add(selectAll);
+
+		menu.addSeparator();
 
 		// Change Color is available on every section, built-in or user.
 		JMenuItem changeColor = new JMenuItem("Change Color");
