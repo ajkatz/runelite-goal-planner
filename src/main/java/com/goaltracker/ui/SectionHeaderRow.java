@@ -45,9 +45,11 @@ public class SectionHeaderRow extends JPanel
 		setAlignmentX(Component.CENTER_ALIGNMENT);
 		setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-		JLabel chevron = new JLabel(section.isCollapsed() ? "\u25B6" : "\u25BC");
-		chevron.setForeground(CHEVRON_COLOR);
-		chevron.setFont(chevron.getFont().deriveFont(Font.PLAIN, 9f));
+		// Programmatic shape icon avoids font-fallback failure on macOS Tahoe
+		// where ▶/▼ Unicode glyphs render as missing-glyph placeholders.
+		JLabel chevron = new JLabel(section.isCollapsed()
+			? ShapeIcons.rightTriangle(8, CHEVRON_COLOR)
+			: ShapeIcons.downTriangle(8, CHEVRON_COLOR));
 		chevron.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
 
 		JLabel nameLabel = new JLabel(section.getName().toUpperCase(), SwingConstants.CENTER);

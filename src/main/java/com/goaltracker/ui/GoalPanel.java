@@ -67,9 +67,9 @@ public class GoalPanel extends PluginPanel
 		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 4, 0));
 		headerButtons.setOpaque(false);
 
-		JButton clearButton = new JButton("\u2715");
+		JButton clearButton = new JButton(ShapeIcons.minus(10, new Color(200, 200, 200)));
 		clearButton.setToolTipText("Clear all goals");
-		clearButton.setFont(clearButton.getFont().deriveFont(10f));
+		clearButton.setMargin(new Insets(2, 4, 2, 4));
 		clearButton.addActionListener(e -> {
 			int confirm = JOptionPane.showConfirmDialog(
 				this, "Remove ALL goals?", "Clear All",
@@ -85,8 +85,9 @@ public class GoalPanel extends PluginPanel
 			}
 		});
 
-		JButton addButton = new JButton("+");
+		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
 		addButton.setToolTipText("Add a new goal");
+		addButton.setMargin(new Insets(2, 4, 2, 4));
 		addButton.addActionListener(e -> showAddGoalDialog());
 
 		headerButtons.add(clearButton);

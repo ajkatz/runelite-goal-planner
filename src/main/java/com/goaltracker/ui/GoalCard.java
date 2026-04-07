@@ -199,8 +199,8 @@ public class GoalCard extends JPanel
 		arrowPanel.setOpaque(false);
 		arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
 
-		upButton = createArrowButton("\u25B2", onMoveUp);
-		downButton = createArrowButton("\u25BC", onMoveDown);
+		upButton = createArrowButton(true, onMoveUp);
+		downButton = createArrowButton(false, onMoveDown);
 
 		arrowPanel.add(upButton);
 		arrowPanel.add(downButton);
@@ -281,11 +281,19 @@ public class GoalCard extends JPanel
 		};
 	}
 
-	private JButton createArrowButton(String text, ActionListener action)
+	private JButton createArrowButton(boolean up, ActionListener action)
 	{
-		JButton btn = new JButton(text);
-		btn.setFont(btn.getFont().deriveFont(8f));
-		btn.setForeground(ARROW_COLOR);
+		// Programmatic shape icons (avoids font-fallback failure on macOS Tahoe
+		// where ▲/▼ Unicode glyphs render as missing-glyph placeholders).
+		final int iconSize = 7;
+		final javax.swing.Icon idle = up
+			? ShapeIcons.upTriangle(iconSize, ARROW_COLOR)
+			: ShapeIcons.downTriangle(iconSize, ARROW_COLOR);
+		final javax.swing.Icon hover = up
+			? ShapeIcons.upTriangle(iconSize, ARROW_HOVER)
+			: ShapeIcons.downTriangle(iconSize, ARROW_HOVER);
+
+		JButton btn = new JButton(idle);
 		btn.setContentAreaFilled(false);
 		btn.setBorderPainted(false);
 		btn.setFocusPainted(false);
@@ -298,13 +306,13 @@ public class GoalCard extends JPanel
 			@Override
 			public void mouseEntered(java.awt.event.MouseEvent e)
 			{
-				btn.setForeground(ARROW_HOVER);
+				btn.setIcon(hover);
 			}
 
 			@Override
 			public void mouseExited(java.awt.event.MouseEvent e)
 			{
-				btn.setForeground(ARROW_COLOR);
+				btn.setIcon(idle);
 			}
 		});
 
