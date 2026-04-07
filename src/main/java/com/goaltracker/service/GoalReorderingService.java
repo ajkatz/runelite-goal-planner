@@ -6,6 +6,7 @@ import com.goaltracker.model.GoalType;
 import com.goaltracker.persistence.GoalStore;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.List;
 
 /**
@@ -16,6 +17,7 @@ import java.util.List;
  * - If a move would violate same-skill ordering (lower target must be above higher),
  *   partners recursively move first from end of chain inward
  */
+@Singleton
 public class GoalReorderingService
 {
 	private final GoalStore goalStore;
@@ -50,8 +52,7 @@ public class GoalReorderingService
 		{
 			goalStore.reorder(currentIndex, newTarget);
 		}
-
-		goalStore.save();
+		// goalStore.reorder() already persists; no extra save needed.
 	}
 
 	/**
@@ -70,7 +71,7 @@ public class GoalReorderingService
 
 		goalStore.reorder(fromIndex, toIndex);
 		enforceSkillOrdering();
-		goalStore.save();
+		// goalStore.reorder() (called above and inside enforceSkillOrdering) persists.
 	}
 
 	/**

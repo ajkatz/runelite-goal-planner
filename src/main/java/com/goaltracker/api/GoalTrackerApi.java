@@ -1,5 +1,6 @@
 package com.goaltracker.api;
 
+import java.util.List;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 
@@ -85,4 +86,82 @@ public interface GoalTrackerApi
 
 	/** Achievement diary tier; mirrors the internal AchievementDiaryData.Tier. */
 	enum DiaryTier { EASY, MEDIUM, HARD, ELITE }
+
+	// ===== Read API =====
+
+	/**
+	 * Return all goals as DTOs in canonical render order (sections sorted by their
+	 * {@code order}, goals within each section sorted by priority). Includes both
+	 * incomplete and completed goals; consumers can filter by {@code completedAt > 0}.
+	 *
+	 * <p>The returned list is a snapshot — mutating it has no effect on the plugin's
+	 * internal state. Call again after mutations to get a fresh view.
+	 */
+	List<GoalView> queryAllGoals();
+
+	/**
+	 * Return all sections (built-in and user-defined) as DTOs, sorted by their
+	 * {@code order} field.
+	 */
+	List<SectionView> queryAllSections();
+
+	// ===== Mutation API =====
+
+	/**
+	 * Remove a single goal by id. Idempotent — returns false if no such goal exists.
+	 */
+	boolean removeGoal(String goalId);
+
+	/**
+	 * Add a custom-category tag to a goal. For non-CUSTOM goals, the tag is forced
+	 * into the OTHER category regardless of inputs (the default tags from creation
+	 * are protected and not modifiable). Returns false if the goal doesn't exist or
+	 * the label is empty.
+	 */
+	boolean addTag(String goalId, String label);
+
+	/**
+	 * Remove a user-added tag from a goal. Default tags (auto-generated at goal
+	 * creation) are protected and cannot be removed via this method. Returns true
+	 * if a tag was removed, false otherwise.
+	 */
+	boolean removeTag(String goalId, String label);
+
+	/**
+	 * Change the target value of a SKILL or ITEM_GRIND goal. CA/quest/diary goals
+	 * are binary and have immutable targets. Returns false on type mismatch or
+	 * out-of-range value.
+	 */
+	boolean changeTarget(String goalId, int newTarget);
+
+	/**
+	 * Create a custom goal. Returns the new goal's id, or null if validation failed
+	 * (empty name).
+	 */
+	String addCustomGoal(String name, String description);
+
+	/**
+	 * Edit a CUSTOM goal's name and/or description. Either may be null to leave
+	 * unchanged. Returns false if the goal isn't CUSTOM or doesn't exist.
+	 */
+	boolean editCustomGoal(String goalId, String newName, String newDescription);
+
+	/**
+	 * Mark a CUSTOM goal complete. Sets completedAt to now. Returns false if the
+	 * goal isn't CUSTOM (other types are auto-tracked). Idempotent — calling on an
+	 * already-complete goal updates the timestamp.
+	 */
+	boolean markGoalComplete(String goalId);
+
+	/**
+	 * Mark a CUSTOM goal incomplete. Clears completedAt. Returns false if the goal
+	 * isn't CUSTOM.
+	 */
+	boolean markGoalIncomplete(String goalId);
+
+	/**
+	 * Restore a goal's tags to its default snapshot from creation. Returns false
+	 * if the goal has no defaults or doesn't exist.
+	 */
+	boolean restoreDefaultTags(String goalId);
 }

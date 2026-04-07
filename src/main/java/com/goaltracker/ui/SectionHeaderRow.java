@@ -1,6 +1,6 @@
 package com.goaltracker.ui;
 
-import com.goaltracker.model.Section;
+import com.goaltracker.api.SectionView;
 
 import javax.swing.BorderFactory;
 import javax.swing.JLabel;
@@ -29,7 +29,7 @@ public class SectionHeaderRow extends JPanel
 	private static final int ROW_HEIGHT = 22;
 	private static final int CHEVRON_WIDTH = 14;
 
-	public SectionHeaderRow(Section section, int goalCount, Runnable onToggle)
+	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle)
 	{
 		setLayout(new BorderLayout());
 		setOpaque(false);
@@ -47,12 +47,12 @@ public class SectionHeaderRow extends JPanel
 
 		// Programmatic shape icon avoids font-fallback failure on macOS Tahoe
 		// where ▶/▼ Unicode glyphs render as missing-glyph placeholders.
-		JLabel chevron = new JLabel(section.isCollapsed()
+		JLabel chevron = new JLabel(section.collapsed
 			? ShapeIcons.rightTriangle(8, CHEVRON_COLOR)
 			: ShapeIcons.downTriangle(8, CHEVRON_COLOR));
 		chevron.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
 
-		JLabel nameLabel = new JLabel(section.getName().toUpperCase(), SwingConstants.CENTER);
+		JLabel nameLabel = new JLabel(section.name.toUpperCase(), SwingConstants.CENTER);
 		nameLabel.setForeground(TEXT_COLOR);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 10f));
 

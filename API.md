@@ -1,8 +1,14 @@
 # Goal Tracker Plugin API
 
-The Goal Tracker plugin exposes a small public API so other RuneLite plugins
-can create goals programmatically. This document is for developers of consumer
-plugins.
+The Goal Tracker plugin exposes a public API so other RuneLite plugins can
+read and mutate goals programmatically. This document is for developers of
+consumer plugins.
+
+The API is split into a **public** surface (`GoalTrackerApi`) consumed by
+external plugins, and a **plugin-private** internal surface
+(`GoalTrackerInternalApi`) used by the goal tracker plugin's own UI for layout-
+coupled and destructive operations. External plugins cannot reach the internal
+API through normal Guice injection.
 
 ## Quick start
 
@@ -175,6 +181,131 @@ To find wiki task ids, query the OSRS Wiki bucket API:
 ```
 https://oldschool.runescape.wiki/api.php?action=bucket&format=json&query=bucket('combat_achievement').select('id','name').where('name','Noxious Foe').limit(1).run()
 ```
+
+### `addCustomGoal(String, String)`
+
+```java
+String addCustomGoal(String name, String description);
+```
+
+Create a custom goal with a freeform name and description. Idempotent — duplicate
+names return the existing goal's id. Custom goals start incomplete and can be
+toggled via `markGoalComplete` / `markGoalIncomplete`.
+
+## Read API
+
+### `queryAllGoals()`
+
+```java
+List<GoalView> queryAllGoals();
+```
+
+Returns all goals (incomplete and completed) as immutable DTO snapshots in
+canonical render order: sections sorted by their `order`, goals within each
+section sorted by priority. Filter by `completedAt > 0` if you only want
+completed or incomplete.
+
+`GoalView` is a generic shape with type-agnostic core fields plus a
+`Map<String, Object> attributes` for type-specific extras. Per-type schemas:
+
+| Type | Attributes (key → type) |
+|---|---|
+| `SKILL` | `skillName` (String) |
+| `QUEST` | `questName` (String), `tooltip` (String, optional) |
+| `DIARY` | `area` (String), `tier` (String — EASY/MEDIUM/HARD/ELITE), `varbitId` (Integer), `tooltip` (String, optional) |
+| `ITEM_GRIND` | `itemId` (Integer) |
+| `COMBAT_ACHIEVEMENT` | `caTaskId` (Integer), `tier` (String), `monster` (String), `tooltip` (String, optional) |
+| `CUSTOM` | *(no extras)* |
+
+Display fields on every `GoalView`:
+- `id`, `type`, `name`, `description`, `currentValue`, `targetValue`, `completedAt`, `sectionId`
+- `spriteId` — RuneLite sprite id (0 if none)
+- `backgroundColorRgb` — packed `0xRRGGBB` for the card background
+- `defaultTags` (auto-generated, protected from removal)
+- `customTags` (user-added, removable)
+
+`TagView` carries `label`, `category` (string), and `colorRgb` (packed).
+
+### `queryAllSections()`
+
+```java
+List<SectionView> queryAllSections();
+```
+
+Returns all sections sorted by `order`. Built-in sections (`Incomplete`,
+`Completed`) have `builtIn = true` and `kind` set to `INCOMPLETE` / `COMPLETED`.
+User-defined sections have `kind = null`.
+
+## Mutation API
+
+All mutation methods are idempotent and return `boolean` (true on success).
+Validation is per-method:
+
+### `removeGoal(String)`
+
+```java
+boolean removeGoal(String goalId);
+```
+
+Delete a goal by id. Returns false if no such goal exists.
+
+### `addTag(String, String)`
+
+```java
+boolean addTag(String goalId, String label);
+```
+
+Add a custom tag to a goal. Tags added via this method always use the `OTHER`
+category (auto-generated default tags from creation are protected and cannot be
+modified).
+
+### `removeTag(String, String)`
+
+```java
+boolean removeTag(String goalId, String label);
+```
+
+Remove a custom (user-added) tag by label. Default tags are protected and cannot
+be removed via this method — use `restoreDefaultTags` to revert any custom
+modifications wholesale.
+
+### `changeTarget(String, int)`
+
+```java
+boolean changeTarget(String goalId, int newTarget);
+```
+
+Change the target value of a `SKILL` (XP) or `ITEM_GRIND` (quantity) goal.
+Returns false on type mismatch (CA / quest / diary targets are immutable) or
+out-of-range value.
+
+### `editCustomGoal(String, String, String)`
+
+```java
+boolean editCustomGoal(String goalId, String newName, String newDescription);
+```
+
+Edit a `CUSTOM` goal's name and/or description. Either parameter may be null to
+leave that field unchanged.
+
+### `markGoalComplete(String)` / `markGoalIncomplete(String)`
+
+```java
+boolean markGoalComplete(String goalId);
+boolean markGoalIncomplete(String goalId);
+```
+
+Manually toggle completion state. Only valid for `CUSTOM` goals — other types
+are auto-tracked from game state and would just get auto-recompleted.
+
+### `restoreDefaultTags(String)`
+
+```java
+boolean restoreDefaultTags(String goalId);
+```
+
+Reset a goal's tags to its default snapshot from creation, discarding any
+user-added tags.
 
 ## Versioning and stability
 

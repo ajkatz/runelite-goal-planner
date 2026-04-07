@@ -32,6 +32,7 @@ public class GoalPanel extends PluginPanel
 {
 	private final GoalStore goalStore;
 	private final GoalReorderingService reorderingService;
+	private final com.goaltracker.api.GoalTrackerApiImpl api;
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
 	private final net.runelite.client.game.SpriteManager spriteManager;
@@ -42,11 +43,14 @@ public class GoalPanel extends PluginPanel
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
+					 com.goaltracker.api.GoalTrackerApiImpl api,
+					 GoalReorderingService reorderingService,
 					 java.util.function.IntConsumer itemSearchCallback)
 	{
 		super(false);
 		this.goalStore = goalStore;
-		this.reorderingService = new GoalReorderingService(goalStore);
+		this.reorderingService = reorderingService;
+		this.api = api;
 		this.skillIconManager = skillIconManager;
 		this.itemManager = itemManager;
 		this.spriteManager = spriteManager;
@@ -77,11 +81,8 @@ public class GoalPanel extends PluginPanel
 			);
 			if (confirm == JOptionPane.YES_OPTION)
 			{
-				while (!goalStore.getGoals().isEmpty())
-				{
-					goalStore.removeGoal(goalStore.getGoals().get(0).getId());
-				}
-				rebuild();
+				api.removeAllGoals();
+				// API callback (onGoalsChanged) triggers an EDT rebuild.
 			}
 		});
 
@@ -123,22 +124,28 @@ public class GoalPanel extends PluginPanel
 		goalListPanel.removeAll();
 		cardMap.clear();
 
-		// Ensure the flat list is ordered by (section.order, priority) so that
-		// per-section slices are contiguous; arrow reorder indices stay valid.
-		goalStore.normalizeOrder();
-		List<Goal> goals = goalStore.getGoals();
-		java.util.List<com.goaltracker.model.Section> sections = new java.util.ArrayList<>(
-			goalStore.getSections());
-		sections.sort(java.util.Comparator.comparingInt(com.goaltracker.model.Section::getOrder));
+		// Read path goes through the public API — the panel is now a consumer of
+		// GoalTrackerApi just like external plugins would be. The internal mutation
+		// paths still touch goalStore directly (refactored to API in T5).
+		java.util.List<com.goaltracker.api.GoalView> goalViews = api.queryAllGoals();
+		java.util.List<com.goaltracker.api.SectionView> sectionViews = api.queryAllSections();
 
-		for (com.goaltracker.model.Section section : sections)
+		// We still need Goal objects for the right-click context menu (T5 will route
+		// those mutations through the API too). Look up by id from goalStore.
+		java.util.Map<String, Goal> goalById = new java.util.HashMap<>();
+		for (Goal g : goalStore.getGoals())
 		{
-			// Find contiguous slice of goals in this section
+			goalById.put(g.getId(), g);
+		}
+
+		for (com.goaltracker.api.SectionView section : sectionViews)
+		{
+			// Find contiguous slice of goalViews in this section
 			int sectionStart = -1;
 			int sectionEnd = -1;
-			for (int i = 0; i < goals.size(); i++)
+			for (int i = 0; i < goalViews.size(); i++)
 			{
-				if (section.getId().equals(goals.get(i).getSectionId()))
+				if (section.id.equals(goalViews.get(i).sectionId))
 				{
 					if (sectionStart == -1) sectionStart = i;
 					sectionEnd = i;
@@ -148,35 +155,36 @@ public class GoalPanel extends PluginPanel
 
 			// Hide section headers for empty sections (built-in or user).
 			if (sectionCount == 0) continue;
-			final com.goaltracker.model.Section sectionRef = section;
+			final String sectionIdRef = section.id;
 			goalListPanel.add(new SectionHeaderRow(section, sectionCount, () -> {
-				sectionRef.setCollapsed(!sectionRef.isCollapsed());
-				goalStore.save();
-				rebuild();
+				api.toggleSectionCollapsed(sectionIdRef);
+				// API callback rebuilds the panel.
 			}));
 			goalListPanel.add(Box.createVerticalStrut(2));
 
 			// Skip rendering goal cards while the section is collapsed.
-			if (section.isCollapsed())
+			if (section.collapsed)
 			{
 				continue;
 			}
 
-			boolean isCompletedSection =
-				section.getBuiltInKind() == com.goaltracker.model.Section.BuiltInKind.COMPLETED;
+			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
 			for (int i = sectionStart; i <= sectionEnd; i++)
 			{
 				final int index = i;
-				Goal goal = goals.get(i);
+				com.goaltracker.api.GoalView view = goalViews.get(i);
+				Goal goal = goalById.get(view.id);
+				if (goal == null) continue; // shouldn't happen but defensive
 
 				final int secStart = sectionStart;
 				final int secEnd = sectionEnd;
 
+				final String goalIdRef = view.id;
 				GoalCard card = new GoalCard(
-					goal,
-					e -> moveGoalBounded(index, index - 1, secStart, secEnd),
-					e -> moveGoalBounded(index, index + 1, secStart, secEnd),
+					view,
+					e -> moveGoalBounded(goalIdRef, index, index - 1, secStart, secEnd),
+					e -> moveGoalBounded(goalIdRef, index, index + 1, secStart, secEnd),
 					skillIconManager,
 					itemManager,
 					spriteManager
@@ -202,7 +210,7 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 
-		if (goals.isEmpty())
+		if (goalViews.isEmpty())
 		{
 			JLabel empty = new JLabel("No goals yet. Click + to add one.");
 			empty.setForeground(new Color(120, 120, 120));
@@ -216,44 +224,24 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
-	 * Move a goal by one slot, but only within its current section's bounds.
-	 * Prevents arrow reorder from accidentally crossing section boundaries.
+	 * Move a goal by one slot, bounded to its current section. Routes through the
+	 * internal API so the reorder is the same canonical mutation path external
+	 * plugins would use (they can't, but the panel pretends it's an external user).
 	 */
-	private void moveGoalBounded(int fromIndex, int toIndex, int minIndex, int maxIndex)
+	private void moveGoalBounded(String goalId, int fromIndex, int toIndex, int minIndex, int maxIndex)
 	{
 		if (toIndex < minIndex || toIndex > maxIndex) return;
-		reorderingService.moveGoal(fromIndex, toIndex);
-		rebuild();
+		api.moveGoal(goalId, toIndex);
+		// API callback rebuilds the panel.
 	}
 
-	private void moveGoalTo(int fromIndex, int toIndex)
+	/** Move a goal directly to a target index within its section. */
+	private void moveGoalTo(String goalId, int toIndex)
 	{
-		reorderingService.moveGoalTo(fromIndex, toIndex);
-		rebuild();
+		api.moveGoal(goalId, toIndex);
+		// API callback rebuilds the panel.
 	}
 
-	private void moveGoal(int fromIndex, int toIndex)
-	{
-		reorderingService.moveGoal(fromIndex, toIndex);
-		rebuild();
-	}
-
-	public void updateGoal(Goal goal)
-	{
-		GoalCard card = cardMap.get(goal.getId());
-		if (card != null)
-		{
-			card.update(goal);
-		}
-	}
-
-	public void refresh()
-	{
-		for (Goal goal : goalStore.getGoals())
-		{
-			updateGoal(goal);
-		}
-	}
 
 	private void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
 	{
@@ -268,7 +256,7 @@ public class GoalPanel extends PluginPanel
 			{
 				JMenuItem moveFirst = new JMenuItem("Move to Top");
 				moveFirst.addActionListener(e -> {
-					moveGoalTo(index, sectionStart);
+					moveGoalTo(goal.getId(), sectionStart);
 				});
 				menu.add(moveFirst);
 			}
@@ -277,7 +265,7 @@ public class GoalPanel extends PluginPanel
 			{
 				JMenuItem moveLast = new JMenuItem("Move to Bottom");
 				moveLast.addActionListener(e -> {
-					moveGoalTo(index, sectionEnd);
+					moveGoalTo(goal.getId(), sectionEnd);
 				});
 				menu.add(moveLast);
 			}
@@ -294,39 +282,24 @@ public class GoalPanel extends PluginPanel
 		if (goal.isComplete() && goal.getType() == GoalType.CUSTOM)
 		{
 			JMenuItem reopen = new JMenuItem("Mark Incomplete");
-			reopen.addActionListener(e -> {
-				goal.setCompletedAt(0);
-				goal.setStatus(GoalStatus.ACTIVE);
-				goalStore.updateGoal(goal);
-				goalStore.reconcileCompletedSection();
-				rebuild();
-			});
+			reopen.addActionListener(e -> api.markGoalIncomplete(goal.getId()));
 			menu.add(reopen);
 		}
 		else if (!goal.isComplete() && goal.getType() == GoalType.CUSTOM)
 		{
 			JMenuItem complete = new JMenuItem("Mark Complete");
-			complete.addActionListener(e -> {
-				goal.setCompletedAt(System.currentTimeMillis());
-				goal.setStatus(GoalStatus.COMPLETE);
-				goalStore.updateGoal(goal);
-				goalStore.reconcileCompletedSection();
-				rebuild();
-			});
+			complete.addActionListener(e -> api.markGoalComplete(goal.getId()));
 			menu.add(complete);
 		}
 
 		if (goal.getType() == GoalType.CUSTOM && !goal.isComplete())
 		{
-
 			JMenuItem editName = new JMenuItem("Change Name");
 			editName.addActionListener(e -> {
 				String input = JOptionPane.showInputDialog(this, "New name:", goal.getName());
 				if (input != null && !input.trim().isEmpty())
 				{
-					goal.setName(input.trim());
-					goalStore.updateGoal(goal);
-					rebuild();
+					api.editCustomGoal(goal.getId(), input.trim(), null);
 				}
 			});
 			menu.add(editName);
@@ -337,9 +310,7 @@ public class GoalPanel extends PluginPanel
 					goal.getDescription() != null ? goal.getDescription() : "");
 				if (input != null)
 				{
-					goal.setDescription(input.trim());
-					goalStore.updateGoal(goal);
-					rebuild();
+					api.editCustomGoal(goal.getId(), null, input.trim());
 				}
 			});
 			menu.add(editDesc);
@@ -366,7 +337,9 @@ public class GoalPanel extends PluginPanel
 						if (newLevel >= 1 && newLevel <= 99)
 						{
 							int newXp = net.runelite.api.Experience.getXpForLevel(newLevel);
-							goal.setTargetValue(newXp);
+							api.changeTarget(goal.getId(), newXp);
+							// Name update isn't part of the public changeTarget contract
+							// (it's a display-side concern), so still update directly here.
 							goal.setName(net.runelite.api.Skill.valueOf(goal.getSkillName()).getName()
 								+ " \u2192 Level " + newLevel);
 							goalStore.updateGoal(goal);
@@ -396,7 +369,8 @@ public class GoalPanel extends PluginPanel
 						int newQty = Integer.parseInt(input.trim().replace(",", ""));
 						if (newQty > 0)
 						{
-							goal.setTargetValue(newQty);
+							api.changeTarget(goal.getId(), newQty);
+							// Description update is a display concern
 							goal.setDescription(FormatUtil.formatNumber(newQty) + " total");
 							goalStore.updateGoal(goal);
 							rebuild();
@@ -406,7 +380,6 @@ public class GoalPanel extends PluginPanel
 				}
 			});
 			menu.add(editQty);
-
 		}
 
 		// Tag management
@@ -567,9 +540,7 @@ public class GoalPanel extends PluginPanel
 					int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
 					if (idx >= 0)
 					{
-						goal.getTags().remove(removableTags.get(idx));
-						goalStore.updateGoal(goal);
-						rebuild();
+						api.removeTag(goal.getId(), removableTags.get(idx).getLabel());
 					}
 				}
 			});
@@ -581,19 +552,12 @@ public class GoalPanel extends PluginPanel
 			&& goal.getTags() != null && !goal.getTags().equals(goal.getDefaultTags()))
 		{
 			JMenuItem restore = new JMenuItem("Restore Defaults");
-			restore.addActionListener(e -> {
-				goal.setTags(new java.util.ArrayList<>(goal.getDefaultTags()));
-				goalStore.updateGoal(goal);
-				rebuild();
-			});
+			restore.addActionListener(e -> api.restoreDefaultTags(goal.getId()));
 			menu.add(restore);
 		}
 
 		JMenuItem remove = new JMenuItem("Remove");
-		remove.addActionListener(e -> {
-			goalStore.removeGoal(goal.getId());
-			rebuild();
-		});
+		remove.addActionListener(e -> api.removeGoal(goal.getId()));
 		menu.add(remove);
 
 		card.addMouseListener(new MouseAdapter()
@@ -790,7 +754,6 @@ public class GoalPanel extends PluginPanel
 				return;
 			}
 
-			// Convert level to XP target
 			int targetXp = net.runelite.api.Experience.getXpForLevel(targetLevel);
 
 			String conflict = checkSkillConflict(skill, targetXp);
@@ -800,20 +763,9 @@ public class GoalPanel extends PluginPanel
 				return;
 			}
 
-			Goal goal = Goal.builder()
-				.type(GoalType.SKILL)
-				.name(skill.getName() + " \u2192 Level " + targetLevel)
-				.skillName(skill.name())
-				.targetValue(targetXp)
-				.build();
-
-			goalStore.addGoal(goal);
-			int insertBefore = reorderingService.findInsertionIndex(skill.name(), targetXp);
-			if (insertBefore >= 0)
-			{
-				goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
-			}
-			rebuild();
+			// Route through the public API. Returns the goal id (or existing id on dup).
+			api.addSkillGoalForLevel(skill, targetLevel);
+			// API callback rebuilds the panel.
 		}
 		catch (NumberFormatException e)
 		{
@@ -830,16 +782,8 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 
-		Goal goal = Goal.builder()
-			.type(GoalType.CUSTOM)
-			.name(name)
-			.description(descField.getText().trim())
-			.targetValue(1)  // binary: 0 = not done, 1 = done
-			.currentValue(0)
-			.build();
-
-		goalStore.addGoal(goal);
-		rebuild();
+		api.addCustomGoal(name, descField.getText().trim());
+		// API callback rebuilds the panel.
 	}
 
 	/**

@@ -105,6 +105,9 @@ public class GoalTrackerPlugin extends Plugin
 	@Inject
 	private GoalTrackerApiImpl goalTrackerApi;
 
+	@Inject
+	private com.goaltracker.service.GoalReorderingService goalReorderingService;
+
 	private GoalPanel panel;
 	private NavigationButton navButton;
 	private int tickCounter = 0;
@@ -133,7 +136,8 @@ public class GoalTrackerPlugin extends Plugin
 		// populated yet — they'll get filled on a later startup.
 		migrateCaTaskIds();
 
-		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager, this::openItemSearch);
+		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
+			goalTrackerApi, goalReorderingService, this::openItemSearch);
 		panel.setClient(client);
 
 		// Wire the API's UI-refresh hook so external addGoal calls trigger a rebuild
@@ -282,10 +286,9 @@ public class GoalTrackerPlugin extends Plugin
 			{
 				goalStore.reconcileCompletedSection();
 				goalStore.save();
+				// Only rebuild when something actually changed.
+				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 			}
-
-			// Rebuild to refresh state and images
-			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
 	}
 
@@ -445,6 +448,11 @@ public class GoalTrackerPlugin extends Plugin
 			boolean isRaid = CombatAchievementData.isRaidBoss(monster);
 			String tagLabel = isRaid ? CombatAchievementData.abbreviateRaid(monster) : monster;
 			tags.add(new ItemTag(tagLabel, isRaid ? TagCategory.RAID : TagCategory.BOSS));
+			// Inherit Slayer skill tag if the monster is a known slayer task target
+			if (SourceAttributes.isSlayerTask(monster))
+			{
+				tags.add(new ItemTag("Slayer", TagCategory.SKILLING));
+			}
 		}
 
 		String description = tier != null

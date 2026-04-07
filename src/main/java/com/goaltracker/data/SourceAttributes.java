@@ -38,6 +38,7 @@ public final class SourceAttributes
 		slayerTask("Kraken");
 		slayerTask("Grotesque Guardians");
 		slayerTask("Araxxor");
+		slayerTask("Shellbane Gryphon");
 	}
 
 	private static void slayerTask(String sourceName)
