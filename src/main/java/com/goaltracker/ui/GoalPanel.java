@@ -40,6 +40,8 @@ public class GoalPanel extends PluginPanel
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
+	/** Free-text filter applied to the goal list. Empty = show all. Mission 22. */
+	private String searchFilter = "";
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -139,6 +141,36 @@ public class GoalPanel extends PluginPanel
 		header.add(title, BorderLayout.WEST);
 		header.add(headerButtons, BorderLayout.EAST);
 
+		// Mission 22: free-text search row beneath the toolbar. Filters
+		// goals by name/description/tags/category/type/section title.
+		JPanel searchRow = new JPanel(new BorderLayout(4, 0));
+		searchRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		searchRow.setBorder(new EmptyBorder(0, 8, 8, 8));
+		final javax.swing.JTextField searchField = new javax.swing.JTextField();
+		searchField.setToolTipText("Search goals by name, description, tag, category, type, or section");
+		searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener()
+		{
+			private void update()
+			{
+				searchFilter = searchField.getText();
+				rebuild();
+			}
+			@Override public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
+			@Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
+			@Override public void changedUpdate(javax.swing.event.DocumentEvent e) { update(); }
+		});
+		JButton clearSearchBtn = new JButton(ShapeIcons.closeX(10, new Color(200, 200, 200)));
+		clearSearchBtn.setToolTipText("Clear search");
+		clearSearchBtn.setMargin(new Insets(3, 6, 3, 6));
+		clearSearchBtn.addActionListener(e -> searchField.setText(""));
+		searchRow.add(searchField, BorderLayout.CENTER);
+		searchRow.add(clearSearchBtn, BorderLayout.EAST);
+
+		JPanel headerStack = new JPanel(new BorderLayout());
+		headerStack.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		headerStack.add(header, BorderLayout.NORTH);
+		headerStack.add(searchRow, BorderLayout.CENTER);
+
 		// Scrollable goal list
 		goalListPanel = new JPanel();
 		goalListPanel.setLayout(new BoxLayout(goalListPanel, BoxLayout.Y_AXIS));
@@ -150,7 +182,7 @@ public class GoalPanel extends PluginPanel
 		scrollPane.setBorder(null);
 		scrollPane.getVerticalScrollBar().setUnitIncrement(16);
 
-		add(header, BorderLayout.NORTH);
+		add(headerStack, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
 
 		rebuild();
@@ -169,7 +201,12 @@ public class GoalPanel extends PluginPanel
 		// Read path goes through the public API — the panel is now a consumer of
 		// GoalTrackerApi just like external plugins would be. The internal mutation
 		// paths still touch goalStore directly (refactored to API in T5).
-		java.util.List<com.goaltracker.api.GoalView> goalViews = api.queryAllGoals();
+		// Mission 22: when a search filter is active, route reads through
+		// searchGoals so the visible list is always filter(text). Empty
+		// query → all goals (matches queryAllGoals).
+		boolean filterActive = searchFilter != null && !searchFilter.trim().isEmpty();
+		java.util.List<com.goaltracker.api.GoalView> goalViews = filterActive
+			? api.searchGoals(searchFilter) : api.queryAllGoals();
 		java.util.List<com.goaltracker.api.SectionView> sectionViews = api.queryAllSections();
 
 		// We still need Goal objects for the right-click context menu (T5 will route
@@ -198,7 +235,8 @@ public class GoalPanel extends PluginPanel
 			// Hide section headers for empty BUILT-IN sections only. User-defined
 			// sections are always shown — even when empty — so a freshly created
 			// section is visible and can be right-clicked / dropped into.
-			if (sectionCount == 0 && section.builtIn) continue;
+			// Mission 22: when filtering, hide ALL empty sections (user + built-in).
+			if (sectionCount == 0 && (section.builtIn || filterActive)) continue;
 			final String sectionIdRef = section.id;
 			SectionHeaderRow headerRow = new SectionHeaderRow(section, sectionCount, () -> {
 				api.toggleSectionCollapsed(sectionIdRef);
@@ -647,10 +685,11 @@ public class GoalPanel extends PluginPanel
 			// chosen category so users can reuse the same Tag entity across
 			// goals. The combo is editable so users can also type a new label
 			// — addTagWithCategory does find-or-create downstream.
-			dropdownField.setEditable(true);
 			Runnable updateField = () -> {
 				com.goaltracker.model.TagCategory cat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+				// SKILLING is system-only — pick from existing, no free typing.
+				dropdownField.setEditable(cat != com.goaltracker.model.TagCategory.SKILLING);
 				dropdownField.removeAllItems();
 				java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
 				for (com.goaltracker.api.TagView t : all)
@@ -660,7 +699,8 @@ public class GoalPanel extends PluginPanel
 						dropdownField.addItem(t.label);
 					}
 				}
-				dropdownField.setSelectedItem("");
+				if (dropdownField.isEditable()) dropdownField.setSelectedItem("");
+				else if (dropdownField.getItemCount() > 0) dropdownField.setSelectedIndex(0);
 				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
 			};
 			catCombo.addActionListener(ev -> updateField.run());
@@ -675,9 +715,11 @@ public class GoalPanel extends PluginPanel
 			{
 				com.goaltracker.model.TagCategory selectedCat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-				// Editable combo: getSelectedItem returns the typed text or
-				// the picked option, both as a String.
-				Object raw = dropdownField.getEditor().getItem();
+				// Editable combo: getEditor().getItem() captures typed text.
+				// Non-editable (SKILLING): use getSelectedItem() which returns
+				// the picked dropdown option.
+				Object raw = dropdownField.isEditable()
+					? dropdownField.getEditor().getItem() : dropdownField.getSelectedItem();
 				String tagText = raw == null ? "" : raw.toString().trim();
 				if (!tagText.isEmpty() && selectedCat != null)
 				{
@@ -913,9 +955,7 @@ if (!removableTags.isEmpty())
 		tagPanel.add(catLabel, gbc);
 
 		com.goaltracker.model.TagCategory[] categories =
-			java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
-				.filter(c -> c != com.goaltracker.model.TagCategory.SKILLING)
-				.toArray(com.goaltracker.model.TagCategory[]::new);
+			com.goaltracker.model.TagCategory.values();
 		JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
 		catCombo.setRenderer(new DefaultListCellRenderer()
 		{
@@ -948,11 +988,11 @@ if (!removableTags.isEmpty())
 		tagPanel.add(fieldSwap, gbc);
 
 		// Mission 21: editable combo populated from existing tags in the
-		// selected category (find-or-create downstream).
-		dropdownField.setEditable(true);
+		// selected category (find-or-create downstream). SKILLING is system-only.
 		Runnable updateField = () -> {
 			com.goaltracker.model.TagCategory cat =
 				(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
+			dropdownField.setEditable(cat != com.goaltracker.model.TagCategory.SKILLING);
 			dropdownField.removeAllItems();
 			java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
 			for (com.goaltracker.api.TagView t : all)
@@ -978,7 +1018,8 @@ if (!removableTags.isEmpty())
 
 		com.goaltracker.model.TagCategory selectedCat =
 			(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-		Object raw = dropdownField.getEditor().getItem();
+		Object raw = dropdownField.isEditable()
+			? dropdownField.getEditor().getItem() : dropdownField.getSelectedItem();
 		String tagText = raw == null ? "" : raw.toString().trim();
 		if (tagText.isEmpty() || selectedCat == null) return;
 

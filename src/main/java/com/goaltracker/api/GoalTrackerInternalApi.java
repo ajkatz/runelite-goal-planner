@@ -264,6 +264,25 @@ public interface GoalTrackerInternalApi
 	java.util.List<TagView> queryAllTags();
 
 	/**
+	 * Free-text search across goals. Case-insensitive partial substring match
+	 * with OR semantics across these fields:
+	 * <ul>
+	 *   <li>Goal name and description</li>
+	 *   <li>Any tag label on the goal</li>
+	 *   <li>Tag category display names of any tag on the goal</li>
+	 *   <li>{@link com.goaltracker.model.GoalType#getDisplayName()}</li>
+	 *   <li>The title of the section the goal belongs to</li>
+	 * </ul>
+	 *
+	 * <p>An empty or null query returns every goal in canonical order — this
+	 * matches {@link #queryAllGoals()} and lets the UI use one render path.
+	 *
+	 * @param query free-text search; null/blank returns all goals
+	 * @return filtered list of GoalViews in canonical order
+	 */
+	java.util.List<GoalView> searchGoals(String query);
+
+	/**
 	 * Create a user tag (idempotent on case-insensitive label+category match).
 	 *
 	 * @return tag id (newly created or existing)

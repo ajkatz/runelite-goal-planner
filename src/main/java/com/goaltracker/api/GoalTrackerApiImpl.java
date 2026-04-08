@@ -406,6 +406,70 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	@Override
+	public List<GoalView> searchGoals(String query)
+	{
+		log.debug("API.internal searchGoals(query={})", query);
+		List<GoalView> all = queryAllGoals();
+		if (query == null) return all;
+		String needle = query.trim().toLowerCase();
+		if (needle.isEmpty()) return all;
+		List<GoalView> out = new ArrayList<>();
+		for (GoalView gv : all)
+		{
+			if (matchesSearch(gv, needle)) out.add(gv);
+		}
+		return out;
+	}
+
+	/**
+	 * Pure match check used by {@link #searchGoals(String)}. Pulled out for
+	 * unit-testability and to keep the loop body trivial. The needle is
+	 * pre-lowercased and pre-trimmed by the caller.
+	 */
+	private boolean matchesSearch(GoalView gv, String needle)
+	{
+		if (gv.name != null && gv.name.toLowerCase().contains(needle)) return true;
+		if (gv.description != null && gv.description.toLowerCase().contains(needle)) return true;
+		// GoalType display name (e.g. "Combat Achievement", "Skill")
+		try
+		{
+			String typeDisplay = com.goaltracker.model.GoalType.valueOf(gv.type).getDisplayName();
+			if (typeDisplay.toLowerCase().contains(needle)) return true;
+		}
+		catch (IllegalArgumentException ignored) {}
+		// Section title
+		if (gv.sectionId != null)
+		{
+			com.goaltracker.model.Section sec = goalStore.findSection(gv.sectionId);
+			if (sec != null && sec.getName() != null
+				&& sec.getName().toLowerCase().contains(needle)) return true;
+		}
+		// Tags: labels + category display names. defaultTags + customTags cover all.
+		if (matchesAnyTag(gv.defaultTags, needle)) return true;
+		if (matchesAnyTag(gv.customTags, needle)) return true;
+		return false;
+	}
+
+	private boolean matchesAnyTag(List<TagView> tags, String needle)
+	{
+		if (tags == null) return false;
+		for (TagView t : tags)
+		{
+			if (t.label != null && t.label.toLowerCase().contains(needle)) return true;
+			if (t.category != null)
+			{
+				try
+				{
+					String catDisplay = TagCategory.valueOf(t.category).getDisplayName();
+					if (catDisplay.toLowerCase().contains(needle)) return true;
+				}
+				catch (IllegalArgumentException ignored) {}
+			}
+		}
+		return false;
+	}
+
+	@Override
 	public List<SectionView> queryAllSections()
 	{
 		log.debug("API.public queryAllSections()");
@@ -1162,7 +1226,22 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("addTagWithCategory: unknown category {}", categoryName);
 			return false;
 		}
-		Tag tag = goalStore.createUserTag(label.trim(), category);
+		// SKILLING is system-only: only allow attaching an existing skill tag,
+		// never creating a new one. Look up via findTag-by-label; null = reject.
+		Tag tag;
+		if (category == TagCategory.SKILLING)
+		{
+			tag = goalStore.findTagByLabel(label.trim(), category);
+			if (tag == null)
+			{
+				log.warn("addTagWithCategory: SKILLING tag '{}' does not exist", label);
+				return false;
+			}
+		}
+		else
+		{
+			tag = goalStore.createUserTag(label.trim(), category);
+		}
 		if (tag == null) return false;
 		if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
 		if (!g.getTagIds().contains(tag.getId()))

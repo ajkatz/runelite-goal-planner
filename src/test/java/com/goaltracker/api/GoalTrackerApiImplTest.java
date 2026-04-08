@@ -1021,4 +1021,131 @@ class GoalTrackerApiImplTest
 			assertEquals(3, api.queryAllTags().size());
 		}
 	}
+
+	@Nested
+	@DisplayName("searchGoals")
+	class SearchGoals
+	{
+		private String tagGoal(String name, String description, String tagLabel,
+			com.goaltracker.model.TagCategory cat)
+		{
+			String id = api.addCustomGoal(name, description);
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag(tagLabel, cat);
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId())).findFirst().orElseThrow();
+			g.setTagIds(new java.util.ArrayList<>(java.util.List.of(tag.getId())));
+			g.setDefaultTagIds(new java.util.ArrayList<>(java.util.List.of(tag.getId())));
+			return id;
+		}
+
+		@Test
+		@DisplayName("empty or null query returns every goal")
+		void emptyQueryReturnsAll()
+		{
+			api.addCustomGoal("Goal A", "");
+			api.addCustomGoal("Goal B", "");
+			assertEquals(2, api.searchGoals(null).size());
+			assertEquals(2, api.searchGoals("").size());
+			assertEquals(2, api.searchGoals("   ").size());
+		}
+
+		@Test
+		@DisplayName("matches goal name with case-insensitive partial substring")
+		void matchesName()
+		{
+			api.addCustomGoal("Kill Vorkath 100 times", "");
+			api.addCustomGoal("Train Slayer", "");
+			assertEquals(1, api.searchGoals("vork").size());
+			assertEquals(1, api.searchGoals("VORK").size());
+		}
+
+		@Test
+		@DisplayName("matches goal description")
+		void matchesDescription()
+		{
+			String id = api.addCustomGoal("Foo", "Get the dragon pet from Zulrah");
+			java.util.List<GoalView> hits = api.searchGoals("zulrah");
+			assertEquals(1, hits.size());
+			assertEquals(id, hits.get(0).id);
+		}
+
+		@Test
+		@DisplayName("matches tag label")
+		void matchesTagLabel()
+		{
+			tagGoal("Some quest", "", "Vorkath", com.goaltracker.model.TagCategory.BOSS);
+			api.addCustomGoal("Other goal", "");
+			assertEquals(1, api.searchGoals("vorkath").size());
+		}
+
+		@Test
+		@DisplayName("matches tag category display name (e.g. 'skill' hits SKILLING tags)")
+		void matchesTagCategory()
+		{
+			tagGoal("Train Attack", "", "Attack", com.goaltracker.model.TagCategory.SKILLING);
+			api.addCustomGoal("Unrelated", "");
+			java.util.List<GoalView> hits = api.searchGoals("skill");
+			assertEquals(1, hits.size());
+			assertEquals("Train Attack", hits.get(0).name);
+		}
+
+		@Test
+		@DisplayName("matches GoalType display name")
+		void matchesGoalType()
+		{
+			api.addSkillGoal(net.runelite.api.Skill.ATTACK, 99);
+			api.addCustomGoal("Other", "");
+			java.util.List<GoalView> hits = api.searchGoals("skill");
+			// Both the SKILL goal type AND any SKILLING-tagged goal would hit;
+			// here only the SKILL goal exists, plus the auto-tag may apply.
+			assertTrue(hits.stream().anyMatch(g -> "SKILL".equals(g.type)));
+		}
+
+		@Test
+		@DisplayName("matches section title")
+		void matchesSectionTitle()
+		{
+			String secId = api.createSection("Boss Grinds");
+			String id = api.addCustomGoal("Foo", "");
+			api.moveGoalToSection(id, secId);
+			java.util.List<GoalView> hits = api.searchGoals("boss grind");
+			assertEquals(1, hits.size());
+			assertEquals(id, hits.get(0).id);
+		}
+
+		@Test
+		@DisplayName("addTagWithCategory attaches an existing SKILLING tag to a CA goal")
+		void addExistingSkillingTagToCaGoal()
+		{
+			// Seed Slayer like the plugin does at startup
+			com.goaltracker.model.Tag slayer = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			// Create a CA-style goal (use custom for simplicity)
+			String goalId = api.addCustomGoal("Master tier task", "");
+
+			assertTrue(api.addTagWithCategory(goalId, "Slayer", "SKILLING"));
+			Goal g = store.getGoals().stream().filter(x -> goalId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			assertTrue(g.getTagIds().contains(slayer.getId()));
+		}
+
+		@Test
+		@DisplayName("addTagWithCategory rejects creating a NEW SKILLING tag")
+		void addTagWithCategoryRejectsNewSkillingTag()
+		{
+			String goalId = api.addCustomGoal("Foo", "");
+			assertFalse(api.addTagWithCategory(goalId, "MadeUpSkill", "SKILLING"));
+			// And no tag was created
+			assertFalse(api.queryAllTags().stream()
+				.anyMatch(t -> "MadeUpSkill".equals(t.label)));
+		}
+
+		@Test
+		@DisplayName("returns empty list when nothing matches")
+		void noMatchReturnsEmpty()
+		{
+			api.addCustomGoal("Alpha", "");
+			api.addCustomGoal("Bravo", "");
+			assertTrue(api.searchGoals("zzzzzz").isEmpty());
+		}
+	}
 }
