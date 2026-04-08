@@ -286,11 +286,21 @@ on every creation, so deleting it would orphan the lookup). System tags
 in the SKILLING category are fully read-only because they render as skill
 icons — recoloring would break the visual recognition.
 
-**No per-goal color overrides.** Recoloring a tag entity affects every
-goal that references it. The previous per-goal `ItemTag.colorRgb`
-override is gone. The `setTagColor(goalId, label, rgb)` API method
-survives as a bridge — it finds the tag entity referenced by the goal
-and delegates to `goalStore.recolorTag`, which is global.
+**Color rules (Mission 20).** Color responsibility split by category:
+
+| Category | Color source | Edit path |
+|----------|-------------|-----------|
+| BOSS, RAID, CLUE, MINIGAME | **Per-category** color stored on `GoalStore.categoryColors` (Map<TagCategory.name, packedRgb>). All tags in the category share one color. | TagManagementDialog → category tab → "Category color" header → Edit / Reset |
+| OTHER | **Per-tag** color stored on `Tag.colorRgb`. Each Other tag has its own color independent of others. | TagManagementDialog → Other tab → per-row Recolor button. Also right-click "Recolor Tag" on goal cards (only shown when at least one Other tag is on the goal). |
+| SKILLING | Read-only — rendered as skill icons, color is irrelevant. | n/a |
+
+**No per-goal color overrides.** Recoloring a non-OTHER tag affects every
+goal that references any tag in that category. Recoloring an OTHER tag
+affects every goal that references that specific tag.
+
+The `setTagColor(goalId, label, rgb)` API method survives as a bridge —
+it finds the tag entity referenced by the goal, branches on category
+(OTHER → per-tag, others → per-category), and delegates accordingly.
 
 **Tag management UI** lives in `TagManagementDialog`, accessible from a
 header button. Lists every tag with per-row Rename / Recolor / Delete
@@ -300,7 +310,9 @@ actions; buttons are disabled per the system tag rules above.
 - `queryAllTags()` — read all tags as TagViews
 - `createUserTag(label, categoryName)` — idempotent on case-insensitive (label, category)
 - `renameTag(tagId, newLabel)` — fails on system tags
-- `recolorTag(tagId, rgb)` — fails on system + SKILLING
+- `recolorTag(tagId, rgb)` — branches on category: OTHER → per-tag, others → per-category. Fails on SKILLING.
+- `setCategoryColor(categoryName, rgb)` — per-category color (BOSS/RAID/CLUE/MINIGAME). Rejects SKILLING and OTHER.
+- `resetCategoryColor(categoryName)` — clear category override
 - `deleteTag(tagId)` — fails on system, cascades to all goals' tagIds
 - `addTagWithCategory(goalId, label, categoryName)` — find-or-create + attach reference
 

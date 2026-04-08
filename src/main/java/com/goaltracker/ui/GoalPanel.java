@@ -722,12 +722,18 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 
-		// Recolor Tag is available on any non-completed goal that has tags.
-		// Completed cards hide their tag row so recoloring would have no effect.
-		if (!goal.isComplete() && !allGoalTags.isEmpty())
+		// Mission 20: per-tag recolor is OTHER-only. Show "Recolor Tag" only
+		// when the goal has at least one tag in the OTHER category. Other
+		// categories use category-wide colors edited via TagManagementDialog.
+		java.util.List<com.goaltracker.model.Tag> otherTags = new java.util.ArrayList<>();
+		for (com.goaltracker.model.Tag t : allGoalTags)
+		{
+			if (t.getCategory() == com.goaltracker.model.TagCategory.OTHER) otherTags.add(t);
+		}
+		if (!goal.isComplete() && !otherTags.isEmpty())
 		{
 			JMenuItem recolorTag = new JMenuItem("Recolor Tag");
-			recolorTag.addActionListener(e -> showRecolorTagDialog(goal, allGoalTags));
+			recolorTag.addActionListener(e -> showRecolorTagDialog(goal, otherTags));
 			menu.add(recolorTag);
 		}
 
@@ -1198,7 +1204,9 @@ public class GoalPanel extends PluginPanel
 
 	private void showRecolorTagDialog(Goal goal, java.util.List<com.goaltracker.model.Tag> tags)
 	{
-		// Step 1: pick which tag
+		// Mission 20: only OTHER-category tags reach this dialog (callers gate
+		// it). Other categories use category-wide colors set via the Tag
+		// Management dialog instead.
 		String[] tagNames = tags.stream()
 			.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
 			.toArray(String[]::new);
@@ -1211,22 +1219,18 @@ public class GoalPanel extends PluginPanel
 		if (idx < 0) return;
 		com.goaltracker.model.Tag tag = tags.get(idx);
 
-		// Step 2: open the picker seeded with the tag's current color (or -1 for
-		// "use default") and the category default for preview/reset. Mission 19:
-		// recoloring affects every goal that references this tag entity.
 		java.awt.Color catC = tag.getCategory().getColor();
 		int defaultRgb = (catC.getRed() << 16) | (catC.getGreen() << 8) | catC.getBlue();
 		ColorPickerField picker = new ColorPickerField(tag.getColorRgb(), defaultRgb);
 		int result = JOptionPane.showConfirmDialog(this, picker,
-			"Color for " + tag.getLabel() + " (affects all goals using this tag)",
+			"Color for " + tag.getLabel() + " (affects every goal using this tag)",
 			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result != JOptionPane.OK_OPTION) return;
 
 		boolean ok = api.recolorTag(tag.getId(), picker.getSelectedRgb());
 		if (!ok)
 		{
-			JOptionPane.showMessageDialog(this,
-				"Could not recolor tag. System tags in the SKILLING category are read-only.",
+			JOptionPane.showMessageDialog(this, "Could not recolor tag.",
 				"Recolor failed", JOptionPane.WARNING_MESSAGE);
 		}
 	}

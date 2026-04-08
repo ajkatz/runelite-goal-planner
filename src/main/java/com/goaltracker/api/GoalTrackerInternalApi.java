@@ -297,4 +297,19 @@ public interface GoalTrackerInternalApi
 	 * @return true if deleted, false on: not found or system tag
 	 */
 	boolean deleteTag(String tagId);
+
+	/**
+	 * Set a per-category color override (Mission 20). Affects every tag in
+	 * the given category. SKILLING is read-only (returns false) — skill icon
+	 * tags ignore the category color anyway.
+	 *
+	 * @param categoryName one of the TagCategory enum names (excluding SKILLING)
+	 * @param colorRgb packed 0xRRGGBB; -1 to clear the override and revert
+	 *                 to the TagCategory default
+	 * @return true if the color changed
+	 */
+	boolean setCategoryColor(String categoryName, int colorRgb);
+
+	/** Equivalent to {@link #setCategoryColor(String, int)} with -1. */
+	boolean resetCategoryColor(String categoryName);
 }

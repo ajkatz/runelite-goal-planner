@@ -38,16 +38,21 @@ public class GoalStore
 	private static final String GOALS_KEY = "goals";
 	private static final String SECTIONS_KEY = "sections";
 	private static final String TAGS_KEY = "tags";
+	private static final String CATEGORY_COLORS_KEY = "categoryColors";
 
 	private static final Gson GSON = new GsonBuilder().create();
 	private static final Type GOAL_LIST_TYPE = new TypeToken<List<Goal>>(){}.getType();
 	private static final Type SECTION_LIST_TYPE = new TypeToken<List<Section>>(){}.getType();
 	private static final Type TAG_LIST_TYPE = new TypeToken<List<Tag>>(){}.getType();
+	private static final Type CATEGORY_COLOR_MAP_TYPE =
+		new TypeToken<java.util.Map<String, Integer>>(){}.getType();
 
 	private final ConfigManager configManager;
 	private List<Goal> goals = new ArrayList<>();
 	private List<Section> sections = new ArrayList<>();
 	private List<Tag> tags = new ArrayList<>();
+	/** Per-category color overrides (Mission 20). Key = TagCategory.name(), value = packed 0xRRGGBB. */
+	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
 
 	@Inject
 	public GoalStore(ConfigManager configManager)
@@ -115,6 +120,26 @@ public class GoalStore
 			{
 				log.error("Failed to load tags", e);
 				tags = new ArrayList<>();
+			}
+		}
+
+		// Category colors (Mission 20)
+		String categoryColorsJson = configManager.getConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY);
+		if (categoryColorsJson != null && !categoryColorsJson.isEmpty())
+		{
+			try
+			{
+				java.util.Map<String, Integer> loaded = GSON.fromJson(categoryColorsJson, CATEGORY_COLOR_MAP_TYPE);
+				if (loaded != null)
+				{
+					categoryColors = new java.util.HashMap<>(loaded);
+					log.info("Loaded {} category color overrides", categoryColors.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load category colors", e);
+				categoryColors = new java.util.HashMap<>();
 			}
 		}
 
@@ -207,7 +232,10 @@ public class GoalStore
 		for (java.util.List<Tag> group : groups.values())
 		{
 			if (group.size() <= 1) continue;
-			// Pick canonical: prefer one with a color override, else first
+			// Pick canonical: prefer one with a color override (Mission 20:
+			// OTHER tags can have per-tag color overrides; for other categories
+			// the field is unused so getColorRgb is always -1, and the first
+			// entry wins).
 			Tag canonical = group.get(0);
 			for (Tag t : group)
 			{
@@ -380,13 +408,88 @@ public class GoalStore
 			String tagsJson = GSON.toJson(tags);
 			configManager.setConfiguration(CONFIG_GROUP, TAGS_KEY, tagsJson);
 
-			log.debug("Saved {} goals / {} sections / {} tags",
-				goals.size(), sections.size(), tags.size());
+			String categoryColorsJson = GSON.toJson(categoryColors);
+			configManager.setConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY, categoryColorsJson);
+
+			log.debug("Saved {} goals / {} sections / {} tags / {} category colors",
+				goals.size(), sections.size(), tags.size(), categoryColors.size());
 		}
 		catch (Exception e)
 		{
 			log.error("Failed to save goals/sections/tags", e);
 		}
+	}
+
+	// ---------------------------------------------------------------------
+	// Category color overrides (Mission 20)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Get the effective color for a tag category as a packed 0xRRGGBB int.
+	 * Returns the user override if set, else the {@link TagCategory#getColor()}
+	 * default packed.
+	 */
+	public int getCategoryColor(TagCategory category)
+	{
+		if (category == null) return 0;
+		Integer override = categoryColors.get(category.name());
+		if (override != null && override >= 0) return override;
+		java.awt.Color c = category.getColor();
+		return (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+	}
+
+	/** @return packed 0xRRGGBB default color for the category (no override). */
+	public int getCategoryDefaultColor(TagCategory category)
+	{
+		if (category == null) return 0;
+		java.awt.Color c = category.getColor();
+		return (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+	}
+
+	/** @return true when the category has a user color override (not the default). */
+	public boolean isCategoryColorOverridden(TagCategory category)
+	{
+		if (category == null) return false;
+		Integer override = categoryColors.get(category.name());
+		return override != null && override >= 0;
+	}
+
+	/**
+	 * Set a user color override on a tag category. Affects every tag in that
+	 * category. SKILLING is read-only (returns false) — skill icon tags ignore
+	 * the category color anyway, and locking the API surface keeps the
+	 * read-only contract uniform.
+	 *
+	 * @return true if the color changed
+	 */
+	public boolean setCategoryColor(TagCategory category, int colorRgb)
+	{
+		// OTHER is special: it uses per-tag colors instead of a category-wide
+		// color, so the category-level setter is meaningless for it.
+		// SKILLING accepts a category color — system skill tags render as
+		// skill icons (color ignored) but user-created SKILLING tags fall
+		// through to colored pills, where the category color does apply.
+		if (category == null || category == TagCategory.OTHER) return false;
+		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
+		Integer existing = categoryColors.get(category.name());
+		if (existing != null && existing == normalized) return false;
+		if (normalized < 0)
+		{
+			if (existing == null) return false;
+			categoryColors.remove(category.name());
+		}
+		else
+		{
+			categoryColors.put(category.name(), normalized);
+		}
+		save();
+		return true;
+	}
+
+	/** Equivalent to setCategoryColor(category, -1). */
+	public boolean resetCategoryColor(TagCategory category)
+	{
+		return setCategoryColor(category, -1);
 	}
 
 	public List<Goal> getGoals()
@@ -903,15 +1006,17 @@ public class GoalStore
 	}
 
 	/**
-	 * Recolor a tag. System tags in the SKILLING category are fully read-only
-	 * (skill icons); other system tags can be recolored. User tags can always
-	 * be recolored. Pass -1 to clear the override.
+	 * Recolor an individual tag. Mission 20: only meaningful for tags in the
+	 * OTHER category — every other category uses a category-wide color set
+	 * via {@link #setCategoryColor(TagCategory, int)}. Returns false for any
+	 * non-OTHER tag (the call is a no-op rather than an error so the caller
+	 * can decide whether to surface it).
 	 */
 	public boolean recolorTag(String tagId, int colorRgb)
 	{
 		Tag t = findTag(tagId);
 		if (t == null) return false;
-		if (t.isSystem() && t.getCategory() == TagCategory.SKILLING) return false;
+		if (t.getCategory() != TagCategory.OTHER) return false;
 		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
 		if (t.getColorRgb() == normalized) return false;
 		t.setColorRgb(normalized);

@@ -387,9 +387,8 @@ class GoalTrackerApiImplTest
 		@DisplayName("setTagColor recolors a non-skill tag entity (Mission 19)")
 		void setTagColor()
 		{
-			// Mission 19: setTagColor delegates to recolorTag on the tag entity.
-			// SKILLING category system tags are read-only, so use a BOSS tag for
-			// this happy-path test.
+			// Mission 20: setTagColor on a non-OTHER tag delegates to setCategoryColor.
+			// The BOSS tag's color now reflects the BOSS category color.
 			String goalId = api.addCustomGoal("Custom", "");
 			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
 				com.goaltracker.model.TagCategory.BOSS);
@@ -398,12 +397,28 @@ class GoalTrackerApiImplTest
 			g.setDefaultTagIds(new java.util.ArrayList<>(List.of(bossTag.getId())));
 
 			assertTrue(api.setTagColor(goalId, "Zulrah", 0xF1C40F));
-			assertEquals(0xF1C40F, store.findTag(bossTag.getId()).getColorRgb());
+			// Check the category override, not the per-tag field (BOSS has no per-tag colors)
+			assertEquals(0xF1C40F, store.getCategoryColor(com.goaltracker.model.TagCategory.BOSS));
 		}
 
 		@Test
-		@DisplayName("setTagColor refuses skill-category system tags (Mission 19)")
-		void setTagColorRejectsSkillSystemTag()
+		@DisplayName("setTagColor on an OTHER tag uses per-tag override (Mission 20)")
+		void setTagColorOnOtherTag()
+		{
+			String goalId = api.addCustomGoal("Custom", "");
+			com.goaltracker.model.Tag pet = store.findOrCreateSystemTag("Pet",
+				com.goaltracker.model.TagCategory.OTHER);
+			Goal g = store.getGoals().get(0);
+			g.setTagIds(new java.util.ArrayList<>(List.of(pet.getId())));
+
+			assertTrue(api.setTagColor(goalId, "Pet", 0xFF69B4));
+			// Per-tag color stored on the Tag entity (OTHER is the only category that does this)
+			assertEquals(0xFF69B4, store.findTag(pet.getId()).getColorRgb());
+		}
+
+		@Test
+		@DisplayName("setTagColor on a SKILLING tag delegates to the SKILLING category color (Mission 20)")
+		void setTagColorOnSkillingDelegatesToCategory()
 		{
 			String goalId = api.addCustomGoal("Custom", "");
 			com.goaltracker.model.Tag slayerTag = store.findOrCreateSystemTag("Slayer",
@@ -411,7 +426,8 @@ class GoalTrackerApiImplTest
 			Goal g = store.getGoals().get(0);
 			g.setTagIds(new java.util.ArrayList<>(List.of(slayerTag.getId())));
 
-			assertFalse(api.setTagColor(goalId, "Slayer", 0xF1C40F));
+			assertTrue(api.setTagColor(goalId, "Slayer", 0xF1C40F));
+			assertEquals(0xF1C40F, store.getCategoryColor(com.goaltracker.model.TagCategory.SKILLING));
 		}
 	}
 
@@ -746,22 +762,164 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("recolorTag works on non-skill system tags")
+		@DisplayName("recolorTag on a BOSS tag delegates to the BOSS category color (Mission 20)")
 		void recolorNonSkillSystemTag()
 		{
 			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
 				com.goaltracker.model.TagCategory.BOSS);
 			assertTrue(api.recolorTag(bossTag.getId(), 0xE74C3C));
-			assertEquals(0xE74C3C, store.findTag(bossTag.getId()).getColorRgb());
+			// Check the category color (per-tag colorRgb is meaningless for BOSS)
+			assertEquals(0xE74C3C, store.getCategoryColor(com.goaltracker.model.TagCategory.BOSS));
 		}
 
 		@Test
-		@DisplayName("recolorTag rejects system tags in SKILLING category")
-		void recolorSkillSystemTagRejected()
+		@DisplayName("recolorTag on a SKILLING tag delegates to the SKILLING category color (Mission 20)")
+		void recolorSkillingTagDelegatesToCategory()
 		{
 			com.goaltracker.model.Tag slayer = store.findOrCreateSystemTag("Slayer",
 				com.goaltracker.model.TagCategory.SKILLING);
-			assertFalse(api.recolorTag(slayer.getId(), 0xE74C3C));
+			assertTrue(api.recolorTag(slayer.getId(), 0xE74C3C));
+			assertEquals(0xE74C3C, store.getCategoryColor(com.goaltracker.model.TagCategory.SKILLING));
+		}
+
+		@Test
+		@DisplayName("recolorTag on an OTHER tag uses per-tag override (Mission 20)")
+		void recolorOtherTagPerInstance()
+		{
+			com.goaltracker.model.Tag pet = store.findOrCreateSystemTag("Pet",
+				com.goaltracker.model.TagCategory.OTHER);
+			com.goaltracker.model.Tag other = store.createUserTag("Misc",
+				com.goaltracker.model.TagCategory.OTHER);
+
+			assertTrue(api.recolorTag(pet.getId(), 0xFF69B4));
+			// Pet has the override; Misc still uses the OTHER default (no category color for OTHER)
+			assertEquals(0xFF69B4, store.findTag(pet.getId()).getColorRgb());
+			assertEquals(-1, store.findTag(other.getId()).getColorRgb());
+		}
+
+		@Test
+		@DisplayName("setCategoryColor accepts BOSS and SKILLING, rejects OTHER")
+		void setCategoryColorScope()
+		{
+			assertTrue(api.setCategoryColor("BOSS", 0xE74C3C));
+			// SKILLING accepts the override — system skill tags ignore it (icons)
+			// but user-created SKILLING tags fall through to colored pills.
+			assertTrue(api.setCategoryColor("SKILLING", 0xE74C3C));
+			// OTHER uses per-tag colors, not a category-wide color.
+			assertFalse(api.setCategoryColor("OTHER", 0xE74C3C));
+		}
+
+		@Test
+		@DisplayName("Boss goal added AFTER setting BOSS category color picks up the custom color")
+		void newBossGoalInheritsCategoryColor() throws Exception
+		{
+			// 1. User changes the BOSS category color to a custom red
+			final int customRed = 0xE74C3C;
+			assertTrue(api.setCategoryColor("BOSS", customRed));
+
+			// 2. Stub the wiki repo so addCombatAchievementGoal succeeds. Use
+			//    a real CaInfo struct because the impl reads multiple fields.
+			com.goaltracker.data.WikiCaRepository wikiMock =
+				(com.goaltracker.data.WikiCaRepository) getWikiRepoFromApi();
+			com.goaltracker.data.WikiCaRepository.CaInfo info =
+				new com.goaltracker.data.WikiCaRepository.CaInfo();
+			info.id = 42;
+			info.name = "Defeat Vorkath";
+			info.task = "Defeat Vorkath without taking damage";
+			info.tier = "Hard";
+			info.monster = "Vorkath";
+			info.type = "Mechanical";
+			when(wikiMock.getById(42)).thenReturn(info);
+
+			// 3. Add the CA goal — addCombatAchievementGoal will call
+			//    findOrCreateSystemTag("Vorkath", BOSS) which creates a fresh
+			//    system tag in the BOSS category.
+			String goalId = api.addCombatAchievementGoal(42);
+			assertNotNull(goalId);
+
+			// 4. Query the goal back via the public read API and assert that
+			//    the BOSS tag's TagView reflects the custom red. This proves
+			//    that newly-created system tags pick up the category color
+			//    override at render time (not at creation time).
+			com.goaltracker.api.GoalView view = api.queryAllGoals().stream()
+				.filter(g -> g.id.equals(goalId)).findFirst().orElseThrow();
+			com.goaltracker.api.TagView vorkathTag = null;
+			for (com.goaltracker.api.TagView t : view.defaultTags)
+			{
+				if ("Vorkath".equals(t.label))
+				{
+					vorkathTag = t;
+					break;
+				}
+			}
+			assertNotNull(vorkathTag, "BOSS tag should appear in the goal's default tags");
+			assertEquals("BOSS", vorkathTag.category);
+			assertEquals(customRed, vorkathTag.colorRgb);
+			assertTrue(vorkathTag.colorOverridden);
+		}
+
+		@Test
+		@DisplayName("Existing boss tag updates color when BOSS category color changes again")
+		void existingBossTagUpdatesOnSecondRecolor() throws Exception
+		{
+			// 1. Set BOSS to red and create a CA goal so a Vorkath system tag exists
+			final int red = 0xE74C3C;
+			final int blue = 0x3498DB;
+			assertTrue(api.setCategoryColor("BOSS", red));
+
+			com.goaltracker.data.WikiCaRepository wikiMock =
+				(com.goaltracker.data.WikiCaRepository) getWikiRepoFromApi();
+			com.goaltracker.data.WikiCaRepository.CaInfo info =
+				new com.goaltracker.data.WikiCaRepository.CaInfo();
+			info.id = 42;
+			info.name = "Defeat Vorkath";
+			info.task = "Defeat Vorkath without taking damage";
+			info.tier = "Hard";
+			info.monster = "Vorkath";
+			info.type = "Mechanical";
+			when(wikiMock.getById(42)).thenReturn(info);
+
+			String goalId = api.addCombatAchievementGoal(42);
+			assertNotNull(goalId);
+
+			// 2. Confirm the tag is red
+			com.goaltracker.api.TagView tag = findVorkathTag(goalId);
+			assertEquals(red, tag.colorRgb);
+
+			// 3. Change the BOSS category color to blue (the existing goal stays put)
+			assertTrue(api.setCategoryColor("BOSS", blue));
+
+			// 4. Re-query the same goal — the tag should now reflect blue.
+			//    This proves toTagView reads the category color at render time
+			//    rather than caching it on the tag at creation.
+			com.goaltracker.api.TagView reread = findVorkathTag(goalId);
+			assertEquals(blue, reread.colorRgb);
+			assertTrue(reread.colorOverridden);
+
+			// 5. Reset the override and confirm the tag now uses the BOSS default
+			assertTrue(api.resetCategoryColor("BOSS"));
+			com.goaltracker.api.TagView afterReset = findVorkathTag(goalId);
+			assertFalse(afterReset.colorOverridden);
+			assertEquals(afterReset.defaultColorRgb, afterReset.colorRgb);
+		}
+
+		private com.goaltracker.api.TagView findVorkathTag(String goalId)
+		{
+			com.goaltracker.api.GoalView view = api.queryAllGoals().stream()
+				.filter(g -> g.id.equals(goalId)).findFirst().orElseThrow();
+			for (com.goaltracker.api.TagView t : view.defaultTags)
+			{
+				if ("Vorkath".equals(t.label)) return t;
+			}
+			throw new AssertionError("Vorkath tag not found on goal");
+		}
+
+		/** Reflective lookup for the WikiCaRepository mock the test setUp wired into the API impl. */
+		private com.goaltracker.data.WikiCaRepository getWikiRepoFromApi() throws Exception
+		{
+			java.lang.reflect.Field f = GoalTrackerApiImpl.class.getDeclaredField("wikiCaRepository");
+			f.setAccessible(true);
+			return (com.goaltracker.data.WikiCaRepository) f.get(api);
 		}
 
 		@Test

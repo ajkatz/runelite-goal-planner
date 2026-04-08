@@ -548,26 +548,38 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return v;
 	}
 
-	private static TagView toTagView(Tag t)
+	private TagView toTagView(Tag t)
 	{
-		// Defensive: if a persisted tag has a null category (e.g. Gson failed to
-		// deserialize an enum value that was removed in a later mission), fall
-		// back to OTHER so the renderer doesn't NPE. The store-side load
-		// migration is the primary fix; this is belt-and-suspenders.
+		// Defensive: null category fallback to OTHER (handles enum removal migration).
 		TagCategory cat = t.getCategory() != null ? t.getCategory() : TagCategory.OTHER;
-		java.awt.Color c = cat.getColor();
-		int defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
-		TagView v;
-		if (t.getColorRgb() >= 0)
+		int defaultRgb = goalStore.getCategoryDefaultColor(cat);
+
+		int currentRgb;
+		boolean overridden;
+		if (cat == TagCategory.OTHER)
 		{
-			v = new TagView(t.getLabel(), cat.name(),
-				t.getColorRgb(), defaultRgb, true);
+			// OTHER is special: per-tag colors. Each Other tag carries its own.
+			if (t.getColorRgb() >= 0)
+			{
+				currentRgb = t.getColorRgb();
+				overridden = true;
+			}
+			else
+			{
+				currentRgb = defaultRgb;
+				overridden = false;
+			}
 		}
 		else
 		{
-			v = new TagView(t.getLabel(), cat.name(),
-				defaultRgb, defaultRgb, false);
+			// BOSS/RAID/CLUE/MINIGAME/SKILLING: shared category color. The
+			// per-tag colorRgb field is ignored for these categories.
+			currentRgb = goalStore.getCategoryColor(cat);
+			overridden = goalStore.isCategoryColorOverridden(cat);
 		}
+
+		TagView v = new TagView(t.getLabel(), cat.name(),
+			currentRgb, defaultRgb, overridden);
 		v.id = t.getId();
 		v.system = t.isSystem();
 		return v;
@@ -994,13 +1006,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override
 	public boolean setTagColor(String goalId, String tagLabel, int colorRgb)
 	{
+		// Mission 20: per-tag colors are OTHER-only. For OTHER tags this
+		// stores the color on the tag entity; for other categories it
+		// delegates to setCategoryColor which affects every tag in the
+		// category. SKILLING is rejected.
 		log.debug("API.internal setTagColor(goalId={}, tagLabel={}, colorRgb={})",
 			goalId, tagLabel, colorRgb);
-		// Mission 19: tags are first-class entities; per-goal color overrides
-		// no longer exist. This method now finds the tag entity referenced by
-		// the goal and delegates to goalStore.recolorTag, which affects every
-		// goal using that tag. System tags in SKILLING category are read-only
-		// (returns false).
 		Goal g = findGoal(goalId);
 		if (g == null || tagLabel == null || g.getTagIds() == null) return false;
 		for (String id : g.getTagIds())
@@ -1008,12 +1019,17 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			Tag tag = goalStore.findTag(id);
 			if (tag != null && tagLabel.equals(tag.getLabel()))
 			{
-				if (goalStore.recolorTag(id, colorRgb))
+				boolean changed;
+				if (tag.getCategory() == TagCategory.OTHER)
 				{
-					onGoalsChanged.run();
-					return true;
+					changed = goalStore.recolorTag(id, colorRgb);
 				}
-				return false;
+				else
+				{
+					changed = goalStore.setCategoryColor(tag.getCategory(), colorRgb);
+				}
+				if (changed) onGoalsChanged.run();
+				return changed;
 			}
 		}
 		return false;
@@ -1204,10 +1220,43 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override
 	public boolean recolorTag(String tagId, int colorRgb)
 	{
+		// Mission 20: per-tag color is OTHER-only. For non-OTHER tags this
+		// auto-delegates to the category color so the call still works for
+		// callers (panel right-click bridge, tests) — but only OTHER actually
+		// stores per-tag.
 		log.debug("API.internal recolorTag(tagId={}, colorRgb={})", tagId, colorRgb);
-		boolean changed = goalStore.recolorTag(tagId, colorRgb);
+		Tag t = goalStore.findTag(tagId);
+		if (t == null) return false;
+		boolean changed;
+		if (t.getCategory() == TagCategory.OTHER)
+		{
+			changed = goalStore.recolorTag(tagId, colorRgb);
+		}
+		else
+		{
+			changed = goalStore.setCategoryColor(t.getCategory(), colorRgb);
+		}
 		if (changed) onGoalsChanged.run();
 		return changed;
+	}
+
+	@Override
+	public boolean setCategoryColor(String categoryName, int colorRgb)
+	{
+		log.debug("API.internal setCategoryColor(category={}, colorRgb={})", categoryName, colorRgb);
+		TagCategory category;
+		try { category = TagCategory.valueOf(categoryName); }
+		catch (IllegalArgumentException ex) { return false; }
+		boolean changed = goalStore.setCategoryColor(category, colorRgb);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean resetCategoryColor(String categoryName)
+	{
+		log.debug("API.internal resetCategoryColor(category={})", categoryName);
+		return setCategoryColor(categoryName, -1);
 	}
 
 	@Override

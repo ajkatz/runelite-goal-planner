@@ -579,14 +579,15 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			goalStore.findOrCreateSystemTag(skill.getName(), com.goaltracker.model.TagCategory.SKILLING);
 		}
-		// Pet: OTHER category but with the pink color from the old SPECIAL category.
-		// recolorTag is idempotent on the same value, so re-running on every startup
-		// only saves on the first call.
+		// Pet: OTHER category with a per-tag pink color override. OTHER is the
+		// only category that supports per-tag colors in Mission 20+ — every
+		// other category uses a category-wide color, but OTHER tags each
+		// carry their own. recolorTag is idempotent on the same value.
 		com.goaltracker.model.Tag pet = goalStore.findOrCreateSystemTag(
 			"Pet", com.goaltracker.model.TagCategory.OTHER);
 		if (pet != null && pet.getColorRgb() < 0)
 		{
-			goalStore.recolorTag(pet.getId(), 0xFF69B4); // pink (former SPECIAL color)
+			goalStore.recolorTag(pet.getId(), 0xFF69B4);
 		}
 		log.debug("Seeded canonical system tags");
 	}

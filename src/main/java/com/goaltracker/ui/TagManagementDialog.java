@@ -104,7 +104,7 @@ public class TagManagementDialog extends JDialog
 			if (a.system != b.system) return a.system ? 1 : -1;
 			return a.label.compareToIgnoreCase(b.label);
 		});
-		tabs.addTab("All (" + allTags.size() + ")", buildTabContent(sortedAll));
+		tabs.addTab("All (" + allTags.size() + ")", buildTabContent(sortedAll, null));
 
 		// Per-category tabs in enum declaration order. Empty categories still
 		// get a tab so the user can create new tags directly into them.
@@ -120,7 +120,7 @@ public class TagManagementDialog extends JDialog
 				return a.label.compareToIgnoreCase(b.label);
 			});
 			String tabLabel = cat.getDisplayName() + " (" + filtered.size() + ")";
-			tabs.addTab(tabLabel, buildTabContent(filtered));
+			tabs.addTab(tabLabel, buildTabContent(filtered, cat));
 		}
 
 		// Restore the previously-selected tab if still valid
@@ -134,14 +134,27 @@ public class TagManagementDialog extends JDialog
 	}
 
 	/**
-	 * Build the scrollable content for a single tab from a (sorted) tag list.
-	 * Empty lists get a "no tags in this category" placeholder.
+	 * Build the scrollable content for a single tab. For non-OTHER non-SKILLING
+	 * categories, prepends a "Category color" header so the user can recolor
+	 * the entire category from the tab. The All tab (category == null) and
+	 * the OTHER + SKILLING tabs skip the header.
 	 */
-	private JScrollPane buildTabContent(List<TagView> tags)
+	private JScrollPane buildTabContent(List<TagView> tags, TagCategory category)
 	{
 		JPanel listPanel = new JPanel();
 		listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
 		listPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
+
+		// Category color header — Mission 20. Skipped for the All tab and the
+		// OTHER tab (which uses per-tag colors instead). SKILLING DOES get
+		// the header — system skill tags render as icons (color ignored) but
+		// user-created SKILLING tags fall through to colored pills where the
+		// category color applies.
+		if (category != null && category != TagCategory.OTHER)
+		{
+			listPanel.add(buildCategoryColorHeader(category));
+			listPanel.add(Box.createVerticalStrut(8));
+		}
 
 		if (tags.isEmpty())
 		{
@@ -164,6 +177,106 @@ public class TagManagementDialog extends JDialog
 		scroll.setBorder(null);
 		scroll.getVerticalScrollBar().setUnitIncrement(16);
 		return scroll;
+	}
+
+	/**
+	 * Build the category color header shown at the top of non-OTHER non-SKILLING
+	 * tag tabs. Displays the current category color swatch + Edit + Reset buttons.
+	 * Recoloring affects every tag in the category.
+	 */
+	private JPanel buildCategoryColorHeader(TagCategory category)
+	{
+		JPanel header = new JPanel(new BorderLayout(8, 0));
+		header.setBorder(BorderFactory.createCompoundBorder(
+			BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(60, 60, 60)),
+			new EmptyBorder(4, 4, 8, 4)
+		));
+		header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
+		header.setAlignmentX(Component.LEFT_ALIGNMENT);
+
+		// Snapshot current color via a TagView synthesized from a placeholder Tag.
+		// Easier than threading the store query through here — TagView already
+		// knows the override-vs-default story for the category.
+		java.util.List<TagView> all = api.queryAllTags();
+		int currentRgb = 0;
+		int defaultRgb = 0;
+		boolean overridden = false;
+		for (TagView t : all)
+		{
+			if (category.name().equals(t.category))
+			{
+				currentRgb = t.colorRgb;
+				defaultRgb = t.defaultColorRgb;
+				overridden = t.colorOverridden;
+				break;
+			}
+		}
+		// Fallback if no tags exist in the category yet — derive from the enum.
+		if (currentRgb == 0 && defaultRgb == 0)
+		{
+			java.awt.Color c = category.getColor();
+			defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+			currentRgb = defaultRgb;
+		}
+
+		final int finalCurrent = currentRgb;
+		JPanel swatch = new JPanel()
+		{
+			@Override
+			protected void paintComponent(java.awt.Graphics g)
+			{
+				g.setColor(new Color(finalCurrent));
+				g.fillRect(0, 0, getWidth(), getHeight());
+			}
+		};
+		swatch.setOpaque(false);
+		swatch.setPreferredSize(new Dimension(24, 24));
+		swatch.setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 1));
+
+		String labelText = "Category color " + (overridden ? "(custom)" : "(default)");
+		JLabel label = new JLabel(labelText);
+		label.setForeground(Color.WHITE);
+
+		JPanel left = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+		left.setOpaque(false);
+		left.add(swatch);
+		left.add(label);
+		header.add(left, BorderLayout.CENTER);
+
+		JPanel actions = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 4, 0));
+		actions.setOpaque(false);
+		final int finalDefault = defaultRgb;
+
+		JButton edit = new JButton("Edit");
+		edit.setMargin(new java.awt.Insets(2, 8, 2, 8));
+		edit.addActionListener(e -> {
+			ColorPickerField picker = new ColorPickerField(
+				api.queryAllTags().stream()
+					.filter(t -> category.name().equals(t.category) && t.colorOverridden)
+					.map(t -> t.colorRgb)
+					.findFirst().orElse(-1),
+				finalDefault);
+			int result = JOptionPane.showConfirmDialog(this, picker,
+				category.getDisplayName() + " category color (affects every "
+					+ category.getDisplayName() + " tag)",
+				JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+			if (result != JOptionPane.OK_OPTION) return;
+			api.setCategoryColor(category.name(), picker.getSelectedRgb());
+			rebuildList();
+		});
+		actions.add(edit);
+
+		JButton reset = new JButton("Reset");
+		reset.setMargin(new java.awt.Insets(2, 8, 2, 8));
+		reset.setEnabled(overridden);
+		reset.addActionListener(e -> {
+			api.resetCategoryColor(category.name());
+			rebuildList();
+		});
+		actions.add(reset);
+
+		header.add(actions, BorderLayout.EAST);
+		return header;
 	}
 
 	private JPanel buildRow(TagView tag)
@@ -214,10 +327,11 @@ public class TagManagementDialog extends JDialog
 		rename.addActionListener(e -> handleRename(tag));
 		actions.add(rename);
 
+		// Mission 20: per-tag recolor is OTHER-only. Other categories use the
+		// per-tab category color header. SKILLING is fully read-only.
 		JButton recolor = new JButton("Recolor");
 		recolor.setMargin(new java.awt.Insets(2, 6, 2, 6));
-		boolean recolorAllowed = !(tag.system && "SKILLING".equals(tag.category));
-		recolor.setEnabled(recolorAllowed);
+		recolor.setEnabled("OTHER".equals(tag.category));
 		recolor.addActionListener(e -> handleRecolor(tag));
 		actions.add(recolor);
 
