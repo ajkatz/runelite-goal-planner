@@ -306,6 +306,36 @@ it finds the tag entity referenced by the goal, branches on category
 header button. Lists every tag with per-row Rename / Recolor / Delete
 actions; buttons are disabled per the system tag rules above.
 
+### Icons (Mission 21)
+
+Tags can render as either a color OR an icon. The Tag entity carries a
+nullable `iconKey` String:
+
+- `iconKey == null` → render as a colored pill (category color or per-tag for OTHER)
+- `iconKey` matches a `Skill` enum name (case-insensitive) → render via
+  `SkillIconManager.getSkillImage(skill)`. The 24 SKILLING system tags are
+  seeded with iconKey set to the skill's enum name (`ATTACK`, `STRENGTH`, etc).
+- `iconKey` is anything else → render via classpath resource at
+  `/icons/<iconKey>.png`. Bundled icons can ship in
+  `src/main/resources/icons/`; the project currently ships zero, so this
+  path is wired but only the SkillIconManager case is exercised in practice.
+
+The render branch lives in `GoalCard.resolveIcon` and `createTagComponent`.
+Icons entirely replace the colored pill — when an icon resolves
+successfully, neither the per-category nor the per-tag color is shown.
+If both lookups fail, the tag falls through to color rendering.
+
+The icon picker UI lives in `IconPickerDialog`, opened from the
+TagManagementDialog row's "Icon" button. Shows a grid of skill icons +
+a section for bundled icons + a "Clear icon" button. Returns the picked
+iconKey (or null for clear), or the original key on cancel.
+
+**Why a single iconKey String instead of a typed source enum?** The
+resolver is two cheap fallback lookups (Skill enum name → bundled
+resource → fail). Adding a `iconType: SKILL/RESOURCE/SPRITE` field
+would require migration whenever new sources are added; the string
+key is sourceless and forward-compatible.
+
 **API surface:**
 - `queryAllTags()` — read all tags as TagViews
 - `createUserTag(label, categoryName)` — idempotent on case-insensitive (label, category)
@@ -315,6 +345,8 @@ actions; buttons are disabled per the system tag rules above.
 - `resetCategoryColor(categoryName)` — clear category override
 - `deleteTag(tagId)` — fails on system, cascades to all goals' tagIds
 - `addTagWithCategory(goalId, label, categoryName)` — find-or-create + attach reference
+- `setTagIcon(tagId, iconKey)` — set/clear an icon on any tag (Mission 21)
+- `clearTagIcon(tagId)` — equivalent to setTagIcon(tagId, null)
 
 ## Color overrides
 

@@ -312,4 +312,27 @@ public interface GoalTrackerInternalApi
 
 	/** Equivalent to {@link #setCategoryColor(String, int)} with -1. */
 	boolean resetCategoryColor(String categoryName);
+
+	/** Current packed RGB for a category (override if set, else enum default). */
+	int getCategoryColor(String categoryName);
+
+	/** Enum default packed RGB for a category. */
+	int getCategoryDefaultColor(String categoryName);
+
+	/** True if the category has a user override set. */
+	boolean isCategoryColorOverridden(String categoryName);
+
+	/**
+	 * Set an icon on a tag (Mission 21). Works on any tag including system tags.
+	 * Pass null or empty to clear. The iconKey is resolved at render time:
+	 * Skill enum names go to SkillIconManager; everything else looks up
+	 * {@code /icons/<key>.png} from the bundled classpath resources. Icons
+	 * entirely replace the colored pill rendering.
+	 *
+	 * @return true if the icon changed
+	 */
+	boolean setTagIcon(String tagId, String iconKey);
+
+	/** Equivalent to {@link #setTagIcon(String, String)} with null. */
+	boolean clearTagIcon(String tagId);
 }

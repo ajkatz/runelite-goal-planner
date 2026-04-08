@@ -14,6 +14,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTabbedPane;
+import javax.swing.SwingUtilities;
 import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 import java.awt.BorderLayout;
@@ -23,6 +24,7 @@ import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.Frame;
 import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.util.List;
 
 /**
@@ -43,12 +45,18 @@ import java.util.List;
 public class TagManagementDialog extends JDialog
 {
 	private final GoalTrackerApiImpl api;
+	private final net.runelite.client.game.SkillIconManager skillIconManager;
+	private final net.runelite.client.game.ItemManager itemManager;
 	private final JTabbedPane tabs;
 
-	public TagManagementDialog(Frame owner, GoalTrackerApiImpl api)
+	public TagManagementDialog(Frame owner, GoalTrackerApiImpl api,
+		net.runelite.client.game.SkillIconManager skillIconManager,
+		net.runelite.client.game.ItemManager itemManager)
 	{
 		super(owner, "Manage Tags", true);
 		this.api = api;
+		this.skillIconManager = skillIconManager;
+		this.itemManager = itemManager;
 
 		setLayout(new BorderLayout());
 		setSize(420, 540);
@@ -150,7 +158,7 @@ public class TagManagementDialog extends JDialog
 		// the header — system skill tags render as icons (color ignored) but
 		// user-created SKILLING tags fall through to colored pills where the
 		// category color applies.
-		if (category != null && category != TagCategory.OTHER)
+		if (category != null && category != TagCategory.OTHER && category != TagCategory.SKILLING)
 		{
 			listPanel.add(buildCategoryColorHeader(category));
 			listPanel.add(Box.createVerticalStrut(8));
@@ -194,30 +202,11 @@ public class TagManagementDialog extends JDialog
 		header.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 		header.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		// Snapshot current color via a TagView synthesized from a placeholder Tag.
-		// Easier than threading the store query through here — TagView already
-		// knows the override-vs-default story for the category.
-		java.util.List<TagView> all = api.queryAllTags();
-		int currentRgb = 0;
-		int defaultRgb = 0;
-		boolean overridden = false;
-		for (TagView t : all)
-		{
-			if (category.name().equals(t.category))
-			{
-				currentRgb = t.colorRgb;
-				defaultRgb = t.defaultColorRgb;
-				overridden = t.colorOverridden;
-				break;
-			}
-		}
-		// Fallback if no tags exist in the category yet — derive from the enum.
-		if (currentRgb == 0 && defaultRgb == 0)
-		{
-			java.awt.Color c = category.getColor();
-			defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
-			currentRgb = defaultRgb;
-		}
+		// Query directly from the API so empty categories still get accurate
+		// override info (otherwise the header is stuck on the enum default).
+		int currentRgb = api.getCategoryColor(category.name());
+		int defaultRgb = api.getCategoryDefaultColor(category.name());
+		boolean overridden = api.isCategoryColorOverridden(category.name());
 
 		final int finalCurrent = currentRgb;
 		JPanel swatch = new JPanel()
@@ -251,10 +240,8 @@ public class TagManagementDialog extends JDialog
 		edit.setMargin(new java.awt.Insets(2, 8, 2, 8));
 		edit.addActionListener(e -> {
 			ColorPickerField picker = new ColorPickerField(
-				api.queryAllTags().stream()
-					.filter(t -> category.name().equals(t.category) && t.colorOverridden)
-					.map(t -> t.colorRgb)
-					.findFirst().orElse(-1),
+				api.isCategoryColorOverridden(category.name())
+					? api.getCategoryColor(category.name()) : -1,
 				finalDefault);
 			int result = JOptionPane.showConfirmDialog(this, picker,
 				category.getDisplayName() + " category color (affects every "
@@ -289,20 +276,43 @@ public class TagManagementDialog extends JDialog
 		row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 		row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		// Color swatch on the left — paintComponent so FlatLaf doesn't override it
-		final int rgb = tag.colorRgb;
-		JPanel swatch = new JPanel()
+		// Mission 21: when an icon is set, render the icon in place of the
+		// color swatch. The resolved icon mirrors the in-card render path so
+		// the user sees the same image they'll see on goal cards.
+		java.awt.Component swatch;
+		java.awt.image.BufferedImage iconImage = (tag.iconKey != null && !tag.iconKey.isEmpty())
+			? resolveIconForRow(tag.iconKey) : null;
+		if (iconImage != null)
 		{
-			@Override
-			protected void paintComponent(Graphics g)
+			java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(
+				20, 20, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+			Graphics2D g2 = scaled.createGraphics();
+			g2.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+				java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+			g2.drawImage(iconImage, 0, 0, 20, 20, null);
+			g2.dispose();
+			JLabel iconLabel = new JLabel(new javax.swing.ImageIcon(scaled));
+			iconLabel.setPreferredSize(new Dimension(20, 20));
+			iconLabel.setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 1));
+			swatch = iconLabel;
+		}
+		else
+		{
+			final int rgb = tag.colorRgb;
+			JPanel pillSwatch = new JPanel()
 			{
-				g.setColor(new Color(rgb));
-				g.fillRect(0, 0, getWidth(), getHeight());
-			}
-		};
-		swatch.setOpaque(false);
-		swatch.setPreferredSize(new Dimension(20, 20));
-		swatch.setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 1));
+				@Override
+				protected void paintComponent(Graphics g)
+				{
+					g.setColor(new Color(rgb));
+					g.fillRect(0, 0, getWidth(), getHeight());
+				}
+			};
+			pillSwatch.setOpaque(false);
+			pillSwatch.setPreferredSize(new Dimension(20, 20));
+			pillSwatch.setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 1));
+			swatch = pillSwatch;
+		}
 
 		// Label + category + system marker
 		String displayLabel = tag.label
@@ -334,6 +344,16 @@ public class TagManagementDialog extends JDialog
 		recolor.setEnabled("OTHER".equals(tag.category));
 		recolor.addActionListener(e -> handleRecolor(tag));
 		actions.add(recolor);
+
+		// Mission 21 follow-up: only user-created (non-system) tags can have
+		// their icon edited. System tags get their iconKey set at seed time
+		// (e.g. SKILLING tags use their skill name) and shouldn't be changed
+		// by the user.
+		JButton icon = new JButton("Icon");
+		icon.setMargin(new java.awt.Insets(2, 6, 2, 6));
+		icon.setEnabled(!tag.system);
+		icon.addActionListener(e -> handleIcon(tag));
+		actions.add(icon);
 
 		JButton delete = new JButton("Delete");
 		delete.setMargin(new java.awt.Insets(2, 6, 2, 6));
@@ -367,7 +387,14 @@ public class TagManagementDialog extends JDialog
 		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
 		form.add(catLbl, gbc);
 
-		TagCategory[] categories = TagCategory.values();
+		// SKILLING is excluded — skill tags are seeded by the plugin and
+		// users can't create new ones.
+		java.util.List<TagCategory> catList = new java.util.ArrayList<>();
+		for (TagCategory c : TagCategory.values())
+		{
+			if (c != TagCategory.SKILLING) catList.add(c);
+		}
+		TagCategory[] categories = catList.toArray(new TagCategory[0]);
 		javax.swing.JComboBox<TagCategory> catCombo = new javax.swing.JComboBox<>(categories);
 		catCombo.setRenderer(new javax.swing.DefaultListCellRenderer()
 		{
@@ -410,6 +437,56 @@ public class TagManagementDialog extends JDialog
 		{
 			JOptionPane.showMessageDialog(this, ex.getMessage(),
 				"Invalid label", JOptionPane.WARNING_MESSAGE);
+		}
+		rebuildList();
+	}
+
+	/**
+	 * Resolve an iconKey to a BufferedImage for row preview. Mirrors
+	 * GoalCard.resolveIcon: item:N → ItemManager, Skill enum → SkillIconManager,
+	 * else /icons/<key>.png. Returns null if all lookups fail.
+	 */
+	private java.awt.image.BufferedImage resolveIconForRow(String iconKey)
+	{
+		if (iconKey.startsWith("item:") && itemManager != null)
+		{
+			try
+			{
+				int itemId = Integer.parseInt(iconKey.substring("item:".length()));
+				return itemManager.getImage(itemId);
+			}
+			catch (Exception ignored) {}
+		}
+		if (skillIconManager != null)
+		{
+			try
+			{
+				net.runelite.api.Skill skill = net.runelite.api.Skill.valueOf(iconKey.toUpperCase());
+				return skillIconManager.getSkillImage(skill, true);
+			}
+			catch (IllegalArgumentException ignored) {}
+		}
+		try (java.io.InputStream in = getClass().getResourceAsStream("/icons/" + iconKey + ".png"))
+		{
+			if (in != null) return javax.imageio.ImageIO.read(in);
+		}
+		catch (java.io.IOException ignored) {}
+		return null;
+	}
+
+	private void handleIcon(TagView tag)
+	{
+		java.awt.Window w = SwingUtilities.getWindowAncestor(this);
+		java.awt.Frame owner = (w instanceof java.awt.Frame) ? (java.awt.Frame) w : null;
+		String picked = IconPickerDialog.show(owner, tag.iconKey, skillIconManager, itemManager);
+		if (java.util.Objects.equals(picked, tag.iconKey)) return; // no change / cancel
+		if (picked == null)
+		{
+			api.clearTagIcon(tag.id);
+		}
+		else
+		{
+			api.setTagIcon(tag.id, picked);
 		}
 		rebuildList();
 	}

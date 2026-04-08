@@ -577,7 +577,30 @@ public class GoalTrackerPlugin extends Plugin
 	{
 		for (net.runelite.api.Skill skill : net.runelite.api.Skill.values())
 		{
-			goalStore.findOrCreateSystemTag(skill.getName(), com.goaltracker.model.TagCategory.SKILLING);
+			com.goaltracker.model.Tag tag = goalStore.findOrCreateSystemTag(
+				skill.getName(), com.goaltracker.model.TagCategory.SKILLING);
+			// Mission 21: skill tags render via the new uniform iconKey path.
+			// setTagIcon is idempotent on the same value.
+			if (tag != null)
+			{
+				goalStore.setTagIcon(tag.getId(), skill.name());
+			}
+		}
+		// Seed canonical BOSS / RAID / CLUE / MINIGAME tags from TagOptions so the
+		// dropdowns are populated up-front instead of trickling in as goals are
+		// added. findOrCreateSystemTag is idempotent.
+		com.goaltracker.model.TagCategory[] seedCats = {
+			com.goaltracker.model.TagCategory.BOSS,
+			com.goaltracker.model.TagCategory.RAID,
+			com.goaltracker.model.TagCategory.CLUE,
+			com.goaltracker.model.TagCategory.MINIGAME,
+		};
+		for (com.goaltracker.model.TagCategory cat : seedCats)
+		{
+			for (String label : com.goaltracker.data.TagOptions.getOptions(cat))
+			{
+				goalStore.findOrCreateSystemTag(label, cat);
+			}
 		}
 		// Pet: OTHER category with a per-tag pink color override. OTHER is the
 		// only category that supports per-tag colors in Mission 20+ — every

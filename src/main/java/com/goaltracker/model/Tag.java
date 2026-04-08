@@ -61,4 +61,18 @@ public class Tag
 	 */
 	@Builder.Default
 	private boolean system = false;
+
+	/**
+	 * Icon resource key (Mission 21). null means "no icon, render as a colored pill".
+	 *
+	 * <p>Resolver: if the key matches a {@link net.runelite.api.Skill} enum
+	 * name (case-insensitive), the renderer pulls the icon from
+	 * {@code SkillIconManager.getSkillImage(skill)}. Otherwise it tries to
+	 * load {@code /icons/<iconKey>.png} as a bundled classpath resource.
+	 * If both lookups fail, the tag falls back to color rendering.
+	 *
+	 * <p>When an icon resolves successfully, it entirely replaces the colored
+	 * pill — color and icon are mutually exclusive at render time.
+	 */
+	private String iconKey;
 }

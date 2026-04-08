@@ -914,6 +914,70 @@ class GoalTrackerApiImplTest
 			throw new AssertionError("Vorkath tag not found on goal");
 		}
 
+		// =====================================================================
+		// Mission 21: icon tags
+		// =====================================================================
+
+		@Test
+		@DisplayName("setTagIcon stores the iconKey on the tag entity")
+		void setTagIconHappyPath()
+		{
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			assertTrue(api.setTagIcon(tag.getId(), "SLAYER"));
+			assertEquals("SLAYER", store.findTag(tag.getId()).getIconKey());
+		}
+
+		@Test
+		@DisplayName("clearTagIcon nulls out the iconKey")
+		void clearTagIconResets()
+		{
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			api.setTagIcon(tag.getId(), "SLAYER");
+			assertTrue(api.clearTagIcon(tag.getId()));
+			assertNull(store.findTag(tag.getId()).getIconKey());
+		}
+
+		@Test
+		@DisplayName("setTagIcon no-op returns false when value is unchanged")
+		void setTagIconNoop()
+		{
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			api.setTagIcon(tag.getId(), "SLAYER");
+			assertFalse(api.setTagIcon(tag.getId(), "SLAYER"));
+		}
+
+		@Test
+		@DisplayName("setTagIcon trims whitespace and treats blank as clear")
+		void setTagIconBlankIsClear()
+		{
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			api.setTagIcon(tag.getId(), "SLAYER");
+			assertTrue(api.setTagIcon(tag.getId(), "   "));
+			assertNull(store.findTag(tag.getId()).getIconKey());
+		}
+
+		@Test
+		@DisplayName("TagView.iconKey populated from the entity at render time")
+		void tagViewCarriesIconKey()
+		{
+			String goalId = api.addCustomGoal("Test", "");
+			com.goaltracker.model.Tag tag = store.findOrCreateSystemTag("Vorkath",
+				com.goaltracker.model.TagCategory.BOSS);
+			api.setTagIcon(tag.getId(), "VORKATH");
+			Goal g = store.getGoals().get(0);
+			g.setTagIds(new java.util.ArrayList<>(java.util.List.of(tag.getId())));
+			g.setDefaultTagIds(new java.util.ArrayList<>(java.util.List.of(tag.getId())));
+
+			com.goaltracker.api.GoalView view = api.queryAllGoals().stream()
+				.filter(gv -> gv.id.equals(goalId)).findFirst().orElseThrow();
+			com.goaltracker.api.TagView tv = view.defaultTags.get(0);
+			assertEquals("VORKATH", tv.iconKey);
+		}
+
 		/** Reflective lookup for the WikiCaRepository mock the test setUp wired into the API impl. */
 		private com.goaltracker.data.WikiCaRepository getWikiRepoFromApi() throws Exception
 		{

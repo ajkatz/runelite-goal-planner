@@ -118,7 +118,7 @@ public class GoalPanel extends PluginPanel
 		manageTagsButton.addActionListener(e -> {
 			java.awt.Window window = SwingUtilities.getWindowAncestor(GoalPanel.this);
 			java.awt.Frame owner = window instanceof java.awt.Frame ? (java.awt.Frame) window : null;
-			TagManagementDialog dialog = new TagManagementDialog(owner, api);
+			TagManagementDialog dialog = new TagManagementDialog(owner, api, skillIconManager, itemManager);
 			dialog.setVisible(true);
 		});
 
@@ -606,21 +606,11 @@ public class GoalPanel extends PluginPanel
 			gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
 			tagPanel.add(catLabel, gbc);
 
-			// Tag categories: full list for CUSTOM goals; restricted to OTHER ("custom"
-			// catch-all) for everything else, since auto-generated goal types should not
-			// have user-added boss/raid/skilling/etc. tags layered on.
-			com.goaltracker.model.TagCategory[] categories;
-			if (goal.getType() == GoalType.CUSTOM)
-			{
-				categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
-						.toArray(com.goaltracker.model.TagCategory[]::new);
-			}
-			else
-			{
-				categories = new com.goaltracker.model.TagCategory[]{
-					com.goaltracker.model.TagCategory.OTHER
-				};
-			}
+			// All categories except SKILLING (skill tags are system-seeded only).
+			com.goaltracker.model.TagCategory[] categories =
+				java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+					.filter(c -> c != com.goaltracker.model.TagCategory.SKILLING)
+					.toArray(com.goaltracker.model.TagCategory[]::new);
 			JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
 			catCombo.setRenderer(new DefaultListCellRenderer()
 			{
@@ -653,24 +643,25 @@ public class GoalPanel extends PluginPanel
 			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 			tagPanel.add(fieldSwap, gbc);
 
-			// Update field when category changes. For non-custom goals the category
-			// dropdown is locked to OTHER and the value should be freeform text — there
-			// are no curated TagOptions to pick from at that point.
-			final boolean forceFreeform = goal.getType() != GoalType.CUSTOM;
+			// Mission 21 follow-up: dropdown now shows EXISTING tags in the
+			// chosen category so users can reuse the same Tag entity across
+			// goals. The combo is editable so users can also type a new label
+			// — addTagWithCategory does find-or-create downstream.
+			dropdownField.setEditable(true);
 			Runnable updateField = () -> {
 				com.goaltracker.model.TagCategory cat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-				String[] opts = com.goaltracker.data.TagOptions.getOptions(cat);
-				if (!forceFreeform && opts.length > 0)
+				dropdownField.removeAllItems();
+				java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
+				for (com.goaltracker.api.TagView t : all)
 				{
-					dropdownField.removeAllItems();
-					for (String opt : opts) dropdownField.addItem(opt);
-					((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
+					if (cat != null && cat.name().equals(t.category))
+					{
+						dropdownField.addItem(t.label);
+					}
 				}
-				else
-				{
-					((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "FREEFORM");
-				}
+				dropdownField.setSelectedItem("");
+				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
 			};
 			catCombo.addActionListener(ev -> updateField.run());
 			updateField.run();
@@ -684,12 +675,11 @@ public class GoalPanel extends PluginPanel
 			{
 				com.goaltracker.model.TagCategory selectedCat =
 					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-				String[] opts = com.goaltracker.data.TagOptions.getOptions(selectedCat);
-				String tagText = (!forceFreeform && opts.length > 0)
-					? (String) dropdownField.getSelectedItem()
-					: freeField.getText().trim();
-
-				if (tagText != null && !tagText.isEmpty())
+				// Editable combo: getSelectedItem returns the typed text or
+				// the picked option, both as a String.
+				Object raw = dropdownField.getEditor().getItem();
+				String tagText = raw == null ? "" : raw.toString().trim();
+				if (!tagText.isEmpty() && selectedCat != null)
 				{
 					api.addTagWithCategory(goal.getId(), tagText, selectedCat.name());
 				}
@@ -722,22 +712,7 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 
-		// Mission 20: per-tag recolor is OTHER-only. Show "Recolor Tag" only
-		// when the goal has at least one tag in the OTHER category. Other
-		// categories use category-wide colors edited via TagManagementDialog.
-		java.util.List<com.goaltracker.model.Tag> otherTags = new java.util.ArrayList<>();
-		for (com.goaltracker.model.Tag t : allGoalTags)
-		{
-			if (t.getCategory() == com.goaltracker.model.TagCategory.OTHER) otherTags.add(t);
-		}
-		if (!goal.isComplete() && !otherTags.isEmpty())
-		{
-			JMenuItem recolorTag = new JMenuItem("Recolor Tag");
-			recolorTag.addActionListener(e -> showRecolorTagDialog(goal, otherTags));
-			menu.add(recolorTag);
-		}
-
-		if (!removableTags.isEmpty())
+if (!removableTags.isEmpty())
 		{
 			JMenuItem removeTag = new JMenuItem("Remove Tag");
 			removeTag.addActionListener(e -> {
@@ -937,18 +912,10 @@ public class GoalPanel extends PluginPanel
 		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
 		tagPanel.add(catLabel, gbc);
 
-		com.goaltracker.model.TagCategory[] categories;
-		if (allCustom)
-		{
-			categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+		com.goaltracker.model.TagCategory[] categories =
+			java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
+				.filter(c -> c != com.goaltracker.model.TagCategory.SKILLING)
 				.toArray(com.goaltracker.model.TagCategory[]::new);
-		}
-		else
-		{
-			categories = new com.goaltracker.model.TagCategory[]{
-				com.goaltracker.model.TagCategory.OTHER
-			};
-		}
 		JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
 		catCombo.setRenderer(new DefaultListCellRenderer()
 		{
@@ -980,20 +947,23 @@ public class GoalPanel extends PluginPanel
 		gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		tagPanel.add(fieldSwap, gbc);
 
+		// Mission 21: editable combo populated from existing tags in the
+		// selected category (find-or-create downstream).
+		dropdownField.setEditable(true);
 		Runnable updateField = () -> {
 			com.goaltracker.model.TagCategory cat =
 				(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-			String[] opts = com.goaltracker.data.TagOptions.getOptions(cat);
-			if (!forceFreeform && opts.length > 0)
+			dropdownField.removeAllItems();
+			java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
+			for (com.goaltracker.api.TagView t : all)
 			{
-				dropdownField.removeAllItems();
-				for (String opt : opts) dropdownField.addItem(opt);
-				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
+				if (cat != null && cat.name().equals(t.category))
+				{
+					dropdownField.addItem(t.label);
+				}
 			}
-			else
-			{
-				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "FREEFORM");
-			}
+			dropdownField.setSelectedItem("");
+			((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
 		};
 		catCombo.addActionListener(ev -> updateField.run());
 		updateField.run();
@@ -1008,11 +978,9 @@ public class GoalPanel extends PluginPanel
 
 		com.goaltracker.model.TagCategory selectedCat =
 			(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-		String[] opts = com.goaltracker.data.TagOptions.getOptions(selectedCat);
-		String tagText = (!forceFreeform && opts.length > 0)
-			? (String) dropdownField.getSelectedItem()
-			: freeField.getText().trim();
-		if (tagText == null || tagText.isEmpty()) return;
+		Object raw = dropdownField.getEditor().getItem();
+		String tagText = raw == null ? "" : raw.toString().trim();
+		if (tagText.isEmpty() || selectedCat == null) return;
 
 		// Route through the internal API so the bulk path matches the single-item
 		// path post-Mission 19. addTagWithCategory preserves the user-picked
@@ -1202,40 +1170,7 @@ public class GoalPanel extends PluginPanel
 		api.setGoalColor(goal.getId(), picker.getSelectedRgb());
 	}
 
-	private void showRecolorTagDialog(Goal goal, java.util.List<com.goaltracker.model.Tag> tags)
-	{
-		// Mission 20: only OTHER-category tags reach this dialog (callers gate
-		// it). Other categories use category-wide colors set via the Tag
-		// Management dialog instead.
-		String[] tagNames = tags.stream()
-			.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
-			.toArray(String[]::new);
-		String selected = (String) JOptionPane.showInputDialog(
-			this, "Select tag to recolor:", "Recolor Tag",
-			JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
-		);
-		if (selected == null) return;
-		int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
-		if (idx < 0) return;
-		com.goaltracker.model.Tag tag = tags.get(idx);
-
-		java.awt.Color catC = tag.getCategory().getColor();
-		int defaultRgb = (catC.getRed() << 16) | (catC.getGreen() << 8) | catC.getBlue();
-		ColorPickerField picker = new ColorPickerField(tag.getColorRgb(), defaultRgb);
-		int result = JOptionPane.showConfirmDialog(this, picker,
-			"Color for " + tag.getLabel() + " (affects every goal using this tag)",
-			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
-		if (result != JOptionPane.OK_OPTION) return;
-
-		boolean ok = api.recolorTag(tag.getId(), picker.getSelectedRgb());
-		if (!ok)
-		{
-			JOptionPane.showMessageDialog(this, "Could not recolor tag.",
-				"Recolor failed", JOptionPane.WARNING_MESSAGE);
-		}
-	}
-
-	private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
+private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 	{
 		String input = (String) JOptionPane.showInputDialog(this, "New name:", "Rename Section",
 			JOptionPane.PLAIN_MESSAGE, null, null, section.name);

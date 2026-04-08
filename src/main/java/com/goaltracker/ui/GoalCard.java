@@ -49,6 +49,7 @@ public class GoalCard extends JPanel
 
 	private final SkillIconManager skillIconManager;
 	private final SpriteManager spriteManager;
+	private final ItemManager itemManager;
 
 	public GoalCard(GoalView view, ActionListener onMoveUp, ActionListener onMoveDown,
 					SkillIconManager skillIconManager, ItemManager itemManager,
@@ -57,6 +58,7 @@ public class GoalCard extends JPanel
 		this.view = view;
 		this.skillIconManager = skillIconManager;
 		this.spriteManager = spriteManager;
+		this.itemManager = itemManager;
 
 		// Tags are hidden on completed cards to save vertical space — completed
 		// goals are reference history, not active tracking, so the tag row is noise.
@@ -203,12 +205,12 @@ public class GoalCard extends JPanel
 		tagRow.setOpaque(false);
 		tagRow.setBorder(new EmptyBorder(0, 0, 0, 0));
 
-		// Sort: SKILLING first, then others
+		// Sort: tags with icons first, then tags without.
 		List<TagView> sorted = new ArrayList<>(allTags);
 		sorted.sort((a, b) -> {
-			boolean aSkill = "SKILLING".equals(a.category);
-			boolean bSkill = "SKILLING".equals(b.category);
-			if (aSkill != bSkill) return aSkill ? -1 : 1;
+			boolean aIcon = a.iconKey != null && !a.iconKey.isEmpty();
+			boolean bIcon = b.iconKey != null && !b.iconKey.isEmpty();
+			if (aIcon != bIcon) return aIcon ? -1 : 1;
 			return 0;
 		});
 
@@ -257,13 +259,14 @@ public class GoalCard extends JPanel
 
 	private JComponent createTagComponent(TagView tag)
 	{
-		// For Skilling tags, try to show the skill icon
-		if ("SKILLING".equals(tag.category) && skillIconManager != null)
+		// Mission 21: uniform icon resolver. If the tag has an iconKey, try
+		// to resolve it via SkillIconManager (for Skill enum names) then via
+		// bundled /icons/<key>.png. Falls through to colored pill if both fail.
+		if (tag.iconKey != null && !tag.iconKey.isEmpty())
 		{
-			try
+			java.awt.image.BufferedImage img = resolveIcon(tag.iconKey);
+			if (img != null)
 			{
-				Skill skill = Skill.valueOf(tag.label.toUpperCase());
-				java.awt.image.BufferedImage img = skillIconManager.getSkillImage(skill, true);
 				java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(11, 11, java.awt.image.BufferedImage.TYPE_INT_ARGB);
 				Graphics2D g2d = scaled.createGraphics();
 				g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
@@ -275,10 +278,56 @@ public class GoalCard extends JPanel
 				iconLabel.setToolTipText(tag.label);
 				return iconLabel;
 			}
-			catch (Exception ignored) {}
 		}
 
 		return createTagPill(tag);
+	}
+
+	/**
+	 * Resolve an iconKey to a BufferedImage, or null if not found.
+	 *
+	 * <p>Resolution order:
+	 * <ol>
+	 *   <li>{@code item:<itemId>} prefix → {@link ItemManager#getImage(int)}</li>
+	 *   <li>Skill enum name (case-insensitive) → {@link SkillIconManager#getSkillImage}</li>
+	 *   <li>Bundled classpath resource at {@code /icons/<key>.png}</li>
+	 * </ol>
+	 *
+	 * <p>Returns null if all lookups fail; caller falls back to colored pill.
+	 */
+	private java.awt.image.BufferedImage resolveIcon(String iconKey)
+	{
+		// item:<id> prefix → ItemManager
+		if (iconKey.startsWith("item:") && itemManager != null)
+		{
+			try
+			{
+				int itemId = Integer.parseInt(iconKey.substring("item:".length()));
+				return itemManager.getImage(itemId);
+			}
+			catch (NumberFormatException ignored) {}
+			catch (Exception ignored) {}
+		}
+		// Skill enum match → SkillIconManager
+		if (skillIconManager != null)
+		{
+			try
+			{
+				Skill skill = Skill.valueOf(iconKey.toUpperCase());
+				return skillIconManager.getSkillImage(skill, true);
+			}
+			catch (IllegalArgumentException ignored) {}
+		}
+		// Bundled resource → /icons/<key>.png
+		try (java.io.InputStream in = getClass().getResourceAsStream("/icons/" + iconKey + ".png"))
+		{
+			if (in != null)
+			{
+				return javax.imageio.ImageIO.read(in);
+			}
+		}
+		catch (java.io.IOException ignored) {}
+		return null;
 	}
 
 	private static JLabel createTagPill(TagView tag)

@@ -1025,6 +1025,30 @@ public class GoalStore
 	}
 
 	/**
+	 * Set or clear an icon on any tag (Mission 21). System tags can have
+	 * icons set — used by the seed to attach skill icons to the canonical
+	 * SKILLING tags. Pass null or empty to clear.
+	 *
+	 * @return true if the icon changed
+	 */
+	public boolean setTagIcon(String tagId, String iconKey)
+	{
+		Tag t = findTag(tagId);
+		if (t == null) return false;
+		String normalized = (iconKey == null || iconKey.trim().isEmpty()) ? null : iconKey.trim();
+		if (java.util.Objects.equals(t.getIconKey(), normalized)) return false;
+		t.setIconKey(normalized);
+		save();
+		return true;
+	}
+
+	/** Equivalent to {@link #setTagIcon(String, String)} with null. */
+	public boolean clearTagIcon(String tagId)
+	{
+		return setTagIcon(tagId, null);
+	}
+
+	/**
 	 * Delete a user tag and cascade-remove the reference from every goal.
 	 * System tags cannot be deleted (returns false) — they're auto-attached
 	 * by goal creation and trackers depend on their existence.

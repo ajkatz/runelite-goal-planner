@@ -582,6 +582,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			currentRgb, defaultRgb, overridden);
 		v.id = t.getId();
 		v.system = t.isSystem();
+		v.iconKey = t.getIconKey();
 		return v;
 	}
 
@@ -1203,6 +1204,11 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("createUserTag: unknown category {}", categoryName);
 			return null;
 		}
+		if (category == TagCategory.SKILLING)
+		{
+			log.warn("createUserTag: SKILLING category is reserved for system tags");
+			return null;
+		}
 		Tag tag = goalStore.createUserTag(label, category);
 		onGoalsChanged.run();
 		return tag != null ? tag.getId() : null;
@@ -1257,6 +1263,47 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal resetCategoryColor(category={})", categoryName);
 		return setCategoryColor(categoryName, -1);
+	}
+
+	@Override
+	public int getCategoryColor(String categoryName)
+	{
+		try { return goalStore.getCategoryColor(TagCategory.valueOf(categoryName)); }
+		catch (IllegalArgumentException ex) { return 0; }
+	}
+
+	@Override
+	public int getCategoryDefaultColor(String categoryName)
+	{
+		try
+		{
+			java.awt.Color c = TagCategory.valueOf(categoryName).getColor();
+			return (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+		}
+		catch (IllegalArgumentException ex) { return 0; }
+	}
+
+	@Override
+	public boolean isCategoryColorOverridden(String categoryName)
+	{
+		try { return goalStore.isCategoryColorOverridden(TagCategory.valueOf(categoryName)); }
+		catch (IllegalArgumentException ex) { return false; }
+	}
+
+	@Override
+	public boolean setTagIcon(String tagId, String iconKey)
+	{
+		log.debug("API.internal setTagIcon(tagId={}, iconKey={})", tagId, iconKey);
+		boolean changed = goalStore.setTagIcon(tagId, iconKey);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean clearTagIcon(String tagId)
+	{
+		log.debug("API.internal clearTagIcon(tagId={})", tagId);
+		return setTagIcon(tagId, null);
 	}
 
 	@Override
