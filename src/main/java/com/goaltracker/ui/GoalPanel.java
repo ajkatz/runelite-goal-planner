@@ -1299,10 +1299,33 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field1Panel, gbc);
 
-		// Row 2: Field 2
+		// Row 1.5 (Mission 23): Mode toggle for relative goals.
+		// "Reach X" = absolute (existing behavior). "Gain X more" = compute
+		// resolved target as currentValue + entered delta. SKILL/ITEM/CUSTOM
+		// all support this; the actual math runs in the submit handlers.
+		gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+		JLabel modeLabel = new JLabel("Mode:");
+		modeLabel.setPreferredSize(new Dimension(labelWidth, 24));
+		panel.add(modeLabel, gbc);
+
+		javax.swing.JRadioButton modeAbsolute = new javax.swing.JRadioButton("Reach X", true);
+		javax.swing.JRadioButton modeRelative = new javax.swing.JRadioButton("Gain X more");
+		modeAbsolute.setOpaque(false);
+		modeRelative.setOpaque(false);
+		javax.swing.ButtonGroup modeGroup = new javax.swing.ButtonGroup();
+		modeGroup.add(modeAbsolute);
+		modeGroup.add(modeRelative);
+		JPanel modeRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
+		modeRow.setOpaque(false);
+		modeRow.add(modeAbsolute);
+		modeRow.add(modeRelative);
+		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		panel.add(modeRow, gbc);
+
+		// Row 3 (was Row 2): Field 2
 		JLabel label2 = new JLabel("Target:");
 		label2.setPreferredSize(new Dimension(labelWidth, 24));
-		gbc.gridx = 0; gbc.gridy = 2; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+		gbc.gridx = 0; gbc.gridy = 3; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
 		panel.add(label2, gbc);
 
 		JTextField descField = new JTextField(15);
@@ -1319,33 +1342,55 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field2Panel, gbc);
 
-		// Swap fields when type changes
-		typeCombo.addActionListener(e ->
+		// Swap fields when type changes. Mission 23: also relabel based on
+		// current mode so "Quantity:" → "Gain Quantity:" when relative.
+		Runnable updateLabels = () ->
 		{
 			GoalType selected = (GoalType) typeCombo.getSelectedItem();
-
 			((CardLayout) field1Panel.getLayout()).show(field1Panel, selected.name());
 			((CardLayout) field2Panel.getLayout()).show(field2Panel, selected.name());
-
+			// Mission 23: relative mode is only meaningful for SKILL right now
+			// (and will support BOSS_KILL_COUNT in a future mission). Hide the
+			// row for ITEM_GRIND (no reliable baseline) and CUSTOM (no int target).
+			boolean modeRowVisible = selected == GoalType.SKILL;
+			modeLabel.setVisible(modeRowVisible);
+			modeRow.setVisible(modeRowVisible);
+			if (!modeRowVisible) modeAbsolute.setSelected(true);
+			boolean rel = modeRelative.isSelected();
+			// Mission 23: if relative + SKILL, hand the form the player's
+			// current XP for the chosen skill so deltas resolve correctly.
+			if (rel && selected == GoalType.SKILL && client != null)
+			{
+				Skill chosen = (Skill) skillCombo.getSelectedItem();
+				int currentXp = chosen != null ? client.getSkillExperience(chosen) : 0;
+				skillTargetForm.setRelativeBaseline(currentXp);
+			}
+			else
+			{
+				skillTargetForm.setRelativeBaseline(-1);
+			}
 			switch (selected)
 			{
 				case SKILL:
 					label1.setText("Skill:");
-					label2.setText("Target:");
+					label2.setText(rel ? "Add XP:" : "Target:");
 					break;
 				case ITEM_GRIND:
-					label1.setText("Quantity:");
+					label1.setText(rel ? "Gain qty:" : "Quantity:");
 					label2.setText("");
 					break;
 				default:
 					label1.setText("Goal Name:");
-					label2.setText("Description:");
+					label2.setText(rel ? "Description (gain target via Custom value):" : "Description:");
 					break;
 			}
-
 			Window w = SwingUtilities.getWindowAncestor(panel);
 			if (w != null) w.pack();
-		});
+		};
+		typeCombo.addActionListener(e -> updateLabels.run());
+		modeAbsolute.addActionListener(e -> updateLabels.run());
+		modeRelative.addActionListener(e -> updateLabels.run());
+		skillCombo.addActionListener(e -> updateLabels.run());
 
 		panel.setPreferredSize(new Dimension(320, panel.getPreferredSize().height));
 
@@ -1356,10 +1401,11 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		if (result == JOptionPane.OK_OPTION)
 		{
 			GoalType selectedType = (GoalType) typeCombo.getSelectedItem();
+			boolean relative = modeRelative.isSelected();
 
 			if (selectedType == GoalType.SKILL)
 			{
-				addSkillGoal(skillCombo, skillTargetForm, preferredSectionId);
+				addSkillGoal(skillCombo, skillTargetForm, preferredSectionId, relative);
 			}
 			else if (selectedType == GoalType.ITEM_GRIND)
 			{
@@ -1371,7 +1417,6 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 						JOptionPane.showMessageDialog(this, "Quantity must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
-					// Open the in-game chatbox item search
 					itemSearchCallback.accept(qty);
 				}
 				catch (NumberFormatException e)
@@ -1381,21 +1426,42 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			}
 			else if (selectedType == GoalType.CUSTOM)
 			{
+				// CUSTOM goals are boolean (target=1) — relative mode is a no-op.
 				addCustomGoal(nameField, descField, preferredSectionId);
 			}
 		}
 	}
 
-	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form, String preferredSectionId)
+	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form, String preferredSectionId, boolean relative)
 	{
 		Skill skill = (Skill) skillCombo.getSelectedItem();
-		int targetXp = form.getTargetXp();
-		if (targetXp < 0)
+		int formValue = form.getTargetXp();
+		if (formValue < 0)
 		{
 			JOptionPane.showMessageDialog(this,
-				"Enter a valid target level (1–99) or XP (0–200,000,000).",
+				relative ? "Enter a valid XP delta (1–200,000,000)."
+					: "Enter a valid target level (1–99) or XP (0–200,000,000).",
 				"Error", JOptionPane.ERROR_MESSAGE);
 			return;
+		}
+
+		// Mission 23: in relative mode, the form returns a delta. Resolve to
+		// absolute by adding the player's current XP for the chosen skill.
+		int targetXp;
+		if (relative)
+		{
+			int currentXp = client != null ? client.getSkillExperience(skill) : 0;
+			targetXp = RelativeTargetResolver.resolveSkillXp(currentXp, formValue);
+			if (targetXp < 0)
+			{
+				JOptionPane.showMessageDialog(this, "XP delta must be greater than 0.",
+					"Error", JOptionPane.ERROR_MESSAGE);
+				return;
+			}
+		}
+		else
+		{
+			targetXp = formValue;
 		}
 
 		String conflict = checkSkillConflict(skill, targetXp);

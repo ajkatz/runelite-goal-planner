@@ -24,9 +24,15 @@ public class SkillTargetForm extends JPanel
 {
 	private final JTextField levelField = new JTextField(8);
 	private final JTextField xpField = new JTextField(8);
+	private final JLabel levelLabel = new JLabel("Level:");
 
 	/** Suppress the cross-update listener while we programmatically set a field. */
 	private boolean syncing = false;
+
+	/** Mission 23: when >= 0, the form interprets both fields as DELTAS over
+	 *  this current XP baseline (relative goal mode). When -1, fields are
+	 *  absolute targets (existing behavior). */
+	private int relativeBaselineXp = -1;
 
 	public SkillTargetForm(int initialLevel)
 	{
@@ -38,7 +44,6 @@ public class SkillTargetForm extends JPanel
 		gbc.anchor = GridBagConstraints.WEST;
 
 		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
-		JLabel levelLabel = new JLabel("Level:");
 		levelLabel.setPreferredSize(new Dimension(60, 24));
 		add(levelLabel, gbc);
 
@@ -55,13 +60,31 @@ public class SkillTargetForm extends JPanel
 
 		// Wire bidirectional sync via DocumentListeners. The `syncing` guard prevents
 		// the level→xp update from re-triggering xp→level (and vice versa).
+		// Mission 23: when relativeBaselineXp >= 0, both fields are interpreted
+		// as DELTAS — level field input = "+N levels", XP field input = "+N XP".
 		levelField.getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
 			if (syncing) return;
 			Integer level = parseInt(levelField.getText());
-			if (level == null || level < 1 || level > 126) return;
-			int xp = level <= 99
-				? Experience.getXpForLevel(level)
-				: Experience.getXpForLevel(99); // virtual levels capped at 99 XP table
+			if (level == null) return;
+			int xp;
+			if (relativeBaselineXp >= 0)
+			{
+				// level is a delta over current; resulting absolute level is current+delta
+				int currentLevel = Experience.getLevelForXp(relativeBaselineXp);
+				int targetLevel = Math.min(126, currentLevel + level);
+				if (targetLevel < 1) return;
+				int targetXp = targetLevel <= 99
+					? Experience.getXpForLevel(targetLevel)
+					: Experience.getXpForLevel(99);
+				xp = Math.max(0, targetXp - relativeBaselineXp);
+			}
+			else
+			{
+				if (level < 1 || level > 126) return;
+				xp = level <= 99
+					? Experience.getXpForLevel(level)
+					: Experience.getXpForLevel(99);
+			}
 			syncing = true;
 			try { xpField.setText(Integer.toString(xp)); }
 			finally { syncing = false; }
@@ -71,7 +94,20 @@ public class SkillTargetForm extends JPanel
 			if (syncing) return;
 			Integer xp = parseInt(xpField.getText());
 			if (xp == null || xp < 0 || xp > 200_000_000) return;
-			int level = Experience.getLevelForXp(xp);
+			int level;
+			if (relativeBaselineXp >= 0)
+			{
+				// xp is a delta; resulting level is levelForXp(baseline + delta),
+				// shown as the delta over the current level so the field stays consistent.
+				int currentLevel = Experience.getLevelForXp(relativeBaselineXp);
+				long resultingXp = Math.min(200_000_000L, (long) relativeBaselineXp + xp);
+				int resultingLevel = Experience.getLevelForXp((int) resultingXp);
+				level = resultingLevel - currentLevel;
+			}
+			else
+			{
+				level = Experience.getLevelForXp(xp);
+			}
 			syncing = true;
 			try { levelField.setText(Integer.toString(level)); }
 			finally { syncing = false; }
@@ -80,6 +116,28 @@ public class SkillTargetForm extends JPanel
 		// Seed both fields from the initial level. The level setter triggers the
 		// listener which fills in the XP field.
 		levelField.setText(Integer.toString(initialLevel));
+	}
+
+	/**
+	 * Switch the form into relative mode with the given current XP as the
+	 * baseline. Both fields are interpreted as deltas: level field = "+N
+	 * levels above current", XP field = "+N XP". They sync correctly through
+	 * the baseline (entering 100,000 XP shows the resulting level delta, not
+	 * the level for 100,000 XP in isolation).
+	 *
+	 * <p>Pass -1 to switch back to absolute mode (existing behavior).
+	 *
+	 * <p>Mission 23.
+	 */
+	public void setRelativeBaseline(int currentXp)
+	{
+		this.relativeBaselineXp = currentXp;
+		levelLabel.setText(currentXp >= 0 ? "+ Levels:" : "Level:");
+		// Reset both fields so the previous absolute value isn't reinterpreted
+		// as a (probably nonsensical) delta.
+		syncing = true;
+		try { levelField.setText(""); xpField.setText(""); }
+		finally { syncing = false; }
 	}
 
 	/** @return target XP currently represented by the form, or -1 if invalid. */

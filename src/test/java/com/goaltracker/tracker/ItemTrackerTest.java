@@ -253,4 +253,56 @@ class ItemTrackerTest
 		// Second pass with identical containers: should be no-op
 		assertFalse(tracker.checkGoals(store.getGoals()));
 	}
+
+	// ====================================================================
+	// Mission 23: comprehensive container counting
+	// ====================================================================
+
+	private void stubContainer(InventoryID id, Item... items)
+	{
+		ItemContainer c = mock(ItemContainer.class);
+		when(c.getItems()).thenReturn(items);
+		when(client.getItemContainer(id)).thenReturn(c);
+	}
+
+	@Test
+	@DisplayName("countItem sums equipment + seed vault + group storage when present")
+	void countItemSumsAllContainers()
+	{
+		stubInventoryItems(mockItem(CANNONBALL_ID, 10));
+		stubBankItems(mockItem(CANNONBALL_ID, 20));
+		stubContainer(InventoryID.EQUIPMENT, mockItem(CANNONBALL_ID, 5));
+		stubContainer(InventoryID.SEED_VAULT, mockItem(CANNONBALL_ID, 100));
+		stubContainer(InventoryID.GROUP_STORAGE, mockItem(CANNONBALL_ID, 200));
+		stubContainer(InventoryID.KINGDOM_OF_MISCELLANIA, mockItem(CANNONBALL_ID, 3));
+
+		assertEquals(338, tracker.countItem(CANNONBALL_ID));
+	}
+
+	@Test
+	@DisplayName("countItem ignores containers that return null")
+	void countItemIgnoresMissingContainers()
+	{
+		// Only inventory + equipment populated; bank/seed/group/misc all null.
+		stubInventoryItems(mockItem(CANNONBALL_ID, 7));
+		stubContainer(InventoryID.EQUIPMENT, mockItem(CANNONBALL_ID, 1));
+
+		assertEquals(8, tracker.countItem(CANNONBALL_ID));
+	}
+
+	@Test
+	@DisplayName("countItem returns 0 when no containers populated")
+	void countItemZeroWhenAllNull()
+	{
+		assertEquals(0, tracker.countItem(CANNONBALL_ID));
+	}
+
+	@Test
+	@DisplayName("countItem only counts matching itemId, ignores other items in containers")
+	void countItemFiltersById()
+	{
+		stubInventoryItems(mockItem(CANNONBALL_ID, 50), mockItem(999, 1000));
+		stubContainer(InventoryID.EQUIPMENT, mockItem(999, 1));
+		assertEquals(50, tracker.countItem(CANNONBALL_ID));
+	}
 }

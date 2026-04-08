@@ -95,13 +95,38 @@ public class ItemTracker
 	}
 
 	/**
-	 * Count total quantity of an item across inventory and bank.
+	 * Persistent storage containers we sum across when counting items. The
+	 * transient reward chests (Barrows, ToA, CoX, Wildy loot chest, etc) and
+	 * trade interfaces are intentionally excluded — they're populated briefly
+	 * and would double-count items the player is about to bank.
+	 *
+	 * <p>Each container is only summed when its ItemContainer is non-null,
+	 * which RuneLite only populates when the player has interacted with that
+	 * interface this session. Combined with the {@code bankSeenThisSession}
+	 * guard above, this gives a "best effort, never decrement past max-seen"
+	 * model — opening a new container only ever raises the count.
 	 */
-	private int countItem(int itemId)
+	private static final InventoryID[] COUNTED_CONTAINERS = {
+		InventoryID.INVENTORY,
+		InventoryID.BANK,
+		InventoryID.EQUIPMENT,
+		InventoryID.SEED_VAULT,
+		InventoryID.GROUP_STORAGE,
+		InventoryID.KINGDOM_OF_MISCELLANIA,
+	};
+
+	/**
+	 * Count total quantity of an item across every storage container we know
+	 * how to read. Public so the create-goal UI can snapshot a baseline for
+	 * relative item goals (Mission 23).
+	 */
+	public int countItem(int itemId)
 	{
 		int count = 0;
-		count += countInContainer(InventoryID.INVENTORY, itemId);
-		count += countInContainer(InventoryID.BANK, itemId);
+		for (InventoryID id : COUNTED_CONTAINERS)
+		{
+			count += countInContainer(id, itemId);
+		}
 		return count;
 	}
 

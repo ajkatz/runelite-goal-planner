@@ -158,7 +158,7 @@ Each tracker is wired to a different RuneLite event:
 
 - **SkillTracker** → `onStatChanged` (also on GameTick as a fallback)
 - **QuestTracker, DiaryTracker, CombatAchievementTracker** → `onGameTick`
-- **ItemTracker** → `onItemContainerChanged` (filtered to inventory + bank)
+- **ItemTracker** → `onItemContainerChanged` (sums every persistent storage container exposed by RuneLite)
 
 The tracker batch contract (Mission 14):
 
@@ -179,6 +179,27 @@ only on every login. The `bankSeenThisSession` flag + a growth-only guard
 prevents this: pre-bank-visit, only updates that strictly increase the
 persisted value are applied. After the first bank visit, the flag flips
 permanently and full counts apply.
+
+**ItemTracker counts across multiple containers (Mission 23):** the sum
+covers `INVENTORY`, `BANK`, `EQUIPMENT`, `SEED_VAULT`, `GROUP_STORAGE`, and
+`KINGDOM_OF_MISCELLANIA`. Each is only summed when its `ItemContainer` is
+non-null — RuneLite only populates one when the player has interacted with
+the corresponding interface this session. Combined with the bank-null
+guard, this gives a "best effort, monotonically growing as new containers
+are sighted" model. Transient reward chests (Barrows, ToA, CoX, Wildy
+loot, etc) are intentionally excluded — they're populated briefly and
+would double-count items the player is about to bank. `countItem` is
+public so the create-goal UI can snapshot a baseline for relative item
+goals.
+
+**Relative goal targets (Mission 23):** the Add Goal dialog has a Mode
+toggle ("Reach X" / "Gain X more") for SKILL and ITEM_GRIND goals.
+Relative input is resolved at creation time — the math runs in the UI via
+`RelativeTargetResolver` (a pure helper) and the resulting absolute target
+hits the existing `addSkillGoal` / item-search flows unchanged. Once
+stored, a relative goal is indistinguishable from an absolute one with
+the same target. No new API surface, no new fields on Goal. CUSTOM and
+skill level-deltas are deferred to a future mission.
 
 **ItemTracker also does NOT filter on `status != ACTIVE`** unlike the other
 4 trackers. Item quantities can decrease (drop, sell, use as material) so a
