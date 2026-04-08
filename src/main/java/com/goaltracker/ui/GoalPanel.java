@@ -42,6 +42,9 @@ public class GoalPanel extends PluginPanel
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
 	/** Free-text filter applied to the goal list. Empty = show all. Mission 22. */
 	private String searchFilter = "";
+	/** Most recent simple-click goal id, used as the anchor for shift-click range
+	 *  selection. Cleared on rebuilds when the goal no longer exists. Mission 24. */
+	private String selectionAnchorId = null;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -406,19 +409,57 @@ public class GoalPanel extends PluginPanel
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getButton() != MouseEvent.BUTTON1) return;
-				boolean modifier = e.isMetaDown() || e.isControlDown();
-				if (modifier)
+				boolean cmdCtrl = e.isMetaDown() || e.isControlDown();
+				boolean shift = e.isShiftDown();
+				// Mission 24: Excel-style shift-click extends selection from
+				// the anchor to the clicked goal in linear panel order.
+				if (shift && selectionAnchorId != null && !cmdCtrl)
+				{
+					java.util.Set<String> range = computeRangeSelection(selectionAnchorId, goalId);
+					if (!range.isEmpty()) api.replaceGoalSelection(range);
+					// Mission 24: anchor follows the last click, so the next
+					// shift-click extends from where you just landed.
+					selectionAnchorId = goalId;
+					return;
+				}
+				if (cmdCtrl)
 				{
 					if (wasSelected) api.removeFromGoalSelection(goalId);
 					else api.addToGoalSelection(goalId);
+					selectionAnchorId = goalId;
 				}
 				else
 				{
 					if (wasSelected) api.clearGoalSelection();
 					else api.replaceGoalSelection(java.util.Collections.singleton(goalId));
+					selectionAnchorId = goalId;
 				}
 			}
 		});
+	}
+
+	/**
+	 * Walk the canonical goal order from the API and return the slice of ids
+	 * between (and including) anchorId and clickedId. The order is the same
+	 * one used to render the panel — sections in section.order, goals within
+	 * each section in priority order. Returns an empty set if either id is
+	 * missing from the canonical list (e.g. just deleted). Mission 24.
+	 */
+	private java.util.Set<String> computeRangeSelection(String anchorId, String clickedId)
+	{
+		java.util.List<com.goaltracker.api.GoalView> all = api.queryAllGoals();
+		int aIdx = -1, bIdx = -1;
+		for (int i = 0; i < all.size(); i++)
+		{
+			String id = all.get(i).id;
+			if (id.equals(anchorId)) aIdx = i;
+			if (id.equals(clickedId)) bIdx = i;
+		}
+		if (aIdx < 0 || bIdx < 0) return java.util.Collections.emptySet();
+		int lo = Math.min(aIdx, bIdx), hi = Math.max(aIdx, bIdx);
+		java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
+		for (int i = lo; i <= hi; i++) out.add(all.get(i).id);
+		return out;
 	}
 
 	private void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
@@ -445,7 +486,7 @@ public class GoalPanel extends PluginPanel
 				JPopupMenu popup;
 				if (sel.contains(goal.getId()) && sel.size() >= 2)
 				{
-					popup = buildBulkMenu();
+					popup = buildBulkMenu(goal.getId());
 				}
 				else
 				{
@@ -573,39 +614,15 @@ public class GoalPanel extends PluginPanel
 		// Skill-specific options
 		if (goal.getType() == GoalType.SKILL && !goal.isComplete())
 		{
-			JMenuItem editLevel = new JMenuItem("Change Target");
-			editLevel.addActionListener(e -> {
-				int currentTargetLevel = goal.getTargetValue() > 0
-					? net.runelite.api.Experience.getLevelForXp(goal.getTargetValue()) : 99;
-				String input = JOptionPane.showInputDialog(
-					this,
-					"New target level for " + (goal.getSkillName() != null
-					? net.runelite.api.Skill.valueOf(goal.getSkillName()).getName() : goal.getName()) + ":",
-					String.valueOf(currentTargetLevel)
-				);
-				if (input != null)
-				{
-					try
-					{
-						int newLevel = Integer.parseInt(input.trim());
-						if (newLevel >= 1 && newLevel <= 99)
-						{
-							int newXp = net.runelite.api.Experience.getXpForLevel(newLevel);
-							// changeTarget regenerates the display name from the new
-							// XP target as of Mission 19; no follow-up mutation needed.
-							api.changeTarget(goal.getId(), newXp);
-						}
-					}
-					catch (NumberFormatException ignored) {}
-				}
-			});
+			JMenuItem editLevel = new JMenuItem("Change Amount");
+			editLevel.addActionListener(e -> showChangeSkillTargetDialog(goal));
 			menu.add(editLevel);
 		}
 
 		// Item-specific options
 		if (goal.getType() == GoalType.ITEM_GRIND && !goal.isComplete())
 		{
-			JMenuItem editQty = new JMenuItem("Change Target");
+			JMenuItem editQty = new JMenuItem("Change Amount");
 			editQty.addActionListener(e -> {
 				String input = JOptionPane.showInputDialog(
 					this,
@@ -778,12 +795,14 @@ if (!removableTags.isEmpty())
 			menu.add(removeTag);
 		}
 
-		// Restore Defaults (only if tags have been customized)
-		if (goal.getDefaultTagIds() != null && !goal.getDefaultTagIds().isEmpty()
-			&& goal.getTagIds() != null && !goal.getTagIds().equals(goal.getDefaultTagIds()))
+		// Mission 24: Restore Defaults — gated on isGoalOverridden (tag drift
+		// OR color override). Routes through the bulk API so the single-item
+		// path resets BOTH tags and color in one shot.
+		if (api.isGoalOverridden(goal.getId()))
 		{
 			JMenuItem restore = new JMenuItem("Restore Defaults");
-			restore.addActionListener(e -> api.restoreDefaultTags(goal.getId()));
+			restore.addActionListener(e ->
+				api.bulkRestoreDefaults(java.util.Collections.singleton(goal.getId())));
 			menu.add(restore);
 		}
 
@@ -813,8 +832,16 @@ if (!removableTags.isEmpty())
 			}
 		}
 
-		JMenuItem remove = new JMenuItem("Remove");
-		remove.addActionListener(e -> api.removeGoal(goal.getId()));
+		JMenuItem remove = new JMenuItem("Remove Goal");
+		remove.addActionListener(e -> {
+			int confirm = JOptionPane.showConfirmDialog(
+				this,
+				"Remove \"" + goal.getName() + "\"?",
+				"Remove Goal",
+				JOptionPane.YES_NO_OPTION,
+				JOptionPane.PLAIN_MESSAGE);
+			if (confirm == JOptionPane.YES_OPTION) api.removeGoal(goal.getId());
+		});
 		menu.add(remove);
 
 		return menu;
@@ -825,7 +852,7 @@ if (!removableTags.isEmpty())
 	 * card is part of a multi-selection (size >= 2). Five items only:
 	 * Move to Section, Add Tag, Change Color, Remove, Mark as Complete.
 	 */
-	private JPopupMenu buildBulkMenu()
+	private JPopupMenu buildBulkMenu(String rightClickedGoalId)
 	{
 		JPopupMenu menu = new JPopupMenu();
 		java.util.Set<String> selectedIds = api.getSelectedGoalIds();
@@ -844,6 +871,17 @@ if (!removableTags.isEmpty())
 		JMenuItem header = new JMenuItem(selectionSize + " selected");
 		header.setEnabled(false);
 		menu.add(header);
+
+		// Mission 24: selection toggle + deselect all on the bulk menu so the
+		// user can drop one card or escape the whole multi-selection without
+		// having to find a single-card popup.
+		menu.addSeparator();
+		JMenuItem deselectThis = new JMenuItem("Deselect this");
+		deselectThis.addActionListener(e -> api.removeFromGoalSelection(rightClickedGoalId));
+		menu.add(deselectThis);
+		JMenuItem deselectAll = new JMenuItem("Deselect All");
+		deselectAll.addActionListener(e -> api.clearGoalSelection());
+		menu.add(deselectAll);
 		menu.addSeparator();
 
 		// 1. Move to Section — only if at least one selected goal is non-complete.
@@ -889,6 +927,35 @@ if (!removableTags.isEmpty())
 		changeColor.addActionListener(e -> showBulkChangeColorDialog(selectedGoals));
 		menu.add(changeColor);
 
+		// Mission 24: bulk Remove Tag — show only if at least one selected
+		// goal has a removable tag.
+		java.util.List<com.goaltracker.api.GoalTrackerInternalApi.TagRemovalOption> removableOpts =
+			api.getRemovableTagsForSelection(selectedIds);
+		if (!removableOpts.isEmpty())
+		{
+			JMenuItem bulkRemoveTag = new JMenuItem("Remove Tag");
+			bulkRemoveTag.addActionListener(e -> showBulkRemoveTagDialog(selectedIds, removableOpts));
+			menu.add(bulkRemoveTag);
+		}
+
+		// Mission 24: bulk Restore Defaults — show only if at least one
+		// selected goal is overridden (tag drift OR color override).
+		boolean anyOverridden = false;
+		for (String id : selectedIds)
+		{
+			if (api.isGoalOverridden(id)) { anyOverridden = true; break; }
+		}
+		if (anyOverridden)
+		{
+			JMenuItem restoreDefaults = new JMenuItem("Restore Defaults");
+			restoreDefaults.addActionListener(e -> {
+				int changed = api.bulkRestoreDefaults(selectedIds);
+				log.debug("bulkRestoreDefaults changed {} of {} selected goals",
+					changed, selectionSize);
+			});
+			menu.add(restoreDefaults);
+		}
+
 		// 4. Mark as Complete — only when ALL selected are CUSTOM (per locked design)
 		boolean allCustom = !selectedGoals.isEmpty();
 		for (Goal g : selectedGoals)
@@ -910,14 +977,14 @@ if (!removableTags.isEmpty())
 		menu.addSeparator();
 
 		// 5. Remove
-		JMenuItem remove = new JMenuItem("Remove");
+		JMenuItem remove = new JMenuItem("Remove Goals");
 		remove.addActionListener(e -> {
 			int confirm = JOptionPane.showConfirmDialog(
 				this,
 				"Remove " + selectionSize + " goals?",
 				"Remove Goals",
 				JOptionPane.YES_NO_OPTION,
-				JOptionPane.WARNING_MESSAGE
+				JOptionPane.PLAIN_MESSAGE
 			);
 			if (confirm != JOptionPane.YES_OPTION) return;
 			for (Goal g : selectedGoals)
@@ -935,6 +1002,90 @@ if (!removableTags.isEmpty())
 	 * but applies the result to every selected goal. Category dropdown is
 	 * locked to OTHER unless ALL selected are CUSTOM (mirrors single-item rule).
 	 */
+	/**
+	 * Change Amount dialog for SKILL goals. Mirrors the Add Goal dialog —
+	 * SkillTargetForm with synced Level/XP fields plus a Mode toggle so the
+	 * user can target an absolute level/XP OR a delta gain. Mission 24.
+	 */
+	private void showChangeSkillTargetDialog(Goal goal)
+	{
+		net.runelite.api.Skill skill;
+		try
+		{
+			skill = net.runelite.api.Skill.valueOf(goal.getSkillName());
+		}
+		catch (Exception ex) { return; }
+
+		int currentXp = client != null ? client.getSkillExperience(skill) : 0;
+		int currentTargetLevel = goal.getTargetValue() > 0
+			? net.runelite.api.Experience.getLevelForXp(goal.getTargetValue()) : 1;
+
+		SkillTargetForm form = new SkillTargetForm(currentTargetLevel);
+
+		javax.swing.JRadioButton modeAbsolute = new javax.swing.JRadioButton("Reach X", true);
+		javax.swing.JRadioButton modeRelative = new javax.swing.JRadioButton("Gain X more");
+		modeAbsolute.setOpaque(false);
+		modeRelative.setOpaque(false);
+		javax.swing.ButtonGroup grp = new javax.swing.ButtonGroup();
+		grp.add(modeAbsolute); grp.add(modeRelative);
+		JPanel modeRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
+		modeRow.setOpaque(false);
+		modeRow.add(modeAbsolute);
+		modeRow.add(modeRelative);
+		modeAbsolute.addActionListener(ev -> form.setRelativeBaseline(-1));
+		modeRelative.addActionListener(ev -> form.setRelativeBaseline(currentXp));
+
+		JPanel panel = new JPanel(new java.awt.GridBagLayout());
+		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+		gbc.insets = new Insets(4, 4, 4, 4);
+		gbc.anchor = java.awt.GridBagConstraints.WEST;
+		gbc.gridx = 0; gbc.gridy = 0;
+		panel.add(new JLabel("Mode:"), gbc);
+		gbc.gridx = 1;
+		panel.add(modeRow, gbc);
+		gbc.gridx = 0; gbc.gridy = 1; gbc.gridwidth = 2;
+		panel.add(form, gbc);
+
+		int result = JOptionPane.showConfirmDialog(this, panel,
+			"Change " + skill.getName() + " Target",
+			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (result != JOptionPane.OK_OPTION) return;
+
+		int formValue = form.getTargetXp();
+		if (formValue < 0) return;
+		int newXp = modeRelative.isSelected()
+			? RelativeTargetResolver.resolveSkillXp(currentXp, formValue)
+			: formValue;
+		if (newXp < 0) return;
+		api.changeTarget(goal.getId(), newXp);
+	}
+
+	/**
+	 * Mission 24: bulk Remove Tag dialog. Shows the merged set of removable
+	 * tags across the selection with a count badge ("Slayer (3)") so the user
+	 * knows how many of their selection have it. Picking a tag fires a single
+	 * bulk API call.
+	 */
+	private void showBulkRemoveTagDialog(java.util.Set<String> selectedIds,
+		java.util.List<com.goaltracker.api.GoalTrackerInternalApi.TagRemovalOption> opts)
+	{
+		String[] labels = new String[opts.size()];
+		for (int i = 0; i < opts.size(); i++)
+		{
+			com.goaltracker.api.GoalTrackerInternalApi.TagRemovalOption o = opts.get(i);
+			labels[i] = o.label + " (" + o.count + ")";
+		}
+		String picked = (String) JOptionPane.showInputDialog(
+			this, "Remove which tag from the selection?", "Bulk Remove Tag",
+			JOptionPane.PLAIN_MESSAGE, null, labels, labels[0]);
+		if (picked == null) return;
+		int idx = java.util.Arrays.asList(labels).indexOf(picked);
+		if (idx < 0) return;
+		String tagId = opts.get(idx).tagId;
+		int removed = api.bulkRemoveTagFromGoals(selectedIds, tagId);
+		log.debug("bulkRemoveTagFromGoals removed {} from {}", opts.get(idx).label, removed);
+	}
+
 	private void showBulkAddTagDialog(java.util.List<Goal> selectedGoals)
 	{
 		boolean allCustom = !selectedGoals.isEmpty();

@@ -282,6 +282,65 @@ public interface GoalTrackerInternalApi
 	 */
 	java.util.List<GoalView> searchGoals(String query);
 
+	// ---------------------------------------------------------------------
+	// Bulk multi-selection actions (Mission 24)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * True if the goal has diverged from its defaults — either its tagIds set
+	 * differs from defaultTagIds, or it has a custom color override. Used to
+	 * gate the (single + bulk) Restore Defaults menu items.
+	 */
+	boolean isGoalOverridden(String goalId);
+
+	/**
+	 * Reset every eligible goal in the selection back to its defaults: tagIds
+	 * = defaultTagIds, customColorRgb = -1. Ineligible goals (none of those
+	 * are overridden) are skipped silently. Fires a single onGoalsChanged at
+	 * the end. Mission 24.
+	 *
+	 * @return number of goals actually changed
+	 */
+	int bulkRestoreDefaults(java.util.Set<String> goalIds);
+
+	/**
+	 * Remove a tag from every selected goal where it is both present and
+	 * removable. CUSTOM goals can drop any tag; non-CUSTOM goals can only
+	 * drop tags NOT in defaultTagIds. Skips silently otherwise. Fires a
+	 * single onGoalsChanged. Mission 24.
+	 *
+	 * @return number of goals from which the tag was removed
+	 */
+	int bulkRemoveTagFromGoals(java.util.Set<String> goalIds, String tagId);
+
+	/**
+	 * For a set of selected goals, return every removable tag (deduped) with
+	 * a count of how many goals in the selection have it (and where it's
+	 * removable). Sorted by count descending then by label ascending. Used
+	 * to populate the bulk Remove Tag dropdown. Mission 24.
+	 */
+	java.util.List<TagRemovalOption> getRemovableTagsForSelection(java.util.Set<String> goalIds);
+
+	/**
+	 * Lightweight DTO returned by {@link #getRemovableTagsForSelection}.
+	 * Mission 24.
+	 */
+	final class TagRemovalOption
+	{
+		public final String tagId;
+		public final String label;
+		public final String category;
+		public final int count;
+
+		public TagRemovalOption(String tagId, String label, String category, int count)
+		{
+			this.tagId = tagId;
+			this.label = label;
+			this.category = category;
+			this.count = count;
+		}
+	}
+
 	/**
 	 * Create a user tag (idempotent on case-insensitive label+category match).
 	 *

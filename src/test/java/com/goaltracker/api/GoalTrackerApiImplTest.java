@@ -1023,6 +1023,154 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
+	@DisplayName("Bulk multi-selection actions (Mission 24)")
+	class BulkActions
+	{
+		private Goal addCustomWithDefaults(String name, String... defaultTagIds)
+		{
+			String id = api.addCustomGoal(name, "");
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId())).findFirst().orElseThrow();
+			java.util.List<String> defaults = new java.util.ArrayList<>(java.util.Arrays.asList(defaultTagIds));
+			g.setDefaultTagIds(defaults);
+			g.setTagIds(new java.util.ArrayList<>(defaults));
+			return g;
+		}
+
+		@Test
+		@DisplayName("isGoalOverridden true when color is set")
+		void overriddenByColor()
+		{
+			Goal g = addCustomWithDefaults("Foo");
+			assertFalse(api.isGoalOverridden(g.getId()));
+			api.setGoalColor(g.getId(), 0x00FF00);
+			assertTrue(api.isGoalOverridden(g.getId()));
+		}
+
+		@Test
+		@DisplayName("isGoalOverridden true when tags drift from defaults")
+		void overriddenByTagDrift()
+		{
+			com.goaltracker.model.Tag defaultTag = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			Goal g = addCustomWithDefaults("Foo", defaultTag.getId());
+			assertFalse(api.isGoalOverridden(g.getId()));
+			com.goaltracker.model.Tag extra = store.createUserTag(
+				"Extra", com.goaltracker.model.TagCategory.OTHER);
+			g.getTagIds().add(extra.getId());
+			assertTrue(api.isGoalOverridden(g.getId()));
+		}
+
+		@Test
+		@DisplayName("bulkRestoreDefaults resets eligible goals and skips clean ones")
+		void bulkRestoreHappyPath()
+		{
+			com.goaltracker.model.Tag t1 = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			Goal a = addCustomWithDefaults("A", t1.getId());
+			Goal b = addCustomWithDefaults("B", t1.getId());
+			Goal c = addCustomWithDefaults("C", t1.getId()); // clean
+
+			com.goaltracker.model.Tag extra = store.createUserTag(
+				"Extra", com.goaltracker.model.TagCategory.OTHER);
+			a.getTagIds().add(extra.getId());
+			api.setGoalColor(b.getId(), 0xFF0000);
+
+			int changed = api.bulkRestoreDefaults(new java.util.HashSet<>(
+				java.util.Arrays.asList(a.getId(), b.getId(), c.getId())));
+			assertEquals(2, changed);
+			assertEquals(java.util.List.of(t1.getId()), a.getTagIds());
+			assertEquals(-1, b.getCustomColorRgb());
+			assertFalse(api.isGoalOverridden(c.getId()));
+		}
+
+		@Test
+		@DisplayName("bulkRestoreDefaults returns 0 on empty selection")
+		void bulkRestoreEmpty()
+		{
+			assertEquals(0, api.bulkRestoreDefaults(java.util.Collections.emptySet()));
+			assertEquals(0, api.bulkRestoreDefaults(null));
+		}
+
+		@Test
+		@DisplayName("bulkRemoveTagFromGoals removes from every goal that has it removably")
+		void bulkRemoveTagHappyPath()
+		{
+			com.goaltracker.model.Tag def = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			com.goaltracker.model.Tag user = store.createUserTag(
+				"Hot", com.goaltracker.model.TagCategory.OTHER);
+
+			Goal a = addCustomWithDefaults("A", def.getId());
+			a.getTagIds().add(user.getId());
+			Goal b = addCustomWithDefaults("B", def.getId());
+			b.getTagIds().add(user.getId());
+			Goal c = addCustomWithDefaults("C", def.getId()); // doesn't have it
+
+			int removed = api.bulkRemoveTagFromGoals(
+				new java.util.HashSet<>(java.util.Arrays.asList(a.getId(), b.getId(), c.getId())),
+				user.getId());
+			assertEquals(2, removed);
+			assertFalse(a.getTagIds().contains(user.getId()));
+			assertFalse(b.getTagIds().contains(user.getId()));
+		}
+
+		@Test
+		@DisplayName("bulkRemoveTagFromGoals skips default tags on non-CUSTOM goals")
+		void bulkRemoveTagSkipsDefaultsOnNonCustom()
+		{
+			// Use a SKILL goal so default tags are non-removable
+			com.goaltracker.model.Tag def = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			String skillGoalId = api.addSkillGoal(net.runelite.api.Skill.ATTACK, 99);
+			Goal sg = store.getGoals().stream().filter(x -> skillGoalId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			sg.setDefaultTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+			sg.setTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+
+			int removed = api.bulkRemoveTagFromGoals(
+				java.util.Set.of(skillGoalId), def.getId());
+			assertEquals(0, removed);
+			assertTrue(sg.getTagIds().contains(def.getId()));
+		}
+
+		@Test
+		@DisplayName("getRemovableTagsForSelection counts and sorts correctly")
+		void removableTagsCountsAndSort()
+		{
+			com.goaltracker.model.Tag t1 = store.createUserTag("Alpha", com.goaltracker.model.TagCategory.OTHER);
+			com.goaltracker.model.Tag t2 = store.createUserTag("Bravo", com.goaltracker.model.TagCategory.OTHER);
+			com.goaltracker.model.Tag t3 = store.createUserTag("Charlie", com.goaltracker.model.TagCategory.OTHER);
+
+			Goal a = addCustomWithDefaults("A");
+			a.getTagIds().add(t1.getId());
+			a.getTagIds().add(t2.getId());
+			Goal b = addCustomWithDefaults("B");
+			b.getTagIds().add(t1.getId());
+			b.getTagIds().add(t3.getId());
+			Goal c = addCustomWithDefaults("C");
+			c.getTagIds().add(t1.getId());
+
+			java.util.List<GoalTrackerInternalApi.TagRemovalOption> opts =
+				api.getRemovableTagsForSelection(new java.util.HashSet<>(
+					java.util.Arrays.asList(a.getId(), b.getId(), c.getId())));
+			assertEquals(3, opts.size());
+			assertEquals("Alpha", opts.get(0).label); // count 3
+			assertEquals(3, opts.get(0).count);
+			// Bravo and Charlie both at count 1, sorted alphabetically
+			assertEquals("Bravo", opts.get(1).label);
+			assertEquals("Charlie", opts.get(2).label);
+		}
+
+		@Test
+		@DisplayName("getRemovableTagsForSelection empty selection returns empty list")
+		void removableTagsEmpty()
+		{
+			assertTrue(api.getRemovableTagsForSelection(java.util.Collections.emptySet()).isEmpty());
+			assertTrue(api.getRemovableTagsForSelection(null).isEmpty());
+		}
+	}
+
+	@Nested
 	@DisplayName("searchGoals")
 	class SearchGoals
 	{

@@ -863,6 +863,99 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return true;
 	}
 
+	// ---------------------------------------------------------------------
+	// Bulk multi-selection actions (Mission 24)
+	// ---------------------------------------------------------------------
+
+	@Override
+	public boolean isGoalOverridden(String goalId)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		if (g.getCustomColorRgb() >= 0) return true;
+		List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+		List<String> current = g.getTagIds() != null ? g.getTagIds() : java.util.Collections.emptyList();
+		return !new java.util.HashSet<>(current).equals(new java.util.HashSet<>(defaults));
+	}
+
+	@Override
+	public int bulkRestoreDefaults(java.util.Set<String> goalIds)
+	{
+		log.debug("API.internal bulkRestoreDefaults({} goals)", goalIds == null ? 0 : goalIds.size());
+		if (goalIds == null || goalIds.isEmpty()) return 0;
+		int changed = 0;
+		for (String goalId : goalIds)
+		{
+			Goal g = findGoal(goalId);
+			if (g == null) continue;
+			if (!isGoalOverridden(goalId)) continue;
+			List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+			g.setTagIds(new ArrayList<>(defaults));
+			g.setCustomColorRgb(-1);
+			goalStore.updateGoal(g);
+			changed++;
+		}
+		if (changed > 0) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public int bulkRemoveTagFromGoals(java.util.Set<String> goalIds, String tagId)
+	{
+		log.debug("API.internal bulkRemoveTagFromGoals({} goals, tagId={})",
+			goalIds == null ? 0 : goalIds.size(), tagId);
+		if (goalIds == null || goalIds.isEmpty() || tagId == null) return 0;
+		int removed = 0;
+		for (String goalId : goalIds)
+		{
+			Goal g = findGoal(goalId);
+			if (g == null || g.getTagIds() == null) continue;
+			if (!g.getTagIds().contains(tagId)) continue;
+			boolean isCustom = g.getType() == GoalType.CUSTOM;
+			List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+			if (!isCustom && defaults.contains(tagId)) continue; // not removable
+			g.getTagIds().remove(tagId);
+			goalStore.updateGoal(g);
+			removed++;
+		}
+		if (removed > 0) onGoalsChanged.run();
+		return removed;
+	}
+
+	@Override
+	public List<TagRemovalOption> getRemovableTagsForSelection(java.util.Set<String> goalIds)
+	{
+		if (goalIds == null || goalIds.isEmpty()) return java.util.Collections.emptyList();
+		// tagId → count of selected goals where it's both present and removable
+		java.util.Map<String, Integer> counts = new java.util.HashMap<>();
+		for (String goalId : goalIds)
+		{
+			Goal g = findGoal(goalId);
+			if (g == null || g.getTagIds() == null) continue;
+			boolean isCustom = g.getType() == GoalType.CUSTOM;
+			List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+			for (String tid : g.getTagIds())
+			{
+				if (!isCustom && defaults.contains(tid)) continue;
+				counts.merge(tid, 1, Integer::sum);
+			}
+		}
+		List<TagRemovalOption> out = new ArrayList<>(counts.size());
+		for (java.util.Map.Entry<String, Integer> e : counts.entrySet())
+		{
+			Tag tag = goalStore.findTag(e.getKey());
+			if (tag == null) continue;
+			out.add(new TagRemovalOption(tag.getId(), tag.getLabel(),
+				tag.getCategory() != null ? tag.getCategory().name() : "OTHER", e.getValue()));
+		}
+		// Sort: count desc, then label asc (case-insensitive)
+		out.sort((a, b) -> {
+			if (a.count != b.count) return Integer.compare(b.count, a.count);
+			return a.label.compareToIgnoreCase(b.label);
+		});
+		return out;
+	}
+
 	private Goal findGoal(String goalId)
 	{
 		for (Goal g : goalStore.getGoals())
