@@ -3,6 +3,8 @@ package com.goaltracker.persistence;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.Section;
+import com.goaltracker.model.Tag;
+import com.goaltracker.model.TagCategory;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
@@ -35,14 +37,17 @@ public class GoalStore
 	private static final String CONFIG_GROUP = "goaltracker";
 	private static final String GOALS_KEY = "goals";
 	private static final String SECTIONS_KEY = "sections";
+	private static final String TAGS_KEY = "tags";
 
 	private static final Gson GSON = new GsonBuilder().create();
 	private static final Type GOAL_LIST_TYPE = new TypeToken<List<Goal>>(){}.getType();
 	private static final Type SECTION_LIST_TYPE = new TypeToken<List<Section>>(){}.getType();
+	private static final Type TAG_LIST_TYPE = new TypeToken<List<Tag>>(){}.getType();
 
 	private final ConfigManager configManager;
 	private List<Goal> goals = new ArrayList<>();
 	private List<Section> sections = new ArrayList<>();
+	private List<Tag> tags = new ArrayList<>();
 
 	@Inject
 	public GoalStore(ConfigManager configManager)
@@ -93,9 +98,166 @@ public class GoalStore
 			}
 		}
 
+		// Tags (Mission 19: first-class tag entities)
+		String tagsJson = configManager.getConfiguration(CONFIG_GROUP, TAGS_KEY);
+		if (tagsJson != null && !tagsJson.isEmpty())
+		{
+			try
+			{
+				List<Tag> loaded = GSON.fromJson(tagsJson, TAG_LIST_TYPE);
+				if (loaded != null)
+				{
+					tags = new ArrayList<>(loaded);
+					log.info("Loaded {} tags", tags.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load tags", e);
+				tags = new ArrayList<>();
+			}
+		}
+
+		// Migrate any tags with a null category. Happens when an enum value is
+		// removed (Mission 19 dropped SPECIAL): Gson deserializes the unknown
+		// category name as null. Reassign to OTHER and re-save so subsequent
+		// operations have a valid category.
+		boolean tagsMigrated = false;
+		for (Tag t : tags)
+		{
+			if (t.getCategory() == null)
+			{
+				log.info("Migrating tag {} (label={}) with null category to OTHER",
+					t.getId(), t.getLabel());
+				t.setCategory(TagCategory.OTHER);
+				tagsMigrated = true;
+			}
+		}
+
+		// Specific historical rename: "Pets" → "Pet" (canonical label as of
+		// Mission 19). Redirect goal references from "Pets" entities to "Pet"
+		// entities and delete the "Pets" entries.
+		tagsMigrated |= mergeTagsByLabelRename("Pets", "Pet", TagCategory.OTHER);
+
+		// Generic dedupe pass: any (lowercase label, category) collision is
+		// merged into a single canonical entity. Catches accidental duplicates
+		// from buggy seed iterations or pre-dedupe goal creation flows.
+		tagsMigrated |= dedupeTagsByLabelCategory();
+
 		ensureBuiltInSections();
 		migrateOrphanedGoals();
 		normalizeOrder();
+
+		if (tagsMigrated) save();
+	}
+
+	/**
+	 * Merge all tags with {@code oldLabel} into a tag with {@code newLabel} in
+	 * the same category. Used for historical label renames (e.g. Pets → Pet).
+	 * Goal references are redirected; the old tags are removed from the store.
+	 *
+	 * @return true if anything was merged
+	 */
+	private boolean mergeTagsByLabelRename(String oldLabel, String newLabel, TagCategory category)
+	{
+		Tag canonical = findTagByLabel(newLabel, category);
+		java.util.List<Tag> toMerge = new ArrayList<>();
+		for (Tag t : tags)
+		{
+			if (t.getCategory() == category && oldLabel.equalsIgnoreCase(t.getLabel()))
+			{
+				toMerge.add(t);
+			}
+		}
+		if (toMerge.isEmpty()) return false;
+		// If there's no canonical "newLabel" tag, promote the first old one by
+		// renaming it in place.
+		if (canonical == null)
+		{
+			canonical = toMerge.remove(0);
+			canonical.setLabel(newLabel);
+		}
+		final String canonicalId = canonical.getId();
+		for (Tag old : toMerge)
+		{
+			redirectGoalTagReferences(old.getId(), canonicalId);
+			tags.removeIf(x -> x.getId().equals(old.getId()));
+			log.info("Merged tag {} ({}) → {} ({})", old.getId(), oldLabel, canonicalId, newLabel);
+		}
+		return true;
+	}
+
+	/**
+	 * Generic dedupe: any group of tags sharing the same (lowercase label,
+	 * category) is collapsed to a single canonical entity. The canonical is
+	 * preferred by: has-color-override first, then first-in-list.
+	 *
+	 * @return true if any duplicates were merged
+	 */
+	private boolean dedupeTagsByLabelCategory()
+	{
+		java.util.Map<String, java.util.List<Tag>> groups = new java.util.LinkedHashMap<>();
+		for (Tag t : tags)
+		{
+			if (t.getCategory() == null || t.getLabel() == null) continue;
+			String key = t.getCategory().name() + "|" + t.getLabel().toLowerCase();
+			groups.computeIfAbsent(key, k -> new ArrayList<>()).add(t);
+		}
+		boolean anyMerged = false;
+		for (java.util.List<Tag> group : groups.values())
+		{
+			if (group.size() <= 1) continue;
+			// Pick canonical: prefer one with a color override, else first
+			Tag canonical = group.get(0);
+			for (Tag t : group)
+			{
+				if (t.getColorRgb() >= 0) { canonical = t; break; }
+			}
+			final String canonicalId = canonical.getId();
+			for (Tag dup : group)
+			{
+				if (dup == canonical) continue;
+				redirectGoalTagReferences(dup.getId(), canonicalId);
+				tags.removeIf(x -> x.getId().equals(dup.getId()));
+				log.info("Deduped tag {} ({}, {}) → {} (canonical)",
+					dup.getId(), dup.getLabel(), dup.getCategory(), canonicalId);
+				anyMerged = true;
+			}
+		}
+		return anyMerged;
+	}
+
+	/**
+	 * Replace every occurrence of {@code fromTagId} with {@code toTagId} in
+	 * every goal's {@code tagIds} and {@code defaultTagIds} lists. Used by
+	 * the merge / dedupe migrations to redirect references before deleting
+	 * the source tag.
+	 */
+	private void redirectGoalTagReferences(String fromTagId, String toTagId)
+	{
+		for (Goal g : goals)
+		{
+			if (g.getTagIds() != null)
+			{
+				java.util.List<String> updated = new ArrayList<>();
+				for (String id : g.getTagIds())
+				{
+					String mapped = fromTagId.equals(id) ? toTagId : id;
+					if (!updated.contains(mapped)) updated.add(mapped);
+				}
+				g.setTagIds(updated);
+			}
+			if (g.getDefaultTagIds() != null)
+			{
+				java.util.List<String> updated = new ArrayList<>();
+				for (String id : g.getDefaultTagIds())
+				{
+					String mapped = fromTagId.equals(id) ? toTagId : id;
+					if (!updated.contains(mapped)) updated.add(mapped);
+				}
+				g.setDefaultTagIds(updated);
+			}
+		}
 	}
 
 	/**
@@ -215,11 +377,15 @@ public class GoalStore
 			String sectionsJson = GSON.toJson(sections);
 			configManager.setConfiguration(CONFIG_GROUP, SECTIONS_KEY, sectionsJson);
 
-			log.debug("Saved {} goals / {} sections", goals.size(), sections.size());
+			String tagsJson = GSON.toJson(tags);
+			configManager.setConfiguration(CONFIG_GROUP, TAGS_KEY, tagsJson);
+
+			log.debug("Saved {} goals / {} sections / {} tags",
+				goals.size(), sections.size(), tags.size());
 		}
 		catch (Exception e)
 		{
-			log.error("Failed to save goals/sections", e);
+			log.error("Failed to save goals/sections/tags", e);
 		}
 	}
 
@@ -620,6 +786,156 @@ public class GoalStore
 			if (!s.isBuiltIn() && s.getOrder() > max) max = s.getOrder();
 		}
 		return max + 1;
+	}
+
+	// ---------------------------------------------------------------------
+	// Tag entity CRUD (Mission 19)
+	// ---------------------------------------------------------------------
+
+	private static final int MAX_TAG_LABEL_LENGTH = 30;
+
+	public List<Tag> getTags()
+	{
+		return tags;
+	}
+
+	public Tag findTag(String tagId)
+	{
+		if (tagId == null) return null;
+		for (Tag t : tags)
+		{
+			if (tagId.equals(t.getId())) return t;
+		}
+		return null;
+	}
+
+	/**
+	 * Look up a tag by case-insensitive (label, category) match. Returns the
+	 * first match (system OR user) — used by the find-or-create flow so the
+	 * same logical tag is shared across goals.
+	 */
+	public Tag findTagByLabel(String label, TagCategory category)
+	{
+		if (label == null || category == null) return null;
+		String trimmed = label.trim();
+		for (Tag t : tags)
+		{
+			if (t.getCategory() == category
+				&& t.getLabel() != null
+				&& t.getLabel().equalsIgnoreCase(trimmed))
+			{
+				return t;
+			}
+		}
+		return null;
+	}
+
+	/** Validate a proposed tag label. Returns null on valid, error message otherwise. */
+	public String validateTagLabel(String label)
+	{
+		if (label == null) return "Label is required";
+		String trimmed = label.trim();
+		if (trimmed.isEmpty()) return "Label cannot be empty";
+		if (trimmed.length() > MAX_TAG_LABEL_LENGTH)
+			return "Label must be " + MAX_TAG_LABEL_LENGTH + " characters or fewer";
+		return null;
+	}
+
+	/**
+	 * Create a user tag, or return the existing one if a (label, category)
+	 * match already exists. Idempotent.
+	 *
+	 * @throws IllegalArgumentException if label is invalid
+	 */
+	public Tag createUserTag(String label, TagCategory category)
+	{
+		String error = validateTagLabel(label);
+		if (error != null) throw new IllegalArgumentException(error);
+		Tag existing = findTagByLabel(label, category);
+		if (existing != null) return existing;
+		Tag created = Tag.builder()
+			.label(label.trim())
+			.category(category)
+			.system(false)
+			.build();
+		tags.add(created);
+		save();
+		return created;
+	}
+
+	/**
+	 * Find a system tag by (label, category), or create one if missing.
+	 * System tags are auto-generated by goal creation flows (Boss/Raid/Tier
+	 * on CA goals, Slayer on slayer-task CA goals, etc).
+	 */
+	public Tag findOrCreateSystemTag(String label, TagCategory category)
+	{
+		if (label == null || category == null) return null;
+		Tag existing = findTagByLabel(label, category);
+		if (existing != null) return existing;
+		Tag created = Tag.builder()
+			.label(label.trim())
+			.category(category)
+			.system(true)
+			.build();
+		tags.add(created);
+		save();
+		return created;
+	}
+
+	/**
+	 * Rename a user tag. System tags are read-only for name (returns false).
+	 * Validates the new label and rejects no-op changes.
+	 */
+	public boolean renameTag(String tagId, String newLabel)
+	{
+		Tag t = findTag(tagId);
+		if (t == null || t.isSystem()) return false;
+		if (validateTagLabel(newLabel) != null) return false;
+		String trimmed = newLabel.trim();
+		if (trimmed.equals(t.getLabel())) return false;
+		// Reject duplicate (label, category) within the same category
+		Tag dup = findTagByLabel(trimmed, t.getCategory());
+		if (dup != null && !dup.getId().equals(tagId)) return false;
+		t.setLabel(trimmed);
+		save();
+		return true;
+	}
+
+	/**
+	 * Recolor a tag. System tags in the SKILLING category are fully read-only
+	 * (skill icons); other system tags can be recolored. User tags can always
+	 * be recolored. Pass -1 to clear the override.
+	 */
+	public boolean recolorTag(String tagId, int colorRgb)
+	{
+		Tag t = findTag(tagId);
+		if (t == null) return false;
+		if (t.isSystem() && t.getCategory() == TagCategory.SKILLING) return false;
+		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
+		if (t.getColorRgb() == normalized) return false;
+		t.setColorRgb(normalized);
+		save();
+		return true;
+	}
+
+	/**
+	 * Delete a user tag and cascade-remove the reference from every goal.
+	 * System tags cannot be deleted (returns false) — they're auto-attached
+	 * by goal creation and trackers depend on their existence.
+	 */
+	public boolean deleteTag(String tagId)
+	{
+		Tag t = findTag(tagId);
+		if (t == null || t.isSystem()) return false;
+		for (Goal g : goals)
+		{
+			if (g.getTagIds() != null) g.getTagIds().remove(tagId);
+			if (g.getDefaultTagIds() != null) g.getDefaultTagIds().remove(tagId);
+		}
+		tags.removeIf(x -> tagId.equals(x.getId()));
+		save();
+		return true;
 	}
 
 	public void reorder(int fromIndex, int toIndex)

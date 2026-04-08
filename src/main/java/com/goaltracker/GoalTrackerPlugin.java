@@ -130,6 +130,7 @@ public class GoalTrackerPlugin extends Plugin
 		log.info("Goal Tracker started");
 
 		goalStore.load();
+		seedCanonicalSystemTags();
 		wikiCaRepository.loadAsync();
 		// Migrate any pre-existing CA goals (from before the bit-packed varp tracking
 		// switch) by looking up their wiki id by name. No-op if the wiki cache hasn't
@@ -207,6 +208,13 @@ public class GoalTrackerPlugin extends Plugin
 						if (confirm == javax.swing.JOptionPane.OK_OPTION)
 						{
 							java.util.List<ItemTag> autoTags = buildItemTags(itemId);
+							java.util.List<String> autoTagIds = new java.util.ArrayList<>();
+							for (ItemTag spec : autoTags)
+							{
+								com.goaltracker.model.Tag tag =
+									goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+								if (tag != null) autoTagIds.add(tag.getId());
+							}
 							Goal goal = Goal.builder()
 								.type(GoalType.ITEM_GRIND)
 								.name(itemName)
@@ -214,8 +222,8 @@ public class GoalTrackerPlugin extends Plugin
 								.itemId(itemId)
 								.targetValue(targetQty)
 								.currentValue(-1)
-								.tags(new java.util.ArrayList<>(autoTags))
-								.defaultTags(new java.util.ArrayList<>(autoTags))
+								.tagIds(new java.util.ArrayList<>(autoTagIds))
+								.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
 								.build();
 
 							goalStore.addGoal(goal);
@@ -265,7 +273,9 @@ public class GoalTrackerPlugin extends Plugin
 		if (isPet)
 		{
 			tags.removeIf(t -> "All Pets".equals(t.getLabel()));
-			tags.add(0, new ItemTag("Pet", TagCategory.SPECIAL));
+			// Mission 19: SPECIAL category removed; the Pet tag now lives in OTHER
+			// with a per-tag pink color override seeded by seedCanonicalSystemTags.
+			tags.add(0, new ItemTag("Pet", TagCategory.OTHER));
 		}
 
 		return tags;
@@ -508,16 +518,19 @@ public class GoalTrackerPlugin extends Plugin
 		// bit-packed CA_TASK_COMPLETED varplayers. -1 = unknown.
 		int caTaskId = (wiki != null) ? wiki.id : -1;
 
-		java.util.List<ItemTag> tags = new java.util.ArrayList<>();
+		java.util.List<String> tagIds = new java.util.ArrayList<>();
 		if (monster != null)
 		{
 			boolean isRaid = CombatAchievementData.isRaidBoss(monster);
 			String tagLabel = isRaid ? CombatAchievementData.abbreviateRaid(monster) : monster;
-			tags.add(new ItemTag(tagLabel, isRaid ? TagCategory.RAID : TagCategory.BOSS));
-			// Inherit Slayer skill tag if the monster is a known slayer task target
+			com.goaltracker.model.Tag bossTag = goalStore.findOrCreateSystemTag(
+				tagLabel, isRaid ? TagCategory.RAID : TagCategory.BOSS);
+			if (bossTag != null) tagIds.add(bossTag.getId());
 			if (SourceAttributes.isSlayerTask(monster))
 			{
-				tags.add(new ItemTag("Slayer", TagCategory.SKILLING));
+				com.goaltracker.model.Tag slayerTag = goalStore.findOrCreateSystemTag(
+					"Slayer", TagCategory.SKILLING);
+				if (slayerTag != null) tagIds.add(slayerTag.getId());
 			}
 		}
 
@@ -534,8 +547,8 @@ public class GoalTrackerPlugin extends Plugin
 			.currentValue(0)
 			.spriteId(tierSpriteId > 0 ? tierSpriteId : 0)
 			.caTaskId(caTaskId)
-			.tags(tags)
-			.defaultTags(new java.util.ArrayList<>(tags))
+			.tagIds(new java.util.ArrayList<>(tagIds))
+			.defaultTagIds(new java.util.ArrayList<>(tagIds))
 			.build();
 	}
 
@@ -543,6 +556,41 @@ public class GoalTrackerPlugin extends Plugin
 	 * Backfill caTaskId for existing CA goals by looking up their name in the wiki repo.
 	 * Run on startup once the wiki cache is loaded; no-op if the cache hasn't populated yet.
 	 */
+	/**
+	 * Pre-create the canonical system tags so the Tag Management dialog has
+	 * something to display before any goals are added. Idempotent —
+	 * findOrCreateSystemTag is a no-op if the tag already exists.
+	 *
+	 * <p>Seeded set:
+	 * <ul>
+	 *   <li>One SKILLING tag per Skill enum value (Attack, Strength, ..., Sailing)
+	 *       — these are the read-only "skill tags" used for icon-based filtering</li>
+	 *   <li>"Pet" in the OTHER category with a pink color override —
+	 *       canonical pet collection tag (was SPECIAL category before Mission 19)</li>
+	 * </ul>
+	 *
+	 * <p>Other system tags (per-monster Boss/Raid, per-item source tags) are still
+	 * created lazily by {@code findOrCreateSystemTag} as goals are added — the
+	 * universe is too large to pre-seed.
+	 */
+	private void seedCanonicalSystemTags()
+	{
+		for (net.runelite.api.Skill skill : net.runelite.api.Skill.values())
+		{
+			goalStore.findOrCreateSystemTag(skill.getName(), com.goaltracker.model.TagCategory.SKILLING);
+		}
+		// Pet: OTHER category but with the pink color from the old SPECIAL category.
+		// recolorTag is idempotent on the same value, so re-running on every startup
+		// only saves on the first call.
+		com.goaltracker.model.Tag pet = goalStore.findOrCreateSystemTag(
+			"Pet", com.goaltracker.model.TagCategory.OTHER);
+		if (pet != null && pet.getColorRgb() < 0)
+		{
+			goalStore.recolorTag(pet.getId(), 0xFF69B4); // pink (former SPECIAL color)
+		}
+		log.debug("Seeded canonical system tags");
+	}
+
 	private void migrateCaTaskIds()
 	{
 		if (wikiCaRepository.size() == 0) return;
@@ -773,6 +821,13 @@ public class GoalTrackerPlugin extends Plugin
 					}
 
 					java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
+					java.util.List<String> autoTagIds = new java.util.ArrayList<>();
+					for (ItemTag spec : autoTags)
+					{
+						com.goaltracker.model.Tag tag =
+							goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+						if (tag != null) autoTagIds.add(tag.getId());
+					}
 					Goal goal = Goal.builder()
 						.type(GoalType.ITEM_GRIND)
 						.name(itemName)
@@ -780,8 +835,8 @@ public class GoalTrackerPlugin extends Plugin
 						.itemId(realItemId)
 						.targetValue(qty)
 						.currentValue(-1)
-						.tags(new java.util.ArrayList<>(autoTags))
-						.defaultTags(new java.util.ArrayList<>(autoTags))
+						.tagIds(new java.util.ArrayList<>(autoTagIds))
+						.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
 						.build();
 
 					goalStore.addGoal(goal);

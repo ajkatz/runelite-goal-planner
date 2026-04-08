@@ -253,6 +253,57 @@ The "Rule 1" auto-clear on action against an unselected card lives at
 each action site (popup-show, arrow-button move) rather than at click time,
 because actions can come from both clicks and menus.
 
+## Tags (first-class entity model)
+
+Mission 19 promoted tags from per-goal embedded values to first-class
+entities. The store has three top-level collections now: `goals`,
+`sections`, `tags`.
+
+`Tag` model: `id` (UUID), `label`, `category` (TagCategory enum), `colorRgb`
+(packed override, -1 = use category default), `system` (boolean).
+
+`Goal.tagIds` is a `List<String>` of tag entity ids. `Goal.defaultTagIds`
+is the snapshot from creation, used by `restoreDefaultTags`. There is no
+embedded ItemTag on goals — `ItemTag` survives only as a lightweight
+`(label, category)` spec class used by the data layer (`ItemSourceData`,
+`SourceAttributes`) which is auto-generated and too large to refactor.
+The data layer's specs are converted to tag entities via
+`goalStore.findOrCreateSystemTag(label, category)` at goal creation time.
+
+**System vs user tags.** The `system` flag distinguishes plugin-generated
+tags (Boss / Raid / Tier / Slayer attached to CA goals, etc) from
+user-created tags. Edit permissions:
+
+| Origin | Category | Rename | Recolor | Delete |
+|--------|----------|--------|---------|--------|
+| User   | any      | ✓      | ✓       | ✓      |
+| System | SKILLING | ✗      | ✗       | ✗      |
+| System | other    | ✗      | ✓       | ✗      |
+
+System tags cannot be deleted because goal creation flows depend on their
+existence (each CA goal looks up its boss tag via `findOrCreateSystemTag`
+on every creation, so deleting it would orphan the lookup). System tags
+in the SKILLING category are fully read-only because they render as skill
+icons — recoloring would break the visual recognition.
+
+**No per-goal color overrides.** Recoloring a tag entity affects every
+goal that references it. The previous per-goal `ItemTag.colorRgb`
+override is gone. The `setTagColor(goalId, label, rgb)` API method
+survives as a bridge — it finds the tag entity referenced by the goal
+and delegates to `goalStore.recolorTag`, which is global.
+
+**Tag management UI** lives in `TagManagementDialog`, accessible from a
+header button. Lists every tag with per-row Rename / Recolor / Delete
+actions; buttons are disabled per the system tag rules above.
+
+**API surface:**
+- `queryAllTags()` — read all tags as TagViews
+- `createUserTag(label, categoryName)` — idempotent on case-insensitive (label, category)
+- `renameTag(tagId, newLabel)` — fails on system tags
+- `recolorTag(tagId, rgb)` — fails on system + SKILLING
+- `deleteTag(tagId)` — fails on system, cascades to all goals' tagIds
+- `addTagWithCategory(goalId, label, categoryName)` — find-or-create + attach reference
+
 ## Color overrides
 
 Three layers: Section, Goal, ItemTag. Each has a `colorRgb` field with -1

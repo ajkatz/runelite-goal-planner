@@ -1,37 +1,29 @@
 package com.goaltracker.model;
 
+import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * A tag linking an item goal to its source.
- * Future: clickable for navigation, searchable for filtering.
+ * Lightweight (label, category) spec used by the data layer (item sources,
+ * source attributes, etc) to describe tags BEFORE they become persisted
+ * {@link Tag} entities. NOT serialized.
+ *
+ * <p>Goal creation flows iterate these specs and call
+ * {@code goalStore.findOrCreateSystemTag(spec.label, spec.category)} to
+ * get back the actual {@link Tag} entity (with an id), which the goal
+ * then references via its {@code tagIds} list.
+ *
+ * <p>Mission 19 (tag refactor): the previous version of this class held
+ * persisted color overrides and was embedded in {@code Goal.tags}. That
+ * model is gone — tags are now first-class entities. This class exists
+ * solely as a value type for the data layer.
  */
 @Data
 @NoArgsConstructor
+@AllArgsConstructor
 public class ItemTag
 {
-	private String label;          // "Zulrah", "Chambers of Xeric", "Hard Clue"
-	private TagCategory category;  // BOSS, RAID, CLUE, etc.
-
-	/**
-	 * User-set color override packed as 0xRRGGBB. -1 means "use category default".
-	 * Only custom tags on custom goals can meaningfully set this (enforced by API);
-	 * default tags inherit their color from {@link TagCategory#getColor()}.
-	 */
-	private int colorRgb = -1;
-
-	public ItemTag(String label, TagCategory category)
-	{
-		this.label = label;
-		this.category = category;
-		this.colorRgb = -1;
-	}
-
-	public ItemTag(String label, TagCategory category, int colorRgb)
-	{
-		this.label = label;
-		this.category = category;
-		this.colorRgb = colorRgb;
-	}
+	private String label;
+	private TagCategory category;
 }

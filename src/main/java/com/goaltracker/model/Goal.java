@@ -51,13 +51,14 @@ public class Goal
 	@Builder.Default
 	private int customColorRgb = -1;
 
-	// Tags (source/category labels for filtering and display)
+	// Tag references — IDs into the GoalStore tag collection (Mission 19).
+	// Tags themselves are first-class entities; goals only carry references.
 	@Builder.Default
-	private List<ItemTag> tags = new ArrayList<>();
+	private List<String> tagIds = new ArrayList<>();
 
-	// Default tags from auto-generation (for "Restore Defaults")
+	// Default tag id snapshot from creation, for "Restore Defaults"
 	@Builder.Default
-	private List<ItemTag> defaultTags = new ArrayList<>();
+	private List<String> defaultTagIds = new ArrayList<>();
 
 	// Integrations
 	private String wikiUrl;

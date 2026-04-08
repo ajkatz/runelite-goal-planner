@@ -252,4 +252,49 @@ public interface GoalTrackerInternalApi
 	 *         unknown category
 	 */
 	boolean addTagWithCategory(String goalId, String label, String categoryName);
+
+	// ---------------------------------------------------------------------
+	// Tag entity CRUD (Mission 19)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Snapshot of every tag in the store. Includes both system and user tags
+	 * across all categories. Used by the tag management UI.
+	 */
+	java.util.List<TagView> queryAllTags();
+
+	/**
+	 * Create a user tag (idempotent on case-insensitive label+category match).
+	 *
+	 * @return tag id (newly created or existing)
+	 * @throws IllegalArgumentException if label is invalid
+	 */
+	String createUserTag(String label, String categoryName);
+
+	/**
+	 * Rename a tag entity. Affects every goal that references it. System tags
+	 * cannot be renamed (returns false).
+	 *
+	 * @return true if renamed, false on: not found, system tag, invalid name,
+	 *         duplicate name, or no-op
+	 */
+	boolean renameTag(String tagId, String newLabel);
+
+	/**
+	 * Recolor a tag entity. Affects every goal that references it. System tags
+	 * in the SKILLING category are fully read-only (skill icons); other system
+	 * tags can be recolored. Pass -1 to clear the override.
+	 *
+	 * @return true if changed, false on: not found, read-only, or no-op
+	 */
+	boolean recolorTag(String tagId, int colorRgb);
+
+	/**
+	 * Delete a tag entity. Cascades to remove the reference from every goal.
+	 * System tags cannot be deleted (returns false) — they're auto-attached
+	 * by goal creation flows.
+	 *
+	 * @return true if deleted, false on: not found or system tag
+	 */
+	boolean deleteTag(String tagId);
 }

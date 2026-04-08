@@ -8,6 +8,7 @@ import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
 import com.goaltracker.model.Section;
+import com.goaltracker.model.Tag;
 import com.goaltracker.model.TagCategory;
 import com.goaltracker.persistence.GoalStore;
 import com.goaltracker.service.GoalReorderingService;
@@ -181,7 +182,13 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			return null;
 		}
 
-		List<ItemTag> tags = new ArrayList<>(ItemSourceData.getTags(itemId));
+		// Resolve item-source ItemTag specs into Tag entity ids via findOrCreateSystemTag
+		List<String> tagIds = new ArrayList<>();
+		for (ItemTag spec : ItemSourceData.getTags(itemId))
+		{
+			Tag tag = goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+			if (tag != null) tagIds.add(tag.getId());
+		}
 		Goal goal = Goal.builder()
 			.type(GoalType.ITEM_GRIND)
 			.name(itemName)
@@ -189,8 +196,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.itemId(itemId)
 			.targetValue(targetQuantity)
 			.currentValue(-1)
-			.tags(tags)
-			.defaultTags(new ArrayList<>(tags))
+			.tagIds(new ArrayList<>(tagIds))
+			.defaultTagIds(new ArrayList<>(tagIds))
 			.build();
 
 		goalStore.addGoal(goal);
@@ -331,16 +338,19 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			? info.name + " \u2014 " + info.task
 			: null;
 
-		List<ItemTag> tags = new ArrayList<>();
+		List<String> tagIds = new ArrayList<>();
 		if (info.monster != null && !info.monster.isEmpty())
 		{
 			boolean isRaid = CombatAchievementData.isRaidBoss(info.monster);
 			String tagLabel = isRaid ? CombatAchievementData.abbreviateRaid(info.monster) : info.monster;
-			tags.add(new ItemTag(tagLabel, isRaid ? TagCategory.RAID : TagCategory.BOSS));
+			Tag bossTag = goalStore.findOrCreateSystemTag(tagLabel,
+				isRaid ? TagCategory.RAID : TagCategory.BOSS);
+			if (bossTag != null) tagIds.add(bossTag.getId());
 			// Inherit Slayer skill tag if the monster is a known slayer task target
 			if (com.goaltracker.data.SourceAttributes.isSlayerTask(info.monster))
 			{
-				tags.add(new ItemTag("Slayer", TagCategory.SKILLING));
+				Tag slayerTag = goalStore.findOrCreateSystemTag("Slayer", TagCategory.SKILLING);
+				if (slayerTag != null) tagIds.add(slayerTag.getId());
 			}
 		}
 
@@ -353,8 +363,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.currentValue(0)
 			.spriteId(tierSpriteId)
 			.caTaskId(caTaskId)
-			.tags(tags)
-			.defaultTags(new ArrayList<>(tags))
+			.tagIds(new ArrayList<>(tagIds))
+			.defaultTagIds(new ArrayList<>(tagIds))
 			.build();
 
 		goalStore.addGoal(goal);
@@ -439,19 +449,24 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			v.backgroundColorOverridden = false;
 		}
 
-		// Tag splitting: defaultTags is the snapshot from creation; customTags is
-		// whatever is in `tags` but NOT in defaultTags. Matches the existing
-		// "removable tags" rule used by the panel and Remove Tag dialog.
-		List<ItemTag> defaults = g.getDefaultTags() != null ? g.getDefaultTags() : java.util.Collections.emptyList();
-		List<ItemTag> all = g.getTags() != null ? g.getTags() : java.util.Collections.emptyList();
+		// Tag splitting: defaultTagIds is the snapshot from creation; the rest of
+		// tagIds are user-added. Each id is dereferenced via the tag store.
+		List<String> defaultIds = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+		List<String> allIds = g.getTagIds() != null ? g.getTagIds() : java.util.Collections.emptyList();
 
-		v.defaultTags = new ArrayList<>(defaults.size());
-		for (ItemTag t : defaults) v.defaultTags.add(toTagView(t));
+		v.defaultTags = new ArrayList<>();
+		for (String id : defaultIds)
+		{
+			Tag tag = goalStore.findTag(id);
+			if (tag != null) v.defaultTags.add(toTagView(tag));
+		}
 
 		v.customTags = new ArrayList<>();
-		for (ItemTag t : all)
+		for (String id : allIds)
 		{
-			if (!defaults.contains(t)) v.customTags.add(toTagView(t));
+			if (defaultIds.contains(id)) continue;
+			Tag tag = goalStore.findTag(id);
+			if (tag != null) v.customTags.add(toTagView(tag));
 		}
 
 		// Type-specific attributes
@@ -488,11 +503,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 					v.attributes.put("tier", tier);
 				}
 				// Monster name lives in the BOSS/RAID tag, not its own field
-				for (ItemTag t : all)
+				for (String id : allIds)
 				{
-					if (t.getCategory() == TagCategory.BOSS || t.getCategory() == TagCategory.RAID)
+					Tag tag = goalStore.findTag(id);
+					if (tag != null && (tag.getCategory() == TagCategory.BOSS || tag.getCategory() == TagCategory.RAID))
 					{
-						v.attributes.put("monster", t.getLabel());
+						v.attributes.put("monster", tag.getLabel());
 						break;
 					}
 				}
@@ -532,17 +548,29 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return v;
 	}
 
-	private static TagView toTagView(ItemTag t)
+	private static TagView toTagView(Tag t)
 	{
-		java.awt.Color c = t.getCategory().getColor();
+		// Defensive: if a persisted tag has a null category (e.g. Gson failed to
+		// deserialize an enum value that was removed in a later mission), fall
+		// back to OTHER so the renderer doesn't NPE. The store-side load
+		// migration is the primary fix; this is belt-and-suspenders.
+		TagCategory cat = t.getCategory() != null ? t.getCategory() : TagCategory.OTHER;
+		java.awt.Color c = cat.getColor();
 		int defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
+		TagView v;
 		if (t.getColorRgb() >= 0)
 		{
-			return new TagView(t.getLabel(), t.getCategory().name(),
+			v = new TagView(t.getLabel(), cat.name(),
 				t.getColorRgb(), defaultRgb, true);
 		}
-		return new TagView(t.getLabel(), t.getCategory().name(),
-			defaultRgb, defaultRgb, false);
+		else
+		{
+			v = new TagView(t.getLabel(), cat.name(),
+				defaultRgb, defaultRgb, false);
+		}
+		v.id = t.getId();
+		v.system = t.isSystem();
+		return v;
 	}
 
 	// ===== Mutation API =====
@@ -570,11 +598,15 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
 		// Non-custom goals: force OTHER category. CUSTOM goals can use any category
-		// (this method is the public API entry for tagging — the panel's add-tag
-		// dialog with category dropdown is internal/UI and remains separate).
-		TagCategory cat = TagCategory.OTHER;
-		if (g.getTags() == null) g.setTags(new ArrayList<>());
-		g.getTags().add(new ItemTag(label.trim(), cat));
+		// via the internal addTagWithCategory API. Tag is created (or reused) as a
+		// User tag entity, then referenced by id from this goal.
+		Tag tag = goalStore.createUserTag(label.trim(), TagCategory.OTHER);
+		if (tag == null) return false;
+		if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
+		if (!g.getTagIds().contains(tag.getId()))
+		{
+			g.getTagIds().add(tag.getId());
+		}
 		goalStore.updateGoal(g);
 		onGoalsChanged.run();
 		return true;
@@ -586,20 +618,22 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.public removeTag(goalId={}, label={})", goalId, label);
 		if (goalId == null || label == null) return false;
 		Goal g = findGoal(goalId);
-		if (g == null || g.getTags() == null) return false;
-		List<ItemTag> defaults = g.getDefaultTags() != null ? g.getDefaultTags() : java.util.Collections.emptyList();
-		// Find a removable tag matching the label that is NOT in defaults.
-		ItemTag toRemove = null;
-		for (ItemTag t : g.getTags())
+		if (g == null || g.getTagIds() == null) return false;
+		List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+		// Find a removable tag id matching the label whose id is NOT in defaults.
+		String toRemove = null;
+		for (String id : g.getTagIds())
 		{
-			if (label.equals(t.getLabel()) && !defaults.contains(t))
+			if (defaults.contains(id)) continue;
+			Tag tag = goalStore.findTag(id);
+			if (tag != null && label.equals(tag.getLabel()))
 			{
-				toRemove = t;
+				toRemove = id;
 				break;
 			}
 		}
 		if (toRemove == null) return false;
-		g.getTags().remove(toRemove);
+		g.getTagIds().remove(toRemove);
 		goalStore.updateGoal(g);
 		onGoalsChanged.run();
 		return true;
@@ -744,9 +778,9 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		List<ItemTag> defaults = g.getDefaultTags();
+		List<String> defaults = g.getDefaultTagIds();
 		if (defaults == null || defaults.isEmpty()) return false;
-		g.setTags(new ArrayList<>(defaults));
+		g.setTagIds(new ArrayList<>(defaults));
 		goalStore.updateGoal(g);
 		onGoalsChanged.run();
 		return true;
@@ -962,24 +996,27 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal setTagColor(goalId={}, tagLabel={}, colorRgb={})",
 			goalId, tagLabel, colorRgb);
+		// Mission 19: tags are first-class entities; per-goal color overrides
+		// no longer exist. This method now finds the tag entity referenced by
+		// the goal and delegates to goalStore.recolorTag, which affects every
+		// goal using that tag. System tags in SKILLING category are read-only
+		// (returns false).
 		Goal g = findGoal(goalId);
-		if (g == null || tagLabel == null) return false;
-		List<ItemTag> tags = g.getTags() != null
-			? g.getTags() : java.util.Collections.emptyList();
-
-		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
-		boolean changed = false;
-		for (ItemTag t : tags)
+		if (g == null || tagLabel == null || g.getTagIds() == null) return false;
+		for (String id : g.getTagIds())
 		{
-			if (!tagLabel.equals(t.getLabel())) continue;
-			if (t.getColorRgb() == normalized) continue;
-			t.setColorRgb(normalized);
-			changed = true;
+			Tag tag = goalStore.findTag(id);
+			if (tag != null && tagLabel.equals(tag.getLabel()))
+			{
+				if (goalStore.recolorTag(id, colorRgb))
+				{
+					onGoalsChanged.run();
+					return true;
+				}
+				return false;
+			}
 		}
-		if (!changed) return false;
-		goalStore.save();
-		onGoalsChanged.run();
-		return true;
+		return false;
 	}
 
 	// ---------------------------------------------------------------------
@@ -1108,11 +1145,78 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("addTagWithCategory: unknown category {}", categoryName);
 			return false;
 		}
-		if (g.getTags() == null) g.setTags(new ArrayList<>());
-		g.getTags().add(new ItemTag(label.trim(), category));
+		Tag tag = goalStore.createUserTag(label.trim(), category);
+		if (tag == null) return false;
+		if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
+		if (!g.getTagIds().contains(tag.getId()))
+		{
+			g.getTagIds().add(tag.getId());
+		}
 		goalStore.updateGoal(g);
 		onGoalsChanged.run();
 		return true;
+	}
+
+	// ---------------------------------------------------------------------
+	// Tag entity CRUD (Mission 19)
+	// ---------------------------------------------------------------------
+
+	@Override
+	public List<TagView> queryAllTags()
+	{
+		log.debug("API.internal queryAllTags()");
+		List<TagView> out = new ArrayList<>();
+		for (Tag t : goalStore.getTags())
+		{
+			out.add(toTagView(t));
+		}
+		return out;
+	}
+
+	@Override
+	public String createUserTag(String label, String categoryName)
+	{
+		log.debug("API.internal createUserTag(label={}, category={})", label, categoryName);
+		TagCategory category;
+		try
+		{
+			category = TagCategory.valueOf(categoryName);
+		}
+		catch (IllegalArgumentException ex)
+		{
+			log.warn("createUserTag: unknown category {}", categoryName);
+			return null;
+		}
+		Tag tag = goalStore.createUserTag(label, category);
+		onGoalsChanged.run();
+		return tag != null ? tag.getId() : null;
+	}
+
+	@Override
+	public boolean renameTag(String tagId, String newLabel)
+	{
+		log.debug("API.internal renameTag(tagId={}, newLabel={})", tagId, newLabel);
+		boolean changed = goalStore.renameTag(tagId, newLabel);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean recolorTag(String tagId, int colorRgb)
+	{
+		log.debug("API.internal recolorTag(tagId={}, colorRgb={})", tagId, colorRgb);
+		boolean changed = goalStore.recolorTag(tagId, colorRgb);
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
+	public boolean deleteTag(String tagId)
+	{
+		log.debug("API.internal deleteTag(tagId={})", tagId);
+		boolean deleted = goalStore.deleteTag(tagId);
+		if (deleted) onGoalsChanged.run();
+		return deleted;
 	}
 
 	@Override

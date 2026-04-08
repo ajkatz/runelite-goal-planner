@@ -112,6 +112,16 @@ public class GoalPanel extends PluginPanel
 		addSectionButton.setMargin(new Insets(3, 6, 3, 6));
 		addSectionButton.addActionListener(e -> showCreateSectionDialog());
 
+		JButton manageTagsButton = new JButton(ShapeIcons.plus(10, new Color(220, 180, 140)));
+		manageTagsButton.setToolTipText("Manage tags");
+		manageTagsButton.setMargin(new Insets(3, 6, 3, 6));
+		manageTagsButton.addActionListener(e -> {
+			java.awt.Window window = SwingUtilities.getWindowAncestor(GoalPanel.this);
+			java.awt.Frame owner = window instanceof java.awt.Frame ? (java.awt.Frame) window : null;
+			TagManagementDialog dialog = new TagManagementDialog(owner, api);
+			dialog.setVisible(true);
+		});
+
 		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
 		addButton.setToolTipText("Add a new goal");
 		addButton.setMargin(new Insets(3, 6, 3, 6));
@@ -123,6 +133,8 @@ public class GoalPanel extends PluginPanel
 		headerButtons.add(buttonGroupSeparator);
 		headerButtons.add(clearSectionsButton);
 		headerButtons.add(addSectionButton);
+		headerButtons.add(Box.createHorizontalStrut(6));
+		headerButtons.add(manageTagsButton);
 
 		header.add(title, BorderLayout.WEST);
 		header.add(headerButtons, BorderLayout.EAST);
@@ -601,8 +613,7 @@ public class GoalPanel extends PluginPanel
 			if (goal.getType() == GoalType.CUSTOM)
 			{
 				categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
-					.filter(c -> c != com.goaltracker.model.TagCategory.SPECIAL)
-					.toArray(com.goaltracker.model.TagCategory[]::new);
+						.toArray(com.goaltracker.model.TagCategory[]::new);
 			}
 			else
 			{
@@ -691,35 +702,28 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Removable tags: for CUSTOM goals, anything. For everything else, only
-		// user-added tags (not in defaultTags). This prevents users from accidentally
-		// stripping the auto-generated boss/raid/tier tags off a quest/diary/CA goal.
-		java.util.List<com.goaltracker.model.ItemTag> removableTags;
-		if (goal.getTags() != null && !goal.getTags().isEmpty())
+		// user-added tags (not in defaultTagIds). Mission 19: dereference tag ids
+		// through the store and operate on Tag entities.
+		java.util.List<com.goaltracker.model.Tag> removableTags = new java.util.ArrayList<>();
+		java.util.List<com.goaltracker.model.Tag> allGoalTags = new java.util.ArrayList<>();
+		if (goal.getTagIds() != null && !goal.getTagIds().isEmpty())
 		{
-			if (goal.getType() == GoalType.CUSTOM)
+			java.util.List<String> defaults = goal.getDefaultTagIds() != null
+				? goal.getDefaultTagIds() : java.util.Collections.emptyList();
+			for (String tagId : goal.getTagIds())
 			{
-				removableTags = new java.util.ArrayList<>(goal.getTags());
+				com.goaltracker.model.Tag t = goalStore.findTag(tagId);
+				if (t == null) continue;
+				allGoalTags.add(t);
+				if (goal.getType() == GoalType.CUSTOM || !defaults.contains(tagId))
+				{
+					removableTags.add(t);
+				}
 			}
-			else
-			{
-				java.util.List<com.goaltracker.model.ItemTag> defaults = goal.getDefaultTags() != null
-					? goal.getDefaultTags()
-					: java.util.Collections.emptyList();
-				removableTags = goal.getTags().stream()
-					.filter(t -> !defaults.contains(t))
-					.collect(java.util.stream.Collectors.toList());
-			}
-		}
-		else
-		{
-			removableTags = java.util.Collections.emptyList();
 		}
 
 		// Recolor Tag is available on any non-completed goal that has tags.
 		// Completed cards hide their tag row so recoloring would have no effect.
-		java.util.List<com.goaltracker.model.ItemTag> allGoalTags = goal.getTags() != null
-			? new java.util.ArrayList<>(goal.getTags())
-			: java.util.Collections.emptyList();
 		if (!goal.isComplete() && !allGoalTags.isEmpty())
 		{
 			JMenuItem recolorTag = new JMenuItem("Recolor Tag");
@@ -752,8 +756,8 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Restore Defaults (only if tags have been customized)
-		if (goal.getDefaultTags() != null && !goal.getDefaultTags().isEmpty()
-			&& goal.getTags() != null && !goal.getTags().equals(goal.getDefaultTags()))
+		if (goal.getDefaultTagIds() != null && !goal.getDefaultTagIds().isEmpty()
+			&& goal.getTagIds() != null && !goal.getTagIds().equals(goal.getDefaultTagIds()))
 		{
 			JMenuItem restore = new JMenuItem("Restore Defaults");
 			restore.addActionListener(e -> api.restoreDefaultTags(goal.getId()));
@@ -931,7 +935,6 @@ public class GoalPanel extends PluginPanel
 		if (allCustom)
 		{
 			categories = java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
-				.filter(c -> c != com.goaltracker.model.TagCategory.SPECIAL)
 				.toArray(com.goaltracker.model.TagCategory[]::new);
 		}
 		else
@@ -1193,7 +1196,7 @@ public class GoalPanel extends PluginPanel
 		api.setGoalColor(goal.getId(), picker.getSelectedRgb());
 	}
 
-	private void showRecolorTagDialog(Goal goal, java.util.List<com.goaltracker.model.ItemTag> tags)
+	private void showRecolorTagDialog(Goal goal, java.util.List<com.goaltracker.model.Tag> tags)
 	{
 		// Step 1: pick which tag
 		String[] tagNames = tags.stream()
@@ -1206,23 +1209,24 @@ public class GoalPanel extends PluginPanel
 		if (selected == null) return;
 		int idx = java.util.Arrays.asList(tagNames).indexOf(selected);
 		if (idx < 0) return;
-		com.goaltracker.model.ItemTag tag = tags.get(idx);
+		com.goaltracker.model.Tag tag = tags.get(idx);
 
-		// Step 2: open the picker seeded with the tag's current override (or -1
-		// for "use default") and the category default for preview/reset.
+		// Step 2: open the picker seeded with the tag's current color (or -1 for
+		// "use default") and the category default for preview/reset. Mission 19:
+		// recoloring affects every goal that references this tag entity.
 		java.awt.Color catC = tag.getCategory().getColor();
 		int defaultRgb = (catC.getRed() << 16) | (catC.getGreen() << 8) | catC.getBlue();
 		ColorPickerField picker = new ColorPickerField(tag.getColorRgb(), defaultRgb);
 		int result = JOptionPane.showConfirmDialog(this, picker,
-			"Color for " + tag.getLabel(),
+			"Color for " + tag.getLabel() + " (affects all goals using this tag)",
 			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result != JOptionPane.OK_OPTION) return;
 
-		boolean ok = api.setTagColor(goal.getId(), tag.getLabel(), picker.getSelectedRgb());
+		boolean ok = api.recolorTag(tag.getId(), picker.getSelectedRgb());
 		if (!ok)
 		{
 			JOptionPane.showMessageDialog(this,
-				"Could not recolor tag.",
+				"Could not recolor tag. System tags in the SKILLING category are read-only.",
 				"Recolor failed", JOptionPane.WARNING_MESSAGE);
 		}
 	}

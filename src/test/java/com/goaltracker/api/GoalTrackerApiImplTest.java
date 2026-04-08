@@ -384,18 +384,34 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("setTagColor works on default and custom tags")
+		@DisplayName("setTagColor recolors a non-skill tag entity (Mission 19)")
 		void setTagColor()
 		{
+			// Mission 19: setTagColor delegates to recolorTag on the tag entity.
+			// SKILLING category system tags are read-only, so use a BOSS tag for
+			// this happy-path test.
 			String goalId = api.addCustomGoal("Custom", "");
+			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
+				com.goaltracker.model.TagCategory.BOSS);
 			Goal g = store.getGoals().get(0);
-			g.setTags(new java.util.ArrayList<>(List.of(
-				new ItemTag("Slayer", TagCategory.SKILLING))));
-			g.setDefaultTags(new java.util.ArrayList<>(List.of(
-				new ItemTag("Slayer", TagCategory.SKILLING))));
+			g.setTagIds(new java.util.ArrayList<>(List.of(bossTag.getId())));
+			g.setDefaultTagIds(new java.util.ArrayList<>(List.of(bossTag.getId())));
 
-			assertTrue(api.setTagColor(goalId, "Slayer", 0xF1C40F));
-			assertEquals(0xF1C40F, g.getTags().get(0).getColorRgb());
+			assertTrue(api.setTagColor(goalId, "Zulrah", 0xF1C40F));
+			assertEquals(0xF1C40F, store.findTag(bossTag.getId()).getColorRgb());
+		}
+
+		@Test
+		@DisplayName("setTagColor refuses skill-category system tags (Mission 19)")
+		void setTagColorRejectsSkillSystemTag()
+		{
+			String goalId = api.addCustomGoal("Custom", "");
+			com.goaltracker.model.Tag slayerTag = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			Goal g = store.getGoals().get(0);
+			g.setTagIds(new java.util.ArrayList<>(List.of(slayerTag.getId())));
+
+			assertFalse(api.setTagColor(goalId, "Slayer", 0xF1C40F));
 		}
 	}
 
@@ -639,9 +655,11 @@ class GoalTrackerApiImplTest
 			assertTrue(api.addTagWithCategory(id, "Zulrah", "BOSS"));
 
 			Goal g = store.getGoals().get(0);
-			assertEquals(1, g.getTags().size());
-			assertEquals("Zulrah", g.getTags().get(0).getLabel());
-			assertEquals(TagCategory.BOSS, g.getTags().get(0).getCategory());
+			assertEquals(1, g.getTagIds().size());
+			com.goaltracker.model.Tag tag = store.findTag(g.getTagIds().get(0));
+			assertNotNull(tag);
+			assertEquals("Zulrah", tag.getLabel());
+			assertEquals(TagCategory.BOSS, tag.getCategory());
 			assertEquals(1, callbackFireCount.get());
 		}
 
@@ -676,7 +694,109 @@ class GoalTrackerApiImplTest
 		{
 			String id = api.addCustomGoal("Custom", "");
 			api.addTagWithCategory(id, "  Vorkath  ", "BOSS");
-			assertEquals("Vorkath", store.getGoals().get(0).getTags().get(0).getLabel());
+			Goal g = store.getGoals().get(0);
+			com.goaltracker.model.Tag tag = store.findTag(g.getTagIds().get(0));
+			assertEquals("Vorkath", tag.getLabel());
+		}
+	}
+
+	// ====================================================================
+	// Mission 19: Tag entity CRUD
+	// ====================================================================
+
+	@Nested
+	@DisplayName("tag entity CRUD")
+	class TagEntityTests
+	{
+		@Test
+		@DisplayName("createUserTag returns the new tag id")
+		void createUserTag()
+		{
+			String id = api.createUserTag("Pets", "OTHER");
+			assertNotNull(id);
+			assertEquals("Pets", store.findTag(id).getLabel());
+			assertFalse(store.findTag(id).isSystem());
+		}
+
+		@Test
+		@DisplayName("createUserTag is idempotent on case-insensitive (label, category)")
+		void createUserTagIdempotent()
+		{
+			String first = api.createUserTag("Pets", "OTHER");
+			String second = api.createUserTag("pets", "OTHER");
+			assertEquals(first, second);
+		}
+
+		@Test
+		@DisplayName("renameTag updates the label and propagates via the entity")
+		void renameTag()
+		{
+			String id = api.createUserTag("Pets", "OTHER");
+			assertTrue(api.renameTag(id, "All Pets"));
+			assertEquals("All Pets", store.findTag(id).getLabel());
+		}
+
+		@Test
+		@DisplayName("renameTag rejects system tags")
+		void renameTagRejectsSystem()
+		{
+			com.goaltracker.model.Tag system = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			assertFalse(api.renameTag(system.getId(), "Slayer Task"));
+		}
+
+		@Test
+		@DisplayName("recolorTag works on non-skill system tags")
+		void recolorNonSkillSystemTag()
+		{
+			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
+				com.goaltracker.model.TagCategory.BOSS);
+			assertTrue(api.recolorTag(bossTag.getId(), 0xE74C3C));
+			assertEquals(0xE74C3C, store.findTag(bossTag.getId()).getColorRgb());
+		}
+
+		@Test
+		@DisplayName("recolorTag rejects system tags in SKILLING category")
+		void recolorSkillSystemTagRejected()
+		{
+			com.goaltracker.model.Tag slayer = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			assertFalse(api.recolorTag(slayer.getId(), 0xE74C3C));
+		}
+
+		@Test
+		@DisplayName("deleteTag removes the entity and cascades to goal references")
+		void deleteTagCascades()
+		{
+			String tagId = api.createUserTag("ToDelete", "OTHER");
+			String goalId = api.addCustomGoal("Custom", "");
+			api.addTagWithCategory(goalId, "ToDelete", "OTHER");
+			Goal g = store.getGoals().get(0);
+			assertEquals(1, g.getTagIds().size());
+
+			assertTrue(api.deleteTag(tagId));
+			assertNull(store.findTag(tagId));
+			assertEquals(0, g.getTagIds().size());
+		}
+
+		@Test
+		@DisplayName("deleteTag rejects system tags")
+		void deleteTagRejectsSystem()
+		{
+			com.goaltracker.model.Tag system = store.findOrCreateSystemTag("Slayer",
+				com.goaltracker.model.TagCategory.SKILLING);
+			assertFalse(api.deleteTag(system.getId()));
+			assertNotNull(store.findTag(system.getId()));
+		}
+
+		@Test
+		@DisplayName("queryAllTags returns every tag in the store")
+		void queryAllTags()
+		{
+			api.createUserTag("Tag1", "OTHER");
+			api.createUserTag("Tag2", "BOSS");
+			store.findOrCreateSystemTag("Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			assertEquals(3, api.queryAllTags().size());
 		}
 	}
 }
