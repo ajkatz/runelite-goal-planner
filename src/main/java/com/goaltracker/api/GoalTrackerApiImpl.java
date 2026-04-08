@@ -1011,6 +1011,59 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	@Override
+	public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection)
+	{
+		log.debug("API.internal positionGoalInSection(goalId={}, sectionId={}, pos={})",
+			goalId, sectionId, positionInSection);
+		if (goalId == null || sectionId == null) return false;
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+
+		boolean changed = false;
+		// Step 1: move to the target section if needed
+		if (!sectionId.equals(g.getSectionId()))
+		{
+			if (goalStore.moveGoalToSection(goalId, sectionId)) changed = true;
+		}
+
+		// Step 2: collect goals in the target section in canonical order, find
+		// the current index of the goal, and reorder if it's not where we want.
+		goalStore.normalizeOrder();
+		List<Goal> goals = goalStore.getGoals();
+		List<Integer> sectionIndices = new ArrayList<>();
+		int sourceIdx = -1;
+		for (int i = 0; i < goals.size(); i++)
+		{
+			if (sectionId.equals(goals.get(i).getSectionId()))
+			{
+				sectionIndices.add(i);
+				if (goalId.equals(goals.get(i).getId()))
+				{
+					sourceIdx = i;
+				}
+			}
+		}
+		if (sourceIdx < 0)
+		{
+			if (changed) onGoalsChanged.run();
+			return changed;
+		}
+
+		// Clamp the position to the section's range
+		int sectionSize = sectionIndices.size();
+		int clampedPos = Math.max(0, Math.min(positionInSection, sectionSize - 1));
+		int targetGlobal = sectionIndices.get(clampedPos);
+		if (sourceIdx != targetGlobal)
+		{
+			reorderingService.moveGoalTo(sourceIdx, targetGlobal);
+			changed = true;
+		}
+
+		if (changed) onGoalsChanged.run();
+		return changed;
+	}
+
+	@Override
 	public void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");
@@ -1104,6 +1157,13 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public boolean moveGoalToSection(String goalId, String sectionId)
 	{
 		log.debug("API.internal moveGoalToSection(goalId={}, sectionId={})", goalId, sectionId);
+		// Mission 25: reject no-op moves where the goal is already in the
+		// target section. Stops UI from offering "Move to <current section>".
+		Goal current = findGoal(goalId);
+		if (current != null && sectionId != null && sectionId.equals(current.getSectionId()))
+		{
+			return false;
+		}
 		boolean moved = goalStore.moveGoalToSection(goalId, sectionId);
 		if (moved)
 		{

@@ -1171,6 +1171,103 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
+	@DisplayName("positionGoalInSection (Mission 25)")
+	class PositionGoalInSection
+	{
+		@Test
+		@DisplayName("places a goal at the requested in-section index")
+		void placesAtIndex()
+		{
+			String secId = api.createSection("Bossing");
+			String a = api.addCustomGoal("A", "");
+			String b = api.addCustomGoal("B", "");
+			String c = api.addCustomGoal("C", "");
+			api.moveGoalToSection(a, secId);
+			api.moveGoalToSection(b, secId);
+			api.moveGoalToSection(c, secId);
+
+			// Move B to position 0 within Bossing
+			assertTrue(api.positionGoalInSection(b, secId, 0));
+
+			java.util.List<String> ids = store.getGoals().stream()
+				.filter(g -> secId.equals(g.getSectionId()))
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(b, ids.get(0));
+		}
+
+		@Test
+		@DisplayName("clamps out-of-range positions to the section bounds")
+		void clampsOutOfRange()
+		{
+			String secId = api.createSection("S");
+			String a = api.addCustomGoal("A", "");
+			String b = api.addCustomGoal("B", "");
+			api.moveGoalToSection(a, secId);
+			api.moveGoalToSection(b, secId);
+
+			// Position 99 should clamp to last slot — A moves to bottom
+			api.positionGoalInSection(a, secId, 99);
+			java.util.List<String> ids = store.getGoals().stream()
+				.filter(g -> secId.equals(g.getSectionId()))
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(a, ids.get(ids.size() - 1));
+		}
+
+		@Test
+		@DisplayName("moves goal to a different section AND positions it")
+		void crossSectionMove()
+		{
+			String src = api.createSection("Source");
+			String dst = api.createSection("Dest");
+			String a = api.addCustomGoal("A", "");
+			String x = api.addCustomGoal("X", "");
+			String y = api.addCustomGoal("Y", "");
+			api.moveGoalToSection(a, src);
+			api.moveGoalToSection(x, dst);
+			api.moveGoalToSection(y, dst);
+
+			// Move A to position 1 in Dest (between X and Y)
+			assertTrue(api.positionGoalInSection(a, dst, 1));
+
+			java.util.List<String> ids = store.getGoals().stream()
+				.filter(g -> dst.equals(g.getSectionId()))
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(java.util.List.of(x, a, y), ids);
+		}
+
+		@Test
+		@DisplayName("returns false when goal id is missing")
+		void rejectsMissingGoal()
+		{
+			String secId = api.createSection("S");
+			assertFalse(api.positionGoalInSection("nope", secId, 0));
+		}
+
+		@Test
+		@DisplayName("moveGoalToSection rejects no-op when goal is already in target section")
+		void moveGoalToSameSectionIsNoop()
+		{
+			String secId = api.createSection("Same");
+			String goalId = api.addCustomGoal("G", "");
+			api.moveGoalToSection(goalId, secId);
+			// Second call to the same section should be a no-op
+			assertFalse(api.moveGoalToSection(goalId, secId));
+		}
+
+		@Test
+		@DisplayName("moveGoalToSection rejects no-op when goal is already in Incomplete (default)")
+		void moveGoalToCurrentBuiltInIsNoop()
+		{
+			String goalId = api.addCustomGoal("G", "");
+			Goal g = store.getGoals().stream().filter(x -> goalId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			String currentSection = g.getSectionId();
+			assertNotNull(currentSection);
+			assertFalse(api.moveGoalToSection(goalId, currentSection));
+		}
+	}
+
+	@Nested
 	@DisplayName("searchGoals")
 	class SearchGoals
 	{

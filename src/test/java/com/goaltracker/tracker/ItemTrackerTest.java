@@ -133,8 +133,8 @@ class ItemTrackerTest
 	}
 
 	@Test
-	@DisplayName("With bank loaded, dropping below target reverts the complete state")
-	void fullCountUnCompletesOnDropBelowTarget()
+	@DisplayName("Mission 25: completed item goals are sticky and do not revert on drop")
+	void completedItemGoalIsSticky()
 	{
 		Goal g = makeItemGoal(CANNONBALL_ID, 200);
 		// First pass: full target
@@ -142,13 +142,14 @@ class ItemTrackerTest
 		stubBankItems(mockItem(CANNONBALL_ID, 100));
 		tracker.checkGoals(store.getGoals());
 		assertTrue(g.isComplete());
+		assertEquals(200, g.getCurrentValue());
 
-		// Second pass: dropped to 150
+		// Second pass: dropped to 150 — goal should STAY complete and frozen at 200
 		stubInventoryItems(mockItem(CANNONBALL_ID, 50));
 		stubBankItems(mockItem(CANNONBALL_ID, 100));
-		assertTrue(tracker.checkGoals(store.getGoals()));
-		assertEquals(150, g.getCurrentValue());
-		assertFalse(g.isComplete());
+		assertFalse(tracker.checkGoals(store.getGoals()));
+		assertEquals(200, g.getCurrentValue());
+		assertTrue(g.isComplete());
 	}
 
 	// ====================================================================

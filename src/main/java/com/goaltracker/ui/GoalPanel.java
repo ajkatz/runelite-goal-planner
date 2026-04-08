@@ -45,6 +45,9 @@ public class GoalPanel extends PluginPanel
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
 	 *  selection. Cleared on rebuilds when the goal no longer exists. Mission 24. */
 	private String selectionAnchorId = null;
+	/** Mission 25: in-section position to place the next goal created via
+	 *  showAddGoalDialog. -1 = default (bottom). Cleared after each create. */
+	private int pendingAddPositionInSection = -1;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -76,48 +79,52 @@ public class GoalPanel extends PluginPanel
 		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 0));
 		headerButtons.setOpaque(false);
 
-		// Visual separator between the section-button pair (blue) and the
-		// goal-button pair (gray). 8px strut renders as a thin gap.
-		java.awt.Component buttonGroupSeparator = Box.createHorizontalStrut(6);
+		// Mission 25: + goal and + section buttons removed. Adding is now
+		// contextual via section header / goal card right-click menus.
 
-		JButton clearButton = new JButton(ShapeIcons.minus(10, new Color(200, 200, 200)));
-		clearButton.setToolTipText("Clear all goals");
-		clearButton.setMargin(new Insets(3, 6, 3, 6));
-		clearButton.addActionListener(e -> {
-			int confirm = JOptionPane.showConfirmDialog(
-				this, "Remove ALL goals?", "Clear All",
-				JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE
-			);
-			if (confirm == JOptionPane.YES_OPTION)
-			{
-				api.removeAllGoals();
-				// API callback (onGoalsChanged) triggers an EDT rebuild.
-			}
+		// Combined Remove dropdown — opens a small popup with two options
+		// (Remove all goals / Remove all sections), each gated by a
+		// two-step yes/no confirmation.
+		JButton removeButton = new JButton(ShapeIcons.minus(10, new Color(220, 100, 100)));
+		removeButton.setToolTipText("Remove\u2026");
+		removeButton.setMargin(new Insets(3, 6, 3, 6));
+		removeButton.addActionListener(e -> {
+			JPopupMenu popup = new JPopupMenu();
+
+			// Mission 25 follow-up: Remove selected goals — gated on at least
+			// one selected goal. Single-step confirm since the user already
+			// curated the selection.
+			java.util.Set<String> selected = api.getSelectedGoalIds();
+			JMenuItem removeSelected = new JMenuItem("Remove selected goals\u2026"
+				+ (selected.isEmpty() ? "" : " (" + selected.size() + ")"));
+			removeSelected.setEnabled(!selected.isEmpty());
+			removeSelected.addActionListener(ev -> {
+				int confirm = JOptionPane.showConfirmDialog(this,
+					"Remove " + selected.size() + " selected goal"
+						+ (selected.size() == 1 ? "" : "s") + "?",
+					"Remove selected", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+				if (confirm != JOptionPane.YES_OPTION) return;
+				for (String id : new java.util.ArrayList<>(selected)) api.removeGoal(id);
+			});
+			popup.add(removeSelected);
+			popup.addSeparator();
+
+			JMenuItem removeAllGoals = new JMenuItem("Remove all goals\u2026");
+			removeAllGoals.addActionListener(ev -> twoStepConfirmAndRun(
+				"Remove all goals?",
+				"Are you sure? This cannot be undone.",
+				api::removeAllGoals));
+			popup.add(removeAllGoals);
+			JMenuItem removeAllSections = new JMenuItem("Remove all sections\u2026");
+			removeAllSections.addActionListener(ev -> twoStepConfirmAndRun(
+				"Delete all custom sections?",
+				"Are you sure? Goals in them will move to Incomplete. This cannot be undone.",
+				api::removeAllUserSections));
+			popup.add(removeAllSections);
+			popup.show(removeButton, 0, removeButton.getHeight());
 		});
 
-		JButton clearSectionsButton = new JButton(ShapeIcons.minus(10, new Color(140, 180, 220)));
-		clearSectionsButton.setToolTipText("Delete all custom sections");
-		clearSectionsButton.setMargin(new Insets(3, 6, 3, 6));
-		clearSectionsButton.addActionListener(e -> {
-			int confirm = JOptionPane.showConfirmDialog(
-				this,
-				"Delete ALL custom sections?\nGoals in them will be moved to Incomplete.",
-				"Delete All Sections",
-				JOptionPane.YES_NO_OPTION,
-				JOptionPane.WARNING_MESSAGE
-			);
-			if (confirm == JOptionPane.YES_OPTION)
-			{
-				api.removeAllUserSections();
-			}
-		});
-
-		JButton addSectionButton = new JButton(ShapeIcons.plus(10, new Color(140, 180, 220)));
-		addSectionButton.setToolTipText("Add a new section");
-		addSectionButton.setMargin(new Insets(3, 6, 3, 6));
-		addSectionButton.addActionListener(e -> showCreateSectionDialog());
-
-		JButton manageTagsButton = new JButton(ShapeIcons.plus(10, new Color(220, 180, 140)));
+		JButton manageTagsButton = new JButton(ShapeIcons.tag(12, new Color(220, 180, 140)));
 		manageTagsButton.setToolTipText("Manage tags");
 		manageTagsButton.setMargin(new Insets(3, 6, 3, 6));
 		manageTagsButton.addActionListener(e -> {
@@ -127,17 +134,7 @@ public class GoalPanel extends PluginPanel
 			dialog.setVisible(true);
 		});
 
-		JButton addButton = new JButton(ShapeIcons.plus(10, new Color(200, 200, 200)));
-		addButton.setToolTipText("Add a new goal");
-		addButton.setMargin(new Insets(3, 6, 3, 6));
-		addButton.addActionListener(e -> showAddGoalDialog(null));
-
-		// Order: gray pair (clear/add goal) | separator | blue pair (clear/add section)
-		headerButtons.add(clearButton);
-		headerButtons.add(addButton);
-		headerButtons.add(buttonGroupSeparator);
-		headerButtons.add(clearSectionsButton);
-		headerButtons.add(addSectionButton);
+		headerButtons.add(removeButton);
 		headerButtons.add(Box.createHorizontalStrut(6));
 		headerButtons.add(manageTagsButton);
 
@@ -235,11 +232,12 @@ public class GoalPanel extends PluginPanel
 			}
 			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
 
-			// Hide section headers for empty BUILT-IN sections only. User-defined
-			// sections are always shown — even when empty — so a freshly created
-			// section is visible and can be right-clicked / dropped into.
-			// Mission 22: when filtering, hide ALL empty sections (user + built-in).
-			if (sectionCount == 0 && (section.builtIn || filterActive)) continue;
+			// Mission 25: built-in section headers (Incomplete, Completed) are
+			// always visible now so the user can right-click them for the Add
+			// Section action even when they're empty. User sections were
+			// always visible. When filtering, still hide empty sections so
+			// the result list stays focused.
+			if (sectionCount == 0 && filterActive) continue;
 			final String sectionIdRef = section.id;
 			SectionHeaderRow headerRow = new SectionHeaderRow(section, sectionCount, () -> {
 				api.toggleSectionCollapsed(sectionIdRef);
@@ -439,6 +437,21 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
+	 * Two-step yes/no confirmation guard for destructive actions. Mission 25.
+	 * The action only runs if the user clicks Yes on BOTH dialogs in sequence.
+	 */
+	private void twoStepConfirmAndRun(String firstPrompt, String secondPrompt, Runnable action)
+	{
+		int first = JOptionPane.showConfirmDialog(this, firstPrompt, "Confirm",
+			JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (first != JOptionPane.YES_OPTION) return;
+		int second = JOptionPane.showConfirmDialog(this, secondPrompt, "Are you sure?",
+			JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (second != JOptionPane.YES_OPTION) return;
+		action.run();
+	}
+
+	/**
 	 * Walk the canonical goal order from the API and return the slice of ids
 	 * between (and including) anchorId and clickedId. The order is the same
 	 * one used to render the panel — sections in section.order, goals within
@@ -553,14 +566,56 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 
+		// Mission 25: Add Goal submenu — Top/Bottom of section, Above/Below
+		// the right-clicked card. Above/Below grayed at section boundaries.
+		if (!goal.isComplete() && goal.getSectionId() != null)
+		{
+			final String secId = goal.getSectionId();
+			final int posInSection = index - sectionStart;
+			JMenu addGoalMenu = new JMenu("Add Goal");
+
+			JMenuItem addTop = new JMenuItem("At Top of Section");
+			addTop.addActionListener(e -> {
+				pendingAddPositionInSection = 0;
+				showAddGoalDialog(secId);
+			});
+			addGoalMenu.add(addTop);
+
+			JMenuItem addBottom = new JMenuItem("At Bottom of Section");
+			addBottom.addActionListener(e -> {
+				pendingAddPositionInSection = Integer.MAX_VALUE;
+				showAddGoalDialog(secId);
+			});
+			addGoalMenu.add(addBottom);
+
+			JMenuItem addAbove = new JMenuItem("Above This Goal");
+			addAbove.addActionListener(e -> {
+				pendingAddPositionInSection = posInSection;
+				showAddGoalDialog(secId);
+			});
+			addAbove.setEnabled(index > sectionStart);
+			addGoalMenu.add(addAbove);
+
+			JMenuItem addBelow = new JMenuItem("Below This Goal");
+			addBelow.addActionListener(e -> {
+				pendingAddPositionInSection = posInSection + 1;
+				showAddGoalDialog(secId);
+			});
+			addBelow.setEnabled(index < sectionEnd);
+			addGoalMenu.add(addBelow);
+
+			menu.add(addGoalMenu);
+		}
+
 		if (menu.getComponentCount() > 0)
 		{
 			menu.addSeparator();
 		}
 
 		// Manual completion: CUSTOM and ITEM_GRIND. Skill/quest/diary/CA are
-		// purely game-driven. ITEM_GRIND is "sticky" — the next tracker pass
-		// will revert if inventory+bank don't actually have the target qty.
+		// purely game-driven. ITEM_GRIND is terminal once complete (Mission 25):
+		// dropping below the target does NOT auto-revert. The user must
+		// manually mark the goal incomplete to let the tracker re-evaluate.
 		boolean manuallyToggleable = goal.getType() == GoalType.CUSTOM
 			|| goal.getType() == GoalType.ITEM_GRIND;
 		if (manuallyToggleable)
@@ -898,6 +953,13 @@ if (!removableTags.isEmpty())
 		{
 			// Completed is auto-managed; bulk-move can't target it.
 			if ("COMPLETED".equals(sv.kind)) continue;
+			// Mission 25: skip sections where every selected goal already lives.
+			boolean allAlreadyHere = true;
+			for (Goal g : selectedGoals)
+			{
+				if (!sv.id.equals(g.getSectionId())) { allAlreadyHere = false; break; }
+			}
+			if (allAlreadyHere) continue;
 			destinations.add(sv);
 		}
 		if (anyMovable && !destinations.isEmpty())
@@ -1229,15 +1291,48 @@ if (!removableTags.isEmpty())
 
 		JPopupMenu menu = new JPopupMenu();
 
-		// Add Goal — opens the regular Add Goal dialog and drops the new goal
-		// directly into this section. Hidden on Completed (auto-managed).
+		// Mission 25: Add Goal submenu — Top of Section / Bottom of Section.
+		// Hidden on Completed (auto-managed).
 		if (!"COMPLETED".equals(section.kind))
 		{
-			JMenuItem addGoalHere = new JMenuItem("Add Goal");
-			addGoalHere.addActionListener(e -> showAddGoalDialog(section.id));
-			menu.add(addGoalHere);
-			menu.addSeparator();
+			JMenu addGoalMenu = new JMenu("Add Goal");
+			JMenuItem addTop = new JMenuItem("At Top of Section");
+			addTop.addActionListener(e -> {
+				pendingAddPositionInSection = 0;
+				showAddGoalDialog(section.id);
+			});
+			addGoalMenu.add(addTop);
+			JMenuItem addBottom = new JMenuItem("At Bottom of Section");
+			addBottom.addActionListener(e -> {
+				pendingAddPositionInSection = Integer.MAX_VALUE;
+				showAddGoalDialog(section.id);
+			});
+			addGoalMenu.add(addBottom);
+			menu.add(addGoalMenu);
 		}
+
+		// Mission 25: Add Section submenu. User sections get Above/Below;
+		// built-ins (Incomplete, Completed) get a single entry that creates
+		// the new section at the end of the user-band.
+		if (!section.builtIn)
+		{
+			JMenu addSectionMenu = new JMenu("Add Section");
+			JMenuItem addSectionAbove = new JMenuItem("Above");
+			addSectionAbove.addActionListener(e -> showCreateSectionDialog(currentUserIndex));
+			addSectionMenu.add(addSectionAbove);
+			JMenuItem addSectionBelow = new JMenuItem("Below");
+			addSectionBelow.addActionListener(e -> showCreateSectionDialog(currentUserIndex + 1));
+			addSectionMenu.add(addSectionBelow);
+			menu.add(addSectionMenu);
+		}
+		else
+		{
+			JMenuItem addSection = new JMenuItem("Add Section");
+			addSection.addActionListener(e -> showCreateSectionDialog(-1));
+			menu.add(addSection);
+		}
+
+		menu.addSeparator();
 
 		// Select / Deselect All in Section — label flips when every goal in the
 		// section is already selected. Computed against the current selection
@@ -1324,12 +1419,26 @@ if (!removableTags.isEmpty())
 
 	private void showCreateSectionDialog()
 	{
+		showCreateSectionDialog(-1);
+	}
+
+	/**
+	 * Show the create-section dialog and, on success, reorder the new section
+	 * to the requested user-band index. -1 = default (end of user band).
+	 * Mission 25.
+	 */
+	private void showCreateSectionDialog(int userBandPosition)
+	{
 		String input = JOptionPane.showInputDialog(this, "Section name:", "New Section",
 			JOptionPane.PLAIN_MESSAGE);
 		if (input == null) return;
 		try
 		{
-			api.createSection(input);
+			String newId = api.createSection(input);
+			if (newId != null && userBandPosition >= 0)
+			{
+				api.reorderSection(newId, userBandPosition);
+			}
 		}
 		catch (IllegalArgumentException ex)
 		{
@@ -1646,12 +1755,28 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 	 * Used by the section header "Add Goal" entry to drop new goals directly
 	 * into the section the user right-clicked. No-op when preferredSectionId is
 	 * null (the toolbar + button) or the goal didn't actually get created.
+	 *
+	 * <p>Mission 25: also honors {@link #pendingAddPositionInSection} so the
+	 * goal lands at the exact slot the user picked from the context menu
+	 * (Top, Bottom, Above, Below). Field is cleared after use.
 	 */
 	private void moveToPreferredSection(String goalId, String preferredSectionId)
 	{
-		if (goalId != null && preferredSectionId != null)
+		if (goalId == null) return;
+		try
 		{
-			api.moveGoalToSection(goalId, preferredSectionId);
+			if (preferredSectionId != null && pendingAddPositionInSection >= 0)
+			{
+				api.positionGoalInSection(goalId, preferredSectionId, pendingAddPositionInSection);
+			}
+			else if (preferredSectionId != null)
+			{
+				api.moveGoalToSection(goalId, preferredSectionId);
+			}
+		}
+		finally
+		{
+			pendingAddPositionInSection = -1;
 		}
 	}
 

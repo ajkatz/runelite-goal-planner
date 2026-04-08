@@ -28,6 +28,18 @@ public interface GoalTrackerInternalApi
 	boolean moveGoal(String goalId, int newGlobalIndex);
 
 	/**
+	 * Move a goal to a specific position within a section. Combines
+	 * {@link #moveGoalToSection} + an in-section reorder. Used by the
+	 * Mission 25 contextual Add Goal flow to drop newly-created goals at
+	 * the user's chosen anchor point. Position is 0-based within the
+	 * section's goal list (0 = top, size = bottom). Position values out
+	 * of range are clamped.
+	 *
+	 * @return true if either the section OR the position changed
+	 */
+	boolean positionGoalInSection(String goalId, String sectionId, int positionInSection);
+
+	/**
 	 * Remove all goals from the store. Backs the Clear All UI button. Idempotent.
 	 */
 	void removeAllGoals();

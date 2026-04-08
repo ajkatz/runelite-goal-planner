@@ -60,6 +60,12 @@ public final class ShapeIcons
 		return new MinusIcon(size, color);
 	}
 
+	/** Price-tag silhouette — diagonal point on the left, eyelet hole, beveled body. */
+	public static Icon tag(int size, Color color)
+	{
+		return new TagIcon(size, color);
+	}
+
 	private enum Direction { UP, DOWN, RIGHT }
 
 	// ----- color helpers -----
@@ -346,5 +352,83 @@ public final class ShapeIcons
 
 		@Override public int getIconWidth() { return size + 1; }
 		@Override public int getIconHeight() { return size + 1; }
+	}
+
+	private static final class TagIcon implements Icon
+	{
+		private final int size;
+		private final Color color;
+
+		TagIcon(int size, Color color)
+		{
+			this.size = size;
+			this.color = color;
+		}
+
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			try
+			{
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+				// Tag silhouette: a quad with a triangular point on the left.
+				// The eyelet hole is a small circle near the point.
+				int pad = 1;
+				int x0 = x + pad, y0 = y + pad;
+				int s = size - pad * 2;
+				int pointX = x0;
+				int bodyLeft = x0 + s / 4;
+				int right = x0 + s;
+				int top = y0;
+				int bottom = y0 + s;
+				int midY = y0 + s / 2;
+
+				Path2D body = new Path2D.Float();
+				body.moveTo(pointX, midY);
+				body.lineTo(bodyLeft, top);
+				body.lineTo(right, top);
+				body.lineTo(right, bottom);
+				body.lineTo(bodyLeft, bottom);
+				body.closePath();
+
+				// Drop shadow
+				Path2D shadow = new Path2D.Float();
+				shadow.append(body.getPathIterator(java.awt.geom.AffineTransform.getTranslateInstance(1, 1)), false);
+				g2.setColor(new Color(0, 0, 0, 110));
+				g2.fill(shadow);
+
+				// Base fill
+				g2.setColor(color);
+				g2.fill(body);
+
+				// Outline
+				g2.setColor(darken(color, 90));
+				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.draw(body);
+
+				// Eyelet hole — small circle just inside the body near the point
+				int holeR = Math.max(1, s / 6);
+				int holeCx = bodyLeft + holeR + 1;
+				int holeCy = midY;
+				g2.setColor(darken(color, 90));
+				g2.fillOval(holeCx - holeR, holeCy - holeR, holeR * 2, holeR * 2);
+				g2.setColor(new Color(40, 40, 40));
+				g2.fillOval(holeCx - holeR + 1, holeCy - holeR + 1, holeR * 2 - 2, holeR * 2 - 2);
+
+				// Top-edge highlight
+				g2.setColor(lighten(color, 60));
+				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.drawLine(bodyLeft + 1, top + 1, right - 1, top + 1);
+			}
+			finally
+			{
+				g2.dispose();
+			}
+		}
+
+		@Override public int getIconWidth() { return size + 2; }
+		@Override public int getIconHeight() { return size + 2; }
 	}
 }
