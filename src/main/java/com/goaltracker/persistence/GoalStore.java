@@ -1032,6 +1032,99 @@ public class GoalStore
 	}
 
 	/**
+	 * One-time migration primitive: move a system tag from one category to
+	 * another, rewriting all goal references so existing goals end up pointing
+	 * at the new (label, toCategory) Tag entity.
+	 *
+	 * <p>Used by {@code seedCanonicalSystemTags} to apply category
+	 * reclassifications (e.g. Tempoross + Wintertodt BOSS → MINIGAME without
+	 * leaving orphaned BOSS entities behind).
+	 *
+	 * <p>Merge semantics when a destination tag already exists:
+	 * <ul>
+	 *   <li>All goals referencing the old tag id are rewritten to reference
+	 *       the destination tag id (both {@code tagIds} and {@code defaultTagIds}).</li>
+	 *   <li>User customizations on the old tag (iconKey, colorRgb) are
+	 *       preserved only if the destination tag doesn't already have them
+	 *       set — the destination always wins a conflict.</li>
+	 *   <li>The old tag entity is deleted.</li>
+	 * </ul>
+	 *
+	 * <p>If no tag with ({@code label}, {@code fromCategory}) exists, this is
+	 * a no-op and returns false. If a destination doesn't exist yet, it's
+	 * created with customizations copied from the source.
+	 *
+	 * <p>Idempotent: safe to call on every plugin start. After the first run,
+	 * subsequent calls find no source tag and no-op.
+	 *
+	 * @return true if any change was made (tag recategorized and/or goals rewritten)
+	 */
+	public boolean recategorizeSystemTag(String label, TagCategory fromCategory, TagCategory toCategory)
+	{
+		if (label == null || fromCategory == null || toCategory == null) return false;
+		if (fromCategory == toCategory) return false;
+		Tag source = findTagByLabel(label, fromCategory);
+		if (source == null) return false; // already migrated, or never existed
+
+		Tag dest = findTagByLabel(label, toCategory);
+		if (dest == null)
+		{
+			// No destination exists — just flip the category in place and
+			// preserve all customizations.
+			source.setCategory(toCategory);
+			save();
+			return true;
+		}
+
+		// Destination exists. Merge: preserve source customizations only where
+		// destination is unset, then rewrite references and drop the source.
+		if ((dest.getIconKey() == null || dest.getIconKey().isEmpty())
+			&& source.getIconKey() != null && !source.getIconKey().isEmpty())
+		{
+			dest.setIconKey(source.getIconKey());
+		}
+		if (dest.getColorRgb() < 0 && source.getColorRgb() >= 0)
+		{
+			dest.setColorRgb(source.getColorRgb());
+		}
+
+		String sourceId = source.getId();
+		String destId = dest.getId();
+		for (Goal g : goals)
+		{
+			if (g.getTagIds() != null)
+			{
+				java.util.List<String> ids = g.getTagIds();
+				for (int i = 0; i < ids.size(); i++)
+				{
+					if (sourceId.equals(ids.get(i)))
+					{
+						// Dedupe: if destId is already present, just remove
+						// the source entry instead of creating a duplicate.
+						if (ids.contains(destId)) ids.remove(i--);
+						else ids.set(i, destId);
+					}
+				}
+			}
+			if (g.getDefaultTagIds() != null)
+			{
+				java.util.List<String> ids = g.getDefaultTagIds();
+				for (int i = 0; i < ids.size(); i++)
+				{
+					if (sourceId.equals(ids.get(i)))
+					{
+						if (ids.contains(destId)) ids.remove(i--);
+						else ids.set(i, destId);
+					}
+				}
+			}
+		}
+		tags.remove(source);
+		save();
+		return true;
+	}
+
+	/**
 	 * Rename a user tag. System tags are read-only for name (returns false).
 	 * Validates the new label and rejects no-op changes.
 	 */

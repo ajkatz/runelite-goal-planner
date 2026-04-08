@@ -36,7 +36,29 @@ public class GoalPanel extends PluginPanel
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
 	private final net.runelite.client.game.SpriteManager spriteManager;
-	private final java.util.function.IntConsumer itemSearchCallback;
+	private final ItemSearchRequest itemSearchCallback;
+
+	/**
+	 * Callback the panel uses to ask the plugin to open the in-game chatbox
+	 * item search and create an item goal. The plugin owns the chatbox + the
+	 * client thread; the panel owns the section/position context. Passing
+	 * both pieces of state through the callback lets the plugin place the
+	 * created goal in the right slot — without this, item goals always
+	 * landed in the default Incomplete section regardless of which section
+	 * the user right-clicked from.
+	 */
+	@FunctionalInterface
+	public interface ItemSearchRequest
+	{
+		/**
+		 * @param qty               target quantity for the new item goal
+		 * @param preferredSectionId section the goal should land in, or null
+		 *                           for the default Incomplete section
+		 * @param positionInSection in-section index to place the goal at,
+		 *                           or -1 for "append to bottom"
+		 */
+		void accept(int qty, String preferredSectionId, int positionInSection);
+	}
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
@@ -56,7 +78,7 @@ public class GoalPanel extends PluginPanel
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goaltracker.api.GoalTrackerApiImpl api,
 					 GoalReorderingService reorderingService,
-					 java.util.function.IntConsumer itemSearchCallback)
+					 ItemSearchRequest itemSearchCallback)
 	{
 		super(false);
 		this.goalStore = goalStore;
@@ -530,14 +552,14 @@ public class GoalPanel extends PluginPanel
 			private void maybeShowPopup(MouseEvent e)
 			{
 				if (!e.isPopupTrigger()) return;
-				// Rule 1: action on an unselected card auto-deselects all first.
-				// Right-clicking is "the action" here for the menu-driven flow.
+				// Right-click does NOT touch the current selection. If the
+				// clicked card is part of the existing multi-selection, show
+				// the bulk menu so its actions apply to the whole set.
+				// Otherwise show the single-item menu for the clicked card —
+				// its actions only affect that one card, leaving any existing
+				// selection intact so the user can right-click+Select to
+				// build up a multi-select gradually.
 				java.util.Set<String> sel = api.getSelectedGoalIds();
-				if (!sel.contains(goal.getId()) && !sel.isEmpty())
-				{
-					api.clearGoalSelection();
-					sel = api.getSelectedGoalIds();
-				}
 				JPopupMenu popup;
 				if (sel.contains(goal.getId()) && sel.size() >= 2)
 				{
@@ -630,12 +652,15 @@ public class GoalPanel extends PluginPanel
 			});
 			addGoalMenu.add(addBottom);
 
+			// Above/Below are always valid: "above the first" lands at the
+			// top, "below the last" lands at the bottom — both equivalent to
+			// the dedicated Top/Bottom items, but enabling them avoids the
+			// surprise of a greyed-out option on edge-of-section goals.
 			JMenuItem addAbove = new JMenuItem("Above This Goal");
 			addAbove.addActionListener(e -> {
 				pendingAddPositionInSection = posInSection;
 				showAddGoalDialog(secId);
 			});
-			addAbove.setEnabled(index > sectionStart);
 			addGoalMenu.add(addAbove);
 
 			JMenuItem addBelow = new JMenuItem("Below This Goal");
@@ -643,7 +668,6 @@ public class GoalPanel extends PluginPanel
 				pendingAddPositionInSection = posInSection + 1;
 				showAddGoalDialog(secId);
 			});
-			addBelow.setEnabled(index < sectionEnd);
 			addGoalMenu.add(addBelow);
 
 			menu.add(addGoalMenu);
@@ -744,101 +768,15 @@ public class GoalPanel extends PluginPanel
 			menu.add(editQty);
 		}
 
-		// Tag management
+		// Tag management — routes through the shared TagPickerDialog so the
+		// single-item and bulk Add Tag flows stay in lockstep (category list,
+		// SKILLING lock, freeform/dropdown switch).
 		JMenuItem addTag = new JMenuItem("Add Tag");
 		addTag.addActionListener(e -> {
-			JPanel tagPanel = new JPanel(new java.awt.GridBagLayout());
-			java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-			gbc.insets = new Insets(4, 4, 4, 4);
-			gbc.anchor = java.awt.GridBagConstraints.WEST;
-
-			// Category selector
-			JLabel catLabel = new JLabel("Category:");
-			catLabel.setPreferredSize(new Dimension(80, 24));
-			gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
-			tagPanel.add(catLabel, gbc);
-
-			// All categories except SKILLING (skill tags are system-seeded only).
-			com.goaltracker.model.TagCategory[] categories =
-				java.util.Arrays.stream(com.goaltracker.model.TagCategory.values())
-					.filter(c -> c != com.goaltracker.model.TagCategory.SKILLING)
-					.toArray(com.goaltracker.model.TagCategory[]::new);
-			JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
-			catCombo.setRenderer(new DefaultListCellRenderer()
+			TagPickerDialog.Result picked = TagPickerDialog.show(this, "Add Tag", api);
+			if (picked != null)
 			{
-				@Override
-				public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-					boolean isSelected, boolean cellHasFocus)
-				{
-					super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-					if (value instanceof com.goaltracker.model.TagCategory)
-					{
-						setText(((com.goaltracker.model.TagCategory) value).getDisplayName());
-					}
-					return this;
-				}
-			});
-			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-			tagPanel.add(catCombo, gbc);
-
-			// Tag label — dropdown or freeform based on category
-			JLabel nameLabel = new JLabel("Tag:");
-			nameLabel.setPreferredSize(new Dimension(80, 24));
-			gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
-			tagPanel.add(nameLabel, gbc);
-
-			JComboBox<String> dropdownField = new JComboBox<>();
-			JTextField freeField = new JTextField(15);
-			JPanel fieldSwap = new JPanel(new java.awt.CardLayout());
-			fieldSwap.add(dropdownField, "DROPDOWN");
-			fieldSwap.add(freeField, "FREEFORM");
-			gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-			tagPanel.add(fieldSwap, gbc);
-
-			// Mission 21 follow-up: dropdown now shows EXISTING tags in the
-			// chosen category so users can reuse the same Tag entity across
-			// goals. The combo is editable so users can also type a new label
-			// — addTagWithCategory does find-or-create downstream.
-			Runnable updateField = () -> {
-				com.goaltracker.model.TagCategory cat =
-					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-				// SKILLING is system-only — pick from existing, no free typing.
-				dropdownField.setEditable(cat != com.goaltracker.model.TagCategory.SKILLING);
-				dropdownField.removeAllItems();
-				java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
-				for (com.goaltracker.api.TagView t : all)
-				{
-					if (cat != null && cat.name().equals(t.category))
-					{
-						dropdownField.addItem(t.label);
-					}
-				}
-				if (dropdownField.isEditable()) dropdownField.setSelectedItem("");
-				else if (dropdownField.getItemCount() > 0) dropdownField.setSelectedIndex(0);
-				((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
-			};
-			catCombo.addActionListener(ev -> updateField.run());
-			updateField.run();
-
-			tagPanel.setPreferredSize(new Dimension(300, tagPanel.getPreferredSize().height));
-
-			int result = JOptionPane.showConfirmDialog(
-				this, tagPanel, "Add Tag", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-			);
-			if (result == JOptionPane.OK_OPTION)
-			{
-				com.goaltracker.model.TagCategory selectedCat =
-					(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-				// Editable combo: getEditor().getItem() captures typed text.
-				// Non-editable (SKILLING): use getSelectedItem() which returns
-				// the picked dropdown option.
-				Object raw = dropdownField.isEditable()
-					? dropdownField.getEditor().getItem() : dropdownField.getSelectedItem();
-				String tagText = raw == null ? "" : raw.toString().trim();
-				if (!tagText.isEmpty() && selectedCat != null)
-				{
-					api.addTagWithCategory(goal.getId(), tagText, selectedCat.name());
-				}
+				api.addTagWithCategory(goal.getId(), picked.label, picked.category.name());
 			}
 		});
 		// Completed goals are tag-frozen.
@@ -976,6 +914,10 @@ if (!removableTags.isEmpty())
 		JMenuItem deselectThis = new JMenuItem("Deselect this");
 		deselectThis.addActionListener(e -> api.removeFromGoalSelection(rightClickedGoalId));
 		menu.add(deselectThis);
+		JMenuItem deselectOthers = new JMenuItem("Deselect all but this");
+		deselectOthers.addActionListener(e ->
+			api.replaceGoalSelection(java.util.Collections.singleton(rightClickedGoalId)));
+		menu.add(deselectOthers);
 		JMenuItem deselectAll = new JMenuItem("Deselect All");
 		deselectAll.addActionListener(e -> api.clearGoalSelection());
 		menu.add(deselectAll);
@@ -1192,102 +1134,24 @@ if (!removableTags.isEmpty())
 
 	private void showBulkAddTagDialog(java.util.List<Goal> selectedGoals)
 	{
-		boolean allCustom = !selectedGoals.isEmpty();
-		for (Goal g : selectedGoals)
-		{
-			if (g.getType() != GoalType.CUSTOM) { allCustom = false; break; }
-		}
-		final boolean forceFreeform = !allCustom;
-
-		JPanel tagPanel = new JPanel(new java.awt.GridBagLayout());
-		java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
-		gbc.insets = new Insets(4, 4, 4, 4);
-		gbc.anchor = java.awt.GridBagConstraints.WEST;
-
-		JLabel catLabel = new JLabel("Category:");
-		catLabel.setPreferredSize(new Dimension(80, 24));
-		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = java.awt.GridBagConstraints.NONE;
-		tagPanel.add(catLabel, gbc);
-
-		com.goaltracker.model.TagCategory[] categories =
-			com.goaltracker.model.TagCategory.values();
-		JComboBox<com.goaltracker.model.TagCategory> catCombo = new JComboBox<>(categories);
-		catCombo.setRenderer(new DefaultListCellRenderer()
-		{
-			@Override
-			public Component getListCellRendererComponent(JList<?> list, Object value, int index,
-				boolean isSelected, boolean cellHasFocus)
-			{
-				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-				if (value instanceof com.goaltracker.model.TagCategory)
-				{
-					setText(((com.goaltracker.model.TagCategory) value).getDisplayName());
-				}
-				return this;
-			}
-		});
-		gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-		tagPanel.add(catCombo, gbc);
-
-		JLabel nameLabel = new JLabel("Tag:");
-		nameLabel.setPreferredSize(new Dimension(80, 24));
-		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
-		tagPanel.add(nameLabel, gbc);
-
-		JComboBox<String> dropdownField = new JComboBox<>();
-		JTextField freeField = new JTextField(15);
-		JPanel fieldSwap = new JPanel(new java.awt.CardLayout());
-		fieldSwap.add(dropdownField, "DROPDOWN");
-		fieldSwap.add(freeField, "FREEFORM");
-		gbc.gridx = 1; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-		tagPanel.add(fieldSwap, gbc);
-
-		// Mission 21: editable combo populated from existing tags in the
-		// selected category (find-or-create downstream). SKILLING is system-only.
-		Runnable updateField = () -> {
-			com.goaltracker.model.TagCategory cat =
-				(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-			dropdownField.setEditable(cat != com.goaltracker.model.TagCategory.SKILLING);
-			dropdownField.removeAllItems();
-			java.util.List<com.goaltracker.api.TagView> all = api.queryAllTags();
-			for (com.goaltracker.api.TagView t : all)
-			{
-				if (cat != null && cat.name().equals(t.category))
-				{
-					dropdownField.addItem(t.label);
-				}
-			}
-			dropdownField.setSelectedItem("");
-			((java.awt.CardLayout) fieldSwap.getLayout()).show(fieldSwap, "DROPDOWN");
-		};
-		catCombo.addActionListener(ev -> updateField.run());
-		updateField.run();
-
-		tagPanel.setPreferredSize(new Dimension(300, tagPanel.getPreferredSize().height));
-
-		int result = JOptionPane.showConfirmDialog(
-			this, tagPanel, "Add Tag to " + selectedGoals.size() + " goals",
-			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-		);
-		if (result != JOptionPane.OK_OPTION) return;
-
-		com.goaltracker.model.TagCategory selectedCat =
-			(com.goaltracker.model.TagCategory) catCombo.getSelectedItem();
-		Object raw = dropdownField.isEditable()
-			? dropdownField.getEditor().getItem() : dropdownField.getSelectedItem();
-		String tagText = raw == null ? "" : raw.toString().trim();
-		if (tagText.isEmpty() || selectedCat == null) return;
+		TagPickerDialog.Result picked = TagPickerDialog.show(
+			this, "Add Tag to " + selectedGoals.size() + " goals", api);
+		if (picked == null) return;
 
 		// Route through the internal API so the bulk path matches the single-item
 		// path post-Mission 19. addTagWithCategory preserves the user-picked
 		// category (api.addTag would force OTHER). Each call fires onGoalsChanged,
 		// which fires N rebuilds for N selected goals — acceptable tradeoff for
 		// keeping the API the canonical mutation surface; the user clicks OK once
-		// so the cumulative work is bounded.
-		api.beginCompound("Add tag '" + tagText + "' to " + selectedGoals.size() + " goals");
+		// so the cumulative work is bounded. Wrapping in a compound keeps the
+		// whole gesture as a single undo entry.
+		api.beginCompound("Add tag '" + picked.label + "' to " + selectedGoals.size() + " goals");
 		try
 		{
-			for (Goal g : selectedGoals) api.addTagWithCategory(g.getId(), tagText, selectedCat.name());
+			for (Goal g : selectedGoals)
+			{
+				api.addTagWithCategory(g.getId(), picked.label, picked.category.name());
+			}
 		}
 		finally { api.endCompound(); }
 	}
@@ -1723,7 +1587,13 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 						JOptionPane.showMessageDialog(this, "Quantity must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
-					itemSearchCallback.accept(qty);
+					// Snapshot + clear the pending position state up front: the
+					// item flow goes async through the chatbox in the plugin,
+					// so we can't rely on moveToPreferredSection (which the
+					// skill/custom flows use) to read these fields later.
+					int capturedPosition = pendingAddPositionInSection;
+					pendingAddPositionInSection = -1;
+					itemSearchCallback.accept(qty, preferredSectionId, capturedPosition);
 				}
 				catch (NumberFormatException e)
 				{

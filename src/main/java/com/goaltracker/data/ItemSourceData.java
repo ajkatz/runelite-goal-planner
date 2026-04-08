@@ -684,21 +684,23 @@ public final class ItemSourceData
 		source(6571, "Skotizo", TagCategory.BOSS);  // Uncut onyx
 		source(19677, "Skotizo", TagCategory.BOSS);  // Ancient shard
 
-		// Tempoross
-		source(10562, "Tempoross", TagCategory.BOSS);  // Tiny tempor
-		source(10637, "Tempoross", TagCategory.BOSS);  // Tiny tempor
-		source(25602, "Tempoross", TagCategory.BOSS);  // Tiny tempor
-		source(25559, "Tempoross", TagCategory.BOSS);  // Big harpoonfish
-		source(25592, "Tempoross", TagCategory.BOSS);  // Spirit angler headband
-		source(25594, "Tempoross", TagCategory.BOSS);  // Spirit angler top
-		source(25596, "Tempoross", TagCategory.BOSS);  // Spirit angler waders
-		source(25598, "Tempoross", TagCategory.BOSS);  // Spirit angler boots
-		source(25578, "Tempoross", TagCategory.BOSS);  // Soaked page
-		source(25580, "Tempoross", TagCategory.BOSS);  // Tackle box
-		source(25582, "Tempoross", TagCategory.BOSS);  // Fish barrel
-		source(25584, "Tempoross", TagCategory.BOSS);  // Fish barrel
-		source(21028, "Tempoross", TagCategory.BOSS);  // Dragon harpoon
-		source(25588, "Tempoross", TagCategory.BOSS);  // Spirit flakes
+		// Tempoross — categorized as MINIGAME despite being in the boss tab
+		// of the in-game collection log; community treats it as a skilling
+		// minigame, not a boss.
+		source(10562, "Tempoross", TagCategory.MINIGAME);  // Tiny tempor
+		source(10637, "Tempoross", TagCategory.MINIGAME);  // Tiny tempor
+		source(25602, "Tempoross", TagCategory.MINIGAME);  // Tiny tempor
+		source(25559, "Tempoross", TagCategory.MINIGAME);  // Big harpoonfish
+		source(25592, "Tempoross", TagCategory.MINIGAME);  // Spirit angler headband
+		source(25594, "Tempoross", TagCategory.MINIGAME);  // Spirit angler top
+		source(25596, "Tempoross", TagCategory.MINIGAME);  // Spirit angler waders
+		source(25598, "Tempoross", TagCategory.MINIGAME);  // Spirit angler boots
+		source(25578, "Tempoross", TagCategory.MINIGAME);  // Soaked page
+		source(25580, "Tempoross", TagCategory.MINIGAME);  // Tackle box
+		source(25582, "Tempoross", TagCategory.MINIGAME);  // Fish barrel
+		source(25584, "Tempoross", TagCategory.MINIGAME);  // Fish barrel
+		source(21028, "Tempoross", TagCategory.MINIGAME);  // Dragon harpoon
+		source(25588, "Tempoross", TagCategory.MINIGAME);  // Spirit flakes
 
 		// Thermonuclear smoke devil
 		source(6639, "Thermonuclear smoke devil", TagCategory.BOSS);  // Pet smoke devil
@@ -782,30 +784,34 @@ public final class ItemSourceData
 		source(28276, "The Whisperer", TagCategory.BOSS);  // Chromium ingot
 		source(28334, "The Whisperer", TagCategory.BOSS);  // Awakener's orb
 
-		// Wintertodt
-		source(3077, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3078, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3079, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3080, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3081, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3082, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3083, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(3084, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(7368, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(7370, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(20693, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(24483, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(24484, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(24485, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(24486, "Wintertodt", TagCategory.BOSS);  // Phoenix
-		source(20718, "Wintertodt", TagCategory.BOSS);  // Burnt page
-		source(20704, "Wintertodt", TagCategory.BOSS);  // Pyromancer garb
-		source(20708, "Wintertodt", TagCategory.BOSS);  // Pyromancer hood
-		source(20706, "Wintertodt", TagCategory.BOSS);  // Pyromancer robe
-		source(20710, "Wintertodt", TagCategory.BOSS);  // Pyromancer boots
-		source(20712, "Wintertodt", TagCategory.BOSS);  // Warm gloves
-		source(20720, "Wintertodt", TagCategory.BOSS);  // Bruma torch
-		source(6739, "Wintertodt", TagCategory.BOSS);  // Dragon axe
+		// Wintertodt — categorized as MINIGAME despite being in the boss tab
+		// of the in-game collection log; community treats it as a skilling
+		// minigame, not a boss.
+		source(3077, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3078, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3079, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3080, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3081, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3082, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3083, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(3084, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(7368, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(7370, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(20693, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(24483, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(24484, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(24485, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(24486, "Wintertodt", TagCategory.MINIGAME);  // Phoenix
+		source(20718, "Wintertodt", TagCategory.MINIGAME);  // Burnt page
+		source(20714, "Wintertodt", TagCategory.MINIGAME);  // Tome of fire (charged)
+		source(20716, "Wintertodt", TagCategory.MINIGAME);  // Tome of fire (empty)
+		source(20704, "Wintertodt", TagCategory.MINIGAME);  // Pyromancer garb
+		source(20708, "Wintertodt", TagCategory.MINIGAME);  // Pyromancer hood
+		source(20706, "Wintertodt", TagCategory.MINIGAME);  // Pyromancer robe
+		source(20710, "Wintertodt", TagCategory.MINIGAME);  // Pyromancer boots
+		source(20712, "Wintertodt", TagCategory.MINIGAME);  // Warm gloves
+		source(20720, "Wintertodt", TagCategory.MINIGAME);  // Bruma torch
+		source(6739, "Wintertodt", TagCategory.MINIGAME);  // Dragon axe
 
 		// Yama
 		source(14203, "Yama", TagCategory.BOSS);  // Yami
@@ -3982,101 +3988,14 @@ public final class ItemSourceData
 		source(15058, "Skilling Pets", TagCategory.OTHER);  // Soup
 		source(31283, "Skilling Pets", TagCategory.OTHER);  // Soup
 
-		// Slayer
-		source(7975, "Slayer", TagCategory.OTHER);  // Crawling hand (item)
-		source(7976, "Slayer", TagCategory.OTHER);  // Cockatrice head
-		source(7977, "Slayer", TagCategory.OTHER);  // Basilisk head
-		source(7978, "Slayer", TagCategory.OTHER);  // Kurask head
-		source(7979, "Slayer", TagCategory.OTHER);  // Abyssal head
-		source(20724, "Slayer", TagCategory.OTHER);  // Imbued heart
-		source(21270, "Slayer", TagCategory.OTHER);  // Eternal gem
-		source(20736, "Slayer", TagCategory.OTHER);  // Dust battlestaff
-		source(20730, "Slayer", TagCategory.OTHER);  // Mist battlestaff
-		source(4151, "Slayer", TagCategory.OTHER);  // Abyssal whip
-		source(4153, "Slayer", TagCategory.OTHER);  // Granite maul
-		source(12848, "Slayer", TagCategory.OTHER);  // Granite maul
-		source(6665, "Slayer", TagCategory.OTHER);  // Mudskipper hat
-		source(6666, "Slayer", TagCategory.OTHER);  // Flippers
-		source(11037, "Slayer", TagCategory.OTHER);  // Brine sabre
-		source(11902, "Slayer", TagCategory.OTHER);  // Leaf-bladed sword
-		source(20727, "Slayer", TagCategory.OTHER);  // Leaf-bladed battleaxe
-		source(21646, "Slayer", TagCategory.OTHER);  // Granite longsword
-		source(21643, "Slayer", TagCategory.OTHER);  // Granite boots
-		source(21637, "Slayer", TagCategory.OTHER);  // Wyvern visage
-		source(6809, "Slayer", TagCategory.OTHER);  // Granite legs
-		source(10589, "Slayer", TagCategory.OTHER);  // Granite helm
-		source(11286, "Slayer", TagCategory.OTHER);  // Draconic visage
-		source(4119, "Slayer", TagCategory.OTHER);  // Bronze boots
-		source(4121, "Slayer", TagCategory.OTHER);  // Iron boots
-		source(4123, "Slayer", TagCategory.OTHER);  // Steel boots
-		source(4125, "Slayer", TagCategory.OTHER);  // Black boots
-		source(4127, "Slayer", TagCategory.OTHER);  // Mithril boots
-		source(4129, "Slayer", TagCategory.OTHER);  // Adamant boots
-		source(4131, "Slayer", TagCategory.OTHER);  // Rune boots
-		source(11840, "Slayer", TagCategory.OTHER);  // Dragon boots
-		source(13265, "Slayer", TagCategory.OTHER);  // Abyssal dagger
-		source(13267, "Slayer", TagCategory.OTHER);  // Abyssal dagger
-		source(13269, "Slayer", TagCategory.OTHER);  // Abyssal dagger
-		source(13271, "Slayer", TagCategory.OTHER);  // Abyssal dagger
-		source(12004, "Slayer", TagCategory.OTHER);  // Kraken tentacle
-		source(11235, "Slayer", TagCategory.OTHER);  // Dark bow
-		source(12765, "Slayer", TagCategory.OTHER);  // Dark bow
-		source(12766, "Slayer", TagCategory.OTHER);  // Dark bow
-		source(12767, "Slayer", TagCategory.OTHER);  // Dark bow
-		source(12768, "Slayer", TagCategory.OTHER);  // Dark bow
-		source(12002, "Slayer", TagCategory.OTHER);  // Occult necklace
-		source(3140, "Slayer", TagCategory.OTHER);  // Dragon chainbody
-		source(20849, "Slayer", TagCategory.OTHER);  // Dragon thrownaxe
-		source(21028, "Slayer", TagCategory.OTHER);  // Dragon harpoon
-		source(21009, "Slayer", TagCategory.OTHER);  // Dragon sword
-		source(22804, "Slayer", TagCategory.OTHER);  // Dragon knife
-		source(22806, "Slayer", TagCategory.OTHER);  // Dragon knife
-		source(22808, "Slayer", TagCategory.OTHER);  // Dragon knife
-		source(22810, "Slayer", TagCategory.OTHER);  // Dragon knife
-		source(22963, "Slayer", TagCategory.OTHER);  // Broken dragon hasta
-		source(22960, "Slayer", TagCategory.OTHER);  // Drake's tooth
-		source(22957, "Slayer", TagCategory.OTHER);  // Drake's claw
-		source(22988, "Slayer", TagCategory.OTHER);  // Hydra tail
-		source(22971, "Slayer", TagCategory.OTHER);  // Hydra's fang
-		source(22973, "Slayer", TagCategory.OTHER);  // Hydra's eye
-		source(22969, "Slayer", TagCategory.OTHER);  // Hydra's heart
-		source(4109, "Slayer", TagCategory.OTHER);  // Mystic hat (light)
-		source(4111, "Slayer", TagCategory.OTHER);  // Mystic robe top (light)
-		source(4113, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (light)
-		source(4115, "Slayer", TagCategory.OTHER);  // Mystic gloves (light)
-		source(4117, "Slayer", TagCategory.OTHER);  // Mystic boots (light)
-		source(4099, "Slayer", TagCategory.OTHER);  // Mystic hat (dark)
-		source(4101, "Slayer", TagCategory.OTHER);  // Mystic robe top (dark)
-		source(4103, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (dark)
-		source(4105, "Slayer", TagCategory.OTHER);  // Mystic gloves (dark)
-		source(4107, "Slayer", TagCategory.OTHER);  // Mystic boots (dark)
-		source(23047, "Slayer", TagCategory.OTHER);  // Mystic hat (dusk)
-		source(23050, "Slayer", TagCategory.OTHER);  // Mystic robe top (dusk)
-		source(23053, "Slayer", TagCategory.OTHER);  // Mystic robe bottom (dusk)
-		source(23056, "Slayer", TagCategory.OTHER);  // Mystic gloves (dusk)
-		source(23059, "Slayer", TagCategory.OTHER);  // Mystic boots (dusk)
-		source(24268, "Slayer", TagCategory.OTHER);  // Basilisk jaw
-		source(32876, "Slayer", TagCategory.OTHER);  // Aquanite tendon
-		source(24288, "Slayer", TagCategory.OTHER);  // Dagon'hai hat
-		source(24291, "Slayer", TagCategory.OTHER);  // Dagon'hai robe top
-		source(24294, "Slayer", TagCategory.OTHER);  // Dagon'hai robe bottom
-		source(24777, "Slayer", TagCategory.OTHER);  // Blood shard
-		source(26225, "Slayer", TagCategory.OTHER);  // Ancient ceremonial mask
-		source(26221, "Slayer", TagCategory.OTHER);  // Ancient ceremonial top
-		source(26223, "Slayer", TagCategory.OTHER);  // Ancient ceremonial legs
-		source(26227, "Slayer", TagCategory.OTHER);  // Ancient ceremonial gloves
-		source(26229, "Slayer", TagCategory.OTHER);  // Ancient ceremonial boots
-		source(29084, "Slayer", TagCategory.OTHER);  // Sulphur blades
-		source(29455, "Slayer", TagCategory.OTHER);  // Teleport anchoring scroll
-		source(29806, "Slayer", TagCategory.OTHER);  // Aranea boots
-		source(29889, "Slayer", TagCategory.OTHER);  // Glacial temotli
-		source(29895, "Slayer", TagCategory.OTHER);  // Frozen tear
-		source(30957, "Slayer", TagCategory.OTHER);  // Earthbound tecpatl
-		source(31081, "Slayer", TagCategory.OTHER);  // Antler guard
-		source(31084, "Slayer", TagCategory.OTHER);  // Alchemist's signet
-		source(31086, "Slayer", TagCategory.OTHER);  // Broken antler
-		source(31996, "Slayer", TagCategory.OTHER);  // Dragon metal sheet
-		source(31235, "Slayer", TagCategory.OTHER);  // Gryphon feather
+		// Slayer: the old OTHER "Slayer" category was retired 2026-04-08 in
+		// favor of direct-inheritance via SourceAttributes.isSlayerItem().
+		// Every item id that used to live here is now registered in
+		// SourceAttributes.DIRECT_SLAYER_ITEMS, and buildItemTags appends
+		// the SKILLING Slayer tag to any item in that set. This makes the
+		// SKILLING Slayer tag the single source of truth for slayer items
+		// and eliminates the gray-text duplicate that motivated the
+		// dedupe bandaid in mission 27.
 
 		// Tormented Demons
 		source(29580, "Tormented Demons", TagCategory.OTHER);  // Tormented synapse

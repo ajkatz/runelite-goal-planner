@@ -131,12 +131,30 @@ public class SkillTargetForm extends JPanel
 	 */
 	public void setRelativeBaseline(int currentXp)
 	{
+		// No-op when nothing actually changes — callers (e.g., the Add Goal
+		// dialog's updateLabels) re-invoke this on every type/mode tweak,
+		// and clearing/reseeding on a no-op wipes whatever the user typed.
+		if (currentXp == this.relativeBaselineXp) return;
+		boolean toAbsolute = currentXp < 0;
 		this.relativeBaselineXp = currentXp;
-		levelLabel.setText(currentXp >= 0 ? "+ Levels:" : "Level:");
-		// Reset both fields so the previous absolute value isn't reinterpreted
-		// as a (probably nonsensical) delta.
+		levelLabel.setText(toAbsolute ? "Level:" : "+ Levels:");
+		// On a real transition, reseed: 99 in absolute mode (the common
+		// target), empty in relative mode so an old absolute value isn't
+		// reinterpreted as a (probably nonsensical) delta.
 		syncing = true;
-		try { levelField.setText(""); xpField.setText(""); }
+		try
+		{
+			if (toAbsolute)
+			{
+				levelField.setText("99");
+				xpField.setText(Integer.toString(Experience.getXpForLevel(99)));
+			}
+			else
+			{
+				levelField.setText("");
+				xpField.setText("");
+			}
+		}
 		finally { syncing = false; }
 	}
 

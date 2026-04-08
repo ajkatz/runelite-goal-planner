@@ -27,10 +27,10 @@ public final class TagOptions
 			"Kalphite Queen", "King Black Dragon", "Kraken", "Kree'arra",
 			"Moons of Peril", "Nex", "Obor", "Phantom Muspah", "Royal Titans",
 			"Sarachnis", "Scorpia", "Scurrius", "Shellbane Gryphon", "Skotizo",
-			"Tempoross", "The Fight Caves", "The Gauntlet", "The Hueycoatl",
+			"The Fight Caves", "The Gauntlet", "The Hueycoatl",
 			"The Inferno", "The Leviathan", "The Nightmare", "The Whisperer",
 			"Thermonuclear smoke devil", "Vardorvis", "Venenatis and Spindel",
-			"Vet'ion and Calvar'ion", "Vorkath", "Wintertodt", "Yama",
+			"Vet'ion and Calvar'ion", "Vorkath", "Yama",
 			"Zalcano", "Zulrah"
 		});
 
@@ -51,7 +51,8 @@ public final class TagOptions
 			"Last Man Standing", "Magic Training Arena", "Mahogany Homes",
 			"Mastering Mixology", "Pest Control", "Rogues' Den",
 			"Shades of Mort'ton", "Soul Wars", "Temple Trekking",
-			"Tithe Farm", "Trouble Brewing", "Vale Totems", "Volcanic Mine"
+			"Tempoross", "Tithe Farm", "Trouble Brewing", "Vale Totems",
+			"Volcanic Mine", "Wintertodt"
 		});
 
 		OPTIONS.put(TagCategory.SKILLING, new String[]{

@@ -345,13 +345,14 @@ public class TagManagementDialog extends JDialog
 		recolor.addActionListener(e -> handleRecolor(tag));
 		actions.add(recolor);
 
-		// Mission 21 follow-up: only user-created (non-system) tags can have
-		// their icon edited. System tags get their iconKey set at seed time
-		// (e.g. SKILLING tags use their skill name) and shouldn't be changed
-		// by the user.
+		// Icon edit is allowed on any tag EXCEPT SKILLING. SKILLING tags are
+		// locked because seedCanonicalSystemTags reseats their icon to the
+		// matching skill image on every plugin start, so user edits would be
+		// silently overwritten. Every other category (BOSS/RAID/MINIGAME/CLUE/
+		// OTHER), system or user-created, can have its icon edited freely.
 		JButton icon = new JButton("Icon");
 		icon.setMargin(new java.awt.Insets(2, 6, 2, 6));
-		icon.setEnabled(!tag.system);
+		icon.setEnabled(!"SKILLING".equals(tag.category));
 		icon.addActionListener(e -> handleIcon(tag));
 		actions.add(icon);
 

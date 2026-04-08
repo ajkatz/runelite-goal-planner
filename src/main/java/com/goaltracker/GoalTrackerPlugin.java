@@ -182,19 +182,33 @@ public class GoalTrackerPlugin extends Plugin
 	 * Opens the in-game chatbox item search.
 	 * After selection, shows a confirmation dialog with item name + quantity.
 	 */
-	public void openItemSearch(int targetQty)
+	public void openItemSearch(int targetQty, String preferredSectionId, int positionInSection)
 	{
 		chatboxItemSearch
 			.tooltipText("Select item for goal")
 			.onItemSelected(itemId ->
 			{
+				// All ItemManager calls (canonicalize, getItemComposition,
+				// buildItemTags' fallback) require the client thread. Compute
+				// everything we need from item data here, then hand only the
+				// pure data + the dialog show to the Swing thread. Doing
+				// buildItemTags inside SwingUtilities.invokeLater previously
+				// triggered an AssertionError ("must be called on client thread")
+				// for any item not in ItemSourceData (lyres, runes, etc.) — the
+				// EDT swallowed the exception and the goal was silently dropped.
 				clientThread.invokeLater(() ->
 				{
-					String itemName = itemManager.getItemComposition(itemId).getName();
-					log.info("Item selected: {} (ID: {})", itemName, itemId);
+					int canonicalId = itemManager.canonicalize(itemId);
+					String itemName = itemManager.getItemComposition(canonicalId).getName();
+					java.util.List<ItemTag> autoTags = buildItemTags(canonicalId);
+					java.util.List<String> autoTagIds = new java.util.ArrayList<>();
+					for (ItemTag spec : autoTags)
+					{
+						com.goaltracker.model.Tag tag =
+							goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+						if (tag != null) autoTagIds.add(tag.getId());
+					}
 
-
-					// Show confirmation on Swing thread
 					javax.swing.SwingUtilities.invokeLater(() ->
 					{
 						int confirm = javax.swing.JOptionPane.showConfirmDialog(
@@ -204,31 +218,32 @@ public class GoalTrackerPlugin extends Plugin
 							javax.swing.JOptionPane.OK_CANCEL_OPTION,
 							javax.swing.JOptionPane.PLAIN_MESSAGE
 						);
+						if (confirm != javax.swing.JOptionPane.OK_OPTION) return;
 
-						if (confirm == javax.swing.JOptionPane.OK_OPTION)
+						// Set sectionId at build time so addGoal places the
+						// goal in the right section instead of defaulting to
+						// Incomplete. Position-within-section is applied as a
+						// follow-up call after the goal exists.
+						Goal goal = Goal.builder()
+							.type(GoalType.ITEM_GRIND)
+							.name(itemName)
+							.description(FormatUtil.formatNumber(targetQty) + " total")
+							.itemId(canonicalId)
+							.targetValue(targetQty)
+							.currentValue(-1)
+							.sectionId(preferredSectionId)  // null → addGoal falls back to Incomplete
+							.tagIds(new java.util.ArrayList<>(autoTagIds))
+							.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
+							.build();
+
+						// Mission 26: route through the command path so this is undoable.
+						// Wrap create + position in a single compound entry so
+						// one undo reverses the whole gesture.
+						final String capturedGoalId = goal.getId();
+						final String displayName = itemName;
+						goalTrackerApi.beginCompound("Add goal: " + displayName);
+						try
 						{
-							java.util.List<ItemTag> autoTags = buildItemTags(itemId);
-							java.util.List<String> autoTagIds = new java.util.ArrayList<>();
-							for (ItemTag spec : autoTags)
-							{
-								com.goaltracker.model.Tag tag =
-									goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
-								if (tag != null) autoTagIds.add(tag.getId());
-							}
-							Goal goal = Goal.builder()
-								.type(GoalType.ITEM_GRIND)
-								.name(itemName)
-								.description(FormatUtil.formatNumber(targetQty) + " total")
-								.itemId(itemId)
-								.targetValue(targetQty)
-								.currentValue(-1)
-								.tagIds(new java.util.ArrayList<>(autoTagIds))
-								.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
-								.build();
-
-							// Mission 26: route through the command path so this is undoable.
-							final String capturedGoalId = goal.getId();
-							final String displayName = itemName;
 							goalTrackerApi.executeCommand(new com.goaltracker.command.Command()
 							{
 								@Override public boolean apply()
@@ -246,8 +261,17 @@ public class GoalTrackerPlugin extends Plugin
 								}
 								@Override public String getDescription() { return "Add goal: " + displayName; }
 							});
-							refreshItemGoalsNow();
+							if (preferredSectionId != null && positionInSection >= 0)
+							{
+								goalTrackerApi.positionGoalInSection(
+									capturedGoalId, preferredSectionId, positionInSection);
+							}
 						}
+						finally
+						{
+							goalTrackerApi.endCompound();
+						}
+						refreshItemGoalsNow();
 					});
 				});
 			})
@@ -287,23 +311,33 @@ public class GoalTrackerPlugin extends Plugin
 
 	private java.util.List<ItemTag> buildItemTags(int itemId)
 	{
+		// Callers MUST pass an already-canonicalized item id and MUST invoke
+		// from the client thread. The earlier in-method canonicalize fallback
+		// was removed because (a) every call site now canonicalizes upstream,
+		// and (b) calling itemManager.canonicalize from the Swing EDT throws
+		// AssertionError ("must be called on client thread"), which the EDT
+		// silently swallowed and dropped the goal-add silently.
 		java.util.List<ItemTag> tags = new java.util.ArrayList<>(ItemSourceData.getTags(itemId));
-		if (tags.isEmpty())
-		{
-			// Try canonicalized ID
-			int canonical = itemManager.canonicalize(itemId);
-			if (canonical != itemId)
-			{
-				tags = new java.util.ArrayList<>(ItemSourceData.getTags(canonical));
-			}
-		}
 
-		// Check for inherited attributes
-		boolean needsSlayerTag = false;
+		// Check for inherited attributes. Slayer inheritance now comes from
+		// two independent signals unioned together:
+		//   1. Boss-source inheritance: any of this item's boss sources is a
+		//      registered slayer-task monster (Abyssal Sire, Alchemical
+		//      Hydra, Kraken, etc.). This is how Sire drops like the
+		//      Abyssal whip / dagger pick up Slayer.
+		//   2. Direct item inheritance: the item id is in the
+		//      DIRECT_SLAYER_ITEMS set (SourceAttributes.isSlayerItem), which
+		//      covers slayer-monster drops whose source isn't currently
+		//      registered as a boss (Gargoyles, Wyverns, Cockatrice, etc.)
+		//      and sourceless drops (Imbued heart, Eternal gem).
+		// The old dedupe bandaid ("strip non-SKILLING Slayer before appending
+		// SKILLING Slayer") is gone — the OTHER "Slayer" category no longer
+		// exists, so there's nothing to collide with.
+		boolean needsSlayerTag = SourceAttributes.isSlayerItem(itemId);
 		boolean isPet = false;
 		for (ItemTag tag : tags)
 		{
-			if (SourceAttributes.isSlayerTask(tag.getLabel()))
+			if (!needsSlayerTag && SourceAttributes.isSlayerTask(tag.getLabel()))
 			{
 				needsSlayerTag = true;
 			}
@@ -621,6 +655,13 @@ public class GoalTrackerPlugin extends Plugin
 	 */
 	private void seedCanonicalSystemTags()
 	{
+		// One-time category reclassifications. Run BEFORE the seed so the
+		// source BOSS entity gets flipped in place (no merge needed) before
+		// the seed would otherwise create a fresh MINIGAME entity alongside
+		// the orphaned BOSS one. Idempotent: after the first run, each call
+		// finds no source tag in the old category and no-ops.
+		applyCategoryReclassifications();
+
 		for (net.runelite.api.Skill skill : net.runelite.api.Skill.values())
 		{
 			com.goaltracker.model.Tag tag = goalStore.findOrCreateSystemTag(
@@ -659,6 +700,36 @@ public class GoalTrackerPlugin extends Plugin
 			goalStore.recolorTag(pet.getId(), 0xFF69B4);
 		}
 		log.debug("Seeded canonical system tags");
+	}
+
+	/**
+	 * Apply any one-shot category moves for system tags. Runs on every plugin
+	 * start but is idempotent — {@link GoalStore#recategorizeSystemTag} finds
+	 * no source tag after the first successful migration and returns false.
+	 *
+	 * <p>Current migrations:
+	 * <ul>
+	 *   <li>Tempoross: BOSS → MINIGAME (skilling boss, community treats as minigame)</li>
+	 *   <li>Wintertodt: BOSS → MINIGAME (same)</li>
+	 * </ul>
+	 */
+	private void applyCategoryReclassifications()
+	{
+		String[][] moves = {
+			{ "Tempoross",  "BOSS", "MINIGAME" },
+			{ "Wintertodt", "BOSS", "MINIGAME" },
+		};
+		for (String[] move : moves)
+		{
+			com.goaltracker.model.TagCategory from =
+				com.goaltracker.model.TagCategory.valueOf(move[1]);
+			com.goaltracker.model.TagCategory to =
+				com.goaltracker.model.TagCategory.valueOf(move[2]);
+			if (goalStore.recategorizeSystemTag(move[0], from, to))
+			{
+				log.info("Recategorized system tag '{}': {} → {}", move[0], from, to);
+			}
+		}
 	}
 
 	private void migrateCaTaskIds()
@@ -843,12 +914,12 @@ public class GoalTrackerPlugin extends Plugin
 				continue;
 			}
 
-			// For collection log, itemId might be in identifier
-			if (isCollectionLog && itemId <= 0)
-			{
-				itemId = entry.getIdentifier();
-			}
-
+			// Collection log: only act on real item slots in the right pane.
+			// The left-pane category tabs (Bosses → Vorkath, etc.) share the
+			// same widget group id but have entry.getItemId() <= 0, with the
+			// identifier holding a tab index. The previous fallback to
+			// entry.getIdentifier() picked up tab index 1 → canonical item id
+			// 1 ("Toolkit"), producing a phantom Add Goal on tab clicks.
 			if (itemId <= 0)
 			{
 				continue;
