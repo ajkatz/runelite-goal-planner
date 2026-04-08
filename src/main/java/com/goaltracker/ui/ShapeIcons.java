@@ -66,6 +66,18 @@ public final class ShapeIcons
 		return new TagIcon(size, color);
 	}
 
+	/** Curved undo arrow — left-facing hook. Mission 26. */
+	public static Icon undoArrow(int size, Color color)
+	{
+		return new UndoArrow(size, color, true);
+	}
+
+	/** Curved redo arrow — right-facing hook (mirror of undo). Mission 26. */
+	public static Icon redoArrow(int size, Color color)
+	{
+		return new UndoArrow(size, color, false);
+	}
+
 	private enum Direction { UP, DOWN, RIGHT }
 
 	// ----- color helpers -----
@@ -352,6 +364,86 @@ public final class ShapeIcons
 
 		@Override public int getIconWidth() { return size + 1; }
 		@Override public int getIconHeight() { return size + 1; }
+	}
+
+	private static final class UndoArrow implements Icon
+	{
+		private final int size;
+		private final Color color;
+		private final boolean mirrored;
+
+		UndoArrow(int size, Color color, boolean mirrored)
+		{
+			this.size = size;
+			this.color = color;
+			this.mirrored = mirrored;
+		}
+
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			try
+			{
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+				// Draw a 3/4 arc with an arrowhead at one end. The arc opens
+				// downward and the head sits on the upper-left (undo) or
+				// upper-right (redo, mirrored).
+				int pad = 2;
+				int s = size - pad;
+				int cx = x + size / 2;
+				int cy = y + size / 2 + 1;
+				int r = s / 2;
+
+				if (mirrored)
+				{
+					// Flip horizontally around the center
+					java.awt.geom.AffineTransform at = g2.getTransform();
+					g2.translate(2 * cx, 0);
+					g2.scale(-1, 1);
+				}
+
+				// Drop shadow arc
+				g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(new Color(0, 0, 0, 110));
+				g2.drawArc(cx - r + 1, cy - r + 1, r * 2, r * 2, 60, 240);
+
+				// Outline arc
+				g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(darken(color, 100));
+				g2.drawArc(cx - r, cy - r, r * 2, r * 2, 60, 240);
+
+				// Base color arc
+				g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(color);
+				g2.drawArc(cx - r, cy - r, r * 2, r * 2, 60, 240);
+
+				// Arrowhead at the end of the arc (60° = upper-right of arc circle).
+				// The arc starts at angle 60 (upper right) and sweeps 240° CCW,
+				// ending at angle 300. We place the head at the START (60°).
+				double startAngleRad = Math.toRadians(60);
+				int hx = (int) Math.round(cx + r * Math.cos(startAngleRad));
+				int hy = (int) Math.round(cy - r * Math.sin(startAngleRad));
+				int headSize = Math.max(2, s / 4);
+				Path2D head = new Path2D.Float();
+				head.moveTo(hx, hy);
+				head.lineTo(hx - headSize, hy);
+				head.lineTo(hx, hy - headSize);
+				head.closePath();
+				g2.setColor(darken(color, 100));
+				g2.fill(head);
+				g2.setColor(color);
+				g2.draw(head);
+			}
+			finally
+			{
+				g2.dispose();
+			}
+		}
+
+		@Override public int getIconWidth() { return size + 2; }
+		@Override public int getIconHeight() { return size + 2; }
 	}
 
 	private static final class TagIcon implements Icon

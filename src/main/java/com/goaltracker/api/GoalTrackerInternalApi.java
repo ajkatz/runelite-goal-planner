@@ -39,6 +39,49 @@ public interface GoalTrackerInternalApi
 	 */
 	boolean positionGoalInSection(String goalId, String sectionId, int positionInSection);
 
+	// ---------------------------------------------------------------------
+	// Undo / redo (Mission 26)
+	// ---------------------------------------------------------------------
+
+	/** True if there is at least one user action available to undo. */
+	boolean canUndo();
+
+	/** True if there is at least one undone action available to redo. */
+	boolean canRedo();
+
+	/** Short user-facing description of the next undo target, or null if empty. */
+	String peekUndoDescription();
+
+	/** Short user-facing description of the next redo target, or null if empty. */
+	String peekRedoDescription();
+
+	/**
+	 * Reverse the most recent user action. No-op if the undo stack is empty
+	 * or the revert fails (the failed entry is silently dropped from history).
+	 *
+	 * @return true if an action was successfully reverted
+	 */
+	boolean undo();
+
+	/**
+	 * Re-apply the most recently undone user action.
+	 *
+	 * @return true if an action was successfully re-applied
+	 */
+	boolean redo();
+
+	/**
+	 * Begin a compound command. Subsequent user-mutation API calls collect
+	 * into a single undo entry instead of pushing individually. Pair with
+	 * {@link #endCompound()} to close. Used by multi-step flows like
+	 * "create goal and immediately reposition" where the user expects one
+	 * undo to fully reverse the operation. Mission 26.
+	 */
+	void beginCompound(String description);
+
+	/** Close the current compound and push it as one undo entry. */
+	void endCompound();
+
 	/**
 	 * Remove all goals from the store. Backs the Clear All UI button. Idempotent.
 	 */
@@ -324,6 +367,27 @@ public interface GoalTrackerInternalApi
 	 * @return number of goals from which the tag was removed
 	 */
 	int bulkRemoveTagFromGoals(java.util.Set<String> goalIds, String tagId);
+
+	/**
+	 * Remove a batch of goals as a single atomic command. Unlike calling
+	 * {@link #removeGoal} in a compound loop, this captures every goal's
+	 * original priority BEFORE any removals so undo restores them to their
+	 * exact original positions (no collapsing at an intermediate index).
+	 * Mission 26 follow-up.
+	 *
+	 * @return number of goals actually removed
+	 */
+	int bulkRemoveGoals(java.util.Set<String> goalIds);
+
+	/**
+	 * Move a batch of goals into the same target section as a single atomic
+	 * command. Captures every goal's original section + priority upfront so
+	 * undo restores them to their exact original positions. Mission 26
+	 * follow-up.
+	 *
+	 * @return number of goals actually moved
+	 */
+	int bulkMoveGoalsToSection(java.util.Set<String> goalIds, String targetSectionId);
 
 	/**
 	 * For a set of selected goals, return every removable tag (deduped) with

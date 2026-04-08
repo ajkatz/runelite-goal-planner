@@ -561,6 +561,29 @@ public class GoalStore
 		save();
 	}
 
+	/**
+	 * Insert a goal at a specific index in the flat list and reindex
+	 * priorities. Used by the Mission 26 undo path for bulk-remove so
+	 * restored goals land at their exact original positions. No-op if a
+	 * goal with the same id is already present.
+	 */
+	public void insertGoalAt(Goal goal, int index)
+	{
+		if (goal == null) return;
+		for (Goal g : goals)
+		{
+			if (g.getId().equals(goal.getId())) return; // already there
+		}
+		if (goal.getSectionId() == null)
+		{
+			goal.setSectionId(getIncompleteSection().getId());
+		}
+		int clamped = Math.max(0, Math.min(index, goals.size()));
+		goals.add(clamped, goal);
+		reindex();
+		save();
+	}
+
 	public void removeGoal(String goalId)
 	{
 		goals.removeIf(g -> g.getId().equals(goalId));
@@ -718,6 +741,28 @@ public class GoalStore
 		renumberUserSections();
 		save();
 		return created;
+	}
+
+	/**
+	 * Re-create a user section with a SPECIFIC id. Used by the undo path
+	 * for deleteUserSection so the section comes back with the same id any
+	 * existing references (selected goals, command history) used. No-op if
+	 * a section with that id already exists. Mission 26.
+	 */
+	public Section recreateUserSection(String sectionId, String name)
+	{
+		if (findSection(sectionId) != null) return findSection(sectionId);
+		String trimmed = name != null ? name.trim() : "";
+		Section recreated = Section.builder()
+			.id(sectionId)
+			.name(trimmed)
+			.order(nextUserSectionOrder())
+			.builtInKind(null)
+			.build();
+		sections.add(recreated);
+		renumberUserSections();
+		save();
+		return recreated;
 	}
 
 	/**
@@ -1065,6 +1110,18 @@ public class GoalStore
 		tags.removeIf(x -> tagId.equals(x.getId()));
 		save();
 		return true;
+	}
+
+	/**
+	 * Re-add an already-built Tag entity (preserving its id). Used by the
+	 * Mission 26 undo path for deleteTag so the restored tag matches any
+	 * still-cached references. No-op if a tag with that id already exists.
+	 */
+	public void recreateTag(Tag tag)
+	{
+		if (tag == null || findTag(tag.getId()) != null) return;
+		tags.add(tag);
+		save();
 	}
 
 	public void reorder(int fromIndex, int toIndex)

@@ -51,6 +51,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	/** Ephemeral selection set — not persisted, lost on plugin restart. */
 	private final java.util.Set<String> selectedGoalIds = new java.util.LinkedHashSet<>();
 
+	/** Mission 26: undo/redo history. Session-only. Tracker-driven mutations
+	 *  bypass this — only user actions routed through {@link #executeCommand}
+	 *  appear in history. */
+	private final com.goaltracker.command.CommandHistory commandHistory =
+		new com.goaltracker.command.CommandHistory();
+
 	@Inject
 	public GoalTrackerApiImpl(
 		GoalStore goalStore,
@@ -105,19 +111,32 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.targetValue(targetXp)
 			.build();
 
-		goalStore.addGoal(goal);
-		// Auto-position within the same-skill chain (lower targets above higher).
-		// Section-scoped: only considers goals in the new goal's own section so
-		// the returned index never crosses a section boundary.
-		int insertBefore = reorderingService.findInsertionIndex(
-			skill.name(), targetXp, goal.getSectionId());
-		if (insertBefore >= 0)
+		final String goalId = goal.getId();
+		final String displayName = goal.getName();
+		executeCommand(new com.goaltracker.command.Command()
 		{
-			goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
-		}
-		onGoalsChanged.run();
-		log.info("addSkillGoal created: {} ({} → {} XP)", goal.getId(), skill.getName(), targetXp);
-		return goal.getId();
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.addGoal(goal);
+				int insertBefore = reorderingService.findInsertionIndex(
+					skill.name(), targetXp, goal.getSectionId());
+				if (insertBefore >= 0)
+				{
+					goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
+				}
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				goalStore.removeGoal(goalId);
+				selectedGoalIds.remove(goalId);
+				return true;
+			}
+			@Override public String getDescription() { return "Add goal: " + displayName; }
+		});
+		log.info("addSkillGoal created: {} ({} → {} XP)", goalId, skill.getName(), targetXp);
+		return goalId;
 	}
 
 	@Override
@@ -237,10 +256,21 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.spriteId(QUEST_SPRITE_ID)
 			.build();
 
-		goalStore.addGoal(goal);
-		onGoalsChanged.run();
-		log.info("addQuestGoal created: {} ({})", goal.getId(), quest.getName());
-		return goal.getId();
+		final String goalId = goal.getId();
+		final String displayName = goal.getName();
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
+			@Override public String getDescription() { return "Add quest: " + displayName; }
+		});
+		log.info("addQuestGoal created: {} ({})", goalId, quest.getName());
+		return goalId;
 	}
 
 	@Override
@@ -280,10 +310,22 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.varbitId(varbitId)
 			.build();
 
-		goalStore.addGoal(goal);
-		onGoalsChanged.run();
-		log.info("addDiaryGoal created: {} ({} {})", goal.getId(), areaDisplayName, internalTier);
-		return goal.getId();
+		final String goalId = goal.getId();
+		final String displayName = goal.getName();
+		final String tierStr = internalTier.getDisplayName();
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
+			@Override public String getDescription() { return "Add diary: " + displayName + " " + tierStr; }
+		});
+		log.info("addDiaryGoal created: {} ({} {})", goalId, areaDisplayName, internalTier);
+		return goalId;
 	}
 
 	private static AchievementDiaryData.Tier mapDiaryTier(DiaryTier tier)
@@ -367,10 +409,21 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.defaultTagIds(new ArrayList<>(tagIds))
 			.build();
 
-		goalStore.addGoal(goal);
-		onGoalsChanged.run();
-		log.info("addCombatAchievementGoal created: {} ({})", goal.getId(), info.name);
-		return goal.getId();
+		final String goalId = goal.getId();
+		final String displayName = info.name;
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
+			@Override public String getDescription() { return "Add CA: " + displayName; }
+		});
+		log.info("addCombatAchievementGoal created: {} ({})", goalId, info.name);
+		return goalId;
 	}
 
 	private static CombatAchievementData.Tier parseCaTier(String wikiTier)
@@ -659,12 +712,28 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		goalStore.removeGoal(goalId);
-		// Drop the removed goal from the ephemeral selection set so callers
-		// don't end up with a stale id pointing at nothing.
-		selectedGoalIds.remove(goalId);
-		onGoalsChanged.run();
-		return true;
+		// Mission 26: undoable. Capture the entire Goal entity + its priority
+		// so revert can re-insert it where it was. We KEEP the same id so any
+		// later commands referencing this goal still work after redo.
+		final Goal snapshot = g;
+		final int snapshotPriority = g.getPriority();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				goalStore.removeGoal(goalId);
+				selectedGoalIds.remove(goalId);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.insertGoalAt(snapshot, snapshotPriority);
+				return true;
+			}
+			@Override public String getDescription() { return "Remove: " + name; }
+		});
 	}
 
 	@Override
@@ -674,19 +743,34 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null || label == null || label.trim().isEmpty()) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		// Non-custom goals: force OTHER category. CUSTOM goals can use any category
-		// via the internal addTagWithCategory API. Tag is created (or reused) as a
-		// User tag entity, then referenced by id from this goal.
 		Tag tag = goalStore.createUserTag(label.trim(), TagCategory.OTHER);
 		if (tag == null) return false;
-		if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
-		if (!g.getTagIds().contains(tag.getId()))
+		if (g.getTagIds() != null && g.getTagIds().contains(tag.getId())) return false; // already has it
+		final String tagId = tag.getId();
+		final String label2 = label.trim();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			g.getTagIds().add(tag.getId());
-		}
-		goalStore.updateGoal(g);
-		onGoalsChanged.run();
-		return true;
+			@Override public boolean apply()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				if (cg.getTagIds() == null) cg.setTagIds(new ArrayList<>());
+				if (cg.getTagIds().contains(tagId)) return false;
+				cg.getTagIds().add(tagId);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null || cg.getTagIds() == null) return false;
+				boolean removed = cg.getTagIds().remove(tagId);
+				if (removed) goalStore.updateGoal(cg);
+				return removed;
+			}
+			@Override public String getDescription() { return "Add tag '" + label2 + "' to " + name; }
+		});
 	}
 
 	@Override
@@ -697,23 +781,46 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		Goal g = findGoal(goalId);
 		if (g == null || g.getTagIds() == null) return false;
 		List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
-		// Find a removable tag id matching the label whose id is NOT in defaults.
 		String toRemove = null;
-		for (String id : g.getTagIds())
+		int idx = -1;
+		for (int i = 0; i < g.getTagIds().size(); i++)
 		{
+			String id = g.getTagIds().get(i);
 			if (defaults.contains(id)) continue;
 			Tag tag = goalStore.findTag(id);
 			if (tag != null && label.equals(tag.getLabel()))
 			{
 				toRemove = id;
+				idx = i;
 				break;
 			}
 		}
 		if (toRemove == null) return false;
-		g.getTagIds().remove(toRemove);
-		goalStore.updateGoal(g);
-		onGoalsChanged.run();
-		return true;
+		final String tagId = toRemove;
+		final int restoreIdx = idx;
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null || cg.getTagIds() == null) return false;
+				boolean removed = cg.getTagIds().remove(tagId);
+				if (removed) goalStore.updateGoal(cg);
+				return removed;
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				if (cg.getTagIds() == null) cg.setTagIds(new ArrayList<>());
+				int safeIdx = Math.min(restoreIdx, cg.getTagIds().size());
+				cg.getTagIds().add(safeIdx, tagId);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public String getDescription() { return "Remove tag '" + label + "' from " + name; }
+		});
 	}
 
 	@Override
@@ -731,11 +838,34 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		{
 			return false; // CA/quest/diary targets are immutable
 		}
+		// Mission 26: undoable. Snapshot previous target + name + description
+		// since the display strings are auto-derived from the target.
+		final int prevTarget = g.getTargetValue();
+		final String prevName = g.getName();
+		final String prevDescription = g.getDescription();
+		final String label = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return changeTargetInternal(goalId, newTarget); }
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				cg.setTargetValue(prevTarget);
+				cg.setName(prevName);
+				cg.setDescription(prevDescription);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public String getDescription() { return "Change target: " + label; }
+		});
+	}
+
+	private boolean changeTargetInternal(String goalId, int newTarget)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
 		g.setTargetValue(newTarget);
-		// Regenerate the display string from the new target. Both SKILL name
-		// and ITEM_GRIND description are mechanically derived from the target,
-		// so the API owns this — callers no longer need to mutate the display
-		// string and re-save behind our back.
 		if (g.getType() == GoalType.SKILL && g.getSkillName() != null)
 		{
 			try
@@ -751,7 +881,6 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			g.setDescription(com.goaltracker.util.FormatUtil.formatNumber(newTarget) + " total");
 		}
 		goalStore.updateGoal(g);
-		onGoalsChanged.run();
 		return true;
 	}
 
@@ -783,10 +912,28 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.targetValue(1)
 			.currentValue(0)
 			.build();
-		goalStore.addGoal(goal);
-		onGoalsChanged.run();
-		log.info("addCustomGoal created: {} ({})", goal.getId(), trimmedName);
-		return goal.getId();
+		// Mission 26: undoable. Wrap in a Command that adds/removes the same
+		// Goal entity (preserving id) so redo restores the exact same goal
+		// and any later commands referencing it still resolve.
+		final String goalId = goal.getId();
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false; // already there
+				goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				goalStore.removeGoal(goalId);
+				selectedGoalIds.remove(goalId);
+				return true;
+			}
+			@Override public String getDescription() { return "Add goal: " + trimmedName; }
+		});
+		log.info("addCustomGoal created: {} ({})", goalId, trimmedName);
+		return goalId;
 	}
 
 	@Override
@@ -797,19 +944,35 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null || g.getType() != GoalType.CUSTOM) return false;
-		if (newName != null)
+		final String prevName = g.getName();
+		final String prevDesc = g.getDescription();
+		final String resolvedName = newName != null && !newName.trim().isEmpty()
+			? newName.trim() : prevName;
+		final String resolvedDesc = newDescription != null ? newDescription.trim() : prevDesc;
+		if (newName != null && newName.trim().isEmpty()) return false;
+		if (resolvedName.equals(prevName) && resolvedDesc.equals(prevDesc)) return false;
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			String trimmed = newName.trim();
-			if (trimmed.isEmpty()) return false;
-			g.setName(trimmed);
-		}
-		if (newDescription != null)
-		{
-			g.setDescription(newDescription.trim());
-		}
-		goalStore.updateGoal(g);
-		onGoalsChanged.run();
-		return true;
+			@Override public boolean apply()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				cg.setName(resolvedName);
+				cg.setDescription(resolvedDesc);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				cg.setName(prevName);
+				cg.setDescription(prevDesc);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public String getDescription() { return "Edit: " + prevName; }
+		});
 	}
 
 	@Override
@@ -819,17 +982,25 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		// CUSTOM and ITEM_GRIND can be manually marked complete. ITEM_GRIND is
-		// "sticky": the next ItemTracker pass will revert via recordGoalProgress
-		// if the actual inventory+bank count is below target. CUSTOM stays
-		// permanently. Other types (skill/quest/diary/CA) are purely game-driven.
 		if (g.getType() != GoalType.CUSTOM && g.getType() != GoalType.ITEM_GRIND) return false;
-		g.setCompletedAt(System.currentTimeMillis());
-		g.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
-		goalStore.updateGoal(g);
-		goalStore.reconcileCompletedSection();
-		onGoalsChanged.run();
-		return true;
+		if (g.getStatus() == com.goaltracker.model.GoalStatus.COMPLETE) return false; // already
+		// Mission 26: snapshot the previous current value + completedAt so the
+		// undo Command can restore them exactly. The status flip is the obvious
+		// piece; the timestamp is the subtle one (revert needs to clear it).
+		final long prevCompletedAt = g.getCompletedAt();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return markCompleteInternal(goalId);
+			}
+			@Override public boolean revert()
+			{
+				return markIncompleteInternal(goalId, prevCompletedAt);
+			}
+			@Override public String getDescription() { return "Mark complete: " + name; }
+		});
 	}
 
 	@Override
@@ -840,11 +1011,50 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
 		if (g.getType() != GoalType.CUSTOM && g.getType() != GoalType.ITEM_GRIND) return false;
-		g.setCompletedAt(0);
+		if (g.getStatus() != com.goaltracker.model.GoalStatus.COMPLETE) return false;
+		final long prevCompletedAt = g.getCompletedAt();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return markIncompleteInternal(goalId, 0L);
+			}
+			@Override public boolean revert()
+			{
+				return markCompleteInternalAt(goalId, prevCompletedAt);
+			}
+			@Override public String getDescription() { return "Mark incomplete: " + name; }
+		});
+	}
+
+	/** Raw mutation primitive for marking complete — no command path, no
+	 *  onGoalsChanged. Used by command apply()s and (when bypassing the
+	 *  undo system entirely) by tracker code paths if needed. */
+	private boolean markCompleteInternal(String goalId)
+	{
+		return markCompleteInternalAt(goalId, System.currentTimeMillis());
+	}
+
+	private boolean markCompleteInternalAt(String goalId, long completedAt)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		g.setCompletedAt(completedAt);
+		g.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
+		goalStore.updateGoal(g);
+		goalStore.reconcileCompletedSection();
+		return true;
+	}
+
+	private boolean markIncompleteInternal(String goalId, long restoredCompletedAt)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
+		g.setCompletedAt(restoredCompletedAt);
 		g.setStatus(com.goaltracker.model.GoalStatus.ACTIVE);
 		goalStore.updateGoal(g);
 		goalStore.reconcileCompletedSection();
-		onGoalsChanged.run();
 		return true;
 	}
 
@@ -857,10 +1067,28 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (g == null) return false;
 		List<String> defaults = g.getDefaultTagIds();
 		if (defaults == null || defaults.isEmpty()) return false;
-		g.setTagIds(new ArrayList<>(defaults));
-		goalStore.updateGoal(g);
-		onGoalsChanged.run();
-		return true;
+		final List<String> snapshotTagIds = new ArrayList<>(g.getTagIds() != null ? g.getTagIds() : java.util.Collections.emptyList());
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				cg.setTagIds(new ArrayList<>(cg.getDefaultTagIds()));
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				cg.setTagIds(new ArrayList<>(snapshotTagIds));
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public String getDescription() { return "Restore defaults: " + name; }
+		});
 	}
 
 	// ---------------------------------------------------------------------
@@ -883,20 +1111,56 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal bulkRestoreDefaults({} goals)", goalIds == null ? 0 : goalIds.size());
 		if (goalIds == null || goalIds.isEmpty()) return 0;
-		int changed = 0;
+		// Mission 26: snapshot every changed goal's pre-state for revert.
+		// Snapshot list is the source of truth for both apply (forward) and
+		// revert — the Command operates on this exact set, not a re-derived one.
+		final java.util.List<String[]> snapshots = new java.util.ArrayList<>(); // [goalId, prevColor, prevTagsCsv]
 		for (String goalId : goalIds)
 		{
 			Goal g = findGoal(goalId);
 			if (g == null) continue;
 			if (!isGoalOverridden(goalId)) continue;
-			List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
-			g.setTagIds(new ArrayList<>(defaults));
-			g.setCustomColorRgb(-1);
-			goalStore.updateGoal(g);
-			changed++;
+			String prevTagsCsv = g.getTagIds() != null ? String.join(",", g.getTagIds()) : "";
+			snapshots.add(new String[]{ goalId,
+				String.valueOf(g.getCustomColorRgb()),
+				prevTagsCsv });
 		}
-		if (changed > 0) onGoalsChanged.run();
-		return changed;
+		if (snapshots.isEmpty()) return 0;
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				for (String[] snap : snapshots)
+				{
+					Goal g = findGoal(snap[0]);
+					if (g == null) continue;
+					List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
+					g.setTagIds(new ArrayList<>(defaults));
+					g.setCustomColorRgb(-1);
+					goalStore.updateGoal(g);
+				}
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				for (String[] snap : snapshots)
+				{
+					Goal g = findGoal(snap[0]);
+					if (g == null) continue;
+					g.setCustomColorRgb(Integer.parseInt(snap[1]));
+					java.util.List<String> tags = snap[2].isEmpty()
+						? new ArrayList<>() : new ArrayList<>(java.util.Arrays.asList(snap[2].split(",")));
+					g.setTagIds(tags);
+					goalStore.updateGoal(g);
+				}
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Restore defaults (" + snapshots.size() + " goals)";
+			}
+		});
+		return ok ? snapshots.size() : 0;
 	}
 
 	@Override
@@ -905,7 +1169,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal bulkRemoveTagFromGoals({} goals, tagId={})",
 			goalIds == null ? 0 : goalIds.size(), tagId);
 		if (goalIds == null || goalIds.isEmpty() || tagId == null) return 0;
-		int removed = 0;
+		// Mission 26: snapshot which goals will lose this tag and at what
+		// index, so revert can re-insert at the same position.
+		final String fTagId = tagId;
+		final java.util.List<int[]> snapshots = new java.util.ArrayList<>(); // unused
+		final java.util.List<String> goalIdsAffected = new java.util.ArrayList<>();
+		final java.util.List<Integer> indices = new java.util.ArrayList<>();
 		for (String goalId : goalIds)
 		{
 			Goal g = findGoal(goalId);
@@ -913,13 +1182,45 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			if (!g.getTagIds().contains(tagId)) continue;
 			boolean isCustom = g.getType() == GoalType.CUSTOM;
 			List<String> defaults = g.getDefaultTagIds() != null ? g.getDefaultTagIds() : java.util.Collections.emptyList();
-			if (!isCustom && defaults.contains(tagId)) continue; // not removable
-			g.getTagIds().remove(tagId);
-			goalStore.updateGoal(g);
-			removed++;
+			if (!isCustom && defaults.contains(tagId)) continue;
+			goalIdsAffected.add(goalId);
+			indices.add(g.getTagIds().indexOf(tagId));
 		}
-		if (removed > 0) onGoalsChanged.run();
-		return removed;
+		if (goalIdsAffected.isEmpty()) return 0;
+		final Tag tagSnapshot = goalStore.findTag(tagId);
+		final String tagLabel = tagSnapshot != null ? tagSnapshot.getLabel() : tagId;
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				for (String goalId : goalIdsAffected)
+				{
+					Goal g = findGoal(goalId);
+					if (g == null || g.getTagIds() == null) continue;
+					g.getTagIds().remove(fTagId);
+					goalStore.updateGoal(g);
+				}
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				for (int i = 0; i < goalIdsAffected.size(); i++)
+				{
+					Goal g = findGoal(goalIdsAffected.get(i));
+					if (g == null) continue;
+					if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
+					int idx = Math.min(indices.get(i), g.getTagIds().size());
+					g.getTagIds().add(idx, fTagId);
+					goalStore.updateGoal(g);
+				}
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Remove tag '" + tagLabel + "' (" + goalIdsAffected.size() + " goals)";
+			}
+		});
+		return ok ? goalIdsAffected.size() : 0;
 	}
 
 	@Override
@@ -956,6 +1257,151 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		return out;
 	}
 
+	@Override
+	public int bulkRemoveGoals(java.util.Set<String> goalIds)
+	{
+		log.debug("API.internal bulkRemoveGoals({} goals)", goalIds == null ? 0 : goalIds.size());
+		if (goalIds == null || goalIds.isEmpty()) return 0;
+		// Snapshot EVERY affected Goal entity + its priority BEFORE any removals.
+		// This is the key fix: per-goal removeGoal commands would each snapshot
+		// their priority AFTER prior removals reindexed the list, giving
+		// inconsistent positions. By capturing atomically we can restore the
+		// original layout exactly.
+		final java.util.List<Goal> goalSnapshots = new ArrayList<>();
+		final java.util.List<Integer> prioritySnapshots = new ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (goalIds.contains(g.getId()))
+			{
+				goalSnapshots.add(g);
+				prioritySnapshots.add(g.getPriority());
+			}
+		}
+		if (goalSnapshots.isEmpty()) return 0;
+		final java.util.Set<String> selectionSnapshot = new java.util.LinkedHashSet<>(selectedGoalIds);
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				for (Goal g : goalSnapshots)
+				{
+					goalStore.removeGoal(g.getId());
+					selectedGoalIds.remove(g.getId());
+				}
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				// Insert in ASCENDING priority order so each insert's target
+				// index is valid relative to what's already been inserted.
+				// Example: B (origPriority=1), C (origPriority=2). After A, D
+				// remain as [A, D], inserting B at 1 → [A, B, D], then C at 2
+				// → [A, B, C, D]. Exactly the original order.
+				java.util.List<Integer> order = new ArrayList<>();
+				for (int i = 0; i < goalSnapshots.size(); i++) order.add(i);
+				order.sort((a, b) -> Integer.compare(prioritySnapshots.get(a), prioritySnapshots.get(b)));
+				for (int idx : order)
+				{
+					goalStore.insertGoalAt(goalSnapshots.get(idx), prioritySnapshots.get(idx));
+				}
+				selectedGoalIds.addAll(selectionSnapshot);
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Remove " + goalSnapshots.size() + " goals";
+			}
+		});
+		return ok ? goalSnapshots.size() : 0;
+	}
+
+	@Override
+	public int bulkMoveGoalsToSection(java.util.Set<String> goalIds, String targetSectionId)
+	{
+		log.debug("API.internal bulkMoveGoalsToSection({} goals → {})",
+			goalIds == null ? 0 : goalIds.size(), targetSectionId);
+		if (goalIds == null || goalIds.isEmpty() || targetSectionId == null) return 0;
+		// Snapshot every affected goal's original section + priority BEFORE
+		// any moves. Ensures undo restores the exact layout without collapse.
+		final java.util.List<String> affectedIds = new ArrayList<>();
+		final java.util.List<String> prevSections = new ArrayList<>();
+		final java.util.List<Integer> prevPriorities = new ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (!goalIds.contains(g.getId())) continue;
+			if (targetSectionId.equals(g.getSectionId())) continue; // no-op
+			affectedIds.add(g.getId());
+			prevSections.add(g.getSectionId());
+			prevPriorities.add(g.getPriority());
+		}
+		if (affectedIds.isEmpty()) return 0;
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				for (String gid : affectedIds) moveGoalToSectionInternal(gid, targetSectionId);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				for (int i = 0; i < affectedIds.size(); i++)
+				{
+					String gid = affectedIds.get(i);
+					goalStore.moveGoalToSection(gid, prevSections.get(i));
+					Goal g = findGoal(gid);
+					if (g != null) g.setPriority(prevPriorities.get(i));
+				}
+				goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Move " + affectedIds.size() + " goals";
+			}
+		});
+		return ok ? affectedIds.size() : 0;
+	}
+
+	// ---------------------------------------------------------------------
+	// Undo / redo (Mission 26)
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Internal entry point for user-mutation API methods. Runs the command
+	 * via {@link CommandHistory#execute} so it lands on the undo stack.
+	 * Tracker-driven mutations bypass this and call store primitives directly.
+	 */
+	public boolean executeCommand(com.goaltracker.command.Command cmd)
+	{
+		boolean ok = commandHistory.execute(cmd);
+		if (ok) onGoalsChanged.run();
+		return ok;
+	}
+
+	@Override public boolean canUndo() { return commandHistory.canUndo(); }
+	@Override public boolean canRedo() { return commandHistory.canRedo(); }
+	@Override public String peekUndoDescription() { return commandHistory.peekUndoDescription(); }
+	@Override public String peekRedoDescription() { return commandHistory.peekRedoDescription(); }
+
+	@Override
+	public boolean undo()
+	{
+		boolean ok = commandHistory.undo();
+		if (ok) onGoalsChanged.run();
+		return ok;
+	}
+
+	@Override
+	public boolean redo()
+	{
+		boolean ok = commandHistory.redo();
+		if (ok) onGoalsChanged.run();
+		return ok;
+	}
+
+	@Override public void beginCompound(String description) { commandHistory.beginCompound(description); }
+	@Override public void endCompound() { commandHistory.endCompound(); }
+
 	private Goal findGoal(String goalId)
 	{
 		for (Goal g : goalStore.getGoals())
@@ -985,29 +1431,51 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (currentIndex < 0) return false;
 		if (newGlobalIndex < 0 || newGlobalIndex >= goals.size()) return false;
 		if (currentIndex == newGlobalIndex) return false;
-
-		// Section bounds check: target index must be in the same section as the source
 		String sourceSectionId = goals.get(currentIndex).getSectionId();
 		String targetSectionId = goals.get(newGlobalIndex).getSectionId();
-		if (sourceSectionId == null || !sourceSectionId.equals(targetSectionId))
-		{
-			return false;
-		}
+		if (sourceSectionId == null || !sourceSectionId.equals(targetSectionId)) return false;
 
-		// Dispatch by move distance:
-		//  - single-step (arrow up/down) → moveGoal: skill-chain partner aware
-		//  - multi-step  (Move to Top/Bottom) → moveGoalTo: direct + enforce
-		int delta = Math.abs(newGlobalIndex - currentIndex);
-		if (delta == 1)
+		// Mission 26: snapshot the FROM global index so revert can move it
+		// back. Setting priority alone isn't enough — normalizeOrder has a
+		// stable-sort tie-breaker that doesn't distinguish the moved goal
+		// from its neighbors at the same priority. The inverse of "move from
+		// X to Y" is "move from Y to X", so we re-invoke the reordering
+		// service with the indices swapped.
+		final int snapshotFromIndex = currentIndex;
+		final String name = goals.get(currentIndex).getName();
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			reorderingService.moveGoal(currentIndex, newGlobalIndex);
-		}
-		else
-		{
-			reorderingService.moveGoalTo(currentIndex, newGlobalIndex);
-		}
-		onGoalsChanged.run();
-		return true;
+			@Override public boolean apply()
+			{
+				List<Goal> gs = goalStore.getGoals();
+				int from = -1;
+				for (int i = 0; i < gs.size(); i++)
+				{
+					if (gs.get(i).getId().equals(goalId)) { from = i; break; }
+				}
+				if (from < 0 || newGlobalIndex >= gs.size()) return false;
+				int delta = Math.abs(newGlobalIndex - from);
+				if (delta == 1) reorderingService.moveGoal(from, newGlobalIndex);
+				else reorderingService.moveGoalTo(from, newGlobalIndex);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				List<Goal> gs = goalStore.getGoals();
+				int currentPos = -1;
+				for (int i = 0; i < gs.size(); i++)
+				{
+					if (gs.get(i).getId().equals(goalId)) { currentPos = i; break; }
+				}
+				if (currentPos < 0) return false;
+				if (currentPos == snapshotFromIndex) return true; // already there
+				int delta = Math.abs(snapshotFromIndex - currentPos);
+				if (delta == 1) reorderingService.moveGoal(currentPos, snapshotFromIndex);
+				else reorderingService.moveGoalTo(currentPos, snapshotFromIndex);
+				return true;
+			}
+			@Override public String getDescription() { return "Reorder: " + name; }
+		});
 	}
 
 	@Override
@@ -1018,16 +1486,41 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null || sectionId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
+		// Snapshot for revert: where the goal was before this call.
+		final String prevSectionId = g.getSectionId();
+		final int prevPriority = g.getPriority();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return positionGoalInSectionInternal(goalId, sectionId, positionInSection);
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				if (!prevSectionId.equals(cg.getSectionId()))
+				{
+					goalStore.moveGoalToSection(goalId, prevSectionId);
+				}
+				cg.setPriority(prevPriority);
+				goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription() { return "Reposition: " + name; }
+		});
+	}
 
+	private boolean positionGoalInSectionInternal(String goalId, String sectionId, int positionInSection)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
 		boolean changed = false;
-		// Step 1: move to the target section if needed
 		if (!sectionId.equals(g.getSectionId()))
 		{
 			if (goalStore.moveGoalToSection(goalId, sectionId)) changed = true;
 		}
-
-		// Step 2: collect goals in the target section in canonical order, find
-		// the current index of the goal, and reorder if it's not where we want.
 		goalStore.normalizeOrder();
 		List<Goal> goals = goalStore.getGoals();
 		List<Integer> sectionIndices = new ArrayList<>();
@@ -1037,19 +1530,10 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			if (sectionId.equals(goals.get(i).getSectionId()))
 			{
 				sectionIndices.add(i);
-				if (goalId.equals(goals.get(i).getId()))
-				{
-					sourceIdx = i;
-				}
+				if (goalId.equals(goals.get(i).getId())) sourceIdx = i;
 			}
 		}
-		if (sourceIdx < 0)
-		{
-			if (changed) onGoalsChanged.run();
-			return changed;
-		}
-
-		// Clamp the position to the section's range
+		if (sourceIdx < 0) return changed;
 		int sectionSize = sectionIndices.size();
 		int clampedPos = Math.max(0, Math.min(positionInSection, sectionSize - 1));
 		int targetGlobal = sectionIndices.get(clampedPos);
@@ -1058,8 +1542,6 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			reorderingService.moveGoalTo(sourceIdx, targetGlobal);
 			changed = true;
 		}
-
-		if (changed) onGoalsChanged.run();
 		return changed;
 	}
 
@@ -1067,12 +1549,36 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");
-		while (!goalStore.getGoals().isEmpty())
+		// Mission 26: snapshot every goal so revert can re-add them all in
+		// their original order. The Goal entities are kept by reference; this
+		// is fine because removeGoal pops them out of the live list and we
+		// stash them in a side collection.
+		final java.util.List<Goal> snapshot = new ArrayList<>(goalStore.getGoals());
+		if (snapshot.isEmpty()) return;
+		final java.util.Set<String> selectionSnapshot = new java.util.LinkedHashSet<>(selectedGoalIds);
+		executeCommand(new com.goaltracker.command.Command()
 		{
-			goalStore.removeGoal(goalStore.getGoals().get(0).getId());
-		}
-		selectedGoalIds.clear();
-		onGoalsChanged.run();
+			@Override public boolean apply()
+			{
+				while (!goalStore.getGoals().isEmpty())
+				{
+					goalStore.removeGoal(goalStore.getGoals().get(0).getId());
+				}
+				selectedGoalIds.clear();
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				for (Goal g : snapshot)
+				{
+					if (findGoal(g.getId()) == null) goalStore.addGoal(g);
+				}
+				goalStore.normalizeOrder();
+				selectedGoalIds.addAll(selectionSnapshot);
+				return true;
+			}
+			@Override public String getDescription() { return "Remove all goals (" + snapshot.size() + ")"; }
+		});
 	}
 
 	@Override
@@ -1122,60 +1628,152 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal createSection(name={})", name);
 		Section created = goalStore.createUserSection(name);
-		onGoalsChanged.run();
-		return created.getId();
+		if (created == null) return null;
+		final String sectionId = created.getId();
+		final String sectionName = created.getName();
+		// Already created. Wrap in a Command for the undo path.
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			private boolean firstApply = true;
+			@Override public boolean apply()
+			{
+				if (firstApply) { firstApply = false; return true; }
+				if (goalStore.findSection(sectionId) != null) return false;
+				goalStore.recreateUserSection(sectionId, sectionName);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				return goalStore.deleteUserSection(sectionId);
+			}
+			@Override public String getDescription() { return "Add section: " + sectionName; }
+		});
+		return sectionId;
 	}
 
 	@Override
 	public boolean renameSection(String sectionId, String newName)
 	{
 		log.debug("API.internal renameSection(sectionId={}, newName={})", sectionId, newName);
-		boolean changed = goalStore.renameUserSection(sectionId, newName);
-		if (changed) onGoalsChanged.run();
-		return changed;
+		Section sec = goalStore.findSection(sectionId);
+		if (sec == null) return false;
+		final String prevName = sec.getName();
+		final String resolved = newName != null ? newName.trim() : "";
+		if (resolved.isEmpty() || resolved.equals(prevName)) return false;
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.renameUserSection(sectionId, resolved); }
+			@Override public boolean revert() { return goalStore.renameUserSection(sectionId, prevName); }
+			@Override public String getDescription() { return "Rename section: " + prevName + " → " + resolved; }
+		});
 	}
 
 	@Override
 	public boolean deleteSection(String sectionId)
 	{
 		log.debug("API.internal deleteSection(sectionId={})", sectionId);
-		boolean deleted = goalStore.deleteUserSection(sectionId);
-		if (deleted) onGoalsChanged.run();
-		return deleted;
+		Section sec = goalStore.findSection(sectionId);
+		if (sec == null) return false;
+		final String name = sec.getName();
+		final int order = sec.getOrder();
+		final int colorRgb = sec.getColorRgb();
+		// Snapshot which goals were in this section so revert can move them back.
+		final java.util.List<String> displacedGoalIds = new ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (sectionId.equals(g.getSectionId())) displacedGoalIds.add(g.getId());
+		}
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.deleteUserSection(sectionId); }
+			@Override public boolean revert()
+			{
+				goalStore.recreateUserSection(sectionId, name);
+				Section restored = goalStore.findSection(sectionId);
+				if (restored != null)
+				{
+					restored.setOrder(order);
+					restored.setColorRgb(colorRgb);
+				}
+				for (String gid : displacedGoalIds)
+				{
+					goalStore.moveGoalToSection(gid, sectionId);
+				}
+				goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription() { return "Delete section: " + name; }
+		});
 	}
 
 	@Override
 	public boolean reorderSection(String sectionId, int newUserIndex)
 	{
 		log.debug("API.internal reorderSection(sectionId={}, newUserIndex={})", sectionId, newUserIndex);
-		boolean changed = goalStore.reorderUserSection(sectionId, newUserIndex);
-		if (changed) onGoalsChanged.run();
-		return changed;
+		Section sec = goalStore.findSection(sectionId);
+		if (sec == null) return false;
+		// Compute current user index
+		int prevUserIndex = -1;
+		int idx = 0;
+		for (Section s : goalStore.getSections())
+		{
+			if (s.getOrder() < Section.ORDER_INCOMPLETE) // skip built-ins (high order)
+			{
+				if (s.getId().equals(sectionId)) { prevUserIndex = idx; break; }
+				idx++;
+			}
+		}
+		final int snapshotPrev = prevUserIndex;
+		final String name = sec.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.reorderUserSection(sectionId, newUserIndex); }
+			@Override public boolean revert()
+			{
+				if (snapshotPrev < 0) return false;
+				return goalStore.reorderUserSection(sectionId, snapshotPrev);
+			}
+			@Override public String getDescription() { return "Reorder section: " + name; }
+		});
 	}
 
 	@Override
 	public boolean moveGoalToSection(String goalId, String sectionId)
 	{
 		log.debug("API.internal moveGoalToSection(goalId={}, sectionId={})", goalId, sectionId);
-		// Mission 25: reject no-op moves where the goal is already in the
-		// target section. Stops UI from offering "Move to <current section>".
 		Goal current = findGoal(goalId);
-		if (current != null && sectionId != null && sectionId.equals(current.getSectionId()))
+		if (current == null) return false;
+		if (sectionId == null) return false;
+		if (sectionId.equals(current.getSectionId())) return false;
+		final String prevSectionId = current.getSectionId();
+		final int prevPriority = current.getPriority();
+		final String name = current.getName();
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			return false;
-		}
+			@Override public boolean apply() { return moveGoalToSectionInternal(goalId, sectionId); }
+			@Override public boolean revert()
+			{
+				Goal g = findGoal(goalId);
+				if (g == null) return false;
+				goalStore.moveGoalToSection(goalId, prevSectionId);
+				g.setPriority(prevPriority);
+				goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription() { return "Move: " + name; }
+		});
+	}
+
+	private boolean moveGoalToSectionInternal(String goalId, String sectionId)
+	{
 		boolean moved = goalStore.moveGoalToSection(goalId, sectionId);
 		if (moved)
 		{
-			// Skill chain ordering applies in every section, not just Incomplete.
-			// After a SKILL goal lands in a new section, bubble it to the right
-			// position relative to other same-skill goals already there.
 			Goal g = findGoal(goalId);
 			if (g != null && g.getType() == com.goaltracker.model.GoalType.SKILL)
 			{
 				reorderingService.enforceSkillOrderingInSection(sectionId);
 			}
-			onGoalsChanged.run();
 		}
 		return moved;
 	}
@@ -1184,9 +1782,49 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public int removeAllUserSections()
 	{
 		log.debug("API.internal removeAllUserSections()");
-		int removed = goalStore.removeAllUserSections();
-		if (removed > 0) onGoalsChanged.run();
-		return removed;
+		// Mission 26: snapshot user sections + which goals were in each so we
+		// can recreate everything on revert.
+		final java.util.List<Section> sectionSnapshots = new ArrayList<>();
+		final java.util.Map<String, java.util.List<String>> goalsBySection = new java.util.HashMap<>();
+		for (Section s : goalStore.getSections())
+		{
+			if (s.getBuiltInKind() == null)
+			{
+				sectionSnapshots.add(s);
+				java.util.List<String> ids = new ArrayList<>();
+				for (Goal g : goalStore.getGoals())
+				{
+					if (s.getId().equals(g.getSectionId())) ids.add(g.getId());
+				}
+				goalsBySection.put(s.getId(), ids);
+			}
+		}
+		if (sectionSnapshots.isEmpty()) return 0;
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.removeAllUserSections() > 0; }
+			@Override public boolean revert()
+			{
+				for (Section s : sectionSnapshots)
+				{
+					goalStore.recreateUserSection(s.getId(), s.getName());
+					Section restored = goalStore.findSection(s.getId());
+					if (restored != null)
+					{
+						restored.setOrder(s.getOrder());
+						restored.setColorRgb(s.getColorRgb());
+					}
+					for (String gid : goalsBySection.get(s.getId()))
+					{
+						goalStore.moveGoalToSection(gid, s.getId());
+					}
+				}
+				goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription() { return "Remove all sections (" + sectionSnapshots.size() + ")"; }
+		});
+		return ok ? sectionSnapshots.size() : 0;
 	}
 
 	// ---------------------------------------------------------------------
@@ -1201,10 +1839,28 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (section == null) return false;
 		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
 		if (section.getColorRgb() == normalized) return false;
-		section.setColorRgb(normalized);
-		goalStore.save();
-		onGoalsChanged.run();
-		return true;
+		final int prevColor = section.getColorRgb();
+		final String name = section.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				Section s = goalStore.findSection(sectionId);
+				if (s == null) return false;
+				s.setColorRgb(normalized);
+				goalStore.save();
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Section s = goalStore.findSection(sectionId);
+				if (s == null) return false;
+				s.setColorRgb(prevColor);
+				goalStore.save();
+				return true;
+			}
+			@Override public String getDescription() { return "Recolor section: " + name; }
+		});
 	}
 
 	@Override
@@ -1215,9 +1871,23 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (g == null) return false;
 		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
 		if (g.getCustomColorRgb() == normalized) return false;
+		// Mission 26: undoable. Snapshot the previous color so revert restores it.
+		final int previousColor = g.getCustomColorRgb();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return setGoalColorInternal(goalId, normalized); }
+			@Override public boolean revert() { return setGoalColorInternal(goalId, previousColor); }
+			@Override public String getDescription() { return "Recolor: " + name; }
+		});
+	}
+
+	private boolean setGoalColorInternal(String goalId, int normalized)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null) return false;
 		g.setCustomColorRgb(normalized);
 		goalStore.save();
-		onGoalsChanged.run();
 		return true;
 	}
 
@@ -1396,14 +2066,32 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			tag = goalStore.createUserTag(label.trim(), category);
 		}
 		if (tag == null) return false;
-		if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
-		if (!g.getTagIds().contains(tag.getId()))
+		if (g.getTagIds() != null && g.getTagIds().contains(tag.getId())) return false;
+		final String tagId = tag.getId();
+		final String tagLabel = tag.getLabel();
+		final String name = g.getName();
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			g.getTagIds().add(tag.getId());
-		}
-		goalStore.updateGoal(g);
-		onGoalsChanged.run();
-		return true;
+			@Override public boolean apply()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null) return false;
+				if (cg.getTagIds() == null) cg.setTagIds(new ArrayList<>());
+				if (cg.getTagIds().contains(tagId)) return false;
+				cg.getTagIds().add(tagId);
+				goalStore.updateGoal(cg);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Goal cg = findGoal(goalId);
+				if (cg == null || cg.getTagIds() == null) return false;
+				boolean removed = cg.getTagIds().remove(tagId);
+				if (removed) goalStore.updateGoal(cg);
+				return removed;
+			}
+			@Override public String getDescription() { return "Add tag '" + tagLabel + "' to " + name; }
+		});
 	}
 
 	// ---------------------------------------------------------------------
@@ -1441,41 +2129,71 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("createUserTag: SKILLING category is reserved for system tags");
 			return null;
 		}
+		// Use the same find-or-create semantics. If it already existed, no
+		// command — return existing id with no history entry.
+		Tag existing = goalStore.findTagByLabel(label != null ? label.trim() : "", category);
+		if (existing != null) return existing.getId();
 		Tag tag = goalStore.createUserTag(label, category);
-		onGoalsChanged.run();
-		return tag != null ? tag.getId() : null;
+		if (tag == null) return null;
+		final Tag captured = tag;
+		final String tagLabel = tag.getLabel();
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			private boolean firstApply = true;
+			@Override public boolean apply()
+			{
+				if (firstApply) { firstApply = false; return true; }
+				goalStore.recreateTag(captured);
+				return true;
+			}
+			@Override public boolean revert() { return goalStore.deleteTag(captured.getId()); }
+			@Override public String getDescription() { return "Create tag: " + tagLabel; }
+		});
+		return tag.getId();
 	}
 
 	@Override
 	public boolean renameTag(String tagId, String newLabel)
 	{
 		log.debug("API.internal renameTag(tagId={}, newLabel={})", tagId, newLabel);
-		boolean changed = goalStore.renameTag(tagId, newLabel);
-		if (changed) onGoalsChanged.run();
-		return changed;
+		Tag t = goalStore.findTag(tagId);
+		if (t == null) return false;
+		final String prevLabel = t.getLabel();
+		final String resolved = newLabel != null ? newLabel.trim() : "";
+		if (resolved.isEmpty() || resolved.equals(prevLabel)) return false;
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.renameTag(tagId, resolved); }
+			@Override public boolean revert() { return goalStore.renameTag(tagId, prevLabel); }
+			@Override public String getDescription() { return "Rename tag: " + prevLabel + " → " + resolved; }
+		});
 	}
 
 	@Override
 	public boolean recolorTag(String tagId, int colorRgb)
 	{
-		// Mission 20: per-tag color is OTHER-only. For non-OTHER tags this
-		// auto-delegates to the category color so the call still works for
-		// callers (panel right-click bridge, tests) — but only OTHER actually
-		// stores per-tag.
 		log.debug("API.internal recolorTag(tagId={}, colorRgb={})", tagId, colorRgb);
 		Tag t = goalStore.findTag(tagId);
 		if (t == null) return false;
-		boolean changed;
-		if (t.getCategory() == TagCategory.OTHER)
+		final int prevColor = t.getColorRgb();
+		final TagCategory cat = t.getCategory();
+		final int prevCategoryColor = goalStore.isCategoryColorOverridden(cat)
+			? goalStore.getCategoryColor(cat) : -1;
+		final String label = t.getLabel();
+		return executeCommand(new com.goaltracker.command.Command()
 		{
-			changed = goalStore.recolorTag(tagId, colorRgb);
-		}
-		else
-		{
-			changed = goalStore.setCategoryColor(t.getCategory(), colorRgb);
-		}
-		if (changed) onGoalsChanged.run();
-		return changed;
+			@Override public boolean apply()
+			{
+				if (cat == TagCategory.OTHER) return goalStore.recolorTag(tagId, colorRgb);
+				return goalStore.setCategoryColor(cat, colorRgb);
+			}
+			@Override public boolean revert()
+			{
+				if (cat == TagCategory.OTHER) return goalStore.recolorTag(tagId, prevColor);
+				return goalStore.setCategoryColor(cat, prevCategoryColor);
+			}
+			@Override public String getDescription() { return "Recolor tag: " + label; }
+		});
 	}
 
 	@Override
@@ -1485,9 +2203,14 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		TagCategory category;
 		try { category = TagCategory.valueOf(categoryName); }
 		catch (IllegalArgumentException ex) { return false; }
-		boolean changed = goalStore.setCategoryColor(category, colorRgb);
-		if (changed) onGoalsChanged.run();
-		return changed;
+		final int prevColor = goalStore.isCategoryColorOverridden(category)
+			? goalStore.getCategoryColor(category) : -1;
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.setCategoryColor(category, colorRgb); }
+			@Override public boolean revert() { return goalStore.setCategoryColor(category, prevColor); }
+			@Override public String getDescription() { return "Recolor category: " + category.name(); }
+		});
 	}
 
 	@Override
@@ -1526,9 +2249,16 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public boolean setTagIcon(String tagId, String iconKey)
 	{
 		log.debug("API.internal setTagIcon(tagId={}, iconKey={})", tagId, iconKey);
-		boolean changed = goalStore.setTagIcon(tagId, iconKey);
-		if (changed) onGoalsChanged.run();
-		return changed;
+		Tag t = goalStore.findTag(tagId);
+		if (t == null) return false;
+		final String prevIcon = t.getIconKey();
+		final String label = t.getLabel();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.setTagIcon(tagId, iconKey); }
+			@Override public boolean revert() { goalStore.setTagIcon(tagId, prevIcon); return true; }
+			@Override public String getDescription() { return "Set icon: " + label; }
+		});
 	}
 
 	@Override
@@ -1542,9 +2272,44 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public boolean deleteTag(String tagId)
 	{
 		log.debug("API.internal deleteTag(tagId={})", tagId);
-		boolean deleted = goalStore.deleteTag(tagId);
-		if (deleted) onGoalsChanged.run();
-		return deleted;
+		Tag t = goalStore.findTag(tagId);
+		if (t == null || t.isSystem()) return false;
+		// Snapshot the tag entity AND the per-goal references so revert can
+		// restore both. We also snapshot defaultTagIds membership for goals
+		// that had this tag in their defaults.
+		final Tag captured = t;
+		final java.util.List<String> tagOnGoals = new ArrayList<>();
+		final java.util.List<String> tagOnDefaults = new ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (g.getTagIds() != null && g.getTagIds().contains(tagId)) tagOnGoals.add(g.getId());
+			if (g.getDefaultTagIds() != null && g.getDefaultTagIds().contains(tagId)) tagOnDefaults.add(g.getId());
+		}
+		final String label = t.getLabel();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply() { return goalStore.deleteTag(tagId); }
+			@Override public boolean revert()
+			{
+				goalStore.recreateTag(captured);
+				for (String gid : tagOnGoals)
+				{
+					Goal g = findGoal(gid);
+					if (g == null) continue;
+					if (g.getTagIds() == null) g.setTagIds(new ArrayList<>());
+					if (!g.getTagIds().contains(tagId)) g.getTagIds().add(tagId);
+				}
+				for (String gid : tagOnDefaults)
+				{
+					Goal g = findGoal(gid);
+					if (g == null) continue;
+					if (g.getDefaultTagIds() == null) g.setDefaultTagIds(new ArrayList<>());
+					if (!g.getDefaultTagIds().contains(tagId)) g.getDefaultTagIds().add(tagId);
+				}
+				return true;
+			}
+			@Override public String getDescription() { return "Delete tag: " + label; }
+		});
 	}
 
 	@Override

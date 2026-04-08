@@ -226,8 +226,26 @@ public class GoalTrackerPlugin extends Plugin
 								.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
 								.build();
 
-							goalStore.addGoal(goal);
-							panel.rebuild();
+							// Mission 26: route through the command path so this is undoable.
+							final String capturedGoalId = goal.getId();
+							final String displayName = itemName;
+							goalTrackerApi.executeCommand(new com.goaltracker.command.Command()
+							{
+								@Override public boolean apply()
+								{
+									boolean exists = goalStore.getGoals().stream()
+										.anyMatch(x -> capturedGoalId.equals(x.getId()));
+									if (exists) return false;
+									goalStore.addGoal(goal);
+									return true;
+								}
+								@Override public boolean revert()
+								{
+									goalStore.removeGoal(capturedGoalId);
+									return true;
+								}
+								@Override public String getDescription() { return "Add goal: " + displayName; }
+							});
 							refreshItemGoalsNow();
 						}
 					});
@@ -239,6 +257,34 @@ public class GoalTrackerPlugin extends Plugin
 	/**
 	 * Build tags for an item, including source tags and inherited attributes (e.g., Slayer Task).
 	 */
+	/**
+	 * Mission 26: route an already-built Goal through the undo/redo command
+	 * system so user-triggered "Add Goal" actions from menu entries (CA,
+	 * diary, inventory/bank/collection log) land on the undo stack.
+	 */
+	private void addGoalUndoable(Goal goal, String description)
+	{
+		final String goalId = goal.getId();
+		final Goal captured = goal;
+		goalTrackerApi.executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				boolean exists = goalStore.getGoals().stream()
+					.anyMatch(x -> goalId.equals(x.getId()));
+				if (exists) return false;
+				goalStore.addGoal(captured);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				goalStore.removeGoal(goalId);
+				return true;
+			}
+			@Override public String getDescription() { return description; }
+		});
+	}
+
 	private java.util.List<ItemTag> buildItemTags(int itemId)
 	{
 		java.util.List<ItemTag> tags = new java.util.ArrayList<>(ItemSourceData.getTags(itemId));
@@ -704,8 +750,7 @@ public class GoalTrackerPlugin extends Plugin
 								log.info("Diary goal already exists: {} {}", areaDisplayName, tier);
 								return;
 							}
-							goalStore.addGoal(goal);
-							javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+							addGoalUndoable(goal, "Add diary goal: " + areaDisplayName + " " + tier.getDisplayName());
 						});
 				}
 				break;
@@ -782,8 +827,7 @@ public class GoalTrackerPlugin extends Plugin
 							log.info("CA goal already exists: {}", newName);
 							return;
 						}
-						goalStore.addGoal(goal);
-						javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+						addGoalUndoable(goal, "Add CA goal: " + newName);
 						refreshItemGoalsNow();
 					});
 				break;
@@ -863,8 +907,7 @@ public class GoalTrackerPlugin extends Plugin
 						.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
 						.build();
 
-					goalStore.addGoal(goal);
-					javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+					addGoalUndoable(goal, "Add goal: " + itemName);
 					refreshItemGoalsNow();
 				});
 

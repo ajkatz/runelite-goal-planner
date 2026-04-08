@@ -48,6 +48,9 @@ public class GoalPanel extends PluginPanel
 	/** Mission 25: in-section position to place the next goal created via
 	 *  showAddGoalDialog. -1 = default (bottom). Cleared after each create. */
 	private int pendingAddPositionInSection = -1;
+	/** Mission 26: toolbar undo/redo buttons. Refreshed on every rebuild. */
+	private JButton undoButton;
+	private JButton redoButton;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -104,7 +107,7 @@ public class GoalPanel extends PluginPanel
 						+ (selected.size() == 1 ? "" : "s") + "?",
 					"Remove selected", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
 				if (confirm != JOptionPane.YES_OPTION) return;
-				for (String id : new java.util.ArrayList<>(selected)) api.removeGoal(id);
+				api.bulkRemoveGoals(new java.util.LinkedHashSet<>(selected));
 			});
 			popup.add(removeSelected);
 			popup.addSeparator();
@@ -134,7 +137,19 @@ public class GoalPanel extends PluginPanel
 			dialog.setVisible(true);
 		});
 
+		// Mission 26: undo/redo buttons. Tooltip + enable state refreshed on
+		// each panel rebuild via refreshUndoRedoButtons() (called from rebuild()).
+		undoButton = new JButton(ShapeIcons.undoArrow(12, new Color(180, 180, 220)));
+		undoButton.setMargin(new Insets(3, 6, 3, 6));
+		undoButton.addActionListener(e -> api.undo());
+		redoButton = new JButton(ShapeIcons.redoArrow(12, new Color(180, 180, 220)));
+		redoButton.setMargin(new Insets(3, 6, 3, 6));
+		redoButton.addActionListener(e -> api.redo());
+
 		headerButtons.add(removeButton);
+		headerButtons.add(Box.createHorizontalStrut(6));
+		headerButtons.add(undoButton);
+		headerButtons.add(redoButton);
 		headerButtons.add(Box.createHorizontalStrut(6));
 		headerButtons.add(manageTagsButton);
 
@@ -197,6 +212,7 @@ public class GoalPanel extends PluginPanel
 	{
 		goalListPanel.removeAll();
 		cardMap.clear();
+		refreshUndoRedoButtons();
 
 		// Read path goes through the public API — the panel is now a consumer of
 		// GoalTrackerApi just like external plugins would be. The internal mutation
@@ -434,6 +450,32 @@ public class GoalPanel extends PluginPanel
 				}
 			}
 		});
+	}
+
+	/**
+	 * Mission 26: refresh the enabled state + tooltip on the undo/redo buttons
+	 * to reflect the current command history. Called from {@link #rebuild()}.
+	 */
+	private static final Color UNDO_REDO_ENABLED = new Color(180, 180, 220);
+	private static final Color UNDO_REDO_DISABLED = new Color(80, 80, 90);
+
+	private void refreshUndoRedoButtons()
+	{
+		if (undoButton == null || redoButton == null) return;
+		boolean canUndo = api.canUndo();
+		boolean canRedo = api.canRedo();
+		undoButton.setEnabled(canUndo);
+		redoButton.setEnabled(canRedo);
+		// Mission 26: ShapeIcons don't react to component enabled state, so
+		// swap the icon color to make the disabled state visible.
+		undoButton.setIcon(ShapeIcons.undoArrow(12,
+			canUndo ? UNDO_REDO_ENABLED : UNDO_REDO_DISABLED));
+		redoButton.setIcon(ShapeIcons.redoArrow(12,
+			canRedo ? UNDO_REDO_ENABLED : UNDO_REDO_DISABLED));
+		undoButton.setToolTipText(canUndo
+			? "Undo: " + api.peekUndoDescription() : "Nothing to undo");
+		redoButton.setToolTipText(canRedo
+			? "Redo: " + api.peekRedoDescription() : "Nothing to redo");
 	}
 
 	/**
@@ -969,10 +1011,9 @@ if (!removableTags.isEmpty())
 			{
 				JMenuItem item = new JMenuItem(dest.name);
 				item.addActionListener(e -> {
-					for (Goal g : selectedGoals)
-					{
-						api.moveGoalToSection(g.getId(), dest.id);
-					}
+					java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+					for (Goal g : selectedGoals) ids.add(g.getId());
+					api.bulkMoveGoalsToSection(ids, dest.id);
 				});
 				moveToSection.add(item);
 			}
@@ -1028,10 +1069,12 @@ if (!removableTags.isEmpty())
 		{
 			JMenuItem markComplete = new JMenuItem("Mark as Complete");
 			markComplete.addActionListener(e -> {
-				for (Goal g : selectedGoals)
+				api.beginCompound("Mark " + selectedGoals.size() + " complete");
+				try
 				{
-					api.markGoalComplete(g.getId());
+					for (Goal g : selectedGoals) api.markGoalComplete(g.getId());
 				}
+				finally { api.endCompound(); }
 			});
 			menu.add(markComplete);
 		}
@@ -1049,10 +1092,9 @@ if (!removableTags.isEmpty())
 				JOptionPane.PLAIN_MESSAGE
 			);
 			if (confirm != JOptionPane.YES_OPTION) return;
-			for (Goal g : selectedGoals)
-			{
-				api.removeGoal(g.getId());
-			}
+			java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
+			for (Goal g : selectedGoals) ids.add(g.getId());
+			api.bulkRemoveGoals(ids);
 		});
 		menu.add(remove);
 
@@ -1242,10 +1284,12 @@ if (!removableTags.isEmpty())
 		// which fires N rebuilds for N selected goals — acceptable tradeoff for
 		// keeping the API the canonical mutation surface; the user clicks OK once
 		// so the cumulative work is bounded.
-		for (Goal g : selectedGoals)
+		api.beginCompound("Add tag '" + tagText + "' to " + selectedGoals.size() + " goals");
+		try
 		{
-			api.addTagWithCategory(g.getId(), tagText, selectedCat.name());
+			for (Goal g : selectedGoals) api.addTagWithCategory(g.getId(), tagText, selectedCat.name());
 		}
+		finally { api.endCompound(); }
 	}
 
 	/**
@@ -1261,10 +1305,12 @@ if (!removableTags.isEmpty())
 			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result != JOptionPane.OK_OPTION) return;
 		int rgb = picker.getSelectedRgb();
-		for (Goal g : selectedGoals)
+		api.beginCompound("Recolor " + selectedGoals.size() + " goals");
+		try
 		{
-			api.setGoalColor(g.getId(), rgb);
+			for (Goal g : selectedGoals) api.setGoalColor(g.getId(), rgb);
 		}
+		finally { api.endCompound(); }
 	}
 
 	/**
@@ -1731,9 +1777,18 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			return;
 		}
 
-		String createdId = api.addSkillGoal(skill, targetXp);
-		moveToPreferredSection(createdId, preferredSectionId);
-		// API callback rebuilds the panel.
+		// Mission 26: wrap create + position in a single compound undo entry
+		// so one undo fully reverses the operation.
+		api.beginCompound("Add goal: " + skill.getName());
+		try
+		{
+			String createdId = api.addSkillGoal(skill, targetXp);
+			moveToPreferredSection(createdId, preferredSectionId);
+		}
+		finally
+		{
+			api.endCompound();
+		}
 	}
 
 	private void addCustomGoal(JTextField nameField, JTextField descField, String preferredSectionId)
@@ -1745,9 +1800,16 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			return;
 		}
 
-		String createdId = api.addCustomGoal(name, descField.getText().trim());
-		moveToPreferredSection(createdId, preferredSectionId);
-		// API callback rebuilds the panel.
+		api.beginCompound("Add goal: " + name);
+		try
+		{
+			String createdId = api.addCustomGoal(name, descField.getText().trim());
+			moveToPreferredSection(createdId, preferredSectionId);
+		}
+		finally
+		{
+			api.endCompound();
+		}
 	}
 
 	/**

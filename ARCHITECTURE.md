@@ -209,6 +209,61 @@ drops below target. Other trackers can skip COMPLETE goals because their
 underlying state never decreases (once 99 attack, always 99 attack; once
 quest done, always quest done).
 
+## Undo / Redo (Mission 26)
+
+User-driven mutations are routed through a Command pattern so they can be
+undone and redone. Tracker-driven mutations (skill XP, quest tick, item
+count change, diary tier, CA flag) bypass the command system entirely —
+they call store primitives directly so they never appear in undo history.
+
+The pieces:
+
+- **`com.goaltracker.command.Command`** — interface with `apply()`,
+  `revert()`, `getDescription()`. Each command captures the state needed
+  to revert itself at construction time (snapshots of "before" values
+  plus the action's parameters).
+- **`CommandHistory`** — in-memory undo + redo stacks. `execute(cmd)`
+  runs the command and pushes onto undo, clearing redo. `undo()` pops
+  from undo, calls `revert()`, pushes onto redo. `redo()` pops from redo,
+  calls `apply()`, pushes back onto undo. Capped at 50 entries; oldest
+  trimmed first. Failure-mode: if `revert()` returns false or throws,
+  the entry is dropped from history (fail-open) — caller's state is
+  left as-is.
+- **`GoalTrackerApiImpl.executeCommand(Command)`** — internal entry
+  point for user-mutation API methods. Runs the command via
+  `CommandHistory.execute` and fires `onGoalsChanged` once on success.
+  Tracker code paths bypass this and call store primitives directly.
+- **`undo()` / `redo()` / `canUndo()` / `canRedo()` / `peekUndoDescription()`**
+  on the API for the toolbar buttons.
+
+Each undoable mutation method (e.g. `setGoalColor`, `removeGoal`,
+`bulkRestoreDefaults`) snapshots its before-state inline, builds a
+Command whose `apply()` and `revert()` close over the snapshot, and
+hands it to `executeCommand`. Bulk actions are a single undo step:
+the Command captures every change it made and reverts them all in one
+shot. Reverting must be the exact opposite of the forward action — a
+bulk-add reversed = remove of exactly the goals/tags that were added,
+not the broader bulk-remove API.
+
+ID stability matters for redo: when you undo "Add goal", the goal is
+removed from the store. When you redo, it must be re-added with the
+SAME id so any later commands referencing it still resolve. Add/remove
+commands cache the original Goal entity (preserving its id) for the
+revert + redo cycle.
+
+Tracker-driven mutations are NOT undoable by design. Undoing "I gained
+10k Slayer XP" would create a confusing rubber-band effect with the
+real game state, and there's no obvious "redo" semantic. Only actions
+the user explicitly performed go on the stack.
+
+Currently undoable (Mission 26 phase 1):
+- addCustomGoal, removeGoal, changeTarget, setGoalColor
+- markGoalComplete, markGoalIncomplete
+- addTag, removeTag, restoreDefaultTags
+- bulkRestoreDefaults, bulkRemoveTagFromGoals
+
+Phase 2 (deferred): section CRUD, tag entity CRUD, reorder commands.
+
 ## GoalReorderingService (skill chain rules)
 
 Same-skill goals must be ordered with lower target above higher target

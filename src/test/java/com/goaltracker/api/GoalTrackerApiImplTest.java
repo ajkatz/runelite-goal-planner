@@ -1268,6 +1268,494 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
+	@DisplayName("Undo / Redo (Mission 26)")
+	class UndoRedo
+	{
+		@Test
+		@DisplayName("addCustomGoal undo removes the goal, redo restores it")
+		void addCustomGoalRoundTrip()
+		{
+			String id = api.addCustomGoal("Foo", "");
+			assertEquals(1, store.getGoals().size());
+			assertTrue(api.canUndo());
+
+			api.undo();
+			assertTrue(store.getGoals().isEmpty());
+			assertTrue(api.canRedo());
+
+			api.redo();
+			assertEquals(1, store.getGoals().size());
+			assertEquals(id, store.getGoals().get(0).getId()); // SAME id
+		}
+
+		@Test
+		@DisplayName("removeGoal undo restores the goal with the same id")
+		void removeGoalRoundTrip()
+		{
+			String id = api.addCustomGoal("Bar", "");
+			api.removeGoal(id);
+			assertTrue(store.getGoals().isEmpty());
+
+			api.undo(); // undo removeGoal
+			assertEquals(1, store.getGoals().size());
+			assertEquals(id, store.getGoals().get(0).getId());
+		}
+
+		@Test
+		@DisplayName("markGoalComplete undo flips status back to ACTIVE")
+		void markCompleteRoundTrip()
+		{
+			String id = api.addCustomGoal("X", "");
+			api.markGoalComplete(id);
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+			assertTrue(g.isComplete());
+
+			api.undo(); // undo markComplete
+			assertFalse(g.isComplete());
+			assertEquals(0L, g.getCompletedAt());
+		}
+
+		@Test
+		@DisplayName("setGoalColor undo restores the previous color")
+		void setGoalColorRoundTrip()
+		{
+			String id = api.addCustomGoal("X", "");
+			api.setGoalColor(id, 0xFF0000);
+			api.setGoalColor(id, 0x00FF00);
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+			assertEquals(0x00FF00, g.getCustomColorRgb());
+
+			api.undo(); // back to red
+			assertEquals(0xFF0000, g.getCustomColorRgb());
+			api.undo(); // back to no override
+			assertEquals(-1, g.getCustomColorRgb());
+		}
+
+		@Test
+		@DisplayName("changeTarget undo restores target + auto-derived display strings")
+		void changeTargetRoundTrip()
+		{
+			String id = api.addSkillGoal(net.runelite.api.Skill.ATTACK, 1000);
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+			String origName = g.getName();
+			int origTarget = g.getTargetValue();
+
+			api.changeTarget(id, 50000);
+			assertEquals(50000, g.getTargetValue());
+			assertNotEquals(origName, g.getName()); // name was regenerated
+
+			api.undo();
+			assertEquals(origTarget, g.getTargetValue());
+			assertEquals(origName, g.getName());
+		}
+
+		@Test
+		@DisplayName("a new action after undo clears the redo stack")
+		void newActionClearsRedo()
+		{
+			api.addCustomGoal("A", "");
+			api.addCustomGoal("B", "");
+			api.undo(); // remove B
+			assertTrue(api.canRedo());
+			api.addCustomGoal("C", ""); // forks history
+			assertFalse(api.canRedo());
+		}
+
+		@Test
+		@DisplayName("addTag undo removes the tag from the goal")
+		void addTagRoundTrip()
+		{
+			String id = api.addCustomGoal("X", "");
+			api.addTag(id, "spicy");
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+			assertEquals(1, g.getTagIds().size());
+
+			api.undo();
+			assertTrue(g.getTagIds().isEmpty());
+
+			api.redo();
+			assertEquals(1, g.getTagIds().size());
+		}
+
+		@Test
+		@DisplayName("removeTag undo restores the tag at its original index")
+		void removeTagRoundTrip()
+		{
+			String id = api.addCustomGoal("X", "");
+			api.addTag(id, "alpha");
+			api.addTag(id, "bravo");
+			api.addTag(id, "charlie");
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+
+			api.removeTag(id, "bravo");
+			assertEquals(2, g.getTagIds().size());
+
+			api.undo(); // restore bravo
+			assertEquals(3, g.getTagIds().size());
+			// bravo should be back at index 1
+			com.goaltracker.model.Tag t1 = store.findTag(g.getTagIds().get(1));
+			assertEquals("bravo", t1.getLabel());
+		}
+
+		@Test
+		@DisplayName("bulkRestoreDefaults undo restores prior tags + colors for every changed goal")
+		void bulkRestoreDefaultsRoundTrip()
+		{
+			com.goaltracker.model.Tag def = store.findOrCreateSystemTag(
+				"Slayer", com.goaltracker.model.TagCategory.SKILLING);
+			String aId = api.addCustomGoal("A", "");
+			Goal a = store.getGoals().stream().filter(x -> aId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			a.setDefaultTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+			a.setTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+			api.setGoalColor(aId, 0xFF0000);
+			com.goaltracker.model.Tag extra = store.createUserTag("Extra",
+				com.goaltracker.model.TagCategory.OTHER);
+			a.getTagIds().add(extra.getId());
+
+			int changed = api.bulkRestoreDefaults(java.util.Set.of(aId));
+			assertEquals(1, changed);
+			assertEquals(-1, a.getCustomColorRgb());
+			assertEquals(1, a.getTagIds().size());
+
+			// Undo (this is the bulkRestoreDefaults entry; setGoalColor was a
+			// separate command pushed earlier)
+			api.undo();
+			assertEquals(0xFF0000, a.getCustomColorRgb());
+			assertEquals(2, a.getTagIds().size());
+		}
+
+		@Test
+		@DisplayName("bulkRemoveTagFromGoals undo restores tag at original index on every goal")
+		void bulkRemoveTagRoundTrip()
+		{
+			com.goaltracker.model.Tag tag = store.createUserTag("Hot",
+				com.goaltracker.model.TagCategory.OTHER);
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			Goal a = store.getGoals().stream().filter(x -> aId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			Goal b = store.getGoals().stream().filter(x -> bId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			a.getTagIds().add(tag.getId());
+			b.getTagIds().add(tag.getId());
+
+			int removed = api.bulkRemoveTagFromGoals(java.util.Set.of(aId, bId), tag.getId());
+			assertEquals(2, removed);
+			assertFalse(a.getTagIds().contains(tag.getId()));
+			assertFalse(b.getTagIds().contains(tag.getId()));
+
+			api.undo();
+			assertTrue(a.getTagIds().contains(tag.getId()));
+			assertTrue(b.getTagIds().contains(tag.getId()));
+		}
+
+		@Test
+		@DisplayName("restoreDefaultTags undo restores the previous tag set")
+		void restoreDefaultTagsRoundTrip()
+		{
+			com.goaltracker.model.Tag def = store.findOrCreateSystemTag(
+				"D", com.goaltracker.model.TagCategory.OTHER);
+			String id = api.addCustomGoal("X", "");
+			Goal g = store.getGoals().stream().filter(x -> id.equals(x.getId()))
+				.findFirst().orElseThrow();
+			g.setDefaultTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+			g.setTagIds(new java.util.ArrayList<>(java.util.List.of(def.getId())));
+			com.goaltracker.model.Tag extra = store.createUserTag("E",
+				com.goaltracker.model.TagCategory.OTHER);
+			g.getTagIds().add(extra.getId());
+
+			api.restoreDefaultTags(id);
+			assertEquals(1, g.getTagIds().size());
+
+			api.undo();
+			assertEquals(2, g.getTagIds().size());
+		}
+
+		@Test
+		@DisplayName("addSkillGoal undo removes the goal, redo restores with same id")
+		void addSkillGoalRoundTrip()
+		{
+			String id = api.addSkillGoal(net.runelite.api.Skill.ATTACK, 1000);
+			assertEquals(1, store.getGoals().size());
+			api.undo();
+			assertTrue(store.getGoals().isEmpty());
+			api.redo();
+			assertEquals(1, store.getGoals().size());
+			assertEquals(id, store.getGoals().get(0).getId());
+		}
+
+		@Test
+		@DisplayName("createSection undo deletes the section")
+		void createSectionRoundTrip()
+		{
+			String secId = api.createSection("Bossing");
+			assertNotNull(store.findSection(secId));
+			api.undo();
+			assertNull(store.findSection(secId));
+			api.redo();
+			assertNotNull(store.findSection(secId));
+		}
+
+		@Test
+		@DisplayName("deleteSection undo restores section + moves orphaned goals back")
+		void deleteSectionRoundTrip()
+		{
+			String secId = api.createSection("Temp");
+			String goalId = api.addCustomGoal("In temp", "");
+			api.moveGoalToSection(goalId, secId);
+			assertEquals(secId, store.getGoals().stream()
+				.filter(g -> goalId.equals(g.getId())).findFirst().orElseThrow().getSectionId());
+
+			api.deleteSection(secId);
+			assertNull(store.findSection(secId));
+			// Goal should now be in some other section (Incomplete)
+			Goal orphaned = store.getGoals().stream()
+				.filter(g -> goalId.equals(g.getId())).findFirst().orElseThrow();
+			assertNotEquals(secId, orphaned.getSectionId());
+
+			api.undo();
+			assertNotNull(store.findSection(secId));
+			assertEquals(secId, store.getGoals().stream()
+				.filter(g -> goalId.equals(g.getId())).findFirst().orElseThrow().getSectionId());
+		}
+
+		@Test
+		@DisplayName("renameSection undo restores the previous name")
+		void renameSectionRoundTrip()
+		{
+			String secId = api.createSection("Old");
+			api.renameSection(secId, "New");
+			assertEquals("New", store.findSection(secId).getName());
+			api.undo();
+			assertEquals("Old", store.findSection(secId).getName());
+		}
+
+		@Test
+		@DisplayName("renameTag undo restores the previous label")
+		void renameTagRoundTrip()
+		{
+			String tagId = api.createUserTag("Original", "OTHER");
+			api.renameTag(tagId, "Renamed");
+			assertEquals("Renamed", store.findTag(tagId).getLabel());
+			api.undo();
+			assertEquals("Original", store.findTag(tagId).getLabel());
+		}
+
+		@Test
+		@DisplayName("deleteTag undo restores tag + every goal that referenced it")
+		void deleteTagRoundTrip()
+		{
+			String tagId = api.createUserTag("Hot", "OTHER");
+			String goalId = api.addCustomGoal("X", "");
+			Goal g = store.getGoals().stream().filter(x -> goalId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			g.getTagIds().add(tagId);
+
+			api.deleteTag(tagId);
+			assertNull(store.findTag(tagId));
+			assertFalse(g.getTagIds().contains(tagId));
+
+			api.undo();
+			assertNotNull(store.findTag(tagId));
+			assertTrue(g.getTagIds().contains(tagId));
+		}
+
+		@Test
+		@DisplayName("setTagIcon undo restores the previous iconKey")
+		void setTagIconRoundTrip()
+		{
+			String tagId = api.createUserTag("X", "OTHER");
+			api.setTagIcon(tagId, "FIRE");
+			assertEquals("FIRE", store.findTag(tagId).getIconKey());
+			api.undo();
+			assertNull(store.findTag(tagId).getIconKey());
+		}
+
+		@Test
+		@DisplayName("removeAllGoals undo restores every goal")
+		void removeAllGoalsRoundTrip()
+		{
+			api.addCustomGoal("A", "");
+			api.addCustomGoal("B", "");
+			api.addCustomGoal("C", "");
+			api.removeAllGoals();
+			assertTrue(store.getGoals().isEmpty());
+			api.undo();
+			assertEquals(3, store.getGoals().size());
+		}
+
+		@Test
+		@DisplayName("compound: bulk move-to-section undo restores every goal's section in one step")
+		void compoundBulkMoveRoundTrip()
+		{
+			String secId = api.createSection("Dest");
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			Goal a = store.getGoals().stream().filter(x -> aId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			Goal b = store.getGoals().stream().filter(x -> bId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			String origA = a.getSectionId();
+			String origB = b.getSectionId();
+
+			api.beginCompound("Move 2 goals to Dest");
+			api.moveGoalToSection(aId, secId);
+			api.moveGoalToSection(bId, secId);
+			api.endCompound();
+			assertEquals(secId, a.getSectionId());
+			assertEquals(secId, b.getSectionId());
+
+			api.undo(); // single undo should reverse BOTH
+			assertEquals(origA, a.getSectionId());
+			assertEquals(origB, b.getSectionId());
+		}
+
+		@Test
+		@DisplayName("bulkRemoveGoals: undo restores exact original order (even after redo→undo)")
+		void bulkRemoveGoalsPreservesOrder()
+		{
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			String cId = api.addCustomGoal("C", "");
+			String dId = api.addCustomGoal("D", "");
+			// Sanity
+			java.util.List<String> before = store.getGoals().stream()
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(java.util.List.of(aId, bId, cId, dId), before);
+
+			// Bulk-remove B and C
+			api.bulkRemoveGoals(new java.util.LinkedHashSet<>(java.util.List.of(bId, cId)));
+			java.util.List<String> afterRemove = store.getGoals().stream()
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(java.util.List.of(aId, dId), afterRemove);
+
+			// Undo — order should be EXACTLY [A, B, C, D] again
+			api.undo();
+			java.util.List<String> afterUndo = store.getGoals().stream()
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(java.util.List.of(aId, bId, cId, dId), afterUndo);
+
+			// Redo → undo round-trip: still [A, B, C, D]
+			api.redo();
+			api.undo();
+			java.util.List<String> afterRedoUndo = store.getGoals().stream()
+				.map(Goal::getId).collect(java.util.stream.Collectors.toList());
+			assertEquals(java.util.List.of(aId, bId, cId, dId), afterRedoUndo);
+		}
+
+		@Test
+		@DisplayName("moveGoal single-step: undo restores exact original position")
+		void moveGoalSingleStepRoundTrip()
+		{
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			String cId = api.addCustomGoal("C", "");
+			String dId = api.addCustomGoal("D", "");
+
+			// Move B from index 1 to index 2 (single step)
+			api.moveGoal(bId, 2);
+			assertEquals(java.util.List.of(aId, cId, bId, dId),
+				store.getGoals().stream().map(Goal::getId)
+					.collect(java.util.stream.Collectors.toList()));
+
+			api.undo();
+			assertEquals(java.util.List.of(aId, bId, cId, dId),
+				store.getGoals().stream().map(Goal::getId)
+					.collect(java.util.stream.Collectors.toList()));
+		}
+
+		@Test
+		@DisplayName("moveGoal multi-step: undo+redo round-trip preserves order")
+		void moveGoalMultiStepRoundTrip()
+		{
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			String cId = api.addCustomGoal("C", "");
+			String dId = api.addCustomGoal("D", "");
+
+			// Move A from index 0 to index 3 (Move to Bottom)
+			api.moveGoal(aId, 3);
+			assertEquals(java.util.List.of(bId, cId, dId, aId),
+				store.getGoals().stream().map(Goal::getId)
+					.collect(java.util.stream.Collectors.toList()));
+
+			api.undo();
+			assertEquals(java.util.List.of(aId, bId, cId, dId),
+				store.getGoals().stream().map(Goal::getId)
+					.collect(java.util.stream.Collectors.toList()));
+
+			api.redo();
+			api.undo();
+			assertEquals(java.util.List.of(aId, bId, cId, dId),
+				store.getGoals().stream().map(Goal::getId)
+					.collect(java.util.stream.Collectors.toList()));
+		}
+
+		@Test
+		@DisplayName("bulkMoveGoalsToSection: undo restores exact original sections + order")
+		void bulkMoveGoalsPreservesOrder()
+		{
+			String secId = api.createSection("Dest");
+			String aId = api.addCustomGoal("A", "");
+			String bId = api.addCustomGoal("B", "");
+			String cId = api.addCustomGoal("C", "");
+			// Original: all in Incomplete
+			String origSection = store.getGoals().stream()
+				.filter(x -> aId.equals(x.getId())).findFirst().orElseThrow().getSectionId();
+
+			api.bulkMoveGoalsToSection(
+				new java.util.LinkedHashSet<>(java.util.List.of(aId, bId, cId)), secId);
+			for (String id : java.util.List.of(aId, bId, cId))
+			{
+				assertEquals(secId, store.getGoals().stream()
+					.filter(g -> id.equals(g.getId())).findFirst().orElseThrow().getSectionId());
+			}
+
+			api.undo();
+			for (String id : java.util.List.of(aId, bId, cId))
+			{
+				assertEquals(origSection, store.getGoals().stream()
+					.filter(g -> id.equals(g.getId())).findFirst().orElseThrow().getSectionId());
+			}
+
+			// Redo → undo round-trip: still all in orig section
+			api.redo();
+			api.undo();
+			for (String id : java.util.List.of(aId, bId, cId))
+			{
+				assertEquals(origSection, store.getGoals().stream()
+					.filter(g -> id.equals(g.getId())).findFirst().orElseThrow().getSectionId());
+			}
+		}
+
+		@Test
+		@DisplayName("compound: create-and-position is one undo entry")
+		void compoundAddAndPositionIsOneEntry()
+		{
+			String secId = api.createSection("Bossing");
+
+			api.beginCompound("Add goal: Vorkath");
+			String goalId = api.addCustomGoal("Vorkath KC", "");
+			api.moveGoalToSection(goalId, secId);
+			api.endCompound();
+
+			Goal g = store.getGoals().stream().filter(x -> goalId.equals(x.getId()))
+				.findFirst().orElseThrow();
+			assertEquals(secId, g.getSectionId());
+
+			// Single undo removes the goal entirely (and reverts the position)
+			api.undo();
+			assertTrue(store.getGoals().stream().noneMatch(x -> goalId.equals(x.getId())));
+		}
+	}
+
+	@Nested
 	@DisplayName("searchGoals")
 	class SearchGoals
 	{
