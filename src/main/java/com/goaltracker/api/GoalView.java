@@ -62,14 +62,39 @@ public class GoalView
 
 	// ----- relations (Mission 30) -----
 
-	/** Display names of goals this one requires (outgoing edges), resolved
-	 *  at queryAllGoals time. Empty list if none. Used by the card hover
-	 *  tooltip to show the "Requires:" line. */
-	public List<String> requiresNames;
-	/** Display names of goals that require this one (incoming edges),
-	 *  resolved at queryAllGoals time. Empty list if none. Used by the
-	 *  card hover tooltip to show the "Required by:" line. */
-	public List<String> requiredByNames;
+	/** Goals this one requires (outgoing edges), resolved at queryAllGoals
+	 *  time. Empty list if none. Used by the card hover tooltip to show
+	 *  the "Requires:" line. Implicit skill-chain edges (same skill,
+	 *  different level) are excluded — those are internal bookkeeping. */
+	public List<RelationView> requiresNames;
+	/** Goals that require this one (incoming edges), resolved at
+	 *  queryAllGoals time. Empty list if none. Used by the card hover
+	 *  tooltip to show the "Required by:" line. Implicit skill-chain
+	 *  edges are excluded. */
+	public List<RelationView> requiredByNames;
+
+	/**
+	 * Lightweight DTO for a single relation edge, carrying enough metadata
+	 * to render skill icons in tooltips (quest→skill links) or fall back
+	 * to the goal name for non-skill relations.
+	 */
+	public static class RelationView
+	{
+		/** Display name of the related goal (fallback text). */
+		public String name;
+		/** Non-null for SKILL goals — the Skill enum name. Enables compact
+		 *  icon+level rendering in tooltips. */
+		public String skillName;
+		/** Target level for SKILL goals (used for compact display). */
+		public int targetLevel;
+
+		public RelationView(String name, String skillName, int targetLevel)
+		{
+			this.name = name;
+			this.skillName = skillName;
+			this.targetLevel = targetLevel;
+		}
+	}
 	/** Topological tier within this goal's section, assigned by
 	 *  {@link com.goaltracker.api.GoalTrackerInternalApi#queryGoalsTopologicallySorted}.
 	 *  Leaves (nothing required in-section) are tier 0; each subsequent

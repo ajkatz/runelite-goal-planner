@@ -435,7 +435,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			// Assign priorities so the topo sort renders correctly:
 			// 1. Zero-dependency QUEST goals at the very top (these are
 			//    leaf quests like Rune Mysteries, Death Plateau — do first)
-			// 2. Everything else in reversed BFS order (deepest leaves
+			// 2. Everything else in reversed creation order (deepest leaves
 			//    near top, root quest at bottom)
 			java.util.Set<String> gestureSet = new java.util.HashSet<>(gestureGoalIds);
 			java.util.List<String> zeroDegQuests = new java.util.ArrayList<>();
@@ -445,10 +445,6 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				Goal g = findGoal(id);
 				if (g != null && g.getType() == GoalType.QUEST && g.getQuestName() != null)
 				{
-					// Only classify as zero-dep if the quest IS in the
-					// data table and genuinely has no requirements. Quests
-					// NOT in the table have unknown deps (data gap) and
-					// should NOT be pushed to the top.
 					boolean isKnownLeaf = false;
 					try
 					{
@@ -513,31 +509,31 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	/**
-	 * BFS entry for {@link #seedPrereqsInto}: one "tier" of prereqs
-	 * to process. All templates in a tier share the same parent goal
-	 * and parent quest (for tagging/edge wiring). The BFS processes
-	 * every entry at the current tier before descending, so the topo
-	 * sort renders a clean level-by-level layout.
+	 * Individual queue entry for {@link #seedPrereqsInto}: one template
+	 * paired with its parent goal/quest context. Skills and quests from
+	 * the same parent are split into separate entries so the priority
+	 * queue can interleave them globally.
 	 */
-	private static final class PrereqTier
+	private static final class SeedEntry
 	{
 		final String parentGoalId;
 		final Quest parentQuest;
-		final java.util.List<Goal> templates;
-		PrereqTier(String parentGoalId, Quest parentQuest, java.util.List<Goal> templates)
+		final Goal template;
+		SeedEntry(String parentGoalId, Quest parentQuest, Goal template)
 		{
 			this.parentGoalId = parentGoalId;
 			this.parentQuest = parentQuest;
-			this.templates = templates;
+			this.template = template;
 		}
 	}
 
 	/**
-	 * Level-order BFS-seed prereq templates. All goals at depth N are
-	 * created before any goal at depth N+1, so the flat creation order
-	 * (and therefore the stable topo-sort tiebreaker) produces a
-	 * natural tier layout: root quest at the top, its direct prereqs
-	 * next, then ALL of their prereqs, etc.
+	 * Priority-queue BFS: seed prereq templates with skills always
+	 * processed before quests. Whenever a quest's children are
+	 * discovered, skill children jump to the front of the queue
+	 * ahead of any pending quests. This produces a creation order
+	 * where all reachable skill goals are created first, followed
+	 * by quest goals.
 	 *
 	 * <p><b>QUEST templates</b> go through the public
 	 * {@link #addQuestGoal(Quest)} API (canonical sprite, duplicate
@@ -558,132 +554,137 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		java.util.Set<String> preExistingGoalIds,
 		java.util.List<String> gestureGoalIds)
 	{
-		// Level-order BFS: process ALL entries in currentLevel before
-		// moving to nextLevel. This guarantees Lunar Diplomacy AND
-		// Eadgar's Ruse are both created before ANY of their children.
-		java.util.List<PrereqTier> currentLevel = new java.util.ArrayList<>();
-		currentLevel.add(new PrereqTier(rootGoalId, rootQuest, rootTemplates));
+		// Two-queue priority system: skills (and future quest-point goals)
+		// always process before quests, regardless of discovery depth.
+		java.util.ArrayDeque<SeedEntry> highPriority = new java.util.ArrayDeque<>();
+		java.util.ArrayDeque<SeedEntry> lowPriority = new java.util.ArrayDeque<>();
 
-		while (!currentLevel.isEmpty())
+		// Seed initial templates into the appropriate queue
+		for (Goal t : rootTemplates)
 		{
-			java.util.List<PrereqTier> nextLevel = new java.util.ArrayList<>();
-
-			for (PrereqTier tier : currentLevel)
+			if (t == null) continue;
+			SeedEntry entry = new SeedEntry(rootGoalId, rootQuest, t);
+			if (t.getType() == GoalType.QUEST)
 			{
-				final String parentTagLabel = tier.parentQuest.getName();
-				Goal parentGoal = findGoal(tier.parentGoalId);
-				String sectionId = parentGoal == null ? null : parentGoal.getSectionId();
+				lowPriority.add(entry);
+			}
+			else
+			{
+				highPriority.add(entry);
+			}
+		}
 
-				// Sort templates: QUEST first, then SKILL. Quest prereqs
-				// should appear above skill prereqs at the same depth so
-				// a zero-req quest like Rune Mysteries doesn't look like
-				// it depends on the skill goals listed above it.
-				java.util.List<Goal> sorted = new java.util.ArrayList<>(tier.templates);
-				sorted.sort((a, b) ->
+		while (!highPriority.isEmpty() || !lowPriority.isEmpty())
+		{
+			// Always drain skills before processing quests
+			SeedEntry entry = !highPriority.isEmpty()
+				? highPriority.poll()
+				: lowPriority.poll();
+
+			Goal template = entry.template;
+			final String parentTagLabel = entry.parentQuest.getName();
+			Goal parentGoal = findGoal(entry.parentGoalId);
+			String sectionId = parentGoal == null ? null : parentGoal.getSectionId();
+
+			String seedGoalId;
+			Quest childQuestForNextLevel = null;
+
+			if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+			{
+				Quest childQuest;
+				try
 				{
-					boolean aQuest = a.getType() == GoalType.QUEST;
-					boolean bQuest = b.getType() == GoalType.QUEST;
-					if (aQuest != bQuest) return aQuest ? -1 : 1;
-					return 0;
-				});
-
-				for (Goal template : sorted)
+					childQuest = Quest.valueOf(template.getQuestName());
+				}
+				catch (IllegalArgumentException e)
 				{
-					if (template == null) continue;
-					String seedGoalId;
-					Quest childQuestForNextLevel = null;
-
-					if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+					log.warn("seedPrereqsInto: unknown Quest enum name '{}'", template.getQuestName());
+					continue;
+				}
+				seedGoalId = addQuestGoal(childQuest);
+				if (seedGoalId == null)
+				{
+					log.warn("seedPrereqsInto: addQuestGoal returned null for {}", childQuest);
+					continue;
+				}
+				if (sectionId != null)
+				{
+					Goal created = findGoal(seedGoalId);
+					if (created != null && !sectionId.equals(created.getSectionId()))
 					{
-						Quest childQuest;
-						try
-						{
-							childQuest = Quest.valueOf(template.getQuestName());
-						}
-						catch (IllegalArgumentException e)
-						{
-							log.warn("seedPrereqsInto: unknown Quest enum name '{}'", template.getQuestName());
-							continue;
-						}
-						seedGoalId = addQuestGoal(childQuest);
-						if (seedGoalId == null)
-						{
-							log.warn("seedPrereqsInto: addQuestGoal returned null for {}", childQuest);
-							continue;
-						}
-						if (sectionId != null)
-						{
-							Goal created = findGoal(seedGoalId);
-							if (created != null && !sectionId.equals(created.getSectionId()))
-							{
-								moveGoalToSection(seedGoalId, sectionId);
-							}
-						}
-						childQuestForNextLevel = childQuest;
+						moveGoalToSection(seedGoalId, sectionId);
 					}
-					else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
+				}
+				childQuestForNextLevel = childQuest;
+			}
+			else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
+			{
+				net.runelite.api.Skill skill;
+				try
+				{
+					skill = net.runelite.api.Skill.valueOf(template.getSkillName());
+				}
+				catch (IllegalArgumentException e)
+				{
+					log.warn("seedPrereqsInto: unknown Skill enum name '{}'", template.getSkillName());
+					continue;
+				}
+				seedGoalId = findOrCreateSkillGoalForSeed(skill, template.getTargetValue(), preExistingGoalIds);
+				if (seedGoalId == null)
+				{
+					log.warn("seedPrereqsInto: findOrCreateSkillGoalForSeed returned null for {}", skill);
+					continue;
+				}
+			}
+			else
+			{
+				FindOrCreateResult result = findOrCreateRequirement(template, sectionId);
+				if (result == null)
+				{
+					log.warn("seedPrereqsInto: findOrCreateRequirement returned null for template type={}",
+						template.getType());
+					continue;
+				}
+				seedGoalId = result.goalId;
+			}
+
+			gestureGoalIds.add(seedGoalId);
+			addRequirement(entry.parentGoalId, seedGoalId);
+			addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
+
+			// Discover child quest's prereqs and route to appropriate queue.
+			if (childQuestForNextLevel != null)
+			{
+				if (!visited.add(childQuestForNextLevel))
+				{
+					continue;
+				}
+				com.goaltracker.data.QuestRequirementResolver.Resolved childResolved =
+					resolveQuestRequirements(childQuestForNextLevel);
+				if (childResolved.stubbedQuestPoints > 0)
+				{
+					log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
+						childQuestForNextLevel.getName(), childResolved.stubbedQuestPoints);
+				}
+				if (childResolved.stubbedCombatLevel > 0)
+				{
+					log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
+						childQuestForNextLevel.getName(), childResolved.stubbedCombatLevel);
+				}
+				for (Goal childTemplate : childResolved.templates)
+				{
+					if (childTemplate == null) continue;
+					SeedEntry childEntry = new SeedEntry(seedGoalId, childQuestForNextLevel, childTemplate);
+					if (childTemplate.getType() == GoalType.QUEST)
 					{
-						net.runelite.api.Skill skill;
-						try
-						{
-							skill = net.runelite.api.Skill.valueOf(template.getSkillName());
-						}
-						catch (IllegalArgumentException e)
-						{
-							log.warn("seedPrereqsInto: unknown Skill enum name '{}'", template.getSkillName());
-							continue;
-						}
-						seedGoalId = findOrCreateSkillGoalForSeed(skill, template.getTargetValue(), preExistingGoalIds);
-						if (seedGoalId == null)
-						{
-							log.warn("seedPrereqsInto: findOrCreateSkillGoalForSeed returned null for {}", skill);
-							continue;
-						}
+						lowPriority.add(childEntry);
 					}
 					else
 					{
-						FindOrCreateResult result = findOrCreateRequirement(template, sectionId);
-						if (result == null)
-						{
-							log.warn("seedPrereqsInto: findOrCreateRequirement returned null for template type={}",
-								template.getType());
-							continue;
-						}
-						seedGoalId = result.goalId;
-					}
-
-					gestureGoalIds.add(seedGoalId);
-					addRequirement(tier.parentGoalId, seedGoalId);
-					addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
-
-					// Collect child quest's prereqs for the next BFS level.
-					if (childQuestForNextLevel != null)
-					{
-						if (!visited.add(childQuestForNextLevel))
-						{
-							continue;
-						}
-						com.goaltracker.data.QuestRequirementResolver.Resolved childResolved =
-							resolveQuestRequirements(childQuestForNextLevel);
-						if (childResolved.stubbedQuestPoints > 0)
-						{
-							log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
-								childQuestForNextLevel.getName(), childResolved.stubbedQuestPoints);
-						}
-						if (childResolved.stubbedCombatLevel > 0)
-						{
-							log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
-								childQuestForNextLevel.getName(), childResolved.stubbedCombatLevel);
-						}
-						if (!childResolved.templates.isEmpty())
-						{
-							nextLevel.add(new PrereqTier(seedGoalId, childQuestForNextLevel, childResolved.templates));
-						}
+						highPriority.add(childEntry);
 					}
 				}
 			}
-
-			currentLevel = nextLevel;
 		}
 	}
 
@@ -1040,18 +1041,18 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			if (tag != null) v.customTags.add(toTagView(tag));
 		}
 
-		// Mission 30: resolve relations to display names for the card hover
-		// tooltip. Outgoing (requiresNames) is a direct map over the goal's
-		// requiredGoalIds. Incoming (requiredByNames) is a scan over all
-		// goals — O(n²) across the queryAllGoals pass, but n is small and
-		// this keeps the API stateless.
+		// Mission 30+: resolve relations for the card hover tooltip.
+		// Skill-chain edges (same skill, different level) are internal
+		// bookkeeping and excluded from the display lists.
 		v.requiresNames = new ArrayList<>();
 		if (g.getRequiredGoalIds() != null)
 		{
 			for (String reqId : g.getRequiredGoalIds())
 			{
 				Goal req = findGoal(reqId);
-				if (req != null && req.getName() != null) v.requiresNames.add(req.getName());
+				if (req == null || req.getName() == null) continue;
+				if (isSkillChainEdge(g, req)) continue;
+				v.requiresNames.add(toRelationView(req));
 			}
 		}
 		v.requiredByNames = new ArrayList<>();
@@ -1062,7 +1063,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				&& other.getRequiredGoalIds().contains(g.getId())
 				&& other.getName() != null)
 			{
-				v.requiredByNames.add(other.getName());
+				if (isSkillChainEdge(other, g)) continue;
+				v.requiredByNames.add(toRelationView(other));
 			}
 		}
 
@@ -1117,6 +1119,29 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		}
 
 		return v;
+	}
+
+	/**
+	 * True when both goals are SKILL type with the same skill — these are
+	 * implicit chain links (e.g. 40 Prayer → 60 Prayer) that should not
+	 * clutter the tooltip.
+	 */
+	private static boolean isSkillChainEdge(Goal a, Goal b)
+	{
+		if (a.getType() != GoalType.SKILL || b.getType() != GoalType.SKILL) return false;
+		return a.getSkillName() != null && a.getSkillName().equals(b.getSkillName());
+	}
+
+	private static GoalView.RelationView toRelationView(Goal g)
+	{
+		String skillName = null;
+		int targetLevel = 0;
+		if (g.getType() == GoalType.SKILL && g.getSkillName() != null)
+		{
+			skillName = g.getSkillName();
+			targetLevel = Experience.getLevelForXp(g.getTargetValue());
+		}
+		return new GoalView.RelationView(g.getName(), skillName, targetLevel);
 	}
 
 	/** Neutral default section header color (matches SectionHeaderRow BORDER_COLOR). */

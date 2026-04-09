@@ -89,7 +89,7 @@ public class GoalCard extends JPanel
 		// (CA task description, etc.) or truncated-name fallback, PLUS the
 		// relation info (Requires / Required by) if any edges exist. Built
 		// as HTML so multiple lines render cleanly.
-		setToolTipText(buildTooltipHtml(view));
+		setToolTipText(buildTooltipHtml(view, skillIconManager));
 
 		JPanel nameAndTags = new JPanel(new BorderLayout(0, 0));
 		nameAndTags.setOpaque(false);
@@ -670,7 +670,7 @@ public class GoalCard extends JPanel
 	 * <p>Returns null if all three sections are empty (no tooltip at all).
 	 * Mission 30.
 	 */
-	private static String buildTooltipHtml(GoalView view)
+	private static String buildTooltipHtml(GoalView view, SkillIconManager skillIconManager)
 	{
 		String base = (String) view.attributes.get("tooltip");
 		if (base == null || base.isEmpty())
@@ -678,9 +678,9 @@ public class GoalCard extends JPanel
 			if (view.name != null && view.name.length() > 22) base = view.name;
 		}
 
-		java.util.List<String> requires = view.requiresNames != null
+		java.util.List<GoalView.RelationView> requires = view.requiresNames != null
 			? view.requiresNames : java.util.Collections.emptyList();
-		java.util.List<String> requiredBy = view.requiredByNames != null
+		java.util.List<GoalView.RelationView> requiredBy = view.requiredByNames != null
 			? view.requiredByNames : java.util.Collections.emptyList();
 
 		boolean hasRelations = !requires.isEmpty() || !requiredBy.isEmpty();
@@ -699,14 +699,50 @@ public class GoalCard extends JPanel
 		}
 		if (!requires.isEmpty())
 		{
-			sb.append("<b>Requires:</b> ").append(FormatUtil.escapeHtml(String.join(", ", requires)));
+			sb.append("<b>Requires:</b> ").append(formatRelations(requires, skillIconManager));
 			if (!requiredBy.isEmpty()) sb.append("<br>");
 		}
 		if (!requiredBy.isEmpty())
 		{
-			sb.append("<b>Required by:</b> ").append(FormatUtil.escapeHtml(String.join(", ", requiredBy)));
+			sb.append("<b>Required by:</b> ").append(formatRelations(requiredBy, skillIconManager));
 		}
 		sb.append("</html>");
 		return sb.toString();
+	}
+
+	/**
+	 * Format a list of relation views for tooltip display. Skill relations
+	 * render compactly as "SkillName Level"; non-skill relations use the
+	 * goal name.
+	 */
+	private static String formatRelations(java.util.List<GoalView.RelationView> relations,
+										  SkillIconManager skillIconManager)
+	{
+		StringBuilder sb = new StringBuilder();
+		for (int i = 0; i < relations.size(); i++)
+		{
+			if (i > 0) sb.append(", ");
+			GoalView.RelationView rv = relations.get(i);
+			if (rv.skillName != null)
+			{
+				sb.append(FormatUtil.escapeHtml(formatSkillName(rv.skillName)))
+					.append(" ").append(rv.targetLevel);
+			}
+			else
+			{
+				sb.append(FormatUtil.escapeHtml(rv.name));
+			}
+		}
+		return sb.toString();
+	}
+
+	/**
+	 * Convert a Skill enum name (e.g. "CRAFTING") to title case ("Crafting").
+	 */
+	private static String formatSkillName(String enumName)
+	{
+		if (enumName == null || enumName.isEmpty()) return enumName;
+		return enumName.substring(0, 1).toUpperCase()
+			+ enumName.substring(1).toLowerCase();
 	}
 }
