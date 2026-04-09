@@ -171,7 +171,29 @@ public class GoalCard extends JPanel
 			}
 		}
 
-		// Sprite (CA tier sword, quest book, diary book, etc.)
+		// Account goal with item/bundled icon key (e.g. kudos → item:11182)
+		if ("ACCOUNT".equals(view.type))
+		{
+			String iconKey = (String) view.attributes.get("iconKey");
+			if (iconKey != null)
+			{
+				java.awt.image.BufferedImage icon = resolveIcon(iconKey);
+				if (icon != null)
+				{
+					java.awt.image.BufferedImage scaled = new java.awt.image.BufferedImage(
+						18, 18, java.awt.image.BufferedImage.TYPE_INT_ARGB);
+					Graphics2D g2d = scaled.createGraphics();
+					g2d.setRenderingHint(RenderingHints.KEY_INTERPOLATION,
+						RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+					g2d.drawImage(icon, 0, 0, 18, 18, null);
+					g2d.dispose();
+					return new JLabel(new ImageIcon(scaled));
+				}
+			}
+			// Fall through to sprite path if no iconKey or resolve failed
+		}
+
+		// Sprite (CA tier sword, quest book, diary book, account icons, etc.)
 		if (view.spriteId > 0 && spriteManager != null)
 		{
 			final JLabel spriteLabel = new JLabel();
@@ -540,10 +562,10 @@ public class GoalCard extends JPanel
 			case "SKILL":
 				String skillName = (String) view.attributes.get("skillName");
 				line1 = skillName != null ? Skill.valueOf(skillName).getName() : view.name;
-				int currentLevel = view.currentValue > 0
-					? net.runelite.api.Experience.getLevelForXp(view.currentValue) : 0;
-				int targetLevel = view.targetValue > 0
-					? net.runelite.api.Experience.getLevelForXp(view.targetValue) : 0;
+				int currentLevel = Math.max(1, net.runelite.api.Experience.getLevelForXp(
+					Math.max(0, view.currentValue)));
+				int targetLevel = Math.max(1, net.runelite.api.Experience.getLevelForXp(
+					Math.max(0, view.targetValue)));
 				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case "ITEM_GRIND":
@@ -578,6 +600,10 @@ public class GoalCard extends JPanel
 				line2 = (view.description != null && !view.description.isEmpty())
 					? fitDescription(view.description)
 					: "";
+				break;
+			case "ACCOUNT":
+				line1 = fitName(view.name);
+				line2 = view.currentValue + " / " + view.targetValue;
 				break;
 			case "CUSTOM":
 			default:

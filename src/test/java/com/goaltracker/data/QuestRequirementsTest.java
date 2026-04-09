@@ -228,12 +228,11 @@ class QuestRequirementsTest
 		}
 
 		@Test
-		@DisplayName("combatLevel from data table passes through to stubbedCombatLevel")
-		void combatLevelStubbed()
+		@DisplayName("combatLevel produces an ACCOUNT goal template")
+		void combatLevelProducesAccountGoal()
 		{
 			// Dream Mentor's only hard gate is 85 Combat. Mark its quest
-			// prereqs finished so the templates list is empty and we can
-			// isolate the combat-level pass-through.
+			// prereqs finished so we can isolate the combat-level template.
 			Map<Quest, QuestState> states = new EnumMap<>(Quest.class);
 			states.put(Quest.LUNAR_DIPLOMACY, QuestState.FINISHED);
 			states.put(Quest.EADGARS_RUSE, QuestState.FINISHED);
@@ -242,28 +241,30 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.DREAM_MENTOR, NO_SKILLS, quests);
 
-			assertTrue(out.templates.isEmpty());
-			assertEquals(0, out.stubbedQuestPoints);
+			assertEquals(1, out.templates.size());
+			assertEquals(GoalType.ACCOUNT, out.templates.get(0).getType());
+			assertEquals("COMBAT_LEVEL", out.templates.get(0).getAccountMetric());
+			assertEquals(85, out.templates.get(0).getTargetValue());
 			assertEquals(85, out.stubbedCombatLevel);
-			// Combat-level stub keeps isEmpty() false — the menu entry
-			// still surfaces the TODO via its log line.
 			assertFalse(out.isEmpty());
 		}
 
 		@Test
-		@DisplayName("questPoints from data table passes through (DS2 has 200 QP)")
-		void questPointsStubbed()
+		@DisplayName("questPoints produces an ACCOUNT goal template (DS2 has 200 QP)")
+		void questPointsProducesAccountGoal()
 		{
-			// Use DS2 as the QP-bearing quest now that Dream Mentor is
-			// combat-level instead. Mark every quest as finished and
-			// every skill high enough so templates are empty.
+			// Mark every quest as finished and every skill high enough
+			// so only the QP template remains.
 			ToIntFunction<Skill> maxed = s -> 99;
 			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
 
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II, maxed, allFinished);
 
-			assertTrue(out.templates.isEmpty());
+			assertEquals(1, out.templates.size());
+			assertEquals(GoalType.ACCOUNT, out.templates.get(0).getType());
+			assertEquals("QUEST_POINTS", out.templates.get(0).getAccountMetric());
+			assertEquals(200, out.templates.get(0).getTargetValue());
 			assertEquals(200, out.stubbedQuestPoints);
 			assertFalse(out.isEmpty());
 		}

@@ -162,6 +162,16 @@ public interface GoalTrackerApi
 	boolean changeTarget(String goalId, int newTarget);
 
 	/**
+	 * Create an account-wide goal. Returns the new goal's id, or the
+	 * existing id if a goal with the same metric and target already exists.
+	 * Returns null if validation failed (unknown metric, non-positive target).
+	 *
+	 * @param metricName an {@link com.goaltracker.model.AccountMetric} enum name
+	 * @param target     the target value (e.g. 200 for 200 Quest Points)
+	 */
+	String addAccountGoal(String metricName, int target);
+
+	/**
 	 * Create a custom goal. Returns the new goal's id, or null if validation failed
 	 * (empty name).
 	 */

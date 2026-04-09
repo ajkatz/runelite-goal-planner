@@ -1,21 +1,27 @@
-# Mission: A-D members quest library
+# Mission: Account-wide goal types
 Date: 2026-04-09
 Status: complete
 
 ## Goal
-Add all A-D members quests (and their transitive dependencies) to the
-quest requirements library with full skill/quest links, XP reward tags,
-lamp tags, and QP descriptions.
+Implement account-wide goal types (quest points, combat level, total level,
+CA points, slayer points, museum kudos) with live tracking, UI creation,
+and quest prereq seeder integration.
 
 ## Outcome
-- ~40 new quest entries added (A-D members + all transitive deps)
-- Backfilled QP/XP/lamp data for all existing members quests in table
-- DT2 dependency stubs partially filled (Secrets of the North, etc. TBD)
-- addQuestGoal/addQuestGoalWithPrereqs now deselect all before running
-- Build + all tests pass
+- New GoalType.ACCOUNT with AccountMetric subtypes
+- AccountTracker reads live client state per metric
+- addAccountGoal API with validation caps per metric
+- Add Goal dialog: Account type with metric dropdown, CA tier shortcuts, Max button
+- Right-click menu: character summary CA → per-tier entries, QP → prompt
+- Quest prereq seeder produces QP/combat/kudos account goals
+- CA goals show tier-appropriate sword sprites + tier label in name
+- Skill levels always show >= 1
+- Music tracks deferred (no reliable bulk API)
 
-## Tasks Log
-- S1: Added A-D quest requirements + Myreque/Kourend/Dorgeshuun/DT2 dep chains
-- S2: Backfilled QP rewards for 39 existing quests, XP rewards for 30, lamp tags for 5
-- S3: Added QP/XP/lamp data for all new A-D entries
-- Deselect-all added to addQuestGoal and addQuestGoalWithPrereqs
+## Learnings
+- MUSICMULTI varps are for playlists, not unlock tracking
+- Music unlock state requires per-track script callbacks
+- CA_POINTS varbit (14815) gives total points directly
+- Character summary pane is group 712, child 3
+- Total level box doesn't generate right-click menus
+- Bone Voyage requires 100 kudos (added kudos field to Reqs)

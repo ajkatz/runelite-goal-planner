@@ -10,6 +10,7 @@ public enum GoalType
 	COLLECTION_LOG("Collection Log", new Color(156, 39, 176)),  // Purple
 	ITEM_GRIND("Item", new Color(255, 193, 7)),                  // Gold
 	COMBAT_ACHIEVEMENT("Combat Achievement", new Color(139, 69, 19)),  // Saddle brown
+	ACCOUNT("Account", new Color(100, 180, 220)),       // Light blue/teal
 	CUSTOM("Custom", new Color(158, 158, 158));        // Gray
 
 	private final String displayName;

@@ -4,6 +4,7 @@ import com.goaltracker.data.AchievementDiaryData;
 import com.goaltracker.data.CombatAchievementData;
 import com.goaltracker.data.ItemSourceData;
 import com.goaltracker.data.WikiCaRepository;
+import com.goaltracker.model.AccountMetric;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.model.ItemTag;
@@ -672,6 +673,16 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 					continue;
 				}
 			}
+			else if (template.getType() == GoalType.ACCOUNT && template.getAccountMetric() != null)
+			{
+				seedGoalId = addAccountGoal(template.getAccountMetric(), template.getTargetValue());
+				if (seedGoalId == null)
+				{
+					log.warn("seedPrereqsInto: addAccountGoal returned null for {} {}",
+						template.getAccountMetric(), template.getTargetValue());
+					continue;
+				}
+			}
 			else
 			{
 				FindOrCreateResult result = findOrCreateRequirement(template, sectionId);
@@ -697,16 +708,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				}
 				com.goaltracker.data.QuestRequirementResolver.Resolved childResolved =
 					resolveQuestRequirements(childQuestForNextLevel);
-				if (childResolved.stubbedQuestPoints > 0)
-				{
-					log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
-						childQuestForNextLevel.getName(), childResolved.stubbedQuestPoints);
-				}
-				if (childResolved.stubbedCombatLevel > 0)
-				{
-					log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
-						childQuestForNextLevel.getName(), childResolved.stubbedCombatLevel);
-				}
+				// QP and combat level requirements are now seeded as ACCOUNT
+				// goal templates by the resolver — no stub logging needed.
 				for (Goal childTemplate : childResolved.templates)
 				{
 					if (childTemplate == null) continue;
@@ -1149,6 +1152,22 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				}
 				if (g.getTooltip() != null) v.attributes.put("tooltip", g.getTooltip());
 				break;
+			case ACCOUNT:
+				if (g.getAccountMetric() != null)
+				{
+					v.attributes.put("accountMetric", g.getAccountMetric());
+					try
+					{
+						AccountMetric m = AccountMetric.valueOf(g.getAccountMetric());
+						String resolvedIconKey = m.resolveIconKeyForTarget(g.getTargetValue());
+						if (resolvedIconKey != null)
+						{
+							v.attributes.put("iconKey", resolvedIconKey);
+						}
+					}
+					catch (IllegalArgumentException ignored) {}
+				}
+				break;
 			case CUSTOM:
 			default:
 				break;
@@ -1452,6 +1471,76 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	@Override
+	public String addAccountGoal(String metricName, int target)
+	{
+		log.debug("API.public addAccountGoal(metric={}, target={})", metricName, target);
+		if (metricName == null || target <= 0) return null;
+		AccountMetric metric;
+		try
+		{
+			metric = AccountMetric.valueOf(metricName);
+		}
+		catch (IllegalArgumentException e)
+		{
+			log.warn("addAccountGoal: unknown metric {}", metricName);
+			return null;
+		}
+		// Clamp to valid range
+		int clampedTarget = Math.max(metric.getMinTarget(),
+			Math.min(metric.getMaxTarget(), target));
+		clearGoalSelection();
+
+		// Duplicate guard: same metric + same target
+		for (Goal g : goalStore.getGoals())
+		{
+			if (g.getType() == GoalType.ACCOUNT
+				&& metricName.equals(g.getAccountMetric())
+				&& g.getTargetValue() == clampedTarget)
+			{
+				log.info("addAccountGoal: duplicate of existing goal {} ({} {})",
+					g.getId(), metricName, clampedTarget);
+				return g.getId();
+			}
+		}
+
+		String goalName;
+		if (metric == AccountMetric.CA_POINTS)
+		{
+			goalName = clampedTarget + " CA (" + AccountMetric.caTierLabel(clampedTarget) + ")";
+		}
+		else
+		{
+			goalName = clampedTarget + " " + metric.getDisplayName();
+		}
+
+		Goal goal = Goal.builder()
+			.type(GoalType.ACCOUNT)
+			.name(goalName)
+			.description(metric.getDisplayName())
+			.accountMetric(metricName)
+			.targetValue(clampedTarget)
+			.currentValue(0)
+			.spriteId(metric.resolveSpriteForTarget(clampedTarget))
+			.customColorRgb(metric.getColorRgb())
+			.build();
+
+		final String goalId = goal.getId();
+		final String displayName = goalName;
+		executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(goalId) != null) return false;
+				goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
+			@Override public String getDescription() { return "Add account goal: " + displayName; }
+		});
+		log.info("addAccountGoal created: {} ({})", goalId, goalName);
+		return goalId;
+	}
+
 	public String addCustomGoal(String name, String description)
 	{
 		log.debug("API.public addCustomGoal(name={}, description={})", name, description);

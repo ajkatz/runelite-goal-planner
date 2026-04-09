@@ -85,6 +85,9 @@ public class GoalTrackerPlugin extends Plugin
 	private ItemTracker itemTracker;
 
 	@Inject
+	private com.goaltracker.tracker.AccountTracker accountTracker;
+
+	@Inject
 	private SkillIconManager skillIconManager;
 
 	@Inject
@@ -378,6 +381,7 @@ public class GoalTrackerPlugin extends Plugin
 			updated |= questTracker.checkGoals(goalStore.getGoals());
 			updated |= diaryTracker.checkGoals(goalStore.getGoals());
 			updated |= combatAchievementTracker.checkGoals(goalStore.getGoals());
+			updated |= accountTracker.checkGoals(goalStore.getGoals());
 			if (updated)
 			{
 				goalStore.reconcileCompletedSection();
@@ -473,6 +477,58 @@ public class GoalTrackerPlugin extends Plugin
 			return;
 		}
 		goalTrackerApi.addSkillGoal(skill, targetXp);
+	}
+
+	private void promptAndAddAccountGoal(com.goaltracker.model.AccountMetric metric)
+	{
+		if (metric == com.goaltracker.model.AccountMetric.CA_POINTS)
+		{
+			// CA Points: show tier picker
+			String[] options = new String[com.goaltracker.model.AccountMetric.CA_TIER_NAMES.length];
+			System.arraycopy(com.goaltracker.model.AccountMetric.CA_TIER_NAMES, 0, options, 0, options.length);
+			String choice = (String) javax.swing.JOptionPane.showInputDialog(panel,
+				"Select CA tier target:",
+				"Add CA Points Goal",
+				javax.swing.JOptionPane.PLAIN_MESSAGE,
+				null, options, options[0]);
+			if (choice == null) return;
+			for (int i = 0; i < com.goaltracker.model.AccountMetric.CA_TIER_NAMES.length; i++)
+			{
+				if (choice.equals(com.goaltracker.model.AccountMetric.CA_TIER_NAMES[i]))
+				{
+					goalTrackerApi.addAccountGoal(metric.name(),
+						com.goaltracker.model.AccountMetric.CA_TIER_VALUES[i]);
+					return;
+				}
+			}
+		}
+		else
+		{
+			// Other metrics: target input with max hint
+			String input = javax.swing.JOptionPane.showInputDialog(panel,
+				"Target " + metric.getDisplayName() + " (max " + metric.getMaxTarget() + "):",
+				"Add " + metric.getDisplayName() + " Goal",
+				javax.swing.JOptionPane.PLAIN_MESSAGE);
+			if (input == null || input.trim().isEmpty()) return;
+			try
+			{
+				int target = Integer.parseInt(input.trim().replace(",", ""));
+				if (target <= 0)
+				{
+					javax.swing.JOptionPane.showMessageDialog(panel,
+						"Target must be greater than 0.",
+						"Invalid", javax.swing.JOptionPane.WARNING_MESSAGE);
+					return;
+				}
+				goalTrackerApi.addAccountGoal(metric.name(), target);
+			}
+			catch (NumberFormatException e)
+			{
+				javax.swing.JOptionPane.showMessageDialog(panel,
+					"Enter a valid number.",
+					"Invalid", javax.swing.JOptionPane.WARNING_MESSAGE);
+			}
+		}
 	}
 
 	/** Quest list widget group ID (InterfaceID.QUESTLIST). */
@@ -880,16 +936,6 @@ public class GoalTrackerPlugin extends Plugin
 								// is cheap.
 								com.goaltracker.data.QuestRequirementResolver.Resolved live =
 									goalTrackerApi.resolveQuestRequirements(quest);
-								if (live.stubbedQuestPoints > 0)
-								{
-									log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
-										quest.getName(), live.stubbedQuestPoints);
-								}
-								if (live.stubbedCombatLevel > 0)
-								{
-									log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
-										quest.getName(), live.stubbedCombatLevel);
-								}
 								if (live.skippedSkills > 0 || live.skippedQuests > 0)
 								{
 									log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
@@ -950,6 +996,59 @@ public class GoalTrackerPlugin extends Plugin
 					});
 				break;
 			}
+
+			// Total level: right-click the "Total level" box in the stats tab
+			// (group=320, child=25) OR any child in the stats group that
+			// isn't a skill row.
+			if (entry.getParam1() == net.runelite.api.gameval.InterfaceID.Stats.TOTAL)
+			{
+				client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget("<col=ff9040>Total Level</col>")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> javax.swing.SwingUtilities.invokeLater(() ->
+						promptAndAddAccountGoal(com.goaltracker.model.AccountMetric.TOTAL_LEVEL)));
+				break;
+			}
+
+			// Character summary pane (group=712, child=3): the tab buttons
+			// for quest list, CA overview, etc. Use param0 to distinguish.
+			if (widgetGroupId == 712 && (entry.getParam1() & 0xFFFF) == 3)
+			{
+				int buttonIndex = entry.getParam0();
+				// param0=3: Quest List button → QP goal
+				if (buttonIndex == 3 && "Quest List".equals(entry.getOption()))
+				{
+					client.createMenuEntry(1)
+						.setOption("Add Goal")
+						.setTarget("<col=ff9040>Quest Points</col>")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> javax.swing.SwingUtilities.invokeLater(() ->
+							promptAndAddAccountGoal(com.goaltracker.model.AccountMetric.QUEST_POINTS)));
+					break;
+				}
+				// param0=5: CA Overview/Tasks/Bosses/Rewards → one entry per CA tier
+				if (buttonIndex == 5 && ("Overview".equals(entry.getOption())
+					|| "Tasks".equals(entry.getOption())
+					|| "Bosses".equals(entry.getOption())
+					|| "Rewards".equals(entry.getOption())))
+				{
+					// Iterate tiers so Easy is at the top, Grandmaster at the bottom
+					for (int ti = 0; ti < com.goaltracker.model.AccountMetric.CA_TIER_NAMES.length; ti++)
+					{
+						final int tierTarget = com.goaltracker.model.AccountMetric.CA_TIER_VALUES[ti];
+						final String tierName = com.goaltracker.model.AccountMetric.CA_TIER_NAMES[ti];
+						client.createMenuEntry(1)
+							.setOption("Add Goal: " + tierName)
+							.setTarget("<col=ff9040>CA Points</col>")
+							.setType(MenuAction.RUNELITE)
+							.onClick(e -> goalTrackerApi.addAccountGoal(
+								com.goaltracker.model.AccountMetric.CA_POINTS.name(), tierTarget));
+					}
+					break;
+				}
+			}
+
 
 			// Check if this is an inventory, bank, or collection log item
 			boolean isInventory = widgetGroupId == WidgetID.INVENTORY_GROUP_ID;

@@ -179,6 +179,36 @@ public final class QuestRequirementResolver
 				.build());
 		}
 
+		// Account-wide requirements: QP and combat level are now real
+		// ACCOUNT goal templates instead of stubs.
+		if (reqs.questPoints > 0)
+		{
+			templates.add(Goal.builder()
+				.type(GoalType.ACCOUNT)
+				.name(reqs.questPoints + " Quest Points")
+				.accountMetric(com.goaltracker.model.AccountMetric.QUEST_POINTS.name())
+				.targetValue(reqs.questPoints)
+				.build());
+		}
+		if (reqs.combatLevel > 0)
+		{
+			templates.add(Goal.builder()
+				.type(GoalType.ACCOUNT)
+				.name(reqs.combatLevel + " Combat Level")
+				.accountMetric(com.goaltracker.model.AccountMetric.COMBAT_LEVEL.name())
+				.targetValue(reqs.combatLevel)
+				.build());
+		}
+		if (reqs.kudos > 0)
+		{
+			templates.add(Goal.builder()
+				.type(GoalType.ACCOUNT)
+				.name(reqs.kudos + " Museum Kudos")
+				.accountMetric(com.goaltracker.model.AccountMetric.KUDOS.name())
+				.targetValue(reqs.kudos)
+				.build());
+		}
+
 		return new Resolved(templates, skippedSkills, skippedQuests, reqs.questPoints, reqs.combatLevel);
 	}
 

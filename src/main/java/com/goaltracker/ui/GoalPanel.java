@@ -1815,7 +1815,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		panel.add(typeLabel, gbc);
 
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.ITEM_GRIND, GoalType.CUSTOM});
+		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.ITEM_GRIND, GoalType.ACCOUNT, GoalType.CUSTOM});
 		typeCombo.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -1862,10 +1862,28 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		JTextField nameField = new JTextField(15);
 		JTextField itemQtyField = new JTextField("1", 15);
 
+		// Account metric combo
+		com.goaltracker.model.AccountMetric[] metrics = com.goaltracker.model.AccountMetric.values();
+		JComboBox<com.goaltracker.model.AccountMetric> metricCombo = new JComboBox<>(metrics);
+		metricCombo.setRenderer(new DefaultListCellRenderer()
+		{
+			@Override
+			public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus)
+			{
+				super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+				if (value instanceof com.goaltracker.model.AccountMetric)
+				{
+					setText(((com.goaltracker.model.AccountMetric) value).getDisplayName());
+				}
+				return this;
+			}
+		});
+
 		// CardLayout to swap between types
 		JPanel field1Panel = new JPanel(new CardLayout());
 		field1Panel.add(skillCombo, "SKILL");
 		field1Panel.add(itemQtyField, "ITEM_GRIND");
+		field1Panel.add(metricCombo, "ACCOUNT");
 		field1Panel.add(nameField, "CUSTOM");
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field1Panel, gbc);
@@ -1906,12 +1924,58 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		// Skill row uses the shared SkillTargetForm with synced Level/XP fields.
 		SkillTargetForm skillTargetForm = new SkillTargetForm(99);
 
+		JTextField accountTargetField = new JTextField("1", 15);
+
 		JPanel field2Panel = new JPanel(new CardLayout());
 		field2Panel.add(skillTargetForm, "SKILL");
 		field2Panel.add(itemHint, "ITEM_GRIND");
+		field2Panel.add(accountTargetField, "ACCOUNT");
 		field2Panel.add(descField, "CUSTOM");
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field2Panel, gbc);
+
+		// Row 4: Account shortcuts (CA tier combo + Max button).
+		// Visible only when type=ACCOUNT.
+		JLabel shortcutLabel = new JLabel("Shortcut:");
+		shortcutLabel.setPreferredSize(new Dimension(labelWidth, 24));
+		shortcutLabel.setVisible(false);
+		gbc.gridx = 0; gbc.gridy = 4; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
+		panel.add(shortcutLabel, gbc);
+
+		// CA tier dropdown
+		String[] caTierOptions = new String[com.goaltracker.model.AccountMetric.CA_TIER_NAMES.length + 1];
+		caTierOptions[0] = "-- Select tier --";
+		System.arraycopy(com.goaltracker.model.AccountMetric.CA_TIER_NAMES, 0, caTierOptions, 1,
+			com.goaltracker.model.AccountMetric.CA_TIER_NAMES.length);
+		JComboBox<String> caTierCombo = new JComboBox<>(caTierOptions);
+		caTierCombo.addActionListener(e -> {
+			int idx = caTierCombo.getSelectedIndex();
+			if (idx > 0)
+			{
+				accountTargetField.setText(
+					String.valueOf(com.goaltracker.model.AccountMetric.CA_TIER_VALUES[idx - 1]));
+			}
+		});
+
+		// Max button — fills target with the metric's max value
+		javax.swing.JButton maxButton = new javax.swing.JButton("Max");
+		maxButton.addActionListener(e -> {
+			com.goaltracker.model.AccountMetric m =
+				(com.goaltracker.model.AccountMetric) metricCombo.getSelectedItem();
+			if (m != null)
+			{
+				accountTargetField.setText(String.valueOf(m.getMaxTarget()));
+			}
+		});
+
+		JPanel shortcutRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
+		shortcutRow.setOpaque(false);
+		shortcutRow.add(caTierCombo);
+		shortcutRow.add(maxButton);
+		caTierCombo.setVisible(false);
+		shortcutRow.setVisible(false);
+		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
+		panel.add(shortcutRow, gbc);
 
 		// Swap fields when type changes. Mission 23: also relabel based on
 		// current mode so "Quantity:" → "Gain Quantity:" when relative.
@@ -1940,6 +2004,9 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			{
 				skillTargetForm.setRelativeBaseline(-1);
 			}
+			// Hide account shortcut row by default; ACCOUNT case shows it.
+			shortcutLabel.setVisible(false);
+			shortcutRow.setVisible(false);
 			switch (selected)
 			{
 				case SKILL:
@@ -1950,6 +2017,18 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 					label1.setText(rel ? "Gain qty:" : "Quantity:");
 					label2.setText("");
 					break;
+				case ACCOUNT:
+					label1.setText("Metric:");
+					label2.setText("Target:");
+					{
+						com.goaltracker.model.AccountMetric m =
+							(com.goaltracker.model.AccountMetric) metricCombo.getSelectedItem();
+						boolean isCa = m == com.goaltracker.model.AccountMetric.CA_POINTS;
+						caTierCombo.setVisible(isCa);
+						shortcutLabel.setVisible(true);
+						shortcutRow.setVisible(true);
+					}
+					break;
 				default:
 					label1.setText("Goal Name:");
 					label2.setText(rel ? "Description (gain target via Custom value):" : "Description:");
@@ -1959,6 +2038,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			if (w != null) w.pack();
 		};
 		typeCombo.addActionListener(e -> updateLabels.run());
+		metricCombo.addActionListener(e -> updateLabels.run());
 		modeAbsolute.addActionListener(e -> updateLabels.run());
 		modeRelative.addActionListener(e -> updateLabels.run());
 		skillCombo.addActionListener(e -> updateLabels.run());
@@ -1999,6 +2079,35 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 				catch (NumberFormatException e)
 				{
 					JOptionPane.showMessageDialog(this, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+			else if (selectedType == GoalType.ACCOUNT)
+			{
+				com.goaltracker.model.AccountMetric metric =
+					(com.goaltracker.model.AccountMetric) metricCombo.getSelectedItem();
+				if (metric == null) return;
+				try
+				{
+					int target = Integer.parseInt(accountTargetField.getText().trim().replace(",", ""));
+					if (target <= 0)
+					{
+						JOptionPane.showMessageDialog(this, "Target must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					api.beginCompound("Add goal: " + metric.getDisplayName());
+					try
+					{
+						String createdId = api.addAccountGoal(metric.name(), target);
+						moveToPreferredSection(createdId, preferredSectionId);
+					}
+					finally
+					{
+						api.endCompound();
+					}
+				}
+				catch (NumberFormatException e)
+				{
+					JOptionPane.showMessageDialog(this, "Invalid target number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 			else if (selectedType == GoalType.CUSTOM)

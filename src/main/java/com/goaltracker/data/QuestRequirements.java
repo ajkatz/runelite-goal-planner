@@ -60,17 +60,25 @@ public final class QuestRequirements
 	{
 		public final List<SkillReq> skills;
 		public final List<Quest> prereqQuests;
-		/** Minimum total quest points required. 0 = none. Stubbed (see class javadoc). */
+		/** Minimum total quest points required. 0 = none. */
 		public final int questPoints;
-		/** Minimum combat level required. 0 = none. Stubbed (see class javadoc). */
+		/** Minimum combat level required. 0 = none. */
 		public final int combatLevel;
+		/** Minimum museum kudos required. 0 = none. */
+		public final int kudos;
 
 		public Reqs(List<SkillReq> skills, List<Quest> prereqQuests, int questPoints, int combatLevel)
+		{
+			this(skills, prereqQuests, questPoints, combatLevel, 0);
+		}
+
+		public Reqs(List<SkillReq> skills, List<Quest> prereqQuests, int questPoints, int combatLevel, int kudos)
 		{
 			this.skills = Collections.unmodifiableList(skills);
 			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
 			this.questPoints = questPoints;
 			this.combatLevel = combatLevel;
+			this.kudos = kudos;
 		}
 	}
 
@@ -275,11 +283,11 @@ public final class QuestRequirements
 
 		// --- DS2 prereq chain (wiki-sourced 2026-04-09) ---
 
-		// Bone Voyage: requires The Dig Site + 100 Kudos (not a goal type).
-		put(Quest.BONE_VOYAGE,
+		// Bone Voyage: requires The Dig Site + 100 Kudos.
+		TABLE.put(Quest.BONE_VOYAGE, new Reqs(
 			List.of(),
 			List.of(Quest.THE_DIG_SITE),
-			0, 0);
+			0, 0, 100));
 
 		// Client of Kourend: requires X Marks the Spot.
 		put(Quest.CLIENT_OF_KOUREND,
@@ -1090,7 +1098,7 @@ public final class QuestRequirements
 		Reqs r = lookup(quest);
 		if (r == null) return false;
 		return !r.skills.isEmpty() || !r.prereqQuests.isEmpty()
-			|| r.questPoints > 0 || r.combatLevel > 0;
+			|| r.questPoints > 0 || r.combatLevel > 0 || r.kudos > 0;
 	}
 
 	private QuestRequirements() {}
