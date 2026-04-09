@@ -34,9 +34,8 @@ class QuestRequirementsTest
 		@DisplayName("returns null for a quest that is not in the table")
 		void nullForMissingQuest()
 		{
-			// Rune Mysteries is intentionally not in the PoC table.
-			assertNull(QuestRequirements.lookup(Quest.WITCHS_POTION));
-			assertFalse(QuestRequirements.hasRequirements(Quest.WITCHS_POTION));
+			assertNull(QuestRequirements.lookup(Quest.RATCATCHERS));
+			assertFalse(QuestRequirements.hasRequirements(Quest.RATCATCHERS));
 		}
 
 		@Test
@@ -95,6 +94,41 @@ class QuestRequirementsTest
 	}
 
 	@Nested
+	@DisplayName("QuestRequirements.isF2P")
+	class F2PTests
+	{
+		@Test
+		@DisplayName("F2P quests are correctly identified")
+		void f2pQuestsIdentified()
+		{
+			assertTrue(QuestRequirements.isF2P(Quest.COOKS_ASSISTANT));
+			assertTrue(QuestRequirements.isF2P(Quest.DRAGON_SLAYER_I));
+			assertTrue(QuestRequirements.isF2P(Quest.ERNEST_THE_CHICKEN));
+			assertTrue(QuestRequirements.isF2P(Quest.THE_RESTLESS_GHOST));
+			assertTrue(QuestRequirements.isF2P(Quest.X_MARKS_THE_SPOT));
+			assertTrue(QuestRequirements.isF2P(Quest.BELOW_ICE_MOUNTAIN));
+			assertTrue(QuestRequirements.isF2P(Quest.THE_IDES_OF_MILK));
+		}
+
+		@Test
+		@DisplayName("members quests are not F2P")
+		void membersQuestsNotF2P()
+		{
+			assertFalse(QuestRequirements.isF2P(Quest.DRAGON_SLAYER_II));
+			assertFalse(QuestRequirements.isF2P(Quest.HORROR_FROM_THE_DEEP));
+			assertFalse(QuestRequirements.isF2P(Quest.PLAGUE_CITY));
+			assertFalse(QuestRequirements.isF2P(Quest.SONG_OF_THE_ELVES));
+		}
+
+		@Test
+		@DisplayName("null returns false")
+		void nullReturnsFalse()
+		{
+			assertFalse(QuestRequirements.isF2P(null));
+		}
+	}
+
+	@Nested
 	@DisplayName("QuestRequirementResolver.resolve (with injected lookups)")
 	class ResolverTests
 	{
@@ -108,7 +142,7 @@ class QuestRequirementsTest
 		void emptyForMissingQuest()
 		{
 			QuestRequirementResolver.Resolved out =
-				QuestRequirementResolver.resolve(Quest.WITCHS_POTION, NO_SKILLS, NO_QUESTS);
+				QuestRequirementResolver.resolve(Quest.RATCATCHERS, NO_SKILLS, NO_QUESTS);
 			assertTrue(out.isEmpty());
 			assertEquals(0, out.templates.size());
 			assertEquals(0, out.stubbedQuestPoints);

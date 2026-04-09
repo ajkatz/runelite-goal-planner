@@ -39,6 +39,10 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 	/** Sprite id for the blue quest book icon (mirrors GoalTrackerPlugin.QUEST_SPRITE_ID). */
 	private static final int QUEST_SPRITE_ID = 899;
+	/** Gray color for the "F2P" tag pill (packed 0xRRGGBB). */
+	private static final int F2P_TAG_COLOR_RGB = (160 << 16) | (160 << 8) | 160;
+	/** Bundled icon key for the lamp reward tag (resolves to /icons/lamp.png). */
+	private static final String LAMP_ICON_KEY = "lamp";
 
 	private final GoalStore goalStore;
 	private final GoalReorderingService reorderingService;
@@ -348,10 +352,15 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			}
 		}
 
+		int qpReward = com.goaltracker.data.QuestRequirements.questPointReward(quest);
+		String description = qpReward > 0
+			? qpReward + " Quest Point" + (qpReward != 1 ? "s" : "")
+			: "Quest";
+
 		Goal goal = Goal.builder()
 			.type(GoalType.QUEST)
 			.name(quest.getName())
-			.description("Quest")
+			.description(description)
 			.questName(questName)
 			.targetValue(1)
 			.currentValue(0)
@@ -371,6 +380,31 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
 			@Override public String getDescription() { return "Add quest: " + displayName; }
 		});
+		// Auto-tag F2P quests with a gray "F2P" pill.
+		if (com.goaltracker.data.QuestRequirements.isF2P(quest))
+		{
+			addTagWithCategory(goalId, "F2P", TagCategory.OTHER.name());
+			Tag f2pTag = goalStore.findTagByLabel("F2P", TagCategory.OTHER);
+			if (f2pTag != null && f2pTag.getColorRgb() < 0)
+			{
+				goalStore.recolorTag(f2pTag.getId(), F2P_TAG_COLOR_RGB);
+			}
+		}
+		// Auto-tag XP reward skills as SKILLING icons.
+		for (net.runelite.api.Skill rewardSkill : com.goaltracker.data.QuestRequirements.xpRewards(quest))
+		{
+			addTagWithCategory(goalId, rewardSkill.getName(), TagCategory.SKILLING.name());
+		}
+		// Auto-tag lamp-reward quests with a lamp icon.
+		if (com.goaltracker.data.QuestRequirements.rewardsLamp(quest))
+		{
+			addTagWithCategory(goalId, "Lamp", TagCategory.OTHER.name());
+			Tag lampTag = goalStore.findTagByLabel("Lamp", TagCategory.OTHER);
+			if (lampTag != null && lampTag.getIconKey() == null)
+			{
+				goalStore.setTagIcon(lampTag.getId(), LAMP_ICON_KEY);
+			}
+		}
 		log.info("addQuestGoal created: {} ({})", goalId, quest.getName());
 		return goalId;
 	}

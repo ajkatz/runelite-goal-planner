@@ -76,10 +76,74 @@ public final class QuestRequirements
 
 	private static final Map<Quest, Reqs> TABLE = new EnumMap<>(Quest.class);
 
+	/** The complete set of F2P quests, used to auto-tag quest goals. */
+	private static final java.util.Set<Quest> F2P_QUESTS = java.util.EnumSet.of(
+		Quest.BELOW_ICE_MOUNTAIN,
+		Quest.BLACK_KNIGHTS_FORTRESS,
+		Quest.COOKS_ASSISTANT,
+		Quest.THE_CORSAIR_CURSE,
+		Quest.DEMON_SLAYER,
+		Quest.DORICS_QUEST,
+		Quest.DRAGON_SLAYER_I,
+		Quest.ERNEST_THE_CHICKEN,
+		Quest.GOBLIN_DIPLOMACY,
+		Quest.IMP_CATCHER,
+		Quest.THE_IDES_OF_MILK,
+		Quest.THE_KNIGHTS_SWORD,
+		Quest.MISTHALIN_MYSTERY,
+		Quest.PIRATES_TREASURE,
+		Quest.PRINCE_ALI_RESCUE,
+		Quest.THE_RESTLESS_GHOST,
+		Quest.ROMEO__JULIET,
+		Quest.RUNE_MYSTERIES,
+		Quest.SHEEP_SHEARER,
+		Quest.SHIELD_OF_ARRAV,
+		Quest.VAMPYRE_SLAYER,
+		Quest.WITCHS_POTION,
+		Quest.X_MARKS_THE_SPOT
+	);
+
 	static
 	{
-		// --- Simple: zero-req baseline ---
+		// ============================================================
+		// F2P quests (22 total)
+		// ============================================================
+
 		put(Quest.COOKS_ASSISTANT,
+			List.of(), List.of(), 0, 0);
+		put(Quest.DEMON_SLAYER,
+			List.of(), List.of(), 0, 0);
+		put(Quest.DORICS_QUEST,
+			List.of(), List.of(), 0, 0);
+		put(Quest.GOBLIN_DIPLOMACY,
+			List.of(), List.of(), 0, 0);
+		put(Quest.IMP_CATCHER,
+			List.of(), List.of(), 0, 0);
+		put(Quest.THE_KNIGHTS_SWORD,
+			List.of(new SkillReq(Skill.MINING, 10)),
+			List.of(), 0, 0);
+		put(Quest.MISTHALIN_MYSTERY,
+			List.of(), List.of(), 0, 0);
+		put(Quest.PIRATES_TREASURE,
+			List.of(), List.of(), 0, 0);
+		put(Quest.PRINCE_ALI_RESCUE,
+			List.of(), List.of(), 0, 0);
+		put(Quest.ROMEO__JULIET,
+			List.of(), List.of(), 0, 0);
+		put(Quest.SHEEP_SHEARER,
+			List.of(), List.of(), 0, 0);
+		put(Quest.VAMPYRE_SLAYER,
+			List.of(), List.of(), 0, 0);
+		put(Quest.WITCHS_POTION,
+			List.of(), List.of(), 0, 0);
+		put(Quest.BLACK_KNIGHTS_FORTRESS,
+			List.of(), List.of(), 12, 0);
+		put(Quest.THE_CORSAIR_CURSE,
+			List.of(), List.of(), 0, 0);
+		put(Quest.BELOW_ICE_MOUNTAIN,
+			List.of(new SkillReq(Skill.MINING, 10)),
+			List.of(), 0, 0);
+		put(Quest.THE_IDES_OF_MILK,
 			List.of(), List.of(), 0, 0);
 
 		// --- HFTD chain ---
@@ -374,6 +438,68 @@ public final class QuestRequirements
 			List.of(), List.of(), 0, 0);
 	}
 
+	// ============================================================
+	// XP reward tags: skills that a quest rewards XP in (fixed
+	// rewards only — choice lamps are excluded).
+	// ============================================================
+	private static final Map<Quest, List<Skill>> XP_REWARDS = new EnumMap<>(Quest.class);
+
+	static
+	{
+		// F2P quests with fixed XP rewards
+		XP_REWARDS.put(Quest.COOKS_ASSISTANT, List.of(Skill.COOKING));
+		XP_REWARDS.put(Quest.DORICS_QUEST, List.of(Skill.MINING));
+		XP_REWARDS.put(Quest.DRAGON_SLAYER_I, List.of(Skill.DEFENCE));
+		XP_REWARDS.put(Quest.GOBLIN_DIPLOMACY, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.IMP_CATCHER, List.of(Skill.MAGIC));
+		XP_REWARDS.put(Quest.THE_KNIGHTS_SWORD, List.of(Skill.SMITHING));
+		XP_REWARDS.put(Quest.MISTHALIN_MYSTERY, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.THE_RESTLESS_GHOST, List.of(Skill.PRAYER));
+		XP_REWARDS.put(Quest.SHEEP_SHEARER, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.VAMPYRE_SLAYER, List.of(Skill.ATTACK));
+		XP_REWARDS.put(Quest.WITCHS_POTION, List.of(Skill.MAGIC));
+	}
+
+	// ============================================================
+	// Quest point rewards
+	// ============================================================
+	private static final Map<Quest, Integer> QP_REWARDS = new EnumMap<>(Quest.class);
+
+	static
+	{
+		// F2P quests
+		QP_REWARDS.put(Quest.BELOW_ICE_MOUNTAIN, 1);
+		QP_REWARDS.put(Quest.BLACK_KNIGHTS_FORTRESS, 3);
+		QP_REWARDS.put(Quest.COOKS_ASSISTANT, 1);
+		QP_REWARDS.put(Quest.THE_CORSAIR_CURSE, 2);
+		QP_REWARDS.put(Quest.DEMON_SLAYER, 3);
+		QP_REWARDS.put(Quest.DORICS_QUEST, 1);
+		QP_REWARDS.put(Quest.DRAGON_SLAYER_I, 2);
+		QP_REWARDS.put(Quest.ERNEST_THE_CHICKEN, 4);
+		QP_REWARDS.put(Quest.GOBLIN_DIPLOMACY, 5);
+		QP_REWARDS.put(Quest.IMP_CATCHER, 1);
+		QP_REWARDS.put(Quest.THE_IDES_OF_MILK, 1);
+		QP_REWARDS.put(Quest.THE_KNIGHTS_SWORD, 1);
+		QP_REWARDS.put(Quest.MISTHALIN_MYSTERY, 1);
+		QP_REWARDS.put(Quest.PIRATES_TREASURE, 2);
+		QP_REWARDS.put(Quest.PRINCE_ALI_RESCUE, 3);
+		QP_REWARDS.put(Quest.THE_RESTLESS_GHOST, 1);
+		QP_REWARDS.put(Quest.ROMEO__JULIET, 5);
+		QP_REWARDS.put(Quest.RUNE_MYSTERIES, 1);
+		QP_REWARDS.put(Quest.SHEEP_SHEARER, 1);
+		QP_REWARDS.put(Quest.SHIELD_OF_ARRAV, 1);
+		QP_REWARDS.put(Quest.VAMPYRE_SLAYER, 3);
+		QP_REWARDS.put(Quest.WITCHS_POTION, 1);
+		QP_REWARDS.put(Quest.X_MARKS_THE_SPOT, 1);
+	}
+
+	/** Quests that reward an XP lamp (choice-based, not fixed skill). */
+	private static final java.util.Set<Quest> LAMP_REWARD_QUESTS = java.util.EnumSet.of(
+		Quest.X_MARKS_THE_SPOT,
+		Quest.THE_IDES_OF_MILK,
+		Quest.SHIELD_OF_ARRAV
+	);
+
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
 		int questPoints, int combatLevel)
 	{
@@ -392,6 +518,38 @@ public final class QuestRequirements
 	{
 		if (quest == null) return null;
 		return TABLE.get(quest);
+	}
+
+	/**
+	 * Skills that a quest rewards fixed XP in. Returns an empty list
+	 * for quests with no fixed XP rewards or quests not in the table.
+	 * Choice lamps are excluded.
+	 */
+	public static List<Skill> xpRewards(Quest quest)
+	{
+		if (quest == null) return Collections.emptyList();
+		return XP_REWARDS.getOrDefault(quest, Collections.emptyList());
+	}
+
+	/**
+	 * Quest point reward for a quest, or 0 if not in the table.
+	 */
+	public static int questPointReward(Quest quest)
+	{
+		if (quest == null) return 0;
+		return QP_REWARDS.getOrDefault(quest, 0);
+	}
+
+	/** True iff the quest rewards an XP lamp (choice-based). */
+	public static boolean rewardsLamp(Quest quest)
+	{
+		return quest != null && LAMP_REWARD_QUESTS.contains(quest);
+	}
+
+	/** True iff the quest is free-to-play. */
+	public static boolean isF2P(Quest quest)
+	{
+		return quest != null && F2P_QUESTS.contains(quest);
 	}
 
 	/** True iff the quest has a non-empty requirements entry. */
