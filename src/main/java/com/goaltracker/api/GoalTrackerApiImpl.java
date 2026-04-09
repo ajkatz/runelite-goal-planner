@@ -586,6 +586,32 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			if (tag != null) v.customTags.add(toTagView(tag));
 		}
 
+		// Mission 30: resolve relations to display names for the card hover
+		// tooltip. Outgoing (requiresNames) is a direct map over the goal's
+		// requiredGoalIds. Incoming (requiredByNames) is a scan over all
+		// goals — O(n²) across the queryAllGoals pass, but n is small and
+		// this keeps the API stateless.
+		v.requiresNames = new ArrayList<>();
+		if (g.getRequiredGoalIds() != null)
+		{
+			for (String reqId : g.getRequiredGoalIds())
+			{
+				Goal req = findGoal(reqId);
+				if (req != null && req.getName() != null) v.requiresNames.add(req.getName());
+			}
+		}
+		v.requiredByNames = new ArrayList<>();
+		for (Goal other : goalStore.getGoals())
+		{
+			if (other.getId().equals(g.getId())) continue;
+			if (other.getRequiredGoalIds() != null
+				&& other.getRequiredGoalIds().contains(g.getId())
+				&& other.getName() != null)
+			{
+				v.requiredByNames.add(other.getName());
+			}
+		}
+
 		// Type-specific attributes
 		v.attributes = new java.util.HashMap<>();
 		switch (g.getType())
@@ -712,24 +738,50 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		// Mission 26: undoable. Capture the entire Goal entity + its priority
-		// so revert can re-insert it where it was. We KEEP the same id so any
-		// later commands referencing this goal still work after redo.
-		final Goal snapshot = g;
-		final int snapshotPriority = g.getPriority();
+		// Mission 30: delete with doubly-linked-list-style bridging. Before
+		// removing the node we snapshot its incoming edges and compute/apply
+		// bypass bridges (Pi → Sj for each predecessor/successor pair, minus
+		// duplicates). On revert we undo the bypasses, re-insert the goal at
+		// its original index, and restore both incoming and outgoing edges.
+		//
+		// The apply phase doesn't run until executeCommand invokes it — but
+		// we need to capture undo state BEFORE the mutation. So apply() does
+		// the snapshot-then-delete atomically via removeGoalWithBypass and
+		// stashes the snapshot in a mutable holder for revert to consult.
+		final com.goaltracker.persistence.GoalStore.RemoveGoalBypassSnapshot[] snapHolder =
+			new com.goaltracker.persistence.GoalStore.RemoveGoalBypassSnapshot[1];
 		final String name = g.getName();
 		return executeCommand(new com.goaltracker.command.Command()
 		{
 			@Override public boolean apply()
 			{
-				goalStore.removeGoal(goalId);
+				com.goaltracker.persistence.GoalStore.RemoveGoalBypassSnapshot snap =
+					goalStore.removeGoalWithBypass(goalId);
+				if (snap == null) return false;
+				snapHolder[0] = snap;
 				selectedGoalIds.remove(goalId);
 				return true;
 			}
 			@Override public boolean revert()
 			{
+				com.goaltracker.persistence.GoalStore.RemoveGoalBypassSnapshot snap = snapHolder[0];
+				if (snap == null) return false;
 				if (findGoal(goalId) != null) return false;
-				goalStore.insertGoalAt(snapshot, snapshotPriority);
+				// 1. Remove the bypass edges we added
+				for (String[] edge : snap.addedBypassEdges)
+				{
+					goalStore.removeRequirement(edge[0], edge[1]);
+				}
+				// 2. Re-insert the deleted goal at its original index. The
+				//    snapshotted Goal carries its original requiredGoalIds so
+				//    outgoing edges come back automatically.
+				goalStore.insertGoalAt(snap.goal, snap.originalIndex);
+				// 3. Restore incoming edges — re-add the deleted goal's id to
+				//    each predecessor's requiredGoalIds.
+				for (String predId : snap.predecessors)
+				{
+					goalStore.addRequirement(predId, goalId);
+				}
 				return true;
 			}
 			@Override public String getDescription() { return "Remove: " + name; }
@@ -2327,5 +2379,149 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		}
 		if (removed > 0) onGoalsChanged.run();
 		return removed;
+	}
+
+	// =====================================================================
+	// Relations — Mission 30
+	// =====================================================================
+
+	@Override
+	public boolean addRequirement(String fromGoalId, String toGoalId)
+	{
+		log.debug("API.internal addRequirement(from={}, to={})", fromGoalId, toGoalId);
+		if (fromGoalId == null || toGoalId == null) return false;
+		if (fromGoalId.equals(toGoalId)) return false;
+		Goal from = findGoal(fromGoalId);
+		Goal to = findGoal(toGoalId);
+		if (from == null || to == null) return false;
+		// Idempotent precheck so we don't push a no-op command on the stack.
+		if (from.getRequiredGoalIds() != null && from.getRequiredGoalIds().contains(toGoalId))
+		{
+			return false;
+		}
+		if (goalStore.wouldCreateCycle(fromGoalId, toGoalId)) return false;
+
+		final String fromName = from.getName();
+		final String toName = to.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return goalStore.addRequirement(fromGoalId, toGoalId);
+			}
+			@Override public boolean revert()
+			{
+				return goalStore.removeRequirement(fromGoalId, toGoalId);
+			}
+			@Override public String getDescription()
+			{
+				return "Link: " + fromName + " requires " + toName;
+			}
+		});
+	}
+
+	@Override
+	public boolean removeRequirement(String fromGoalId, String toGoalId)
+	{
+		log.debug("API.internal removeRequirement(from={}, to={})", fromGoalId, toGoalId);
+		if (fromGoalId == null || toGoalId == null) return false;
+		Goal from = findGoal(fromGoalId);
+		Goal to = findGoal(toGoalId);
+		if (from == null || to == null) return false;
+		// Idempotent precheck.
+		if (from.getRequiredGoalIds() == null
+			|| !from.getRequiredGoalIds().contains(toGoalId))
+		{
+			return false;
+		}
+
+		final String fromName = from.getName();
+		final String toName = to.getName();
+		return executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return goalStore.removeRequirement(fromGoalId, toGoalId);
+			}
+			@Override public boolean revert()
+			{
+				return goalStore.addRequirement(fromGoalId, toGoalId);
+			}
+			@Override public String getDescription()
+			{
+				return "Unlink: " + fromName + " requires " + toName;
+			}
+		});
+	}
+
+	@Override
+	public java.util.List<String> getRequirements(String goalId)
+	{
+		Goal g = findGoal(goalId);
+		if (g == null || g.getRequiredGoalIds() == null) return new ArrayList<>();
+		return new ArrayList<>(g.getRequiredGoalIds());
+	}
+
+	@Override
+	public java.util.List<String> getDependents(String goalId)
+	{
+		return goalStore.getDependents(goalId);
+	}
+
+	@Override
+	public FindOrCreateResult findOrCreateRequirement(Goal template, String preferredSectionId)
+	{
+		log.debug("API.internal findOrCreateRequirement(type={})",
+			template == null ? null : template.getType());
+		if (template == null || template.getType() == null) return null;
+
+		// Structural match first — reuse an existing goal if one satisfies.
+		Goal existing = goalStore.findMatchingGoal(template);
+		if (existing != null)
+		{
+			return new FindOrCreateResult(existing.getId(), false);
+		}
+
+		// No match — create a seed goal from the template, marked autoSeeded.
+		// We build a fresh Goal to avoid mutating the caller's template and
+		// to guarantee a new UUID + empty relation lists.
+		Goal seed = Goal.builder()
+			.type(template.getType())
+			.name(template.getName())
+			.description(template.getDescription())
+			.targetValue(template.getTargetValue())
+			.currentValue(template.getCurrentValue())
+			.skillName(template.getSkillName())
+			.questName(template.getQuestName())
+			.varbitId(template.getVarbitId())
+			.itemId(template.getItemId())
+			.spriteId(template.getSpriteId())
+			.caTaskId(template.getCaTaskId())
+			.sectionId(preferredSectionId)
+			.autoSeeded(true)
+			.build();
+
+		final String seedId = seed.getId();
+		final Goal capturedSeed = seed;
+		final String displayName = seed.getName() != null ? seed.getName() : "goal";
+		boolean ok = executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (findGoal(seedId) != null) return false;
+				goalStore.addGoal(capturedSeed);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				goalStore.removeGoal(seedId);
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Seed requirement: " + displayName;
+			}
+		});
+		return ok ? new FindOrCreateResult(seedId, true) : null;
 	}
 }

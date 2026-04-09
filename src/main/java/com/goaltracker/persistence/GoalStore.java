@@ -586,9 +586,340 @@ public class GoalStore
 
 	public void removeGoal(String goalId)
 	{
+		if (goalId == null) return;
+		// Mission 30: scrub any incoming edges before removing the node so
+		// other goals don't hold dangling references to the deleted id. This
+		// is safe for all existing callers because:
+		//   - revert paths for freshly-added goals: the goal has no incoming
+		//     edges (no other goal points at it), so this is a no-op
+		//   - bulk removals via iteration: scrubbing is incremental — later
+		//     batch members get cleaned up as earlier ones are removed
+		// Bypass-bridging (connecting predecessors directly to successors
+		// around the deleted node) is a separate opt-in via
+		// {@link #removeGoalWithBypass}. Plain removeGoal just breaks the
+		// chain cleanly.
+		for (Goal g : goals)
+		{
+			if (g.getRequiredGoalIds() != null)
+			{
+				g.getRequiredGoalIds().remove(goalId);
+			}
+		}
 		goals.removeIf(g -> g.getId().equals(goalId));
 		reindex();
 		save();
+	}
+
+	// ---------------------------------------------------------------------
+	// Relations — Mission 30. Goals form a DAG via Goal.requiredGoalIds.
+	// Outgoing edges are stored on each Goal; incoming edges ("dependents")
+	// are derived at query time by scanning all goals.
+	// ---------------------------------------------------------------------
+
+	/**
+	 * Add an edge: {@code fromGoalId} requires {@code toGoalId}. Rejects
+	 * self-loops, missing goals, duplicate edges, and any edge that would
+	 * create a cycle in the DAG.
+	 *
+	 * @return true if the edge was added, false otherwise
+	 */
+	public boolean addRequirement(String fromGoalId, String toGoalId)
+	{
+		if (fromGoalId == null || toGoalId == null) return false;
+		if (fromGoalId.equals(toGoalId)) return false; // self-loop
+		Goal from = findGoalById(fromGoalId);
+		Goal to = findGoalById(toGoalId);
+		if (from == null || to == null) return false;
+		if (from.getRequiredGoalIds() == null)
+		{
+			from.setRequiredGoalIds(new ArrayList<>());
+		}
+		if (from.getRequiredGoalIds().contains(toGoalId)) return false; // idempotent
+		if (wouldCreateCycle(fromGoalId, toGoalId)) return false;
+		from.getRequiredGoalIds().add(toGoalId);
+		save();
+		return true;
+	}
+
+	/**
+	 * Remove the {@code fromGoalId → toGoalId} edge. Returns true iff the
+	 * edge existed and was removed.
+	 */
+	public boolean removeRequirement(String fromGoalId, String toGoalId)
+	{
+		if (fromGoalId == null || toGoalId == null) return false;
+		Goal from = findGoalById(fromGoalId);
+		if (from == null || from.getRequiredGoalIds() == null) return false;
+		boolean removed = from.getRequiredGoalIds().remove(toGoalId);
+		if (removed) save();
+		return removed;
+	}
+
+	/**
+	 * @return IDs of goals that require the given goal (incoming edges).
+	 *   Derived by scanning all goals — not cached.
+	 */
+	public List<String> getDependents(String goalId)
+	{
+		List<String> out = new ArrayList<>();
+		if (goalId == null) return out;
+		for (Goal g : goals)
+		{
+			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().contains(goalId))
+			{
+				out.add(g.getId());
+			}
+		}
+		return out;
+	}
+
+	/**
+	 * Would adding {@code fromGoalId → toGoalId} create a cycle? A cycle
+	 * exists iff there's already a path from {@code toGoalId} back to
+	 * {@code fromGoalId} in the current graph. Standard DFS.
+	 *
+	 * <p>Does NOT check whether the edge already exists — that's a separate
+	 * concern handled in {@link #addRequirement}. A duplicate edge is not
+	 * a cycle.
+	 */
+	public boolean wouldCreateCycle(String fromGoalId, String toGoalId)
+	{
+		if (fromGoalId == null || toGoalId == null) return false;
+		if (fromGoalId.equals(toGoalId)) return true; // self-loop IS a cycle
+		// DFS from `to`. If we can reach `from`, adding from→to closes a cycle.
+		java.util.Set<String> visited = new java.util.HashSet<>();
+		java.util.Deque<String> stack = new java.util.ArrayDeque<>();
+		stack.push(toGoalId);
+		while (!stack.isEmpty())
+		{
+			String cur = stack.pop();
+			if (!visited.add(cur)) continue;
+			if (cur.equals(fromGoalId)) return true;
+			Goal g = findGoalById(cur);
+			if (g != null && g.getRequiredGoalIds() != null)
+			{
+				for (String next : g.getRequiredGoalIds()) stack.push(next);
+			}
+		}
+		return false;
+	}
+
+	/** Internal lookup used by the relations API. Separate from
+	 *  {@link #findTag} — different collection. */
+	private Goal findGoalById(String id)
+	{
+		if (id == null) return null;
+		for (Goal g : goals)
+		{
+			if (id.equals(g.getId())) return g;
+		}
+		return null;
+	}
+
+	/**
+	 * Structural-match search with "satisfies" semantics. Given a Goal
+	 * {@code template}, finds an existing goal (across ALL sections) whose
+	 * identity fields match and whose target is at least as ambitious as
+	 * the template's. Returns the first match or null.
+	 *
+	 * <p>Satisfies rules per type:
+	 * <ul>
+	 *   <li><b>SKILL</b>: same {@code skillName}, existing {@code targetValue ≥}
+	 *       template's</li>
+	 *   <li><b>ITEM_GRIND</b>: same {@code itemId}, existing {@code targetValue ≥}
+	 *       template's</li>
+	 *   <li><b>QUEST</b> / <b>DIARY</b> / <b>CUSTOM</b>: case-insensitive
+	 *       trimmed {@code name} equality</li>
+	 *   <li><b>COMBAT_ACHIEVEMENT</b>: {@code caTaskId} equality (if both
+	 *       ≥ 0), otherwise falls back to case-insensitive name equality</li>
+	 * </ul>
+	 *
+	 * <p>Mission 30: used by the find-or-create requirement flow so adding
+	 * "HFTD requires 35 Agility" links to an existing 99 Agility goal if
+	 * the user already has one, rather than creating a redundant 35 Agility.
+	 *
+	 * @param template a partially-filled Goal describing WHAT is needed;
+	 *                 only identity + target fields are consulted
+	 * @return the first matching goal, or null if none
+	 */
+	public Goal findMatchingGoal(Goal template)
+	{
+		if (template == null || template.getType() == null) return null;
+		for (Goal g : goals)
+		{
+			if (g.getType() != template.getType()) continue;
+			if (matches(g, template)) return g;
+		}
+		return null;
+	}
+
+	private boolean matches(Goal existing, Goal template)
+	{
+		switch (existing.getType())
+		{
+			case SKILL:
+				if (existing.getSkillName() == null || template.getSkillName() == null) return false;
+				if (!existing.getSkillName().equalsIgnoreCase(template.getSkillName())) return false;
+				// Satisfies: existing target must be ≥ template's target.
+				return existing.getTargetValue() >= template.getTargetValue();
+			case ITEM_GRIND:
+				if (existing.getItemId() != template.getItemId()) return false;
+				return existing.getTargetValue() >= template.getTargetValue();
+			case COMBAT_ACHIEVEMENT:
+				// Prefer caTaskId when both are set; fall back to name.
+				if (existing.getCaTaskId() >= 0 && template.getCaTaskId() >= 0)
+				{
+					return existing.getCaTaskId() == template.getCaTaskId();
+				}
+				return namesEqual(existing.getName(), template.getName());
+			case QUEST:
+			case DIARY:
+			case CUSTOM:
+				return namesEqual(existing.getName(), template.getName());
+			default:
+				return false;
+		}
+	}
+
+	private static boolean namesEqual(String a, String b)
+	{
+		if (a == null || b == null) return false;
+		return a.trim().equalsIgnoreCase(b.trim());
+	}
+
+	/**
+	 * Snapshot of state captured by {@link #removeGoalWithBypass} before the
+	 * delete, sufficient for a caller to fully restore the graph via undo.
+	 *
+	 * <p>Revert procedure:
+	 * <ol>
+	 *   <li>For each {@code [from, to]} in {@link #addedBypassEdges}, call
+	 *       {@link #removeRequirement}</li>
+	 *   <li>Call {@link #insertGoalAt}({@link #goal}, {@link #originalIndex})</li>
+	 *   <li>The deleted goal's OWN outgoing edges are preserved in
+	 *       {@code goal.requiredGoalIds} because we capture the snapshot
+	 *       BEFORE deleting — re-inserting the goal restores them automatically</li>
+	 *   <li>For each id in {@link #predecessors}, call
+	 *       {@link #addRequirement}(predId, goal.id) to rewire incoming edges</li>
+	 * </ol>
+	 */
+	public static final class RemoveGoalBypassSnapshot
+	{
+		/** The deleted goal, with its full state including {@code requiredGoalIds}
+		 *  captured at delete time. */
+		public final Goal goal;
+		/** Original index in the flat {@code goals} list (for {@link #insertGoalAt}
+		 *  to preserve exact ordering through the stable-sort tiebreak). */
+		public final int originalIndex;
+		/** Goal IDs that had the deleted goal in their {@code requiredGoalIds}
+		 *  at delete time (incoming edges). */
+		public final List<String> predecessors;
+		/** [from, to] pairs of edges ACTUALLY added as bypasses — excludes
+		 *  edges that already existed independently (dedupe). Revert must
+		 *  remove exactly these, no more, no less. */
+		public final List<String[]> addedBypassEdges;
+
+		RemoveGoalBypassSnapshot(Goal goal, int originalIndex, List<String> predecessors,
+			List<String[]> addedBypassEdges)
+		{
+			this.goal = goal;
+			this.originalIndex = originalIndex;
+			this.predecessors = predecessors;
+			this.addedBypassEdges = addedBypassEdges;
+		}
+	}
+
+	/**
+	 * Remove a goal using doubly-linked-list-style bridging: before deleting
+	 * the node, every predecessor is connected directly to every successor
+	 * so the chain isn't broken. Returns a snapshot sufficient for undo.
+	 *
+	 * <p>For the DAG {@code P1,P2 → D → S1,S2}, deleting {@code D} adds
+	 * bypass edges {@code P1→S1, P1→S2, P2→S1, P2→S2} (Cartesian product),
+	 * then removes {@code D}. Edges that already existed independently are
+	 * not duplicated.
+	 *
+	 * <p>Bypass-edge addition is proven not to create cycles: any resulting
+	 * cycle would require a path {@code Si → ... → Pj} in the existing
+	 * graph, which combined with {@code Pj → D → Si} would have been a
+	 * cycle before the delete. Since the invariant is a DAG, no such path
+	 * exists.
+	 *
+	 * @return a snapshot for undo, or null if the goal id isn't found
+	 */
+	public RemoveGoalBypassSnapshot removeGoalWithBypass(String goalId)
+	{
+		if (goalId == null) return null;
+		Goal deleted = findGoalById(goalId);
+		if (deleted == null) return null;
+
+		// 1. Snapshot the deleted goal's index in the flat list.
+		int originalIndex = -1;
+		for (int i = 0; i < goals.size(); i++)
+		{
+			if (goalId.equals(goals.get(i).getId())) { originalIndex = i; break; }
+		}
+
+		// 2. Collect predecessors (goals whose requiredGoalIds contain the deleted id).
+		List<String> predecessors = new ArrayList<>();
+		for (Goal g : goals)
+		{
+			if (g.getId().equals(goalId)) continue;
+			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().contains(goalId))
+			{
+				predecessors.add(g.getId());
+			}
+		}
+
+		// 3. Successors are the deleted goal's own outgoing edges.
+		List<String> successors = deleted.getRequiredGoalIds() != null
+			? new ArrayList<>(deleted.getRequiredGoalIds())
+			: new ArrayList<>();
+
+		// 4. Compute and apply bypass edges (Cartesian product, deduped).
+		List<String[]> addedBypassEdges = new ArrayList<>();
+		for (String predId : predecessors)
+		{
+			Goal pred = findGoalById(predId);
+			if (pred == null) continue;
+			if (pred.getRequiredGoalIds() == null)
+			{
+				pred.setRequiredGoalIds(new ArrayList<>());
+			}
+			for (String succId : successors)
+			{
+				// Dedupe: if pred already has succ as a direct requirement, skip.
+				if (pred.getRequiredGoalIds().contains(succId)) continue;
+				// Self-loop guard: don't add pred→pred (can happen if succId == predId
+				// in pathological graphs, though the DAG invariant prevents it).
+				if (predId.equals(succId)) continue;
+				pred.getRequiredGoalIds().add(succId);
+				addedBypassEdges.add(new String[]{predId, succId});
+			}
+		}
+
+		// 5. Scrub incoming edges: remove the deleted id from each predecessor's
+		//    requiredGoalIds.
+		for (String predId : predecessors)
+		{
+			Goal pred = findGoalById(predId);
+			if (pred != null && pred.getRequiredGoalIds() != null)
+			{
+				pred.getRequiredGoalIds().remove(goalId);
+			}
+		}
+
+		// 6. Snapshot the deleted goal (deep copy of relevant fields via the
+		//    existing Goal object reference — Goal is mutable but the caller
+		//    owns the snapshot and we'll reinsert the same instance on revert).
+		Goal snapshotGoal = deleted;
+
+		// 7. Remove the goal from the flat list.
+		goals.removeIf(g -> g.getId().equals(goalId));
+		reindex();
+		save();
+
+		return new RemoveGoalBypassSnapshot(snapshotGoal, originalIndex, predecessors, addedBypassEdges);
 	}
 
 	public void updateGoal(Goal goal)

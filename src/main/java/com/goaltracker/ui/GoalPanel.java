@@ -70,6 +70,20 @@ public class GoalPanel extends PluginPanel
 	/** Mission 25: in-section position to place the next goal created via
 	 *  showAddGoalDialog. -1 = default (bottom). Cleared after each create. */
 	private int pendingAddPositionInSection = -1;
+	/** Mission 30: id of the goal the user initiated a relation-pick from,
+	 *  or null when not in relation-pick mode. Set by the Requires.../Required
+	 *  by... context-menu items; cleared on successful target click, cancel,
+	 *  or ESC. */
+	private String pendingRelationSourceId = null;
+	/** Mission 30: direction flag for relation-pick mode. When true, the next
+	 *  clicked card becomes a REQUIREMENT of {@link #pendingRelationSourceId}
+	 *  (edge source → target). When false, the source becomes a DEPENDENT of
+	 *  the target (edge target → source). */
+	private boolean pendingRelationSourceRequiresTarget = true;
+	/** Mission 30: instruction banner shown at the top of the panel while
+	 *  relation-pick mode is active. Hidden otherwise. */
+	private JPanel relationModeBanner;
+	private JLabel relationModeLabel;
 	/** Mission 26: toolbar undo/redo buttons. Refreshed on every rebuild. */
 	private JButton undoButton;
 	private JButton redoButton;
@@ -203,10 +217,31 @@ public class GoalPanel extends PluginPanel
 		searchRow.add(searchField, BorderLayout.CENTER);
 		searchRow.add(clearSearchBtn, BorderLayout.EAST);
 
+		// Mission 30: relation-pick mode banner. Hidden by default, shown
+		// when the user initiates "Requires..." / "Required by..." from the
+		// context menu. Tells the user what to do next and how to cancel.
+		relationModeBanner = new JPanel(new BorderLayout());
+		relationModeBanner.setBackground(new Color(0xB8, 0x60, 0x20));
+		relationModeBanner.setBorder(new EmptyBorder(4, 8, 4, 8));
+		relationModeLabel = new JLabel();
+		relationModeLabel.setForeground(Color.WHITE);
+		relationModeLabel.setFont(relationModeLabel.getFont().deriveFont(11f));
+		relationModeBanner.add(relationModeLabel, BorderLayout.CENTER);
+		JButton relationCancelBtn = new JButton("\u2715");
+		relationCancelBtn.setMargin(new Insets(0, 4, 0, 4));
+		relationCancelBtn.setToolTipText("Cancel (ESC)");
+		relationCancelBtn.addActionListener(e -> exitRelationMode());
+		relationModeBanner.add(relationCancelBtn, BorderLayout.EAST);
+		relationModeBanner.setVisible(false);
+
 		JPanel headerStack = new JPanel(new BorderLayout());
 		headerStack.setBackground(ColorScheme.DARK_GRAY_COLOR);
-		headerStack.add(header, BorderLayout.NORTH);
-		headerStack.add(searchRow, BorderLayout.CENTER);
+		JPanel headerTop = new JPanel(new BorderLayout());
+		headerTop.setBackground(ColorScheme.DARK_GRAY_COLOR);
+		headerTop.add(header, BorderLayout.NORTH);
+		headerTop.add(searchRow, BorderLayout.CENTER);
+		headerStack.add(headerTop, BorderLayout.NORTH);
+		headerStack.add(relationModeBanner, BorderLayout.SOUTH);
 
 		// Scrollable goal list
 		goalListPanel = new JPanel();
@@ -221,6 +256,21 @@ public class GoalPanel extends PluginPanel
 
 		add(headerStack, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
+
+		// Mission 30: ESC cancels relation-pick mode. Registered on the
+		// whole panel so the key fires regardless of focus within the
+		// scrollable goal list.
+		javax.swing.KeyStroke escStroke =
+			javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0);
+		getInputMap(WHEN_IN_FOCUSED_WINDOW).put(escStroke, "cancelRelationMode");
+		getActionMap().put("cancelRelationMode", new javax.swing.AbstractAction()
+		{
+			@Override
+			public void actionPerformed(java.awt.event.ActionEvent e)
+			{
+				if (pendingRelationSourceId != null) exitRelationMode();
+			}
+		});
 
 		rebuild();
 	}
@@ -346,6 +396,15 @@ public class GoalPanel extends PluginPanel
 				attachSelectionClick(card, view);
 				cardMap.put(goal.getId(), card);
 
+				// Mission 30: highlight the relation-pick source card with
+				// an orange border so the user can see which goal they're
+				// pairing from while they search for a target.
+				if (goal.getId().equals(pendingRelationSourceId))
+				{
+					card.setBorder(javax.swing.BorderFactory.createLineBorder(
+						new Color(0xFF, 0x99, 0x33), 2));
+				}
+
 				goalListPanel.add(card);
 				goalListPanel.add(Box.createVerticalStrut(4));
 			}
@@ -408,6 +467,102 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
+	 * Resolve a goal id to a display-friendly name by scanning the store.
+	 * Returns the id itself if no match (defensive fallback). Used for
+	 * relation submenus that list requirements and dependents by name.
+	 */
+	private String goalNameById(String goalId)
+	{
+		if (goalId == null) return "(unknown)";
+		for (Goal g : goalStore.getGoals())
+		{
+			if (goalId.equals(g.getId()))
+			{
+				return g.getName() != null ? g.getName() : goalId;
+			}
+		}
+		return goalId;
+	}
+
+	// ------------------------------------------------------------------
+	// Relation-pick mode (Mission 30)
+	// ------------------------------------------------------------------
+
+	/**
+	 * Enter relation-pick mode. The next left-click on any goal card will
+	 * complete a new relation edge between {@code sourceGoalId} and the
+	 * clicked goal. Shows an instruction banner at the top of the panel.
+	 *
+	 * @param sourceGoalId            the goal the user right-clicked
+	 * @param sourceRequiresTarget    true to make the clicked goal a
+	 *                                requirement of the source (edge
+	 *                                source → target); false to make the
+	 *                                source a dependent of the target
+	 *                                (edge target → source)
+	 */
+	private void enterRelationMode(String sourceGoalId, boolean sourceRequiresTarget)
+	{
+		pendingRelationSourceId = sourceGoalId;
+		pendingRelationSourceRequiresTarget = sourceRequiresTarget;
+		String sourceName = goalNameById(sourceGoalId);
+		String verb = sourceRequiresTarget
+			? "Click a goal to add as a requirement of \"" + sourceName + "\""
+			: "Click a goal that should require \"" + sourceName + "\"";
+		relationModeLabel.setText("<html>" + verb + " &mdash; ESC to cancel</html>");
+		relationModeBanner.setVisible(true);
+		// Rebuild so the orange source-card border gets applied.
+		rebuild();
+	}
+
+	/** Exit relation-pick mode without adding an edge. */
+	private void exitRelationMode()
+	{
+		if (pendingRelationSourceId == null) return;
+		pendingRelationSourceId = null;
+		relationModeBanner.setVisible(false);
+		// Rebuild so the orange source-card border goes away.
+		rebuild();
+	}
+
+	/**
+	 * Handle a left-click on a card while relation-pick mode is active.
+	 * Clicking the source card cancels; any other click attempts to add
+	 * the edge in the pending direction. Cycle / duplicate rejections
+	 * surface as a warning dialog. Always exits the mode (successful or
+	 * not) so the user isn't stranded in a "nothing I click works" state.
+	 */
+	private void handleRelationPickTarget(String clickedGoalId)
+	{
+		if (pendingRelationSourceId == null) return;
+		if (clickedGoalId.equals(pendingRelationSourceId))
+		{
+			exitRelationMode();
+			return;
+		}
+		boolean ok;
+		String fromId;
+		String toId;
+		if (pendingRelationSourceRequiresTarget)
+		{
+			fromId = pendingRelationSourceId;
+			toId = clickedGoalId;
+		}
+		else
+		{
+			fromId = clickedGoalId;
+			toId = pendingRelationSourceId;
+		}
+		ok = api.addRequirement(fromId, toId);
+		exitRelationMode();
+		if (!ok)
+		{
+			JOptionPane.showMessageDialog(this,
+				"Could not add relation \u2014 it may already exist or would create a cycle.",
+				"Add Relation", JOptionPane.WARNING_MESSAGE);
+		}
+	}
+
+	/**
 	 * Rule 1 enforcement: any action on an unselected card auto-deselects the
 	 * existing multi-selection first. Used by arrow-button moves; the right-
 	 * click menu show path applies the same rule inline.
@@ -445,6 +600,14 @@ public class GoalPanel extends PluginPanel
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getButton() != MouseEvent.BUTTON1) return;
+				// Mission 30: relation-pick mode intercepts left-clicks.
+				// Clicking the source card cancels; clicking any other card
+				// completes the relation in the pending direction.
+				if (pendingRelationSourceId != null)
+				{
+					handleRelationPickTarget(goalId);
+					return;
+				}
 				boolean cmdCtrl = e.isMetaDown() || e.isControlDown();
 				boolean shift = e.isShiftDown();
 				// Mission 24: Excel-style shift-click extends selection from
@@ -552,6 +715,11 @@ public class GoalPanel extends PluginPanel
 			private void maybeShowPopup(MouseEvent e)
 			{
 				if (!e.isPopupTrigger()) return;
+				// Mission 30: right-click exits relation-pick mode. The
+				// user is clearly navigating away from the relation they
+				// started; show the normal context menu of the clicked
+				// card instead of stranding them in mode.
+				if (pendingRelationSourceId != null) exitRelationMode();
 				// Right-click does NOT touch the current selection. If the
 				// clicked card is part of the existing multi-selection, show
 				// the bulk menu so its actions apply to the whole set.
@@ -828,6 +996,55 @@ if (!removableTags.isEmpty())
 				}
 			});
 			menu.add(removeTag);
+		}
+
+		// Mission 30: Relations. "Requires..." and "Required by..." enter a
+		// click-mode where the user clicks another goal to link. The Remove
+		// submenus below are direct pick-to-remove lists of the current edges.
+		{
+			JMenuItem addRequirement = new JMenuItem("Requires\u2026");
+			addRequirement.setToolTipText(
+				"Click, then click another goal to mark it as a requirement of this one.");
+			addRequirement.addActionListener(e ->
+				enterRelationMode(goal.getId(), /*sourceRequiresTarget=*/true));
+			menu.add(addRequirement);
+
+			JMenuItem addDependent = new JMenuItem("Required by\u2026");
+			addDependent.setToolTipText(
+				"Click, then click another goal that should require this one.");
+			addDependent.addActionListener(e ->
+				enterRelationMode(goal.getId(), /*sourceRequiresTarget=*/false));
+			menu.add(addDependent);
+
+			// Remove requirement submenu — only when there's something to remove.
+			java.util.List<String> currentRequirements = api.getRequirements(goal.getId());
+			if (!currentRequirements.isEmpty())
+			{
+				javax.swing.JMenu removeReqMenu = new javax.swing.JMenu("Remove Requirement");
+				for (String reqId : currentRequirements)
+				{
+					String label = goalNameById(reqId);
+					JMenuItem item = new JMenuItem(label);
+					item.addActionListener(e -> api.removeRequirement(goal.getId(), reqId));
+					removeReqMenu.add(item);
+				}
+				menu.add(removeReqMenu);
+			}
+
+			// Remove dependent submenu — only when this goal is depended-on.
+			java.util.List<String> currentDependents = api.getDependents(goal.getId());
+			if (!currentDependents.isEmpty())
+			{
+				javax.swing.JMenu removeDepMenu = new javax.swing.JMenu("Remove Dependent");
+				for (String depId : currentDependents)
+				{
+					String label = goalNameById(depId);
+					JMenuItem item = new JMenuItem(label);
+					item.addActionListener(e -> api.removeRequirement(depId, goal.getId()));
+					removeDepMenu.add(item);
+				}
+				menu.add(removeDepMenu);
+			}
 		}
 
 		// Mission 24: Restore Defaults — gated on isGoalOverridden (tag drift

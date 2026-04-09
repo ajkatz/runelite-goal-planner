@@ -45,6 +45,62 @@ chat/UI events. Tracker-per-type pattern already established.
 
 ## Goal state machine improvements
 
+### Tracking semantics taxonomy (2026-04-08 design note)
+
+Before implementing new goal types, it's worth having a framework for
+classifying the metrics we track. Two independent axes:
+
+**Axis 1 — Monotonicity of the underlying metric:**
+
+- **Monotonic-up** (numbers that only go up): easy to target, naturally
+  terminal. Examples:
+  - Boss kill counts, quest points, experience, levels
+  - Combat log points / tier, kudos, combat level, total level
+  - Total quests / achievements / collection logs completed
+  - Time played, cast counts, "X made", games played
+  - Achievement diary status (tasks don't un-complete)
+- **Monotonic-down** (numbers that only go down): inverted comparison
+  (currentValue ≤ targetValue). Examples:
+  - Fastest kill time per boss / encounter
+  - Probably "minimum X achieved" style goals in general
+- **Non-monotonic** (numbers that can fluctuate): require the
+  persistent/non-persistent distinction below to be meaningful as goals.
+  Examples:
+  - Currency (GP), slayer points, item counts
+  - Miscellania approval (has ceiling + decay)
+
+**Axis 2 — Goal persistence (orthogonal to axis 1):**
+
+- **Terminal**: once completed, stays completed. Default behavior today.
+- **Persistent**: re-opens if the underlying metric drops below the
+  target. Only meaningful for non-monotonic (or monotonic-down with
+  caveats) metrics. Examples: "keep 1000 sharks banked", "maintain ≥75%
+  Miscellania approval".
+
+**Implementation implication:** single mutually-exclusive enum on each
+goal expressing the tracking semantics:
+
+- `IS_MONOTONIC_UP` — number only goes up, terminal once hit
+- `IS_MONOTONIC_DOWN` — number only goes down (fastest kill time),
+  inverted `meetsTarget` comparison
+- `NON_MONOTONIC_PERSISTENT` — can fluctuate, goal re-opens if drops
+  below target ("keep 1000 sharks banked")
+- `NON_MONOTONIC_NON_PERSISTENT` — can fluctuate, terminal once hit
+  ("earn 100M GP ever")
+
+A single `ACTIVITY_COUNTER` or numeric goal type can handle most
+monotonic-up cases with varying identity fields (kill count per boss,
+cast count per spell, etc.).
+
+**Ambiguous cases:**
+- **Currency** is interpreted as *current balance* by default
+  (non-monotonic), but "earn 100M GP lifetime" would be monotonic if we
+  tracked lifetime earned. The goal EXPRESSION determines the category,
+  not the metric itself.
+- **Quest points** is a *derived* metric (sum over completed quests).
+  Could be a view over the quest goal subset rather than a first-class
+  goal type.
+
 ### Persistent goals
 Item / achievement goals that *re-open* if the underlying state drops
 below the threshold — opposite of mission 25's terminal-once-complete

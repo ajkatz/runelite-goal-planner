@@ -60,6 +60,17 @@ public class GoalView
 	 *  These are the only tags removable via the Remove Tag UI. */
 	public List<TagView> customTags;
 
+	// ----- relations (Mission 30) -----
+
+	/** Display names of goals this one requires (outgoing edges), resolved
+	 *  at queryAllGoals time. Empty list if none. Used by the card hover
+	 *  tooltip to show the "Requires:" line. */
+	public List<String> requiresNames;
+	/** Display names of goals that require this one (incoming edges),
+	 *  resolved at queryAllGoals time. Empty list if none. Used by the
+	 *  card hover tooltip to show the "Required by:" line. */
+	public List<String> requiredByNames;
+
 	// ----- type-specific extras -----
 
 	public Map<String, Object> attributes = new HashMap<>();

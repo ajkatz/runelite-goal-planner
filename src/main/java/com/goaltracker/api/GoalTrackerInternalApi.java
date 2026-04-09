@@ -489,4 +489,82 @@ public interface GoalTrackerInternalApi
 
 	/** Equivalent to {@link #setTagIcon(String, String)} with null. */
 	boolean clearTagIcon(String tagId);
+
+	// =====================================================================
+	// Relations — Mission 30
+	// Goal-to-goal "requires" edges forming a DAG. Relations cross sections
+	// freely; topo sort is per-section (session 2).
+	// =====================================================================
+
+	/**
+	 * Add an edge: {@code fromGoalId} requires {@code toGoalId}. Rejects
+	 * self-loops, missing goals, duplicates, and any edge that would
+	 * create a cycle. Undoable.
+	 *
+	 * @return true if the edge was added
+	 */
+	boolean addRequirement(String fromGoalId, String toGoalId);
+
+	/**
+	 * Remove an existing {@code fromGoalId → toGoalId} edge. Undoable.
+	 *
+	 * @return true if the edge existed and was removed
+	 */
+	boolean removeRequirement(String fromGoalId, String toGoalId);
+
+	/**
+	 * Get the goals that {@code goalId} requires (outgoing edges).
+	 */
+	java.util.List<String> getRequirements(String goalId);
+
+	/**
+	 * Get the goals that require {@code goalId} (incoming edges, derived
+	 * by scanning all goals).
+	 */
+	java.util.List<String> getDependents(String goalId);
+
+	/**
+	 * Return value from {@link #findOrCreateRequirement}. {@code goalId} is
+	 * the id of the goal that now satisfies the template (either an
+	 * existing one that matched structurally, or a newly-created seed).
+	 * {@code wasCreated} distinguishes the two cases so callers can build
+	 * the correct undo inverse — link-only if false, delete-seed-plus-link
+	 * if true.
+	 */
+	final class FindOrCreateResult
+	{
+		public final String goalId;
+		public final boolean wasCreated;
+
+		public FindOrCreateResult(String goalId, boolean wasCreated)
+		{
+			this.goalId = goalId;
+			this.wasCreated = wasCreated;
+		}
+	}
+
+	/**
+	 * Resolve a requirement template to a concrete goal id, creating a
+	 * seed goal if no existing goal satisfies the template structurally.
+	 *
+	 * <p>"Satisfies" uses the per-type rules in
+	 * {@link com.goaltracker.persistence.GoalStore#findMatchingGoal}: skill
+	 * and item goals use numeric "target ≥" comparison; quests/diaries/CAs/
+	 * custom use case-insensitive name equality (CAs prefer caTaskId).
+	 *
+	 * <p>If a new seed is created, it's marked {@code autoSeeded=true} for
+	 * the future absorption rule (session 2) and added to the store in the
+	 * specified section (or Incomplete if {@code preferredSectionId} is
+	 * null). Undoable — link-only on existing match, or compound (create +
+	 * link) on no-match.
+	 *
+	 * @param template           a Goal object describing WHAT the caller needs;
+	 *                           only identity + target fields are consulted
+	 * @param preferredSectionId section for the seed goal if created, or null
+	 *                           for Incomplete
+	 * @return the resolved goal id + whether it was newly created, or null
+	 *         if the template is invalid
+	 */
+	FindOrCreateResult findOrCreateRequirement(
+		com.goaltracker.model.Goal template, String preferredSectionId);
 }

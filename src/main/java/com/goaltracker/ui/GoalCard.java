@@ -85,17 +85,11 @@ public class GoalCard extends JPanel
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		// Tooltip: prefer the type-specific tooltip from attributes, fall back to
-		// truncated-name tooltip when the name is too long to fit.
-		String tooltip = (String) view.attributes.get("tooltip");
-		if (tooltip != null && !tooltip.isEmpty())
-		{
-			setToolTipText(tooltip);
-		}
-		else if (view.name != null && view.name.length() > 22)
-		{
-			setToolTipText(view.name);
-		}
+		// Tooltip composition order (Mission 30): base tooltip from the type
+		// (CA task description, etc.) or truncated-name fallback, PLUS the
+		// relation info (Requires / Required by) if any edges exist. Built
+		// as HTML so multiple lines render cleanly.
+		setToolTipText(buildTooltipHtml(view));
 
 		JPanel nameAndTags = new JPanel(new BorderLayout(0, 0));
 		nameAndTags.setOpaque(false);
@@ -639,5 +633,62 @@ public class GoalCard extends JPanel
 		double pct = view.targetValue == 0 ? 0
 			: Math.max(0.0, Math.min(100.0, (view.currentValue * 100.0) / view.targetValue));
 		return String.format("%.0f%%", pct);
+	}
+
+	/**
+	 * Build the card's hover tooltip as HTML. Composed of up to three
+	 * sections:
+	 * <ol>
+	 *   <li>Base: the type-specific tooltip from {@code attributes.tooltip}
+	 *       if present (CA task description, quest requirements from wiki,
+	 *       etc.), or the full name when it's truncated on the card face,
+	 *       or null if neither applies.</li>
+	 *   <li>Requires: comma-separated list of goals this one requires
+	 *       (outgoing edges). Omitted if empty.</li>
+	 *   <li>Required by: comma-separated list of goals that require this
+	 *       one (incoming edges). Omitted if empty.</li>
+	 * </ol>
+	 *
+	 * <p>Returns null if all three sections are empty (no tooltip at all).
+	 * Mission 30.
+	 */
+	private static String buildTooltipHtml(GoalView view)
+	{
+		String base = (String) view.attributes.get("tooltip");
+		if (base == null || base.isEmpty())
+		{
+			if (view.name != null && view.name.length() > 22) base = view.name;
+		}
+
+		java.util.List<String> requires = view.requiresNames != null
+			? view.requiresNames : java.util.Collections.emptyList();
+		java.util.List<String> requiredBy = view.requiredByNames != null
+			? view.requiredByNames : java.util.Collections.emptyList();
+
+		boolean hasRelations = !requires.isEmpty() || !requiredBy.isEmpty();
+		if ((base == null || base.isEmpty()) && !hasRelations) return null;
+
+		StringBuilder sb = new StringBuilder("<html>");
+		if (base != null && !base.isEmpty())
+		{
+			// Base tooltip may or may not already contain HTML. Strip any outer
+			// <html>...</html> wrapper so we can re-compose without nesting.
+			String stripped = base;
+			if (stripped.startsWith("<html>")) stripped = stripped.substring(6);
+			if (stripped.endsWith("</html>")) stripped = stripped.substring(0, stripped.length() - 7);
+			sb.append(stripped);
+			if (hasRelations) sb.append("<br><br>");
+		}
+		if (!requires.isEmpty())
+		{
+			sb.append("<b>Requires:</b> ").append(FormatUtil.escapeHtml(String.join(", ", requires)));
+			if (!requiredBy.isEmpty()) sb.append("<br>");
+		}
+		if (!requiredBy.isEmpty())
+		{
+			sb.append("<b>Required by:</b> ").append(FormatUtil.escapeHtml(String.join(", ", requiredBy)));
+		}
+		sb.append("</html>");
+		return sb.toString();
 	}
 }

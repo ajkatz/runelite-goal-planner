@@ -60,6 +60,26 @@ public class Goal
 	@Builder.Default
 	private List<String> defaultTagIds = new ArrayList<>();
 
+	// ---- Relations (Mission 30) ----
+	// Outgoing edges in the requires-DAG: IDs of other goals this one depends
+	// on. "Horror from the Deep requires 35 Agility" → HFTD's requiredGoalIds
+	// contains the Agility goal's id. Incoming edges ("required by") are NOT
+	// stored — they're derived at query time by scanning all goals.
+	//
+	// Cross-section references ARE allowed. Cycles are rejected by
+	// GoalStore.addRequirement; load-time cycle detection drops offending
+	// edges rather than failing the load.
+	@Builder.Default
+	private List<String> requiredGoalIds = new ArrayList<>();
+
+	/** True when this goal was created by the find-or-create requirement
+	 *  flow as a seed (user didn't manually add it). Used by the absorption
+	 *  rule to decide which goals it's allowed to consume when collapsing
+	 *  same-skill goals in the same topo tier — user-added goals are
+	 *  preserved regardless of absorbability. Default false. */
+	@Builder.Default
+	private boolean autoSeeded = false;
+
 	// Integrations
 	private String wikiUrl;
 	private String inventorySetup;  // Inventory Setups loadout name
