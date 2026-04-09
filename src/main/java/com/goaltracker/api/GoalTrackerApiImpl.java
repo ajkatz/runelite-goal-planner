@@ -340,6 +340,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("addQuestGoal: quest is null");
 			return null;
 		}
+		clearGoalSelection();
 
 		// Duplicate guard: same questName
 		String questName = quest.name();
@@ -419,6 +420,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			log.warn("addQuestGoalWithPrereqs: quest is null");
 			return null;
 		}
+		clearGoalSelection();
 		if (prereqTemplates == null)
 		{
 			prereqTemplates = java.util.Collections.emptyList();
