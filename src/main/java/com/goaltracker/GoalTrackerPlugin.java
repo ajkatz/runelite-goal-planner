@@ -856,6 +856,53 @@ public class GoalTrackerPlugin extends Plugin
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
 					});
+
+				// Secondary entry: only shown when we have requirement data
+				// AND at least one requirement is unmet after resolving against
+				// live player state. Uses createMenuEntry(1) so it renders
+				// above the plain "Add Goal" entry. Routes through the
+				// internal API so quest-requirement queries have a single
+				// choke point (future caching / pluggable data sources).
+				if (com.goaltracker.data.QuestRequirements.hasRequirements(quest))
+				{
+					com.goaltracker.data.QuestRequirementResolver.Resolved resolved =
+						goalTrackerApi.resolveQuestRequirements(quest);
+					if (!resolved.isEmpty())
+					{
+						client.createMenuEntry(1)
+							.setOption("Add Goal with Requirements")
+							.setTarget(menuTarget)
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
+							{
+								// Re-resolve at click time — player state may have
+								// changed since the menu was built, and the resolver
+								// is cheap.
+								com.goaltracker.data.QuestRequirementResolver.Resolved live =
+									goalTrackerApi.resolveQuestRequirements(quest);
+								if (live.stubbedQuestPoints > 0)
+								{
+									log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
+										quest.getName(), live.stubbedQuestPoints);
+								}
+								if (live.stubbedCombatLevel > 0)
+								{
+									log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
+										quest.getName(), live.stubbedCombatLevel);
+								}
+								if (live.skippedSkills > 0 || live.skippedQuests > 0)
+								{
+									log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
+										quest.getName(), live.skippedSkills, live.skippedQuests);
+								}
+								String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
+								if (createdId == null)
+								{
+									log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
+								}
+							});
+					}
+				}
 				break;
 			}
 

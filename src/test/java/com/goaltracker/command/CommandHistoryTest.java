@@ -259,14 +259,19 @@ class CommandHistoryTest
 	}
 
 	@Test
-	@DisplayName("compound: nested beginCompound is ignored (still single buffer)")
-	void compoundNestedIgnored()
+	@DisplayName("compound: nested begin/endCompound is ref-counted — inner end does not close outer")
+	void compoundNestedRefCounted()
 	{
 		history.beginCompound("outer");
 		history.execute(stubCmd(1));
-		history.beginCompound("inner"); // ignored
+		history.beginCompound("inner"); // bumps depth, buffer stays the same
 		history.execute(stubCmd(2));
-		history.endCompound();
+		history.endCompound(); // decrements depth, does NOT close
+		assertTrue(history.isInCompound(), "outer compound should still be active");
+		assertEquals(0, history.undoSize(), "nothing pushed to undo yet — compound is open");
+
+		history.endCompound(); // now the outer closes
+		assertFalse(history.isInCompound());
 		assertEquals(1, history.undoSize());
 		assertEquals("outer", history.peekUndoDescription());
 	}

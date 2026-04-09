@@ -41,6 +41,11 @@ public class CommandHistory
 	 *  CompositeCommand and pushes it. */
 	private java.util.List<Command> compoundBuffer = null;
 	private String compoundDescription = null;
+	/** Nesting depth counter for begin/endCompound. addSkillGoal and
+	 *  addQuestGoalWithPrereqs both wrap in compounds, and the latter
+	 *  calls the former inside its own compound. Without ref-counting,
+	 *  the inner endCompound prematurely closes the outer compound. */
+	private int compoundDepth = 0;
 
 	/**
 	 * Run a command and push it onto the undo stack on success.
@@ -78,12 +83,13 @@ public class CommandHistory
 	 * Begin a compound command. Subsequent {@link #execute} calls collect
 	 * into a buffer instead of pushing individually. {@link #endCompound}
 	 * collapses the buffer into a single undo entry with the given
-	 * description. Nested compounds are not supported — calling
-	 * beginCompound twice in a row is a no-op on the second call.
+	 * description. Nested compounds are ref-counted: only the outermost
+	 * end actually closes the buffer.
 	 */
 	public void beginCompound(String description)
 	{
-		if (compoundBuffer != null) return; // already in a compound
+		compoundDepth++;
+		if (compoundBuffer != null) return; // already in a compound — just bump the depth
 		compoundBuffer = new java.util.ArrayList<>();
 		compoundDescription = description;
 	}
@@ -93,8 +99,16 @@ public class CommandHistory
 	 * and push it onto the undo stack as a single entry. No-op if no
 	 * compound is active or if the buffer is empty.
 	 */
+	/** True when a compound is active (between begin/endCompound). */
+	public boolean isInCompound()
+	{
+		return compoundBuffer != null;
+	}
+
 	public void endCompound()
 	{
+		if (compoundDepth > 0) compoundDepth--;
+		if (compoundDepth > 0) return; // still inside a nested compound
 		if (compoundBuffer == null) return;
 		java.util.List<Command> buf = compoundBuffer;
 		String desc = compoundDescription;

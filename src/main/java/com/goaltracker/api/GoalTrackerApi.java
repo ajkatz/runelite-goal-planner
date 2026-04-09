@@ -65,6 +65,33 @@ public interface GoalTrackerApi
 	String addQuestGoal(Quest quest);
 
 	/**
+	 * Add a quest goal along with a batch of prerequisite-goal templates,
+	 * all under a single undo entry.
+	 *
+	 * <p>For each template the API calls the internal
+	 * {@code findOrCreateRequirement} flow: if an existing goal
+	 * structurally satisfies the template (same skill at or above the
+	 * target level, same quest name, etc.) the existing goal is linked
+	 * as a requirement; otherwise a new seed goal is created with
+	 * {@code autoSeeded=true} and linked. The whole gesture — quest
+	 * goal creation + each find-or-create + each requirement edge —
+	 * collapses into one undoable entry.
+	 *
+	 * <p>Templates should already be filtered against live player state
+	 * (see {@code QuestRequirementResolver}); this method does not
+	 * inspect the {@link Client}.
+	 *
+	 * @param quest             the quest to add (must not be null)
+	 * @param prereqTemplates   pre-filtered goal templates to seed as
+	 *                          requirements. Only identity and target
+	 *                          fields are consulted. Empty list is
+	 *                          equivalent to {@link #addQuestGoal(Quest)}.
+	 * @return the created or existing quest goal's id, or {@code null}
+	 *         if validation failed
+	 */
+	String addQuestGoalWithPrereqs(Quest quest, java.util.List<com.goaltracker.model.Goal> prereqTemplates);
+
+	/**
 	 * Add an achievement diary goal by area display name and tier. Auto-tracks
 	 * via the per-area-per-tier completion varbits.
 	 *

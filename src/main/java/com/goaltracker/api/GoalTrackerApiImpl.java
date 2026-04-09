@@ -44,6 +44,11 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	private final GoalReorderingService reorderingService;
 	private final ItemManager itemManager;
 	private final WikiCaRepository wikiCaRepository;
+	/** Used by {@link #resolveQuestRequirements} to filter requirements
+	 *  against live player state. May be null in tests that don't touch
+	 *  that method — callers to methods that do touch it must pass a
+	 *  non-null client. */
+	private final net.runelite.api.Client client;
 
 	/** Optional UI-refresh hook the plugin sets after the panel is constructed. */
 	private Runnable onGoalsChanged = () -> {};
@@ -62,12 +67,30 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		GoalStore goalStore,
 		GoalReorderingService reorderingService,
 		ItemManager itemManager,
-		WikiCaRepository wikiCaRepository)
+		WikiCaRepository wikiCaRepository,
+		net.runelite.api.Client client)
 	{
 		this.goalStore = goalStore;
 		this.reorderingService = reorderingService;
 		this.itemManager = itemManager;
 		this.wikiCaRepository = wikiCaRepository;
+		this.client = client;
+	}
+
+	/**
+	 * Test-friendly constructor that omits the {@link net.runelite.api.Client}.
+	 * Tests that don't exercise {@link #resolveQuestRequirements} can use
+	 * this overload to avoid threading a mock client through unrelated
+	 * setup. Calling {@code resolveQuestRequirements} against an instance
+	 * built this way will throw {@link NullPointerException}.
+	 */
+	public GoalTrackerApiImpl(
+		GoalStore goalStore,
+		GoalReorderingService reorderingService,
+		ItemManager itemManager,
+		WikiCaRepository wikiCaRepository)
+	{
+		this(goalStore, reorderingService, itemManager, wikiCaRepository, null);
 	}
 
 	/**
@@ -106,7 +129,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		int targetLevel = Experience.getLevelForXp(targetXp);
 		Goal goal = Goal.builder()
 			.type(GoalType.SKILL)
-			.name(skill.getName() + " \u2192 Level " + targetLevel)
+			.name(skill.getName() + " - Level " + targetLevel)
 			.skillName(skill.name())
 			.targetValue(targetXp)
 			.build();
@@ -350,6 +373,358 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		});
 		log.info("addQuestGoal created: {} ({})", goalId, quest.getName());
 		return goalId;
+	}
+
+	@Override
+	public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates)
+	{
+		log.debug("API.public addQuestGoalWithPrereqs(quest={}, prereqs={})",
+			quest, prereqTemplates == null ? 0 : prereqTemplates.size());
+		if (quest == null)
+		{
+			log.warn("addQuestGoalWithPrereqs: quest is null");
+			return null;
+		}
+		if (prereqTemplates == null)
+		{
+			prereqTemplates = java.util.Collections.emptyList();
+		}
+
+		// Degenerate case — no templates means no compound is needed, just
+		// delegate to the single-goal path. Preserves existing behavior
+		// exactly for callers who hit this branch unexpectedly.
+		if (prereqTemplates.isEmpty())
+		{
+			return addQuestGoal(quest);
+		}
+
+		// Wrap the whole gesture in a compound so one undo reverses the
+		// quest goal, every seeded prereq (direct + transitive), every
+		// requirement edge, and every tag attachment.
+		beginCompound("Add quest with requirements: " + quest.getName());
+		try
+		{
+			String questGoalId = addQuestGoal(quest);
+			if (questGoalId == null)
+			{
+				log.warn("addQuestGoalWithPrereqs: addQuestGoal returned null for {}", quest);
+				return null;
+			}
+
+			// Cycle guard — questlines are DAGs in practice, but guard
+			// anyway so a bad data entry can't infinite-loop the plugin.
+			// Seed with the root quest so we don't recurse back into it.
+			java.util.Set<Quest> visited = new java.util.HashSet<>();
+			visited.add(quest);
+
+			// Snapshot goal IDs that existed BEFORE this gesture so the
+			// hybrid skill helper only reuses pre-existing user goals,
+			// not goals created during the same gesture.
+			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
+			for (Goal g : goalStore.getGoals())
+			{
+				preExistingGoalIds.add(g.getId());
+			}
+
+			// Track all goal IDs touched during the BFS for selection.
+			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
+			gestureGoalIds.add(questGoalId);
+
+			seedPrereqsInto(questGoalId, quest, prereqTemplates, visited, preExistingGoalIds, gestureGoalIds);
+
+			// Assign priorities so the topo sort renders correctly:
+			// 1. Zero-dependency QUEST goals at the very top (these are
+			//    leaf quests like Rune Mysteries, Death Plateau — do first)
+			// 2. Everything else in reversed BFS order (deepest leaves
+			//    near top, root quest at bottom)
+			java.util.Set<String> gestureSet = new java.util.HashSet<>(gestureGoalIds);
+			java.util.List<String> zeroDegQuests = new java.util.ArrayList<>();
+			java.util.List<String> others = new java.util.ArrayList<>();
+			for (String id : gestureGoalIds)
+			{
+				Goal g = findGoal(id);
+				if (g != null && g.getType() == GoalType.QUEST && g.getQuestName() != null)
+				{
+					// Only classify as zero-dep if the quest IS in the
+					// data table and genuinely has no requirements. Quests
+					// NOT in the table have unknown deps (data gap) and
+					// should NOT be pushed to the top.
+					boolean isKnownLeaf = false;
+					try
+					{
+						Quest q = Quest.valueOf(g.getQuestName());
+						com.goaltracker.data.QuestRequirements.Reqs reqs =
+							com.goaltracker.data.QuestRequirements.lookup(q);
+						if (reqs != null && !com.goaltracker.data.QuestRequirements.hasRequirements(q))
+						{
+							isKnownLeaf = true;
+						}
+					}
+					catch (IllegalArgumentException ignored) {}
+
+					if (isKnownLeaf)
+					{
+						boolean hasInGestureReqs = false;
+						if (g.getRequiredGoalIds() != null)
+						{
+							for (String reqId : g.getRequiredGoalIds())
+							{
+								if (gestureSet.contains(reqId))
+								{
+									hasInGestureReqs = true;
+									break;
+								}
+							}
+						}
+						if (!hasInGestureReqs)
+						{
+							zeroDegQuests.add(id);
+							continue;
+						}
+					}
+				}
+				others.add(id);
+			}
+			java.util.Collections.reverse(others);
+
+			int p = 0;
+			for (String id : zeroDegQuests)
+			{
+				Goal g = findGoal(id);
+				if (g != null) { g.setPriority(p++); goalStore.updateGoal(g); }
+			}
+			for (String id : others)
+			{
+				Goal g = findGoal(id);
+				if (g != null) { g.setPriority(p++); goalStore.updateGoal(g); }
+			}
+
+			// Select all goals created by the gesture. Add directly to
+			// the ephemeral set (no per-goal callback) — the compound's
+			// endCompound fires onGoalsChanged once for the whole batch.
+			selectedGoalIds.addAll(gestureGoalIds);
+
+			return questGoalId;
+		}
+		finally
+		{
+			endCompound();
+		}
+	}
+
+	/**
+	 * BFS entry for {@link #seedPrereqsInto}: one "tier" of prereqs
+	 * to process. All templates in a tier share the same parent goal
+	 * and parent quest (for tagging/edge wiring). The BFS processes
+	 * every entry at the current tier before descending, so the topo
+	 * sort renders a clean level-by-level layout.
+	 */
+	private static final class PrereqTier
+	{
+		final String parentGoalId;
+		final Quest parentQuest;
+		final java.util.List<Goal> templates;
+		PrereqTier(String parentGoalId, Quest parentQuest, java.util.List<Goal> templates)
+		{
+			this.parentGoalId = parentGoalId;
+			this.parentQuest = parentQuest;
+			this.templates = templates;
+		}
+	}
+
+	/**
+	 * Level-order BFS-seed prereq templates. All goals at depth N are
+	 * created before any goal at depth N+1, so the flat creation order
+	 * (and therefore the stable topo-sort tiebreaker) produces a
+	 * natural tier layout: root quest at the top, its direct prereqs
+	 * next, then ALL of their prereqs, etc.
+	 *
+	 * <p><b>QUEST templates</b> go through the public
+	 * {@link #addQuestGoal(Quest)} API (canonical sprite, duplicate
+	 * guard, future-proof). <b>SKILL templates</b> go through
+	 * {@link #findOrCreateSkillGoalForSeed} which reuses pre-existing
+	 * USER goals (non-{@code autoSeeded}) but always creates a new
+	 * goal for each distinct target — so "15 Agility" and "32 Agility"
+	 * in the same gesture both get their own card.
+	 *
+	 * <p>Caller must already be inside a {@code beginCompound}/
+	 * {@code endCompound} block.
+	 */
+	private void seedPrereqsInto(
+		String rootGoalId,
+		Quest rootQuest,
+		java.util.List<Goal> rootTemplates,
+		java.util.Set<Quest> visited,
+		java.util.Set<String> preExistingGoalIds,
+		java.util.List<String> gestureGoalIds)
+	{
+		// Level-order BFS: process ALL entries in currentLevel before
+		// moving to nextLevel. This guarantees Lunar Diplomacy AND
+		// Eadgar's Ruse are both created before ANY of their children.
+		java.util.List<PrereqTier> currentLevel = new java.util.ArrayList<>();
+		currentLevel.add(new PrereqTier(rootGoalId, rootQuest, rootTemplates));
+
+		while (!currentLevel.isEmpty())
+		{
+			java.util.List<PrereqTier> nextLevel = new java.util.ArrayList<>();
+
+			for (PrereqTier tier : currentLevel)
+			{
+				final String parentTagLabel = tier.parentQuest.getName();
+				Goal parentGoal = findGoal(tier.parentGoalId);
+				String sectionId = parentGoal == null ? null : parentGoal.getSectionId();
+
+				// Sort templates: QUEST first, then SKILL. Quest prereqs
+				// should appear above skill prereqs at the same depth so
+				// a zero-req quest like Rune Mysteries doesn't look like
+				// it depends on the skill goals listed above it.
+				java.util.List<Goal> sorted = new java.util.ArrayList<>(tier.templates);
+				sorted.sort((a, b) ->
+				{
+					boolean aQuest = a.getType() == GoalType.QUEST;
+					boolean bQuest = b.getType() == GoalType.QUEST;
+					if (aQuest != bQuest) return aQuest ? -1 : 1;
+					return 0;
+				});
+
+				for (Goal template : sorted)
+				{
+					if (template == null) continue;
+					String seedGoalId;
+					Quest childQuestForNextLevel = null;
+
+					if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+					{
+						Quest childQuest;
+						try
+						{
+							childQuest = Quest.valueOf(template.getQuestName());
+						}
+						catch (IllegalArgumentException e)
+						{
+							log.warn("seedPrereqsInto: unknown Quest enum name '{}'", template.getQuestName());
+							continue;
+						}
+						seedGoalId = addQuestGoal(childQuest);
+						if (seedGoalId == null)
+						{
+							log.warn("seedPrereqsInto: addQuestGoal returned null for {}", childQuest);
+							continue;
+						}
+						if (sectionId != null)
+						{
+							Goal created = findGoal(seedGoalId);
+							if (created != null && !sectionId.equals(created.getSectionId()))
+							{
+								moveGoalToSection(seedGoalId, sectionId);
+							}
+						}
+						childQuestForNextLevel = childQuest;
+					}
+					else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
+					{
+						net.runelite.api.Skill skill;
+						try
+						{
+							skill = net.runelite.api.Skill.valueOf(template.getSkillName());
+						}
+						catch (IllegalArgumentException e)
+						{
+							log.warn("seedPrereqsInto: unknown Skill enum name '{}'", template.getSkillName());
+							continue;
+						}
+						seedGoalId = findOrCreateSkillGoalForSeed(skill, template.getTargetValue(), preExistingGoalIds);
+						if (seedGoalId == null)
+						{
+							log.warn("seedPrereqsInto: findOrCreateSkillGoalForSeed returned null for {}", skill);
+							continue;
+						}
+					}
+					else
+					{
+						FindOrCreateResult result = findOrCreateRequirement(template, sectionId);
+						if (result == null)
+						{
+							log.warn("seedPrereqsInto: findOrCreateRequirement returned null for template type={}",
+								template.getType());
+							continue;
+						}
+						seedGoalId = result.goalId;
+					}
+
+					gestureGoalIds.add(seedGoalId);
+					addRequirement(tier.parentGoalId, seedGoalId);
+					addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
+
+					// Collect child quest's prereqs for the next BFS level.
+					if (childQuestForNextLevel != null)
+					{
+						if (!visited.add(childQuestForNextLevel))
+						{
+							continue;
+						}
+						com.goaltracker.data.QuestRequirementResolver.Resolved childResolved =
+							resolveQuestRequirements(childQuestForNextLevel);
+						if (childResolved.stubbedQuestPoints > 0)
+						{
+							log.info("TODO: quest-point goals not yet supported — {} requires {} QP (unseeded)",
+								childQuestForNextLevel.getName(), childResolved.stubbedQuestPoints);
+						}
+						if (childResolved.stubbedCombatLevel > 0)
+						{
+							log.info("TODO: combat-level goals not yet supported — {} requires {} Combat (unseeded)",
+								childQuestForNextLevel.getName(), childResolved.stubbedCombatLevel);
+						}
+						if (!childResolved.templates.isEmpty())
+						{
+							nextLevel.add(new PrereqTier(seedGoalId, childQuestForNextLevel, childResolved.templates));
+						}
+					}
+				}
+			}
+
+			currentLevel = nextLevel;
+		}
+	}
+
+	/**
+	 * Hybrid skill-goal seeder: reuses a pre-existing USER goal
+	 * (non-{@code autoSeeded}) if one already satisfies the target,
+	 * otherwise creates a new goal via the public
+	 * {@link #addSkillGoal(net.runelite.api.Skill, int)} API. This
+	 * means each distinct target level gets its own card (15 Agility
+	 * and 32 Agility coexist), but a pre-existing 99 Agility goal
+	 * that the user manually created is reused and tagged rather than
+	 * spawning a redundant lower-level seed.
+	 *
+	 * @param skill    the skill
+	 * @param targetXp target XP (use {@code Experience.getXpForLevel})
+	 * @return goal id (existing or newly created), or null on error
+	 */
+	private String findOrCreateSkillGoalForSeed(
+		net.runelite.api.Skill skill, int targetXp, java.util.Set<String> preExistingGoalIds)
+	{
+		// 1. Check for a pre-existing USER goal (one that existed before
+		//    this gesture started) that satisfies the requirement. Goals
+		//    created during the same gesture are NOT eligible — otherwise
+		//    Lunar's "61 Crafting" would swallow Lost City's "31 Crafting",
+		//    making Lost City display the wrong requirement.
+		for (Goal g : goalStore.getGoals())
+		{
+			if (!preExistingGoalIds.contains(g.getId())) continue;
+			if (g.getType() != GoalType.SKILL) continue;
+			if (g.getSkillName() == null
+				|| !skill.name().equalsIgnoreCase(g.getSkillName())) continue;
+			if (g.getTargetValue() >= targetXp)
+			{
+				return g.getId();
+			}
+		}
+		// 2. No match — create via the public API. addSkillGoal handles
+		//    its own exact-target dedupe (same skill + same XP → returns
+		//    existing id) and auto-chains same-skill goals in the topo
+		//    sort. Its executeCommand calls join the active compound.
+		return addSkillGoal(skill, targetXp);
 	}
 
 	@Override
@@ -1003,7 +1378,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			{
 				net.runelite.api.Skill skill = net.runelite.api.Skill.valueOf(g.getSkillName());
 				int level = Experience.getLevelForXp(newTarget);
-				g.setName(skill.getName() + " \u2192 Level " + level);
+				g.setName(skill.getName() + " - Level " + level);
 			}
 			catch (IllegalArgumentException ignored) {}
 		}
@@ -1505,7 +1880,11 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public boolean executeCommand(com.goaltracker.command.Command cmd)
 	{
 		boolean ok = commandHistory.execute(cmd);
-		if (ok) onGoalsChanged.run();
+		// Suppress the UI refresh during a compound — the full panel
+		// rebuild is expensive and firing it per-sub-command was causing
+		// visible lag on Mac when Dream-Mentor-level gestures pushed 20+
+		// commands. Instead, endCompound fires the refresh once.
+		if (ok && !commandHistory.isInCompound()) onGoalsChanged.run();
 		return ok;
 	}
 
@@ -1531,7 +1910,13 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	@Override public void beginCompound(String description) { commandHistory.beginCompound(description); }
-	@Override public void endCompound() { commandHistory.endCompound(); }
+	@Override public void endCompound()
+	{
+		commandHistory.endCompound();
+		// Fire the UI refresh once after the entire compound lands,
+		// rather than per-sub-command (suppressed in executeCommand).
+		onGoalsChanged.run();
+	}
 
 	private Goal findGoal(String goalId)
 	{
@@ -2722,5 +3107,23 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			}
 		});
 		return ok ? new FindOrCreateResult(seedId, true) : null;
+	}
+
+	@Override
+	public com.goaltracker.data.QuestRequirementResolver.Resolved resolveQuestRequirements(
+		net.runelite.api.Quest quest)
+	{
+		log.debug("API.internal resolveQuestRequirements(quest={})", quest);
+		if (quest == null || client == null)
+		{
+			// Null client = tests using the no-client constructor. We
+			// can't filter against live player state, so return empty
+			// rather than seeding unfiltered templates. The transitive
+			// recursion in seedPrereqsInto handles the empty result as
+			// "no further prereqs to seed" and stops cleanly.
+			return new com.goaltracker.data.QuestRequirementResolver.Resolved(
+				java.util.List.of(), 0, 0, 0, 0);
+		}
+		return com.goaltracker.data.QuestRequirementResolver.resolve(quest, client);
 	}
 }

@@ -644,10 +644,10 @@ class GoalTrackerApiImplTest
 		void regeneratesSkillName()
 		{
 			String id = api.addSkillGoal(Skill.PRAYER, 13_034_431);
-			assertEquals("Prayer \u2192 Level 99", store.getGoals().get(0).getName());
+			assertEquals("Prayer - Level 99", store.getGoals().get(0).getName());
 
 			api.changeTarget(id, 9_684_577); // L96
-			assertEquals("Prayer \u2192 Level 96", store.getGoals().get(0).getName());
+			assertEquals("Prayer - Level 96", store.getGoals().get(0).getName());
 		}
 
 		@Test

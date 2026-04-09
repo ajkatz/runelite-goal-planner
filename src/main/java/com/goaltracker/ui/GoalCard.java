@@ -208,12 +208,19 @@ public class GoalCard extends JPanel
 			return 0;
 		});
 
-		// Collapse 3+ boss tags into "Multiple"
+		// Collapse 3+ BOSS or QUEST tags into "Multiple" per category.
+		// Same rule as bosses: when a goal accumulates enough same-category
+		// associations that the pills overflow, a single collapsed pill
+		// reads better and the tooltip still enumerates the underlying
+		// labels. Quest associations use the same pattern because they
+		// behave identically on the card.
 		List<TagView> bossTags = new ArrayList<>();
+		List<TagView> questTags = new ArrayList<>();
 		List<TagView> otherTags = new ArrayList<>();
 		for (TagView tag : sorted)
 		{
 			if ("BOSS".equals(tag.category)) bossTags.add(tag);
+			else if ("QUEST".equals(tag.category)) questTags.add(tag);
 			else otherTags.add(tag);
 		}
 
@@ -222,16 +229,29 @@ public class GoalCard extends JPanel
 			tagRow.add(createTagComponent(tag));
 		}
 
-		if (bossTags.size() >= 3)
+		addCategoryTagsWithCollapse(tagRow, bossTags, "BOSS", "Dropped by");
+		addCategoryTagsWithCollapse(tagRow, questTags, "QUEST", "Required by");
+
+		return tagRow;
+	}
+
+	/**
+	 * Render a same-category group of tags: either the tags themselves
+	 * (when &lt; 3) or a single collapsed "Multiple" pill with a tooltip
+	 * enumerating the underlying labels (when ≥ 3).
+	 */
+	private void addCategoryTagsWithCollapse(
+		JPanel tagRow, List<TagView> tags, String category, String tooltipVerb)
+	{
+		if (tags.isEmpty()) return;
+		if (tags.size() >= 3)
 		{
-			// Synthesize a "Multiple" pill using the BOSS category color from the
-			// first boss tag (they all share the BOSS color).
-			TagView multi = new TagView("Multiple", "BOSS", bossTags.get(0).colorRgb);
+			TagView multi = new TagView("Multiple", category, tags.get(0).colorRgb);
 			JComponent pill = createTagComponent(multi);
-			StringBuilder tooltip = new StringBuilder("<html>Dropped by:<br>");
-			for (TagView bt : bossTags)
+			StringBuilder tooltip = new StringBuilder("<html>").append(tooltipVerb).append(":<br>");
+			for (TagView t : tags)
 			{
-				tooltip.append("• ").append(FormatUtil.escapeHtml(bt.label)).append("<br>");
+				tooltip.append("• ").append(FormatUtil.escapeHtml(t.label)).append("<br>");
 			}
 			tooltip.append("</html>");
 			pill.setToolTipText(tooltip.toString());
@@ -239,10 +259,8 @@ public class GoalCard extends JPanel
 		}
 		else
 		{
-			for (TagView tag : bossTags) tagRow.add(createTagComponent(tag));
+			for (TagView tag : tags) tagRow.add(createTagComponent(tag));
 		}
-
-		return tagRow;
 	}
 
 	/** Convert the packed RGB on a TagView to a Swing Color. */

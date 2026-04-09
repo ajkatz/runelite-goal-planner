@@ -587,4 +587,32 @@ public interface GoalTrackerInternalApi
 	 */
 	FindOrCreateResult findOrCreateRequirement(
 		com.goaltracker.model.Goal template, String preferredSectionId);
+
+	/**
+	 * Resolve the pre-defined requirements for a quest against the current
+	 * player state, returning goal templates for every unmet prereq plus
+	 * bookkeeping for skipped/stubbed entries.
+	 *
+	 * <p>Thin wrapper around
+	 * {@link com.goaltracker.data.QuestRequirementResolver#resolve(net.runelite.api.Quest,
+	 * net.runelite.api.Client)}. Exists on the internal API so plugin-side
+	 * consumers route quest-requirement queries through the same choke
+	 * point as every other mutation — keeps the plugin code free of
+	 * direct references to the data layer and lets future behavioral
+	 * changes (caching, filtering, pluggable data source) live in one
+	 * place.
+	 *
+	 * <p>Intended callers: the "Add Goal with Requirements" menu handler
+	 * in {@code GoalTrackerPlugin}, and any future UI (right-click
+	 * preview tooltip, settings page, etc.) that needs to reason about
+	 * quest prereqs without building them into goals.
+	 *
+	 * @param quest the quest to look up; may be null (returns an empty
+	 *              {@code Resolved})
+	 * @return an always-non-null {@code Resolved} — empty when the quest
+	 *         is null, not in the data table, or the player already meets
+	 *         every requirement
+	 */
+	com.goaltracker.data.QuestRequirementResolver.Resolved resolveQuestRequirements(
+		net.runelite.api.Quest quest);
 }
