@@ -70,6 +70,15 @@ public class GoalView
 	 *  resolved at queryAllGoals time. Empty list if none. Used by the
 	 *  card hover tooltip to show the "Required by:" line. */
 	public List<String> requiredByNames;
+	/** Topological tier within this goal's section, assigned by
+	 *  {@link com.goaltracker.api.GoalTrackerInternalApi#queryGoalsTopologicallySorted}.
+	 *  Leaves (nothing required in-section) are tier 0; each subsequent
+	 *  tier consists of goals whose in-section requirements are all in
+	 *  earlier tiers. -1 when the view was not produced by the topo-sort
+	 *  query (e.g. from {@code queryAllGoals}). Used by the panel to
+	 *  enable/disable the up/down arrows based on whether the visually
+	 *  adjacent card is in the same tier. */
+	public int topoTier = -1;
 
 	// ----- type-specific extras -----
 

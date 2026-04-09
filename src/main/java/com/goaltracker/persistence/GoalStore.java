@@ -173,7 +173,104 @@ public class GoalStore
 		migrateOrphanedGoals();
 		normalizeOrder();
 
-		if (tagsMigrated) save();
+		// Mission 30: scrub any relation edges that violate the DAG invariant
+		// or point at missing goals. Forgiving on load — we drop the offending
+		// edges with a log warning rather than failing to load the whole save.
+		// Normal flows never persist invalid edges (addRequirement rejects
+		// cycles and missing targets up-front), so this is defensive against
+		// external JSON edits or a bug slipping past the API layer.
+		boolean relationsScrubbed = scrubInvalidRelationEdges();
+
+		if (tagsMigrated || relationsScrubbed) save();
+	}
+
+	/**
+	 * Walk the goal graph and drop any outgoing edges that:
+	 * <ul>
+	 *   <li>point at a goal that no longer exists (dangling reference)</li>
+	 *   <li>are self-loops</li>
+	 *   <li>close a cycle in the graph (any edge in a strongly-connected
+	 *       component of size &gt; 1)</li>
+	 * </ul>
+	 *
+	 * <p>Self-loops and dangling edges are trivial to detect. For cycles we
+	 * run a DFS-based scrub: walk each goal's outgoing edges, and if adding
+	 * any edge creates a cycle given the edges already accepted, drop it.
+	 * This is deterministic but biased — the first edges encountered "win"
+	 * and later cycle-forming edges are dropped. That's fine for a
+	 * corruption-recovery pass; normal flows never hit this code.
+	 *
+	 * @return true if any edge was removed
+	 */
+	private boolean scrubInvalidRelationEdges()
+	{
+		boolean changed = false;
+		java.util.Set<String> validIds = new java.util.HashSet<>();
+		for (Goal g : goals) validIds.add(g.getId());
+
+		// Build a scratch graph where we re-accept edges one-by-one and drop
+		// any that would close a cycle in the scratch graph.
+		java.util.Map<String, java.util.List<String>> accepted = new java.util.HashMap<>();
+		for (Goal g : goals) accepted.put(g.getId(), new ArrayList<>());
+
+		for (Goal g : goals)
+		{
+			List<String> reqs = g.getRequiredGoalIds();
+			if (reqs == null || reqs.isEmpty()) continue;
+			java.util.Iterator<String> it = reqs.iterator();
+			while (it.hasNext())
+			{
+				String target = it.next();
+				if (target == null || target.equals(g.getId()))
+				{
+					log.warn("Scrubbed self-loop or null edge on goal {}", g.getId());
+					it.remove();
+					changed = true;
+					continue;
+				}
+				if (!validIds.contains(target))
+				{
+					log.warn("Scrubbed dangling requirement edge {} → {} (target missing)",
+						g.getId(), target);
+					it.remove();
+					changed = true;
+					continue;
+				}
+				// Would accepting this edge close a cycle in the scratch graph?
+				if (scratchPathExists(accepted, target, g.getId()))
+				{
+					log.warn("Scrubbed cycle-forming requirement edge {} → {}",
+						g.getId(), target);
+					it.remove();
+					changed = true;
+					continue;
+				}
+				accepted.get(g.getId()).add(target);
+			}
+		}
+		return changed;
+	}
+
+	/** DFS on the scratch adjacency map used by {@link #scrubInvalidRelationEdges}. */
+	private boolean scratchPathExists(java.util.Map<String, java.util.List<String>> adj,
+		String from, String to)
+	{
+		if (from.equals(to)) return true;
+		java.util.Set<String> visited = new java.util.HashSet<>();
+		java.util.Deque<String> stack = new java.util.ArrayDeque<>();
+		stack.push(from);
+		while (!stack.isEmpty())
+		{
+			String cur = stack.pop();
+			if (!visited.add(cur)) continue;
+			if (cur.equals(to)) return true;
+			List<String> neighbors = adj.get(cur);
+			if (neighbors != null)
+			{
+				for (String n : neighbors) stack.push(n);
+			}
+		}
+		return false;
 	}
 
 	/**

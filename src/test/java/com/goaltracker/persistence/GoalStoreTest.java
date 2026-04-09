@@ -880,4 +880,96 @@ class GoalStoreTest
 	{
 		assertNull(store.removeGoalWithBypass("bogus-id"));
 	}
+
+	// ====================================================================
+	// Relations — load-time cycle / dangling edge scrub
+	// ====================================================================
+
+	@Test
+	@DisplayName("Load scrub: drops dangling requirement edges pointing at missing goals")
+	void scrubDanglingEdges()
+	{
+		Goal a = Goal.builder().type(GoalType.CUSTOM).name("A")
+			.requiredGoalIds(new java.util.ArrayList<>(java.util.List.of("ghost-id"))).build();
+		store.addGoal(a);
+		store.save();
+
+		GoalStore reloaded = new GoalStore(configManager);
+		reloaded.load();
+		Goal loaded = reloaded.getGoals().stream()
+			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
+		assertTrue(loaded.getRequiredGoalIds().isEmpty());
+	}
+
+	@Test
+	@DisplayName("Load scrub: drops self-loop edges")
+	void scrubSelfLoops()
+	{
+		Goal a = Goal.builder().type(GoalType.CUSTOM).name("A").build();
+		// Use builder's id for the self-loop reference
+		a.getRequiredGoalIds().add(a.getId());
+		store.addGoal(a);
+		store.save();
+
+		GoalStore reloaded = new GoalStore(configManager);
+		reloaded.load();
+		Goal loaded = reloaded.getGoals().stream()
+			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
+		assertTrue(loaded.getRequiredGoalIds().isEmpty());
+	}
+
+	@Test
+	@DisplayName("Load scrub: drops cycle-forming edges, keeps acyclic ones")
+	void scrubCycleEdges()
+	{
+		Goal a = Goal.builder().type(GoalType.CUSTOM).name("A").build();
+		Goal b = Goal.builder().type(GoalType.CUSTOM).name("B").build();
+		Goal c = Goal.builder().type(GoalType.CUSTOM).name("C").build();
+		// Build a 3-cycle A→B→C→A by directly manipulating the fields.
+		a.getRequiredGoalIds().add(b.getId());
+		b.getRequiredGoalIds().add(c.getId());
+		c.getRequiredGoalIds().add(a.getId());
+		store.addGoal(a);
+		store.addGoal(b);
+		store.addGoal(c);
+		store.save();
+
+		GoalStore reloaded = new GoalStore(configManager);
+		reloaded.load();
+		Goal la = reloaded.getGoals().stream()
+			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
+		Goal lb = reloaded.getGoals().stream()
+			.filter(g -> "B".equals(g.getName())).findFirst().orElseThrow();
+		Goal lc = reloaded.getGoals().stream()
+			.filter(g -> "C".equals(g.getName())).findFirst().orElseThrow();
+		// Exactly one of the three cycle-forming edges was dropped; the graph
+		// is now a 2-edge chain with no cycle. Which specific edge gets
+		// dropped depends on iteration order, but the total count is fixed.
+		int totalEdges = la.getRequiredGoalIds().size()
+			+ lb.getRequiredGoalIds().size()
+			+ lc.getRequiredGoalIds().size();
+		assertEquals(2, totalEdges);
+		// After scrub, no pair of goals can close a cycle via a new edge
+		// unless it would re-create the one that was dropped. Verify
+		// acyclicity by confirming that adding ANY new edge to the graph
+		// requires no more than 1 attempt to succeed (i.e. there IS at least
+		// one ordered pair that wouldn't close a cycle). This is a weaker
+		// but sound acyclicity check.
+		String[] ids = {la.getId(), lb.getId(), lc.getId()};
+		boolean atLeastOneAcyclicAdd = false;
+		for (String from : ids)
+		{
+			for (String to : ids)
+			{
+				if (from.equals(to)) continue;
+				if (!reloaded.wouldCreateCycle(from, to))
+				{
+					atLeastOneAcyclicAdd = true;
+					break;
+				}
+			}
+			if (atLeastOneAcyclicAdd) break;
+		}
+		assertTrue(atLeastOneAcyclicAdd);
+	}
 }

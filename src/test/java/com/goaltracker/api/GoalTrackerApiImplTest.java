@@ -100,21 +100,41 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("auto-positions lower targets above higher targets in same section")
-		void autoPositionsByTarget()
+		@DisplayName("auto-links lower targets as prerequisites of higher targets (mission 30)")
+		void autoLinksSameSkillChain()
 		{
-			// Add 99 first, then 96 — 96 should bubble up above 99
-			api.addSkillGoal(Skill.PRAYER, 13_034_431); // L99
-			api.addSkillGoal(Skill.PRAYER, 9_684_577);  // L96
+			// Mission 30: the old implicit chain sort has been replaced with
+			// explicit auto-link on add. Adding 99 Prayer then 96 Prayer
+			// should create an edge "99 requires 96" (96 is a prerequisite)
+			// so that queryGoalsTopologicallySorted puts 96 visually above 99.
+			// The flat priority order in store.getGoals() stays at insertion
+			// order (99 first, 96 second); it's the topo projection that
+			// handles visual ordering.
+			String id99 = api.addSkillGoal(Skill.PRAYER, 13_034_431); // L99
+			String id96 = api.addSkillGoal(Skill.PRAYER, 9_684_577);  // L96
 
-			List<Goal> goals = store.getGoals();
-			int idx96 = -1, idx99 = -1;
-			for (int i = 0; i < goals.size(); i++)
+			// The 99 goal should now list 96 as a requirement.
+			List<String> reqs = api.getRequirements(id99);
+			assertTrue(reqs.contains(id96),
+				"L99 should require L96 via auto-link");
+			// And 96 should list 99 as a dependent.
+			List<String> deps = api.getDependents(id96);
+			assertTrue(deps.contains(id99),
+				"L96 should be required-by L99");
+
+			// Topo-sorted view of the section: 96 before 99.
+			String sectionId = store.getGoals().stream()
+				.filter(x -> id99.equals(x.getId())).findFirst().orElseThrow()
+				.getSectionId();
+			List<com.goaltracker.api.GoalView> topo =
+				api.queryGoalsTopologicallySorted(sectionId);
+			int topoIdx96 = -1, topoIdx99 = -1;
+			for (int i = 0; i < topo.size(); i++)
 			{
-				if (goals.get(i).getTargetValue() == 9_684_577) idx96 = i;
-				if (goals.get(i).getTargetValue() == 13_034_431) idx99 = i;
+				if (id96.equals(topo.get(i).id)) topoIdx96 = i;
+				if (id99.equals(topo.get(i).id)) topoIdx99 = i;
 			}
-			assertTrue(idx96 < idx99, "L96 should be above L99 in the list");
+			assertTrue(topoIdx96 < topoIdx99, "L96 should render above L99 in topo order");
 		}
 	}
 
@@ -1879,6 +1899,194 @@ class GoalTrackerApiImplTest
 			api.addCustomGoal("Alpha", "");
 			api.addCustomGoal("Bravo", "");
 			assertTrue(api.searchGoals("zzzzzz").isEmpty());
+		}
+	}
+
+	// ====================================================================
+	// Mission 30 — queryGoalsTopologicallySorted
+	// ====================================================================
+
+	@Nested
+	@DisplayName("queryGoalsTopologicallySorted")
+	class TopoSortTest
+	{
+		/** Create a custom goal in the given section and return its id. */
+		private String customIn(String name, String sectionId)
+		{
+			String id = api.addCustomGoal(name, "");
+			Goal g = store.getGoals().stream()
+				.filter(x -> id.equals(x.getId())).findFirst().orElseThrow();
+			g.setSectionId(sectionId);
+			return id;
+		}
+
+		@Test
+		@DisplayName("empty section returns empty list")
+		void emptySection()
+		{
+			String section = store.getIncompleteSection().getId();
+			assertTrue(api.queryGoalsTopologicallySorted(section).isEmpty());
+		}
+
+		@Test
+		@DisplayName("single isolated goal returns just itself")
+		void singleGoal()
+		{
+			String section = store.getIncompleteSection().getId();
+			String a = customIn("A", section);
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(1, result.size());
+			assertEquals(a, result.get(0).id);
+		}
+
+		@Test
+		@DisplayName("linear chain: leaves come first, dependents last")
+		void linearChain()
+		{
+			String section = store.getIncompleteSection().getId();
+			String a = customIn("A", section);
+			String b = customIn("B", section);
+			String c = customIn("C", section);
+			// C depends on B depends on A. Expected output: A, B, C.
+			assertTrue(api.addRequirement(b, a));
+			assertTrue(api.addRequirement(c, b));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(3, result.size());
+			assertEquals(a, result.get(0).id);
+			assertEquals(b, result.get(1).id);
+			assertEquals(c, result.get(2).id);
+		}
+
+		@Test
+		@DisplayName("diamond DAG produces valid topological order (local-repair semantics)")
+		void diamond()
+		{
+			String section = store.getIncompleteSection().getId();
+			String top = customIn("top", section);
+			String left = customIn("left", section);
+			String right = customIn("right", section);
+			String bottom = customIn("bottom", section);
+			// top requires left + right; both require bottom.
+			// Local-repair semantics: start from priority order
+			// [top, left, right, bottom] and move violators the minimum
+			// amount needed. The resulting order is a valid topological
+			// sort, but the exact permutation isn't strictly tier-grouped —
+			// we just verify the DAG invariant holds.
+			assertTrue(api.addRequirement(top, left));
+			assertTrue(api.addRequirement(top, right));
+			assertTrue(api.addRequirement(left, bottom));
+			assertTrue(api.addRequirement(right, bottom));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(4, result.size());
+			// Invariant check: bottom must come before left and right;
+			// left and right must come before top.
+			int posTop = indexOf(result, top);
+			int posLeft = indexOf(result, left);
+			int posRight = indexOf(result, right);
+			int posBottom = indexOf(result, bottom);
+			assertTrue(posBottom < posLeft, "bottom must come before left");
+			assertTrue(posBottom < posRight, "bottom must come before right");
+			assertTrue(posLeft < posTop, "left must come before top");
+			assertTrue(posRight < posTop, "right must come before top");
+		}
+
+		@Test
+		@DisplayName("disconnected subgraphs stay in priority order when no violations")
+		void disconnected()
+		{
+			String section = store.getIncompleteSection().getId();
+			String a1 = customIn("A1", section);
+			String a2 = customIn("A2", section);
+			String b1 = customIn("B1", section);
+			String b2 = customIn("B2", section);
+			// Two independent chains: A2 requires A1, B2 requires B1.
+			// Initial priority order: [A1, A2, B1, B2] — both requirements
+			// are already satisfied (A1 before A2, B1 before B2). Local
+			// repair is a no-op: the output preserves priority order exactly.
+			assertTrue(api.addRequirement(a2, a1));
+			assertTrue(api.addRequirement(b2, b1));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(4, result.size());
+			assertEquals(a1, result.get(0).id);
+			assertEquals(a2, result.get(1).id);
+			assertEquals(b1, result.get(2).id);
+			assertEquals(b2, result.get(3).id);
+		}
+
+		@Test
+		@DisplayName("already-valid order is not disturbed when a new edge is added")
+		void noopOnAlreadyValid()
+		{
+			String section = store.getIncompleteSection().getId();
+			String a = customIn("A", section);
+			String b = customIn("B", section);
+			// A is above B in priority order. Add edge B requires A — the
+			// order is already satisfied, so the result should be [A, B].
+			assertTrue(api.addRequirement(b, a));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(2, result.size());
+			assertEquals(a, result.get(0).id);
+			assertEquals(b, result.get(1).id);
+		}
+
+		@Test
+		@DisplayName("violator moves to just after its prerequisite, not to the end")
+		void localRepairMinimalMove()
+		{
+			String section = store.getIncompleteSection().getId();
+			// Create many goals so the "move to the bottom" failure mode
+			// would be obvious if present.
+			String claw = customIn("Hydra claw", section);
+			String leather = customIn("Hydra leather", section);
+			String other1 = customIn("Other 1", section);
+			String other2 = customIn("Other 2", section);
+			String other3 = customIn("Other 3", section);
+			String other4 = customIn("Other 4", section);
+			// claw is above leather in priority order. Add edge: claw
+			// requires leather. Expected: claw moves to just after leather,
+			// the Other goals stay put.
+			assertTrue(api.addRequirement(claw, leather));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(section);
+			assertEquals(6, result.size());
+			int posClaw = indexOf(result, claw);
+			int posLeather = indexOf(result, leather);
+			// claw just below leather
+			assertEquals(posLeather + 1, posClaw,
+				"claw should sit immediately below leather after repair");
+			// other goals haven't been disturbed — they appear in the same
+			// order (Other 1, 2, 3, 4) as they were added.
+			assertTrue(indexOf(result, other1) < indexOf(result, other2));
+			assertTrue(indexOf(result, other2) < indexOf(result, other3));
+			assertTrue(indexOf(result, other3) < indexOf(result, other4));
+		}
+
+		private int indexOf(List<com.goaltracker.api.GoalView> list, String id)
+		{
+			for (int i = 0; i < list.size(); i++)
+			{
+				if (id.equals(list.get(i).id)) return i;
+			}
+			return -1;
+		}
+
+		@Test
+		@DisplayName("cross-section edges don't affect in-section sort order")
+		void crossSectionEdgesIgnored()
+		{
+			Section other = store.createUserSection("Other");
+			String thisSection = store.getIncompleteSection().getId();
+			String a = customIn("A", thisSection);
+			String b = customIn("B", thisSection);
+			String external = customIn("External", other.getId());
+			// A requires External (cross-section). B has no deps. In the
+			// THIS section view, A and B should both be in tier 0 because
+			// A's only requirement is out-of-section. Priority order within
+			// tier 0 = insertion order: A before B.
+			assertTrue(api.addRequirement(a, external));
+			List<com.goaltracker.api.GoalView> result = api.queryGoalsTopologicallySorted(thisSection);
+			assertEquals(2, result.size());
+			assertEquals(a, result.get(0).id);
+			assertEquals(b, result.get(1).id);
 		}
 	}
 }

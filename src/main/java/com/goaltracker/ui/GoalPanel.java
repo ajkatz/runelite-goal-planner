@@ -287,18 +287,37 @@ public class GoalPanel extends PluginPanel
 		refreshUndoRedoButtons();
 
 		// Read path goes through the public API — the panel is now a consumer of
-		// GoalTrackerApi just like external plugins would be. The internal mutation
-		// paths still touch goalStore directly (refactored to API in T5).
-		// Mission 22: when a search filter is active, route reads through
-		// searchGoals so the visible list is always filter(text). Empty
-		// query → all goals (matches queryAllGoals).
+		// GoalTrackerApi just like external plugins would be.
+		//
+		// Mission 22: search filter. When active, goalViews is the filtered flat
+		// list. Mission 30: within each section we re-order via topological
+		// sort of the relation DAG (leaves first, priority tiebreaks within a
+		// tier). The flat goalViews is kept for search-filter matching and for
+		// the flat-priority `index` values the arrow buttons use.
+		//
+		// Arrow-button limitation: in sections that contain relation edges,
+		// the flat-priority index the arrows act on may not correspond to the
+		// visually-adjacent card in the topo-sorted view, so clicking up/down
+		// on a related goal can be a visual no-op (topo sort re-applies after
+		// the priority change). This is a known limitation of the session 2
+		// checkpoint; topo-aware reordering is a follow-up.
 		boolean filterActive = searchFilter != null && !searchFilter.trim().isEmpty();
 		java.util.List<com.goaltracker.api.GoalView> goalViews = filterActive
 			? api.searchGoals(searchFilter) : api.queryAllGoals();
 		java.util.List<com.goaltracker.api.SectionView> sectionViews = api.queryAllSections();
 
-		// We still need Goal objects for the right-click context menu (T5 will route
-		// those mutations through the API too). Look up by id from goalStore.
+		// Flat-priority index lookup for arrow-button bounds.
+		java.util.Map<String, Integer> flatIndexById = new java.util.HashMap<>();
+		for (int i = 0; i < goalViews.size(); i++)
+		{
+			flatIndexById.put(goalViews.get(i).id, i);
+		}
+		// Set of visible goal ids (post-search-filter) so the per-section topo
+		// list can drop anything the user's search filter excluded.
+		java.util.Set<String> visibleIds = flatIndexById.keySet();
+
+		// We still need Goal objects for the right-click context menu. Look up
+		// by id from goalStore.
 		java.util.Map<String, Goal> goalById = new java.util.HashMap<>();
 		for (Goal g : goalStore.getGoals())
 		{
@@ -307,7 +326,8 @@ public class GoalPanel extends PluginPanel
 
 		for (com.goaltracker.api.SectionView section : sectionViews)
 		{
-			// Find contiguous slice of goalViews in this section
+			// Find contiguous slice of goalViews in this section (flat-priority
+			// index bounds for arrow-button use).
 			int sectionStart = -1;
 			int sectionEnd = -1;
 			for (int i = 0; i < goalViews.size(); i++)
@@ -319,6 +339,20 @@ public class GoalPanel extends PluginPanel
 				}
 			}
 			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
+
+			// Mission 30: topologically-sorted view of this section's goals.
+			// Filter out any that were excluded by the search filter.
+			java.util.List<com.goaltracker.api.GoalView> topoOrder =
+				api.queryGoalsTopologicallySorted(section.id);
+			if (filterActive)
+			{
+				java.util.List<com.goaltracker.api.GoalView> filtered = new java.util.ArrayList<>();
+				for (com.goaltracker.api.GoalView v : topoOrder)
+				{
+					if (visibleIds.contains(v.id)) filtered.add(v);
+				}
+				topoOrder = filtered;
+			}
 
 			// Mission 25: built-in section headers (Incomplete, Completed) are
 			// always visible now so the user can right-click them for the Add
@@ -360,27 +394,46 @@ public class GoalPanel extends PluginPanel
 
 			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
-			for (int i = sectionStart; i <= sectionEnd; i++)
+			// Mission 30: iterate topo-order for rendering, but resolve each
+			// goal's flat-priority index for the arrow buttons. Arrows target
+			// the VISUALLY adjacent card in the topo view, but only when that
+			// card is in the SAME topo tier — otherwise the move would fight
+			// with the DAG constraint (topo sort would put the cards back).
+			// When the adjacent card is in a different tier, the arrow is
+			// hidden (via firstInList/lastInList).
+			for (int topoPos = 0; topoPos < topoOrder.size(); topoPos++)
 			{
-				final int index = i;
-				com.goaltracker.api.GoalView view = goalViews.get(i);
+				com.goaltracker.api.GoalView view = topoOrder.get(topoPos);
 				Goal goal = goalById.get(view.id);
 				if (goal == null) continue; // shouldn't happen but defensive
+				Integer flatIdx = flatIndexById.get(view.id);
+				if (flatIdx == null) continue; // search-filtered out
+				final int index = flatIdx;
 
 				final int secStart = sectionStart;
 				final int secEnd = sectionEnd;
 
+				// Mission 30: arrows always fire. The handler walks the
+				// topo list from the clicked card, collects any direct
+				// prereq/dependent chain that needs to move with it, and
+				// shifts the whole block by one position. No-ops if the
+				// chain is already at the edge of the section.
 				final String goalIdRef = view.id;
+				final String arrowSectionId = section.id;
 				GoalCard card = new GoalCard(
 					view,
-					e -> moveGoalBounded(goalIdRef, index, index - 1, secStart, secEnd),
-					e -> moveGoalBounded(goalIdRef, index, index + 1, secStart, secEnd),
+					e -> moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true),
+					e -> moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false),
 					skillIconManager,
 					itemManager,
 					spriteManager
 				);
 
 				// Completed section is read-only ordering — no reorder arrows.
+				// Otherwise arrows are visible at all non-edge positions; the
+				// handler itself decides whether a move is actually possible
+				// (e.g. a chain that already hits the top of the section is
+				// a no-op).
 				if (isCompletedSection)
 				{
 					card.setFirstInList(true);
@@ -388,8 +441,8 @@ public class GoalPanel extends PluginPanel
 				}
 				else
 				{
-					card.setFirstInList(i == sectionStart);
-					card.setLastInList(i == sectionEnd);
+					card.setFirstInList(topoPos == 0);
+					card.setLastInList(topoPos == topoOrder.size() - 1);
 				}
 
 				addContextMenu(card, goal, index, sectionStart, sectionEnd);
@@ -464,6 +517,137 @@ public class GoalPanel extends PluginPanel
 		clearSelectionIfNotMember(goalId);
 		api.moveGoal(goalId, toIndex);
 		// API callback rebuilds the panel.
+	}
+
+	/**
+	 * Mission 30: topo-aware chain move via recursive descent. The list is
+	 * already in a valid topological order (via local-repair in
+	 * {@code queryGoalsTopologicallySorted}), so "move up/down" means "swap
+	 * with the adjacent card in the ordered list". If the swap would
+	 * violate a direct edge, recursively move the blocker first (in the
+	 * same direction), then retry.
+	 *
+	 * <p>This is conservative: only cards that directly block the move
+	 * are pulled along. An unrelated card between two chain members is
+	 * NOT moved unless it happens to lie on the path.
+	 *
+	 * <p>Example: {@code [X, A, Y, B, leather]} with {@code B requires A}
+	 * and {@code leather requires B}. Click up on leather:
+	 * <ol>
+	 *   <li>leather tries to swap with B (above). Blocked — leather→B.
+	 *       Recurse on B.</li>
+	 *   <li>B tries to swap with Y. Not blocked. Swap → {@code [X, A, B, Y, leather]}.</li>
+	 *   <li>Back to leather. Tries to swap with Y (now adjacent). Not
+	 *       blocked. Swap → {@code [X, A, B, leather, Y]}.</li>
+	 * </ol>
+	 * A never moves — it wasn't blocking anything. Conservative is better
+	 * than eager because it preserves the rest of the user's ordering as
+	 * much as possible.
+	 *
+	 * <p>Wrapped in a compound so one Ctrl+Z reverses the whole gesture.
+	 */
+	private void moveChainInTopo(String goalId, String sectionId, boolean up)
+	{
+		api.beginCompound(up ? "Move up" : "Move down");
+		try
+		{
+			moveRecursive(goalId, sectionId, up, 0);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+	}
+
+	/**
+	 * One step of the recursive descent. Returns true if the goal
+	 * successfully moved by one position in the requested direction.
+	 * Returns false when the goal is at the section edge or when a
+	 * blocker recursion itself failed.
+	 *
+	 * <p>Re-fetches the topo order and store positions on each call
+	 * because earlier recursive moves may have shifted things. Bounded
+	 * by a depth guard to defend against cycles (shouldn't exist
+	 * post-scrub) or pathological graphs.
+	 */
+	private boolean moveRecursive(String goalId, String sectionId, boolean up, int depth)
+	{
+		if (depth > 256) return false; // safety net
+
+		java.util.List<com.goaltracker.api.GoalView> topo =
+			api.queryGoalsTopologicallySorted(sectionId);
+		int pos = -1;
+		for (int i = 0; i < topo.size(); i++)
+		{
+			if (goalId.equals(topo.get(i).id)) { pos = i; break; }
+		}
+		if (pos < 0) return false;
+		int targetPos = up ? pos - 1 : pos + 1;
+		if (targetPos < 0 || targetPos >= topo.size()) return false; // section edge
+
+		com.goaltracker.api.GoalView adjacent = topo.get(targetPos);
+
+		// Would the swap violate a direct requirement edge?
+		// - Moving up: self requires adjacent → blocked (adjacent must stay above)
+		// - Moving down: adjacent requires self → blocked (self must stay above)
+		boolean blocked;
+		if (up)
+		{
+			blocked = goalDirectlyRequires(goalId, adjacent.id);
+		}
+		else
+		{
+			blocked = goalDirectlyRequires(adjacent.id, goalId);
+		}
+
+		if (blocked)
+		{
+			// Move the blocker first in the same direction. If that fails
+			// (blocker is at section edge or has its own unresolvable
+			// blocker), this move is impossible too.
+			boolean blockerMoved = moveRecursive(adjacent.id, sectionId, up, depth + 1);
+			if (!blockerMoved) return false;
+			// After the blocker moved, something else is now adjacent to us.
+			// Retry from the top — the new adjacent might also be a blocker,
+			// or might be swappable.
+			return moveRecursive(goalId, sectionId, up, depth + 1);
+		}
+
+		// Not blocked — swap self with the adjacent card by moving to its
+		// current flat-priority index.
+		int adjacentFlatIdx = globalIndexOf(adjacent.id);
+		if (adjacentFlatIdx < 0) return false;
+		return api.moveGoal(goalId, adjacentFlatIdx);
+	}
+
+	/**
+	 * Does {@code fromId}'s goal have a direct requirement edge pointing
+	 * at {@code toId}? (I.e., does fromId.requiredGoalIds contain toId?)
+	 * Used by {@link #moveRecursive} to detect blocked swaps.
+	 */
+	private boolean goalDirectlyRequires(String fromId, String toId)
+	{
+		if (fromId == null || toId == null) return false;
+		for (Goal g : goalStore.getGoals())
+		{
+			if (fromId.equals(g.getId()))
+			{
+				return g.getRequiredGoalIds() != null
+					&& g.getRequiredGoalIds().contains(toId);
+			}
+		}
+		return false;
+	}
+
+	/** Global (flat-priority) index of the given goal, or -1 if missing. */
+	private int globalIndexOf(String goalId)
+	{
+		java.util.List<Goal> goals = goalStore.getGoals();
+		for (int i = 0; i < goals.size(); i++)
+		{
+			if (goals.get(i).getId().equals(goalId)) return i;
+		}
+		return -1;
 	}
 
 	/**

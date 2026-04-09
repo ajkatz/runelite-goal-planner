@@ -544,6 +544,26 @@ public interface GoalTrackerInternalApi
 	}
 
 	/**
+	 * Return the goals in the given section sorted topologically by their
+	 * relation DAG, with priority as a tiebreaker within each topological
+	 * tier. Leaves (goals with no in-section requirements) come first;
+	 * their dependents follow after.
+	 *
+	 * <p>Only edges where BOTH endpoints are in the section are considered
+	 * for ordering — cross-section requirements are still visible in the
+	 * hover tooltip but don't affect the sort. This matches the design
+	 * decision from the relation Q&amp;A: topo sort is per-section.
+	 *
+	 * <p>If the graph contains a cycle (shouldn't happen post-scrub), the
+	 * remaining goals are emitted in priority order as a fallback so the
+	 * panel still renders.
+	 *
+	 * @param sectionId the section to sort
+	 * @return ordered list of GoalViews, or empty list if section is unknown
+	 */
+	java.util.List<com.goaltracker.api.GoalView> queryGoalsTopologicallySorted(String sectionId);
+
+	/**
 	 * Resolve a requirement template to a concrete goal id, creating a
 	 * seed goal if no existing goal satisfies the template structurally.
 	 *

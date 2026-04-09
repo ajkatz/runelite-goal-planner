@@ -113,30 +113,109 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 		final String goalId = goal.getId();
 		final String displayName = goal.getName();
-		executeCommand(new com.goaltracker.command.Command()
+		// Mission 30: wrap create + auto-link in a compound so one undo
+		// reverses the whole gesture (the new goal AND all the chain
+		// edges that got added to existing same-skill goals).
+		//
+		// The old GoalReorderingService.findInsertionIndex + goalStore.reorder
+		// call that used to run here is gone — autoLinkSkillOrItemChain creates
+		// explicit requirement edges between same-skill goals, and the
+		// per-section topological sort in queryGoalsTopologicallySorted handles
+		// the visual ordering based on those edges. No more implicit
+		// priority-based chain sort.
+		beginCompound("Add goal: " + displayName);
+		try
 		{
-			@Override public boolean apply()
+			executeCommand(new com.goaltracker.command.Command()
 			{
-				if (findGoal(goalId) != null) return false;
-				goalStore.addGoal(goal);
-				int insertBefore = reorderingService.findInsertionIndex(
-					skill.name(), targetXp, goal.getSectionId());
-				if (insertBefore >= 0)
+				@Override public boolean apply()
 				{
-					goalStore.reorder(goalStore.getGoals().size() - 1, insertBefore);
+					if (findGoal(goalId) != null) return false;
+					goalStore.addGoal(goal);
+					return true;
 				}
-				return true;
-			}
-			@Override public boolean revert()
-			{
-				goalStore.removeGoal(goalId);
-				selectedGoalIds.remove(goalId);
-				return true;
-			}
-			@Override public String getDescription() { return "Add goal: " + displayName; }
-		});
+				@Override public boolean revert()
+				{
+					goalStore.removeGoal(goalId);
+					selectedGoalIds.remove(goalId);
+					return true;
+				}
+				@Override public String getDescription() { return "Add goal: " + displayName; }
+			});
+			autoLinkSkillOrItemChain(goal);
+		}
+		finally
+		{
+			endCompound();
+		}
 		log.info("addSkillGoal created: {} ({} → {} XP)", goalId, skill.getName(), targetXp);
 		return goalId;
+	}
+
+	/**
+	 * Mission 30: when a new SKILL or ITEM_GRIND goal is added, scan all
+	 * existing goals globally for same-identity same-type goals and
+	 * auto-link them based on target ordering:
+	 * <ul>
+	 *   <li>If an existing goal has a LOWER target → new goal requires it
+	 *       (the existing one is a prerequisite in the chain)</li>
+	 *   <li>If an existing goal has a HIGHER target → it requires the new
+	 *       goal (the new one is a prerequisite in the chain)</li>
+	 *   <li>Equal target → no edge (they're either duplicates and one will
+	 *       lose, or the caller has a reason to keep both)</li>
+	 * </ul>
+	 *
+	 * <p>Cross-section: auto-link is global by design — the user flagged
+	 * that the relation graph is the source of truth, and topo sort is a
+	 * per-section projection. A 50 Prayer goal in the Skills section is
+	 * still a prerequisite of a 90 Prayer goal in the Quest Cape section.
+	 *
+	 * <p>Quiet on failure: cycle detection (via addRequirement) silently
+	 * skips edges that would close a cycle, which shouldn't happen in
+	 * practice for same-identity numeric chains but is defended against.
+	 *
+	 * <p>Caller MUST be inside a beginCompound/endCompound block so the
+	 * auto-linked edges collapse into the same undo entry as the goal
+	 * creation.
+	 */
+	private void autoLinkSkillOrItemChain(Goal newGoal)
+	{
+		if (newGoal == null) return;
+		GoalType type = newGoal.getType();
+		if (type != GoalType.SKILL && type != GoalType.ITEM_GRIND) return;
+
+		String newId = newGoal.getId();
+		int newTarget = newGoal.getTargetValue();
+		// Copy the goal list so we're iterating a stable snapshot — addRequirement
+		// doesn't mutate the list but future code might, and copying is cheap.
+		List<Goal> snapshot = new ArrayList<>(goalStore.getGoals());
+		for (Goal other : snapshot)
+		{
+			if (other.getId().equals(newId)) continue;
+			if (other.getType() != type) continue;
+			// Identity check per type
+			if (type == GoalType.SKILL)
+			{
+				if (newGoal.getSkillName() == null
+					|| other.getSkillName() == null
+					|| !newGoal.getSkillName().equals(other.getSkillName())) continue;
+			}
+			else // ITEM_GRIND
+			{
+				if (newGoal.getItemId() != other.getItemId()) continue;
+			}
+			int otherTarget = other.getTargetValue();
+			if (otherTarget < newTarget)
+			{
+				// other is a prereq of new → edge new → other
+				addRequirement(newId, other.getId());
+			}
+			else if (otherTarget > newTarget)
+			{
+				// new is a prereq of other → edge other → new
+				addRequirement(other.getId(), newId);
+			}
+		}
 	}
 
 	@Override
@@ -2460,6 +2539,126 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		Goal g = findGoal(goalId);
 		if (g == null || g.getRequiredGoalIds() == null) return new ArrayList<>();
 		return new ArrayList<>(g.getRequiredGoalIds());
+	}
+
+	@Override
+	public java.util.List<GoalView> queryGoalsTopologicallySorted(String sectionId)
+	{
+		log.debug("API.internal queryGoalsTopologicallySorted(sectionId={})", sectionId);
+		List<GoalView> out = new ArrayList<>();
+		if (sectionId == null) return out;
+
+		// 1. Collect the section's goals in priority order.
+		List<Goal> sectionGoals = new ArrayList<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (sectionId.equals(g.getSectionId())) sectionGoals.add(g);
+		}
+		sectionGoals.sort(java.util.Comparator.comparingInt(Goal::getPriority));
+		if (sectionGoals.isEmpty()) return out;
+
+		java.util.Set<String> sectionIds = new java.util.HashSet<>();
+		for (Goal g : sectionGoals) sectionIds.add(g.getId());
+
+		// 2. Compute in-degree of each goal (count of in-section requirements).
+		//    in_degree[g] = number of g.requiredGoalIds that are also in this section.
+		java.util.Map<String, Integer> inDegree = new java.util.HashMap<>();
+		for (Goal g : sectionGoals)
+		{
+			int count = 0;
+			if (g.getRequiredGoalIds() != null)
+			{
+				for (String req : g.getRequiredGoalIds())
+				{
+					if (sectionIds.contains(req)) count++;
+				}
+			}
+			inDegree.put(g.getId(), count);
+		}
+
+		// 3. Reverse-lookup: for each goal, which OTHER in-section goals
+		//    have this one in their requiredGoalIds? Emitting a goal lowers
+		//    the in-degree of its dependents.
+		java.util.Map<String, java.util.List<String>> dependents = new java.util.HashMap<>();
+		for (Goal g : sectionGoals) dependents.put(g.getId(), new ArrayList<>());
+		for (Goal g : sectionGoals)
+		{
+			if (g.getRequiredGoalIds() == null) continue;
+			for (String req : g.getRequiredGoalIds())
+			{
+				if (sectionIds.contains(req)) dependents.get(req).add(g.getId());
+			}
+		}
+
+		// 4. Stable local-repair sort. Start with the section's priority
+		//    order and only move a goal when a requirement edge is violated
+		//    (the goal sits above one of its prerequisites). When we find a
+		//    violation, move the offending goal to just after the latest
+		//    conflicting prerequisite — the minimum shift that resolves the
+		//    violation. Repeat until no violations remain.
+		//
+		//    This preserves existing user ordering as much as possible.
+		//    Kahn's tier-by-tier sort would push any goal with a new
+		//    requirement past ALL unrelated goals in the earlier tier, which
+		//    feels like the card "jumps to the bottom" from the user's
+		//    perspective. Local repair only reorders what the DAG forces.
+		//
+		//    Post-condition: for every edge from→to where both endpoints are
+		//    in the section, `to` precedes `from` in the result. Terminates
+		//    in O(N²) edge checks for acyclic graphs; the maxIter bound
+		//    guards against an accidental cycle slipping past load-scrub.
+		List<Goal> ordered = new ArrayList<>(sectionGoals);
+		int maxIter = sectionGoals.size() * sectionGoals.size() + 1;
+		int iter = 0;
+		boolean converged = false;
+		while (!converged && iter++ < maxIter)
+		{
+			converged = true;
+			// Build a positional lookup once per pass so findByIdPosition is O(1).
+			java.util.Map<String, Integer> pos = new java.util.HashMap<>();
+			for (int i = 0; i < ordered.size(); i++) pos.put(ordered.get(i).getId(), i);
+
+			for (int i = 0; i < ordered.size(); i++)
+			{
+				Goal g = ordered.get(i);
+				List<String> reqs = g.getRequiredGoalIds();
+				if (reqs == null || reqs.isEmpty()) continue;
+				int maxReqPos = -1;
+				for (String reqId : reqs)
+				{
+					if (!sectionIds.contains(reqId)) continue;
+					Integer p = pos.get(reqId);
+					if (p != null && p > maxReqPos) maxReqPos = p;
+				}
+				if (maxReqPos > i)
+				{
+					// Violation: g sits above a requirement. Move g from
+					// position i to just after maxReqPos. After the removal
+					// at index i < maxReqPos, the requirement slides down to
+					// maxReqPos - 1, so the target insert index is maxReqPos.
+					ordered.remove(i);
+					ordered.add(maxReqPos, g);
+					converged = false;
+					break; // restart scan with fresh position map
+				}
+			}
+		}
+		if (!converged)
+		{
+			log.warn("queryGoalsTopologicallySorted: local-repair hit iteration bound "
+				+ "in section {} — graph may contain a cycle", sectionId);
+		}
+
+		for (Goal g : ordered)
+		{
+			GoalView v = toGoalView(g);
+			// topoTier is no longer populated — the panel now checks direct
+			// requirement edges between adjacent cards to decide arrow
+			// enable/disable. Field remains on GoalView for backward
+			// compatibility; -1 means "not set".
+			out.add(v);
+		}
+		return out;
 	}
 
 	@Override

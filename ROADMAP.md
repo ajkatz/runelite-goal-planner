@@ -101,6 +101,28 @@ cast count per spell, etc.).
   Could be a view over the quest goal subset rather than a first-class
   goal type.
 
+### Absorption for auto-seeded same-skill goals
+When the wiki-based auto-create flow lands, multiple chains may each
+auto-seed their own same-skill prerequisites (e.g. both the HFTD chain
+and a separate quest chain seed their own "35 Agility"). If those
+seeded goals end up sitting adjacent to each other in the local-repair
+sort output, the lower-target one should be absorbed into the higher.
+
+Rule (revised 2026-04-08 after switching to local-repair sort):
+> After `queryGoalsTopologicallySorted` returns, scan adjacent pairs.
+> For each pair where BOTH are `autoSeeded=true`, BOTH are the same
+> goal type (SKILL or ITEM_GRIND), and BOTH have the same identity
+> (skillName or itemId), delete the lower-target goal and rewire its
+> inbound edges to the higher-target one.
+
+No "topological tier" check needed — the original design was tied to
+Kahn's tier-based sort, but the sort is now stable local-repair so
+tiers don't exist as a concept. Positional adjacency is the only test.
+
+Not needed yet in practice: the UI's "Requires…" picker only links
+to existing goals, so there's no path today that creates `autoSeeded=true`
+goals. Revisit when the wiki auto-create flow is built.
+
 ### Persistent goals
 Item / achievement goals that *re-open* if the underlying state drops
 below the threshold — opposite of mission 25's terminal-once-complete
