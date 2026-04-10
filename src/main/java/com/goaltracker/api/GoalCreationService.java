@@ -304,41 +304,49 @@ class GoalCreationService
 
 		final String goalId = goal.getId();
 		final String displayName = goal.getName();
-		api.executeCommand(new com.goaltracker.command.Command()
+		api.beginCompound("Add quest: " + displayName);
+		try
 		{
-			@Override public boolean apply()
+			api.executeCommand(new com.goaltracker.command.Command()
 			{
-				if (api.findGoal(goalId) != null) return false;
-				api.goalStore.addGoal(goal);
-				return true;
+				@Override public boolean apply()
+				{
+					if (api.findGoal(goalId) != null) return false;
+					api.goalStore.addGoal(goal);
+					return true;
+				}
+				@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
+				@Override public String getDescription() { return "Add quest: " + displayName; }
+			});
+			// Auto-tag F2P quests with a gray "F2P" pill.
+			if (com.goaltracker.data.QuestRequirements.isF2P(quest))
+			{
+				api.addTagWithCategory(goalId, "F2P", TagCategory.OTHER.name());
+				Tag f2pTag = api.goalStore.findTagByLabel("F2P", TagCategory.OTHER);
+				if (f2pTag != null && f2pTag.getColorRgb() < 0)
+				{
+					api.goalStore.recolorTag(f2pTag.getId(), GoalTrackerApiImpl.F2P_TAG_COLOR_RGB);
+				}
 			}
-			@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
-			@Override public String getDescription() { return "Add quest: " + displayName; }
-		});
-		// Auto-tag F2P quests with a gray "F2P" pill.
-		if (com.goaltracker.data.QuestRequirements.isF2P(quest))
-		{
-			api.addTagWithCategory(goalId, "F2P", TagCategory.OTHER.name());
-			Tag f2pTag = api.goalStore.findTagByLabel("F2P", TagCategory.OTHER);
-			if (f2pTag != null && f2pTag.getColorRgb() < 0)
+			// Auto-tag XP reward skills as SKILLING icons.
+			for (net.runelite.api.Skill rewardSkill : com.goaltracker.data.QuestRequirements.xpRewards(quest))
 			{
-				api.goalStore.recolorTag(f2pTag.getId(), GoalTrackerApiImpl.F2P_TAG_COLOR_RGB);
+				api.addTagWithCategory(goalId, rewardSkill.getName(), TagCategory.SKILLING.name());
+			}
+			// Auto-tag lamp-reward quests with a lamp icon.
+			if (com.goaltracker.data.QuestRequirements.rewardsLamp(quest))
+			{
+				api.addTagWithCategory(goalId, "Lamp", TagCategory.OTHER.name());
+				Tag lampTag = api.goalStore.findTagByLabel("Lamp", TagCategory.OTHER);
+				if (lampTag != null && lampTag.getIconKey() == null)
+				{
+					api.goalStore.setTagIcon(lampTag.getId(), GoalTrackerApiImpl.LAMP_ICON_KEY);
+				}
 			}
 		}
-		// Auto-tag XP reward skills as SKILLING icons.
-		for (net.runelite.api.Skill rewardSkill : com.goaltracker.data.QuestRequirements.xpRewards(quest))
+		finally
 		{
-			api.addTagWithCategory(goalId, rewardSkill.getName(), TagCategory.SKILLING.name());
-		}
-		// Auto-tag lamp-reward quests with a lamp icon.
-		if (com.goaltracker.data.QuestRequirements.rewardsLamp(quest))
-		{
-			api.addTagWithCategory(goalId, "Lamp", TagCategory.OTHER.name());
-			Tag lampTag = api.goalStore.findTagByLabel("Lamp", TagCategory.OTHER);
-			if (lampTag != null && lampTag.getIconKey() == null)
-			{
-				api.goalStore.setTagIcon(lampTag.getId(), GoalTrackerApiImpl.LAMP_ICON_KEY);
-			}
+			api.endCompound();
 		}
 		log.info("addQuestGoal created: {} ({})", goalId, quest.getName());
 		return goalId;

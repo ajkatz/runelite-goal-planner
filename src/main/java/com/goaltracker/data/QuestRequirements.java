@@ -2047,6 +2047,7 @@ public final class QuestRequirements
 		RECOMMENDED_COMBAT.put(Quest.SHIELD_OF_ARRAV, 10);
 		RECOMMENDED_COMBAT.put(Quest.THE_ASCENT_OF_ARCEUUS, 15);
 		RECOMMENDED_COMBAT.put(Quest.BIOHAZARD, 10);
+		RECOMMENDED_COMBAT.put(Quest.THE_IDES_OF_MILK, 15);
 	}
 
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
