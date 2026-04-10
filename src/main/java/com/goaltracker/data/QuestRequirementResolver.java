@@ -38,10 +38,8 @@ import net.runelite.api.Skill;
  *   <li><b>Quest prereq</b>: skipped if {@code questStateLookup}
  *       returns {@link QuestState#FINISHED}. Any {@link Exception}
  *       thrown during lookup is treated as "not finished" (defensive).</li>
- *   <li><b>Quest points</b>: never resolved to a goal (goal type not
- *       supported yet). Passed through as
- *       {@link Resolved#stubbedQuestPoints} so the caller can log a
- *       TODO.</li>
+ *   <li><b>Quest points / combat level / kudos</b>: resolved to
+ *       {@code GoalType.ACCOUNT} goal templates.</li>
  * </ul>
  */
 public final class QuestRequirementResolver

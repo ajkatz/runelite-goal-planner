@@ -60,6 +60,8 @@ public class GoalStore
 	private final java.util.Map<String, Section> sectionIndex = new java.util.HashMap<>();
 	/** O(1) tag lookup by id. Maintained on create/delete/load. */
 	private final java.util.Map<String, Tag> tagIndex = new java.util.HashMap<>();
+	/** Reverse index: toGoalId → set of fromGoalIds that require it. O(1) getDependents. */
+	private final java.util.Map<String, java.util.Set<String>> dependentIndex = new java.util.HashMap<>();
 
 	@Inject
 	public GoalStore(ConfigManager configManager)
@@ -202,6 +204,18 @@ public class GoalStore
 		for (Section s : sections) sectionIndex.put(s.getId(), s);
 		tagIndex.clear();
 		for (Tag t : tags) tagIndex.put(t.getId(), t);
+		dependentIndex.clear();
+		for (Goal g : goals)
+		{
+			if (g.getRequiredGoalIds() != null)
+			{
+				for (String reqId : g.getRequiredGoalIds())
+				{
+					dependentIndex.computeIfAbsent(reqId, k -> new java.util.HashSet<>())
+						.add(g.getId());
+				}
+			}
+		}
 	}
 
 	/**
@@ -386,23 +400,21 @@ public class GoalStore
 		{
 			if (g.getTagIds() != null)
 			{
-				java.util.List<String> updated = new ArrayList<>();
+				java.util.Set<String> seen = new java.util.LinkedHashSet<>();
 				for (String id : g.getTagIds())
 				{
-					String mapped = fromTagId.equals(id) ? toTagId : id;
-					if (!updated.contains(mapped)) updated.add(mapped);
+					seen.add(fromTagId.equals(id) ? toTagId : id);
 				}
-				g.setTagIds(updated);
+				g.setTagIds(new ArrayList<>(seen));
 			}
 			if (g.getDefaultTagIds() != null)
 			{
-				java.util.List<String> updated = new ArrayList<>();
+				java.util.Set<String> seen = new java.util.LinkedHashSet<>();
 				for (String id : g.getDefaultTagIds())
 				{
-					String mapped = fromTagId.equals(id) ? toTagId : id;
-					if (!updated.contains(mapped)) updated.add(mapped);
+					seen.add(fromTagId.equals(id) ? toTagId : id);
 				}
-				g.setDefaultTagIds(updated);
+				g.setDefaultTagIds(new ArrayList<>(seen));
 			}
 		}
 	}
@@ -500,7 +512,7 @@ public class GoalStore
 		for (Goal goal : goals)
 		{
 			String sid = goal.getSectionId();
-			boolean known = sid != null && sections.stream().anyMatch(s -> s.getId().equals(sid));
+			boolean known = sid != null && sectionIndex.containsKey(sid);
 			if (!known)
 			{
 				goal.setSectionId(goal.isComplete() ? completedId : incompleteId);
@@ -678,7 +690,21 @@ public class GoalStore
 		goal.setPriority(goals.size());
 		goals.add(goal);
 		goalIndex.put(goal.getId(), goal);
+		addToDependentIndex(goal);
 		save();
+	}
+
+	/** Register a goal's outgoing edges in the reverse dependentIndex. */
+	private void addToDependentIndex(Goal goal)
+	{
+		if (goal.getRequiredGoalIds() != null)
+		{
+			for (String reqId : goal.getRequiredGoalIds())
+			{
+				dependentIndex.computeIfAbsent(reqId, k -> new java.util.HashSet<>())
+					.add(goal.getId());
+			}
+		}
 	}
 
 	/**
@@ -701,6 +727,7 @@ public class GoalStore
 		int clamped = Math.max(0, Math.min(index, goals.size()));
 		goals.add(clamped, goal);
 		goalIndex.put(goal.getId(), goal);
+		addToDependentIndex(goal);
 		reindex();
 		save();
 	}
@@ -719,13 +746,27 @@ public class GoalStore
 		// around the deleted node) is a separate opt-in via
 		// {@link #removeGoalWithBypass}. Plain removeGoal just breaks the
 		// chain cleanly.
+		// Scrub incoming edges from the dependentIndex and the goals themselves.
 		for (Goal g : goals)
 		{
-			if (g.getRequiredGoalIds() != null)
+			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().remove(goalId))
 			{
-				g.getRequiredGoalIds().remove(goalId);
+				// Also clean reverse index
+				java.util.Set<String> deps = dependentIndex.get(goalId);
+				if (deps != null) deps.remove(g.getId());
 			}
 		}
+		// Remove outgoing edges from the dependentIndex.
+		Goal removed = findGoalById(goalId);
+		if (removed != null && removed.getRequiredGoalIds() != null)
+		{
+			for (String reqId : removed.getRequiredGoalIds())
+			{
+				java.util.Set<String> deps = dependentIndex.get(reqId);
+				if (deps != null) deps.remove(goalId);
+			}
+		}
+		dependentIndex.remove(goalId);
 		goals.removeIf(g -> g.getId().equals(goalId));
 		goalIndex.remove(goalId);
 		reindex();
@@ -759,6 +800,7 @@ public class GoalStore
 		if (from.getRequiredGoalIds().contains(toGoalId)) return false; // idempotent
 		if (wouldCreateCycle(fromGoalId, toGoalId)) return false;
 		from.getRequiredGoalIds().add(toGoalId);
+		dependentIndex.computeIfAbsent(toGoalId, k -> new java.util.HashSet<>()).add(fromGoalId);
 		save();
 		return true;
 	}
@@ -773,26 +815,24 @@ public class GoalStore
 		Goal from = findGoalById(fromGoalId);
 		if (from == null || from.getRequiredGoalIds() == null) return false;
 		boolean removed = from.getRequiredGoalIds().remove(toGoalId);
-		if (removed) save();
+		if (removed)
+		{
+			java.util.Set<String> deps = dependentIndex.get(toGoalId);
+			if (deps != null) deps.remove(fromGoalId);
+			save();
+		}
 		return removed;
 	}
 
 	/**
 	 * @return IDs of goals that require the given goal (incoming edges).
-	 *   Derived by scanning all goals — not cached.
+	 *   O(1) via the reverse dependentIndex.
 	 */
 	public List<String> getDependents(String goalId)
 	{
-		List<String> out = new ArrayList<>();
-		if (goalId == null) return out;
-		for (Goal g : goals)
-		{
-			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().contains(goalId))
-			{
-				out.add(g.getId());
-			}
-		}
-		return out;
+		if (goalId == null) return new ArrayList<>();
+		java.util.Set<String> deps = dependentIndex.get(goalId);
+		return deps != null ? new ArrayList<>(deps) : new ArrayList<>();
 	}
 
 	/**
@@ -981,16 +1021,8 @@ public class GoalStore
 			if (goalId.equals(goals.get(i).getId())) { originalIndex = i; break; }
 		}
 
-		// 2. Collect predecessors (goals whose requiredGoalIds contain the deleted id).
-		List<String> predecessors = new ArrayList<>();
-		for (Goal g : goals)
-		{
-			if (g.getId().equals(goalId)) continue;
-			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().contains(goalId))
-			{
-				predecessors.add(g.getId());
-			}
-		}
+		// 2. Collect predecessors via the reverse index.
+		List<String> predecessors = getDependents(goalId);
 
 		// 3. Successors are the deleted goal's own outgoing edges.
 		List<String> successors = deleted.getRequiredGoalIds() != null
@@ -1009,18 +1041,16 @@ public class GoalStore
 			}
 			for (String succId : successors)
 			{
-				// Dedupe: if pred already has succ as a direct requirement, skip.
 				if (pred.getRequiredGoalIds().contains(succId)) continue;
-				// Self-loop guard: don't add pred→pred (can happen if succId == predId
-				// in pathological graphs, though the DAG invariant prevents it).
 				if (predId.equals(succId)) continue;
 				pred.getRequiredGoalIds().add(succId);
+				dependentIndex.computeIfAbsent(succId, k -> new java.util.HashSet<>()).add(predId);
 				addedBypassEdges.add(new String[]{predId, succId});
 			}
 		}
 
 		// 5. Scrub incoming edges: remove the deleted id from each predecessor's
-		//    requiredGoalIds.
+		//    requiredGoalIds and the dependentIndex.
 		for (String predId : predecessors)
 		{
 			Goal pred = findGoalById(predId);
@@ -1029,10 +1059,15 @@ public class GoalStore
 				pred.getRequiredGoalIds().remove(goalId);
 			}
 		}
+		dependentIndex.remove(goalId);
 
-		// 6. Snapshot the deleted goal (deep copy of relevant fields via the
-		//    existing Goal object reference — Goal is mutable but the caller
-		//    owns the snapshot and we'll reinsert the same instance on revert).
+		// 6. Remove outgoing edges from the dependentIndex.
+		for (String succId : successors)
+		{
+			java.util.Set<String> deps = dependentIndex.get(succId);
+			if (deps != null) deps.remove(goalId);
+		}
+
 		Goal snapshotGoal = deleted;
 
 		// 7. Remove the goal from the flat list.

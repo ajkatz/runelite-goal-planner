@@ -95,37 +95,72 @@ public class GoalReorderingService
 	 * Enforce same-skill ordering within a single section: for any pair of
 	 * same-skill goals, the one with the lower target must come first.
 	 * Goals in other sections are not touched.
+	 *
+	 * <p>Collects same-skill groups, sorts each by target, then reorders
+	 * in a single pass. O(n log n) instead of the previous O(n^3) bubble sort.
 	 */
 	public void enforceSkillOrderingInSection(String sectionId)
 	{
 		if (sectionId == null) return;
 		List<Goal> goals = goalStore.getGoals();
-		boolean fixed = true;
-		int maxPasses = goals.size();
 
-		while (fixed && maxPasses-- > 0)
+		// Group same-skill active goals in this section by skillName.
+		// Each entry: skillName → list of (flat index, goal) pairs.
+		java.util.Map<String, java.util.List<int[]>> groups = new java.util.LinkedHashMap<>();
+		for (int i = 0; i < goals.size(); i++)
 		{
-			fixed = false;
-			for (int i = 0; i < goals.size(); i++)
+			Goal g = goals.get(i);
+			if (!isActiveSkillGoal(g) || !sectionId.equals(g.getSectionId())) continue;
+			String key = g.getSkillName();
+			if (key == null) continue;
+			groups.computeIfAbsent(key, k -> new java.util.ArrayList<>()).add(new int[]{i, g.getTargetValue()});
+		}
+
+		boolean anyReordered = false;
+		for (java.util.List<int[]> group : groups.values())
+		{
+			if (group.size() < 2) continue;
+			// Check if already sorted by target value.
+			boolean sorted = true;
+			for (int i = 1; i < group.size(); i++)
 			{
-				Goal a = goals.get(i);
-				if (!isActiveSkillGoal(a) || !sectionId.equals(a.getSectionId()))
+				if (group.get(i - 1)[1] > group.get(i)[1]) { sorted = false; break; }
+			}
+			if (sorted) continue;
+
+			// Sort by target value, then place each goal at the position
+			// occupied by the group member that should be there.
+			java.util.List<int[]> sortedByTarget = new java.util.ArrayList<>(group);
+			sortedByTarget.sort(java.util.Comparator.comparingInt(a -> a[1]));
+
+			// Collect the flat indices the group currently occupies (in order).
+			int[] slots = new int[group.size()];
+			for (int i = 0; i < group.size(); i++) slots[i] = group.get(i)[0];
+
+			// Place each sorted goal into its slot.
+			for (int i = 0; i < sortedByTarget.size(); i++)
+			{
+				int targetIdx = slots[i];
+				int currentGoalTarget = sortedByTarget.get(i)[1];
+				Goal atSlot = goalStore.getGoals().get(targetIdx);
+				if (atSlot.getTargetValue() != currentGoalTarget)
 				{
-					continue;
-				}
-				for (int j = i + 1; j < goals.size(); j++)
-				{
-					Goal b = goals.get(j);
-					if (!sectionId.equals(b.getSectionId())) continue;
-					if (isSameSkillChain(a, b) && a.getTargetValue() > b.getTargetValue())
+					// Find where this goal actually is and swap it in.
+					for (int j = targetIdx + 1; j < goalStore.getGoals().size(); j++)
 					{
-						goalStore.reorder(j, i);
-						goals = goalStore.getGoals();
-						fixed = true;
-						break;
+						Goal candidate = goalStore.getGoals().get(j);
+						if (isActiveSkillGoal(candidate)
+							&& sectionId.equals(candidate.getSectionId())
+							&& candidate.getSkillName() != null
+							&& candidate.getSkillName().equals(atSlot.getSkillName())
+							&& candidate.getTargetValue() == currentGoalTarget)
+						{
+							goalStore.reorder(j, targetIdx);
+							anyReordered = true;
+							break;
+						}
 					}
 				}
-				if (fixed) break;
 			}
 		}
 	}

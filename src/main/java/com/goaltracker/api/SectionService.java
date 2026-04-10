@@ -175,18 +175,23 @@ class SectionService
 	{
 		log.debug("API.internal removeAllUserSections()");
 		final java.util.List<Section> sectionSnapshots = new ArrayList<>();
-		final java.util.Map<String, java.util.List<String>> goalsBySection = new java.util.HashMap<>();
+		final java.util.Set<String> userSectionIds = new java.util.HashSet<>();
 		for (Section s : api.goalStore.getSections())
 		{
 			if (s.getBuiltInKind() == null)
 			{
 				sectionSnapshots.add(s);
-				java.util.List<String> ids = new ArrayList<>();
-				for (Goal g : api.goalStore.getGoals())
-				{
-					if (s.getId().equals(g.getSectionId())) ids.add(g.getId());
-				}
-				goalsBySection.put(s.getId(), ids);
+				userSectionIds.add(s.getId());
+			}
+		}
+		// Single pass over goals to group by section.
+		final java.util.Map<String, java.util.List<String>> goalsBySection = new java.util.HashMap<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (userSectionIds.contains(g.getSectionId()))
+			{
+				goalsBySection.computeIfAbsent(g.getSectionId(), k -> new ArrayList<>())
+					.add(g.getId());
 			}
 		}
 		if (sectionSnapshots.isEmpty()) return 0;
