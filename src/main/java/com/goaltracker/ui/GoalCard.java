@@ -741,11 +741,19 @@ public class GoalCard extends JPanel
 		{
 			if (r.optional) reqRecommended.add(r); else reqRequired.add(r);
 		}
-		java.util.List<GoalView.RelationView> byRequired = new java.util.ArrayList<>();
-		java.util.List<GoalView.RelationView> byRecommended = new java.util.ArrayList<>();
-		for (GoalView.RelationView r : requiredBy)
+		// For "required by" / "recommended by": if THIS goal is optional,
+		// all parents see it as a recommendation, not a requirement.
+		java.util.List<GoalView.RelationView> byRequired;
+		java.util.List<GoalView.RelationView> byRecommended;
+		if (view.optional)
 		{
-			if (r.optional) byRecommended.add(r); else byRequired.add(r);
+			byRequired = java.util.Collections.emptyList();
+			byRecommended = requiredBy;
+		}
+		else
+		{
+			byRequired = requiredBy;
+			byRecommended = java.util.Collections.emptyList();
 		}
 
 		boolean first = true;
