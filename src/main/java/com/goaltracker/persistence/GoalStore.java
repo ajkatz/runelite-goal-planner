@@ -51,8 +51,15 @@ public class GoalStore
 	private List<Goal> goals = new ArrayList<>();
 	private List<Section> sections = new ArrayList<>();
 	private List<Tag> tags = new ArrayList<>();
-	/** Per-category color overrides (Mission 20). Key = TagCategory.name(), value = packed 0xRRGGBB. */
+	/** Per-category color overrides. Key = TagCategory.name(), value = packed 0xRRGGBB. */
 	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
+
+	/** O(1) goal lookup by id. Maintained on add/remove/load. */
+	private final java.util.Map<String, Goal> goalIndex = new java.util.HashMap<>();
+	/** O(1) section lookup by id. Maintained on create/delete/load. */
+	private final java.util.Map<String, Section> sectionIndex = new java.util.HashMap<>();
+	/** O(1) tag lookup by id. Maintained on create/delete/load. */
+	private final java.util.Map<String, Tag> tagIndex = new java.util.HashMap<>();
 
 	@Inject
 	public GoalStore(ConfigManager configManager)
@@ -103,7 +110,7 @@ public class GoalStore
 			}
 		}
 
-		// Tags (Mission 19: first-class tag entities)
+		// Tags (first-class tag entities)
 		String tagsJson = configManager.getConfiguration(CONFIG_GROUP, TAGS_KEY);
 		if (tagsJson != null && !tagsJson.isEmpty())
 		{
@@ -123,7 +130,7 @@ public class GoalStore
 			}
 		}
 
-		// Category colors (Mission 20)
+		// Category colors
 		String categoryColorsJson = configManager.getConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY);
 		if (categoryColorsJson != null && !categoryColorsJson.isEmpty())
 		{
@@ -144,7 +151,7 @@ public class GoalStore
 		}
 
 		// Migrate any tags with a null category. Happens when an enum value is
-		// removed (Mission 19 dropped SPECIAL): Gson deserializes the unknown
+		// removed (SPECIAL was dropped): Gson deserializes the unknown
 		// category name as null. Reassign to OTHER and re-save so subsequent
 		// operations have a valid category.
 		boolean tagsMigrated = false;
@@ -160,7 +167,7 @@ public class GoalStore
 		}
 
 		// Specific historical rename: "Pets" → "Pet" (canonical label as of
-		// Mission 19). Redirect goal references from "Pets" entities to "Pet"
+		// Redirect goal references from "Pets" entities to "Pet"
 		// entities and delete the "Pets" entries.
 		tagsMigrated |= mergeTagsByLabelRename("Pets", "Pet", TagCategory.OTHER);
 
@@ -173,7 +180,7 @@ public class GoalStore
 		migrateOrphanedGoals();
 		normalizeOrder();
 
-		// Mission 30: scrub any relation edges that violate the DAG invariant
+		// Scrub any relation edges that violate the DAG invariant
 		// or point at missing goals. Forgiving on load — we drop the offending
 		// edges with a log warning rather than failing to load the whole save.
 		// Normal flows never persist invalid edges (addRequirement rejects
@@ -182,6 +189,19 @@ public class GoalStore
 		boolean relationsScrubbed = scrubInvalidRelationEdges();
 
 		if (tagsMigrated || relationsScrubbed) save();
+
+		rebuildIndexes();
+	}
+
+	/** Rebuild all lookup indexes from the current lists. */
+	private void rebuildIndexes()
+	{
+		goalIndex.clear();
+		for (Goal g : goals) goalIndex.put(g.getId(), g);
+		sectionIndex.clear();
+		for (Section s : sections) sectionIndex.put(s.getId(), s);
+		tagIndex.clear();
+		for (Tag t : tags) tagIndex.put(t.getId(), t);
 	}
 
 	/**
@@ -304,6 +324,7 @@ public class GoalStore
 		{
 			redirectGoalTagReferences(old.getId(), canonicalId);
 			tags.removeIf(x -> x.getId().equals(old.getId()));
+			tagIndex.remove(old.getId());
 			log.info("Merged tag {} ({}) → {} ({})", old.getId(), oldLabel, canonicalId, newLabel);
 		}
 		return true;
@@ -329,7 +350,7 @@ public class GoalStore
 		for (java.util.List<Tag> group : groups.values())
 		{
 			if (group.size() <= 1) continue;
-			// Pick canonical: prefer one with a color override (Mission 20:
+			// Pick canonical: prefer one with a color override (
 			// OTHER tags can have per-tag color overrides; for other categories
 			// the field is unused so getColorRgb is always -1, and the first
 			// entry wins).
@@ -344,6 +365,7 @@ public class GoalStore
 				if (dup == canonical) continue;
 				redirectGoalTagReferences(dup.getId(), canonicalId);
 				tags.removeIf(x -> x.getId().equals(dup.getId()));
+				tagIndex.remove(dup.getId());
 				log.info("Deduped tag {} ({}, {}) → {} (canonical)",
 					dup.getId(), dup.getLabel(), dup.getCategory(), canonicalId);
 				anyMerged = true;
@@ -518,7 +540,7 @@ public class GoalStore
 	}
 
 	// ---------------------------------------------------------------------
-	// Category color overrides (Mission 20)
+	// Category color overrides
 	// ---------------------------------------------------------------------
 
 	/**
@@ -655,12 +677,13 @@ public class GoalStore
 		}
 		goal.setPriority(goals.size());
 		goals.add(goal);
+		goalIndex.put(goal.getId(), goal);
 		save();
 	}
 
 	/**
 	 * Insert a goal at a specific index in the flat list and reindex
-	 * priorities. Used by the Mission 26 undo path for bulk-remove so
+	 * priorities. Used by the undo path for bulk-remove so
 	 * restored goals land at their exact original positions. No-op if a
 	 * goal with the same id is already present.
 	 */
@@ -677,6 +700,7 @@ public class GoalStore
 		}
 		int clamped = Math.max(0, Math.min(index, goals.size()));
 		goals.add(clamped, goal);
+		goalIndex.put(goal.getId(), goal);
 		reindex();
 		save();
 	}
@@ -684,7 +708,7 @@ public class GoalStore
 	public void removeGoal(String goalId)
 	{
 		if (goalId == null) return;
-		// Mission 30: scrub any incoming edges before removing the node so
+		// Scrub any incoming edges before removing the node so
 		// other goals don't hold dangling references to the deleted id. This
 		// is safe for all existing callers because:
 		//   - revert paths for freshly-added goals: the goal has no incoming
@@ -703,12 +727,13 @@ public class GoalStore
 			}
 		}
 		goals.removeIf(g -> g.getId().equals(goalId));
+		goalIndex.remove(goalId);
 		reindex();
 		save();
 	}
 
 	// ---------------------------------------------------------------------
-	// Relations — Mission 30. Goals form a DAG via Goal.requiredGoalIds.
+	// Relations. Goals form a DAG via Goal.requiredGoalIds.
 	// Outgoing edges are stored on each Goal; incoming edges ("dependents")
 	// are derived at query time by scanning all goals.
 	// ---------------------------------------------------------------------
@@ -803,14 +828,13 @@ public class GoalStore
 
 	/** Internal lookup used by the relations API. Separate from
 	 *  {@link #findTag} — different collection. */
-	private Goal findGoalById(String id)
+	/**
+	 * O(1) goal lookup by id.
+	 */
+	public Goal findGoalById(String id)
 	{
 		if (id == null) return null;
-		for (Goal g : goals)
-		{
-			if (id.equals(g.getId())) return g;
-		}
-		return null;
+		return goalIndex.get(id);
 	}
 
 	/**
@@ -831,7 +855,7 @@ public class GoalStore
 	 *       ≥ 0), otherwise falls back to case-insensitive name equality</li>
 	 * </ul>
 	 *
-	 * <p>Mission 30: used by the find-or-create requirement flow so adding
+	 * <p>Used by the find-or-create requirement flow so adding
 	 * "HFTD requires 35 Agility" links to an existing 99 Agility goal if
 	 * the user already has one, rather than creating a redundant 35 Agility.
 	 *
@@ -1013,6 +1037,7 @@ public class GoalStore
 
 		// 7. Remove the goal from the flat list.
 		goals.removeIf(g -> g.getId().equals(goalId));
+		goalIndex.remove(goalId);
 		reindex();
 		save();
 
@@ -1026,6 +1051,7 @@ public class GoalStore
 			if (goals.get(i).getId().equals(goal.getId()))
 			{
 				goals.set(i, goal);
+				goalIndex.put(goal.getId(), goal);
 				break;
 			}
 		}
@@ -1103,11 +1129,7 @@ public class GoalStore
 	public Section findSection(String sectionId)
 	{
 		if (sectionId == null) return null;
-		for (Section s : sections)
-		{
-			if (sectionId.equals(s.getId())) return s;
-		}
-		return null;
+		return sectionIndex.get(sectionId);
 	}
 
 	/**
@@ -1166,6 +1188,7 @@ public class GoalStore
 			.builtInKind(null)
 			.build();
 		sections.add(created);
+		sectionIndex.put(created.getId(), created);
 		renumberUserSections();
 		save();
 		return created;
@@ -1175,7 +1198,7 @@ public class GoalStore
 	 * Re-create a user section with a SPECIFIC id. Used by the undo path
 	 * for deleteUserSection so the section comes back with the same id any
 	 * existing references (selected goals, command history) used. No-op if
-	 * a section with that id already exists. Mission 26.
+	 * a section with that id already exists.
 	 */
 	public Section recreateUserSection(String sectionId, String name)
 	{
@@ -1188,6 +1211,7 @@ public class GoalStore
 			.builtInKind(null)
 			.build();
 		sections.add(recreated);
+		sectionIndex.put(recreated.getId(), recreated);
 		renumberUserSections();
 		save();
 		return recreated;
@@ -1230,6 +1254,7 @@ public class GoalStore
 			}
 		}
 		sections.removeIf(s -> sectionId.equals(s.getId()));
+		sectionIndex.remove(sectionId);
 		renumberUserSections();
 		normalizeOrder();
 		reconcileCompletedSection();
@@ -1347,6 +1372,7 @@ public class GoalStore
 			}
 		}
 		sections.removeIf(s -> doomed.contains(s.getId()));
+		for (String id : doomed) sectionIndex.remove(id);
 		renumberUserSections();
 		normalizeOrder();
 		reconcileCompletedSection();
@@ -1365,7 +1391,7 @@ public class GoalStore
 	}
 
 	// ---------------------------------------------------------------------
-	// Tag entity CRUD (Mission 19)
+	// Tag entity CRUD
 	// ---------------------------------------------------------------------
 
 	private static final int MAX_TAG_LABEL_LENGTH = 30;
@@ -1378,11 +1404,7 @@ public class GoalStore
 	public Tag findTag(String tagId)
 	{
 		if (tagId == null) return null;
-		for (Tag t : tags)
-		{
-			if (tagId.equals(t.getId())) return t;
-		}
-		return null;
+		return tagIndex.get(tagId);
 	}
 
 	/**
@@ -1435,6 +1457,7 @@ public class GoalStore
 			.system(false)
 			.build();
 		tags.add(created);
+		tagIndex.put(created.getId(), created);
 		save();
 		return created;
 	}
@@ -1455,6 +1478,7 @@ public class GoalStore
 			.system(true)
 			.build();
 		tags.add(created);
+		tagIndex.put(created.getId(), created);
 		save();
 		return created;
 	}
@@ -1572,7 +1596,7 @@ public class GoalStore
 	}
 
 	/**
-	 * Recolor an individual tag. Mission 20: only meaningful for tags in the
+	 * Recolor an individual tag. Only meaningful for tags in the
 	 * OTHER category — every other category uses a category-wide color set
 	 * via {@link #setCategoryColor(TagCategory, int)}. Returns false for any
 	 * non-OTHER tag (the call is a no-op rather than an error so the caller
@@ -1591,7 +1615,7 @@ public class GoalStore
 	}
 
 	/**
-	 * Set or clear an icon on any tag (Mission 21). System tags can have
+	 * Set or clear an icon on any tag. System tags can have
 	 * icons set — used by the seed to attach skill icons to the canonical
 	 * SKILLING tags. Pass null or empty to clear.
 	 *
@@ -1629,19 +1653,21 @@ public class GoalStore
 			if (g.getDefaultTagIds() != null) g.getDefaultTagIds().remove(tagId);
 		}
 		tags.removeIf(x -> tagId.equals(x.getId()));
+		tagIndex.remove(tagId);
 		save();
 		return true;
 	}
 
 	/**
 	 * Re-add an already-built Tag entity (preserving its id). Used by the
-	 * Mission 26 undo path for deleteTag so the restored tag matches any
-	 * still-cached references. No-op if a tag with that id already exists.
+	 * undo path for deleteTag so the restored tag matches any still-cached
+	 * references. No-op if a tag with that id already exists.
 	 */
 	public void recreateTag(Tag tag)
 	{
 		if (tag == null || findTag(tag.getId()) != null) return;
 		tags.add(tag);
+		tagIndex.put(tag.getId(), tag);
 		save();
 	}
 

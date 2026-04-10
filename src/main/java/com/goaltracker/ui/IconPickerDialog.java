@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Modal icon picker dialog (Mission 21). Shows two grids:
+ * Modal icon picker dialog. Shows two grids:
  * <ul>
  *   <li>Skill icons — one per {@link Skill} enum value, rendered via
  *       {@link SkillIconManager}. Selecting one returns the skill enum name

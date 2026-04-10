@@ -6,7 +6,7 @@ import lombok.Data;
 
 /**
  * A first-class tag entity. Replaces the per-goal embedded {@code ItemTag}
- * model from Mission 17 and earlier.
+ * model.
  *
  * <p>Tags have stable IDs and live in their own collection on
  * {@link com.goaltracker.persistence.GoalStore}. Goals reference tags by id
@@ -41,7 +41,7 @@ public class Tag
 	/**
 	 * Per-tag color override, packed as 0xRRGGBB. -1 means "use the category color".
 	 *
-	 * <p>Mission 20 split tag color responsibility by category:
+	 * <p>Tag color responsibility is split by category:
 	 * <ul>
 	 *   <li>OTHER tags: this field is the source of truth. Each Other tag can
 	 *       carry its own color independent of every other Other tag.</li>
@@ -63,7 +63,7 @@ public class Tag
 	private boolean system = false;
 
 	/**
-	 * Icon resource key (Mission 21). null means "no icon, render as a colored pill".
+	 * Icon resource key. null means "no icon, render as a colored pill".
 	 *
 	 * <p>Resolver: if the key matches a {@link net.runelite.api.Skill} enum
 	 * name (case-insensitive), the renderer pulls the icon from

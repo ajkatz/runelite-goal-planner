@@ -2,7 +2,7 @@ package com.goaltracker.ui;
 
 /**
  * Pure helpers for resolving "gain X more" relative goal inputs into the
- * absolute target values stored on Goal entities. Mission 23.
+ * absolute target values stored on Goal entities.
  *
  * <p>Relative goals are an input convenience only — once resolved, the goal
  * is indistinguishable from one created with the same absolute target. The

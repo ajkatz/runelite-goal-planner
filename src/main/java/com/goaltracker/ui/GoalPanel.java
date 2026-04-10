@@ -62,29 +62,29 @@ public class GoalPanel extends PluginPanel
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
-	/** Free-text filter applied to the goal list. Empty = show all. Mission 22. */
+	/** Free-text filter applied to the goal list. Empty = show all. */
 	private String searchFilter = "";
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
-	 *  selection. Cleared on rebuilds when the goal no longer exists. Mission 24. */
+	 *  selection. Cleared on rebuilds when the goal no longer exists. */
 	private String selectionAnchorId = null;
-	/** Mission 25: in-section position to place the next goal created via
+	/** In-section position to place the next goal created via
 	 *  showAddGoalDialog. -1 = default (bottom). Cleared after each create. */
 	private int pendingAddPositionInSection = -1;
-	/** Mission 30: id of the goal the user initiated a relation-pick from,
+	/** Id of the goal the user initiated a relation-pick from,
 	 *  or null when not in relation-pick mode. Set by the Requires.../Required
 	 *  by... context-menu items; cleared on successful target click, cancel,
 	 *  or ESC. */
 	private String pendingRelationSourceId = null;
-	/** Mission 30: direction flag for relation-pick mode. When true, the next
+	/** Direction flag for relation-pick mode. When true, the next
 	 *  clicked card becomes a REQUIREMENT of {@link #pendingRelationSourceId}
 	 *  (edge source → target). When false, the source becomes a DEPENDENT of
 	 *  the target (edge target → source). */
 	private boolean pendingRelationSourceRequiresTarget = true;
-	/** Mission 30: instruction banner shown at the top of the panel while
+	/** Instruction banner shown at the top of the panel while
 	 *  relation-pick mode is active. Hidden otherwise. */
 	private JPanel relationModeBanner;
 	private JLabel relationModeLabel;
-	/** Mission 26: toolbar undo/redo buttons. Refreshed on every rebuild. */
+	/** Toolbar undo/redo buttons. Refreshed on every rebuild. */
 	private JButton undoButton;
 	private JButton redoButton;
 
@@ -130,7 +130,7 @@ public class GoalPanel extends PluginPanel
 		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 0));
 		headerButtons.setOpaque(false);
 
-		// Mission 25: + goal and + section buttons removed. Adding is now
+		// + goal and + section buttons removed. Adding is now
 		// contextual via section header / goal card right-click menus.
 
 		// Combined Remove dropdown — opens a small popup with two options
@@ -142,7 +142,7 @@ public class GoalPanel extends PluginPanel
 		removeButton.addActionListener(e -> {
 			JPopupMenu popup = new JPopupMenu();
 
-			// Mission 25 follow-up: Remove selected goals — gated on at least
+			// Remove selected goals — gated on at least
 			// one selected goal. Single-step confirm since the user already
 			// curated the selection.
 			java.util.Set<String> selected = api.getSelectedGoalIds();
@@ -173,7 +173,7 @@ public class GoalPanel extends PluginPanel
 			dialog.setVisible(true);
 		});
 
-		// Mission 26: undo/redo buttons. Tooltip + enable state refreshed on
+		// Undo/redo buttons. Tooltip + enable state refreshed on
 		// each panel rebuild via refreshUndoRedoButtons() (called from rebuild()).
 		undoButton = new JButton(ShapeIcons.undoArrow(12, new Color(180, 180, 220)));
 		undoButton.setMargin(new Insets(3, 6, 3, 6));
@@ -192,7 +192,7 @@ public class GoalPanel extends PluginPanel
 		header.add(title, BorderLayout.WEST);
 		header.add(headerButtons, BorderLayout.EAST);
 
-		// Mission 22: free-text search row beneath the toolbar. Filters
+		// Free-text search row beneath the toolbar. Filters
 		// goals by name/description/tags/category/type/section title.
 		JPanel searchRow = new JPanel(new BorderLayout(4, 0));
 		searchRow.setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -217,7 +217,7 @@ public class GoalPanel extends PluginPanel
 		searchRow.add(searchField, BorderLayout.CENTER);
 		searchRow.add(clearSearchBtn, BorderLayout.EAST);
 
-		// Mission 30: relation-pick mode banner. Hidden by default, shown
+		// Relation-pick mode banner. Hidden by default, shown
 		// when the user initiates "Requires..." / "Required by..." from the
 		// context menu. Tells the user what to do next and how to cancel.
 		relationModeBanner = new JPanel(new BorderLayout());
@@ -257,7 +257,7 @@ public class GoalPanel extends PluginPanel
 		add(headerStack, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
 
-		// Mission 30: ESC cancels relation-pick mode. Registered on the
+		// ESC cancels relation-pick mode. Registered on the
 		// whole panel so the key fires regardless of focus within the
 		// scrollable goal list.
 		javax.swing.KeyStroke escStroke =
@@ -289,8 +289,8 @@ public class GoalPanel extends PluginPanel
 		// Read path goes through the public API — the panel is now a consumer of
 		// GoalTrackerApi just like external plugins would be.
 		//
-		// Mission 22: search filter. When active, goalViews is the filtered flat
-		// list. Mission 30: within each section we re-order via topological
+		// Search filter. When active, goalViews is the filtered flat
+		// list. Within each section we re-order via topological
 		// sort of the relation DAG (leaves first, priority tiebreaks within a
 		// tier). The flat goalViews is kept for search-filter matching and for
 		// the flat-priority `index` values the arrow buttons use.
@@ -340,7 +340,7 @@ public class GoalPanel extends PluginPanel
 			}
 			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
 
-			// Mission 30: topologically-sorted view of this section's goals.
+			// Topologically-sorted view of this section's goals.
 			// Filter out any that were excluded by the search filter.
 			java.util.List<com.goaltracker.api.GoalView> topoOrder =
 				api.queryGoalsTopologicallySorted(section.id);
@@ -354,7 +354,7 @@ public class GoalPanel extends PluginPanel
 				topoOrder = filtered;
 			}
 
-			// Mission 25: built-in section headers (Incomplete, Completed) are
+			// Built-in section headers (Incomplete, Completed) are
 			// always visible now so the user can right-click them for the Add
 			// Section action even when they're empty. User sections were
 			// always visible. When filtering, still hide empty sections so
@@ -394,7 +394,7 @@ public class GoalPanel extends PluginPanel
 
 			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
-			// Mission 30: iterate topo-order for rendering, but resolve each
+			// Iterate topo-order for rendering, but resolve each
 			// goal's flat-priority index for the arrow buttons. Arrows target
 			// the VISUALLY adjacent card in the topo view, but only when that
 			// card is in the SAME topo tier — otherwise the move would fight
@@ -413,7 +413,7 @@ public class GoalPanel extends PluginPanel
 				final int secStart = sectionStart;
 				final int secEnd = sectionEnd;
 
-				// Mission 30: arrows always fire. The handler walks the
+				// Arrows always fire. The handler walks the
 				// topo list from the clicked card, collects any direct
 				// prereq/dependent chain that needs to move with it, and
 				// shifts the whole block by one position. No-ops if the
@@ -449,7 +449,7 @@ public class GoalPanel extends PluginPanel
 				attachSelectionClick(card, view);
 				cardMap.put(goal.getId(), card);
 
-				// Mission 30: highlight the relation-pick source card with
+				// Highlight the relation-pick source card with
 				// an orange border so the user can see which goal they're
 				// pairing from while they search for a target.
 				if (goal.getId().equals(pendingRelationSourceId))
@@ -520,7 +520,7 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
-	 * Mission 30: topo-aware chain move via recursive descent. The list is
+	 * Topo-aware chain move via recursive descent. The list is
 	 * already in a valid topological order (via local-repair in
 	 * {@code queryGoalsTopologicallySorted}), so "move up/down" means "swap
 	 * with the adjacent card in the ordered list". If the swap would
@@ -669,7 +669,7 @@ public class GoalPanel extends PluginPanel
 	}
 
 	// ------------------------------------------------------------------
-	// Relation-pick mode (Mission 30)
+	// Relation-pick mode
 	// ------------------------------------------------------------------
 
 	/**
@@ -784,7 +784,7 @@ public class GoalPanel extends PluginPanel
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getButton() != MouseEvent.BUTTON1) return;
-				// Mission 30: relation-pick mode intercepts left-clicks.
+				// Relation-pick mode intercepts left-clicks.
 				// Clicking the source card cancels; clicking any other card
 				// completes the relation in the pending direction.
 				if (pendingRelationSourceId != null)
@@ -794,13 +794,13 @@ public class GoalPanel extends PluginPanel
 				}
 				boolean cmdCtrl = e.isMetaDown() || e.isControlDown();
 				boolean shift = e.isShiftDown();
-				// Mission 24: Excel-style shift-click extends selection from
+				// Excel-style shift-click extends selection from
 				// the anchor to the clicked goal in linear panel order.
 				if (shift && selectionAnchorId != null && !cmdCtrl)
 				{
 					java.util.Set<String> range = computeRangeSelection(selectionAnchorId, goalId);
 					if (!range.isEmpty()) api.replaceGoalSelection(range);
-					// Mission 24: anchor follows the last click, so the next
+					// Anchor follows the last click, so the next
 					// shift-click extends from where you just landed.
 					selectionAnchorId = goalId;
 					return;
@@ -822,7 +822,7 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
-	 * Mission 26: refresh the enabled state + tooltip on the undo/redo buttons
+	 * Refresh the enabled state + tooltip on the undo/redo buttons
 	 * to reflect the current command history. Called from {@link #rebuild()}.
 	 */
 	private static final Color UNDO_REDO_ENABLED = new Color(180, 180, 220);
@@ -835,7 +835,7 @@ public class GoalPanel extends PluginPanel
 		boolean canRedo = api.canRedo();
 		undoButton.setEnabled(canUndo);
 		redoButton.setEnabled(canRedo);
-		// Mission 26: ShapeIcons don't react to component enabled state, so
+		// ShapeIcons don't react to component enabled state, so
 		// swap the icon color to make the disabled state visible.
 		undoButton.setIcon(ShapeIcons.undoArrow(12,
 			canUndo ? UNDO_REDO_ENABLED : UNDO_REDO_DISABLED));
@@ -848,7 +848,7 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
-	 * Two-step yes/no confirmation guard for destructive actions. Mission 25.
+	 * Two-step yes/no confirmation guard for destructive actions.
 	 * The action only runs if the user clicks Yes on BOTH dialogs in sequence.
 	 */
 	/**
@@ -856,7 +856,7 @@ public class GoalPanel extends PluginPanel
 	 * between (and including) anchorId and clickedId. The order is the same
 	 * one used to render the panel — sections in section.order, goals within
 	 * each section in priority order. Returns an empty set if either id is
-	 * missing from the canonical list (e.g. just deleted). Mission 24.
+	 * missing from the canonical list (e.g. just deleted).
 	 */
 	private java.util.Set<String> computeRangeSelection(String anchorId, String clickedId)
 	{
@@ -888,7 +888,7 @@ public class GoalPanel extends PluginPanel
 			private void maybeShowPopup(MouseEvent e)
 			{
 				if (!e.isPopupTrigger()) return;
-				// Mission 30: right-click exits relation-pick mode. The
+				// Right-click exits relation-pick mode. The
 				// user is clearly navigating away from the relation they
 				// started; show the normal context menu of the clicked
 				// card instead of stranding them in mode.
@@ -971,7 +971,7 @@ public class GoalPanel extends PluginPanel
 			}
 		}
 
-		// Mission 25: Add Goal submenu — Top/Bottom of section, Above/Below
+		// Add Goal submenu — Top/Bottom of section, Above/Below
 		// the right-clicked card. Above/Below grayed at section boundaries.
 		if (!goal.isComplete() && goal.getSectionId() != null)
 		{
@@ -1020,7 +1020,7 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Manual completion: CUSTOM and ITEM_GRIND. Skill/quest/diary/CA are
-		// purely game-driven. ITEM_GRIND is terminal once complete (Mission 25):
+		// purely game-driven. ITEM_GRIND is terminal once complete:
 		// dropping below the target does NOT auto-revert. The user must
 		// manually mark the goal incomplete to let the tracker re-evaluate.
 		boolean manuallyToggleable = goal.getType() == GoalType.CUSTOM
@@ -1099,7 +1099,7 @@ public class GoalPanel extends PluginPanel
 						if (newQty > 0)
 						{
 							// changeTarget regenerates the description from the new
-							// quantity as of Mission 19; no follow-up mutation needed.
+							// quantity; no follow-up mutation needed.
 							api.changeTarget(goal.getId(), newQty);
 						}
 					}
@@ -1138,7 +1138,7 @@ public class GoalPanel extends PluginPanel
 		}
 
 		// Removable tags: for CUSTOM goals, anything. For everything else, only
-		// user-added tags (not in defaultTagIds). Mission 19: dereference tag ids
+		// user-added tags (not in defaultTagIds). Dereference tag ids
 		// through the store and operate on Tag entities.
 		java.util.List<com.goaltracker.model.Tag> removableTags = new java.util.ArrayList<>();
 		java.util.List<com.goaltracker.model.Tag> allGoalTags = new java.util.ArrayList<>();
@@ -1182,7 +1182,7 @@ if (!removableTags.isEmpty())
 			menu.add(removeTag);
 		}
 
-		// Mission 30: Relations. "Requires..." and "Required by..." enter a
+		// Relations. "Requires..." and "Required by..." enter a
 		// click-mode where the user clicks another goal to link. The Remove
 		// submenus below are direct pick-to-remove lists of the current edges.
 		{
@@ -1231,7 +1231,7 @@ if (!removableTags.isEmpty())
 			}
 		}
 
-		// Mission 24: Restore Defaults — gated on isGoalOverridden (tag drift
+		// Restore Defaults — gated on isGoalOverridden (tag drift
 		// OR color override). Routes through the bulk API so the single-item
 		// path resets BOTH tags and color in one shot.
 		if (api.isGoalOverridden(goal.getId()))
@@ -1300,7 +1300,7 @@ if (!removableTags.isEmpty())
 		header.setEnabled(false);
 		menu.add(header);
 
-		// Mission 24: selection toggle + deselect all on the bulk menu so the
+		// Selection toggle + deselect all on the bulk menu so the
 		// user can drop one card or escape the whole multi-selection without
 		// having to find a single-card popup.
 		menu.addSeparator();
@@ -1330,7 +1330,7 @@ if (!removableTags.isEmpty())
 		{
 			// Completed is auto-managed; bulk-move can't target it.
 			if ("COMPLETED".equals(sv.kind)) continue;
-			// Mission 25: skip sections where every selected goal already lives.
+			// Skip sections where every selected goal already lives.
 			boolean allAlreadyHere = true;
 			for (Goal g : selectedGoals)
 			{
@@ -1365,7 +1365,7 @@ if (!removableTags.isEmpty())
 		changeColor.addActionListener(e -> showBulkChangeColorDialog(selectedGoals));
 		menu.add(changeColor);
 
-		// Mission 24: bulk Remove Tag — show only if at least one selected
+		// Bulk Remove Tag — show only if at least one selected
 		// goal has a removable tag.
 		java.util.List<com.goaltracker.api.GoalTrackerInternalApi.TagRemovalOption> removableOpts =
 			api.getRemovableTagsForSelection(selectedIds);
@@ -1376,7 +1376,7 @@ if (!removableTags.isEmpty())
 			menu.add(bulkRemoveTag);
 		}
 
-		// Mission 24: bulk Restore Defaults — show only if at least one
+		// Bulk Restore Defaults — show only if at least one
 		// selected goal is overridden (tag drift OR color override).
 		boolean anyOverridden = false;
 		for (String id : selectedIds)
@@ -1436,7 +1436,7 @@ if (!removableTags.isEmpty())
 	/**
 	 * Change Amount dialog for SKILL goals. Mirrors the Add Goal dialog —
 	 * SkillTargetForm with synced Level/XP fields plus a Mode toggle so the
-	 * user can target an absolute level/XP OR a delta gain. Mission 24.
+	 * user can target an absolute level/XP OR a delta gain.
 	 */
 	private void showChangeSkillTargetDialog(Goal goal)
 	{
@@ -1492,7 +1492,7 @@ if (!removableTags.isEmpty())
 	}
 
 	/**
-	 * Mission 24: bulk Remove Tag dialog. Shows the merged set of removable
+	 * Bulk Remove Tag dialog. Shows the merged set of removable
 	 * tags across the selection with a count badge ("Slayer (3)") so the user
 	 * knows how many of their selection have it. Picking a tag fires a single
 	 * bulk API call.
@@ -1524,7 +1524,7 @@ if (!removableTags.isEmpty())
 		if (picked == null) return;
 
 		// Route through the internal API so the bulk path matches the single-item
-		// path post-Mission 19. addTagWithCategory preserves the user-picked
+		// path. addTagWithCategory preserves the user-picked
 		// category (api.addTag would force OTHER). Each call fires onGoalsChanged,
 		// which fires N rebuilds for N selected goals — acceptable tradeoff for
 		// keeping the API the canonical mutation surface; the user clicks OK once
@@ -1586,7 +1586,7 @@ if (!removableTags.isEmpty())
 
 		JPopupMenu menu = new JPopupMenu();
 
-		// Mission 25: Add Goal submenu — Top of Section / Bottom of Section.
+		// Add Goal submenu — Top of Section / Bottom of Section.
 		// Hidden on Completed (auto-managed).
 		if (!"COMPLETED".equals(section.kind))
 		{
@@ -1606,7 +1606,7 @@ if (!removableTags.isEmpty())
 			menu.add(addGoalMenu);
 		}
 
-		// Mission 25: Add Section submenu. User sections get Above/Below;
+		// Add Section submenu. User sections get Above/Below;
 		// built-ins (Incomplete, Completed) get a single entry that creates
 		// the new section at the end of the user-band.
 		if (!section.builtIn)
@@ -1720,7 +1720,6 @@ if (!removableTags.isEmpty())
 	/**
 	 * Show the create-section dialog and, on success, reorder the new section
 	 * to the requested user-band index. -1 = default (end of user band).
-	 * Mission 25.
 	 */
 	private void showCreateSectionDialog(int userBandPosition)
 	{
@@ -1872,7 +1871,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(field1Panel, gbc);
 
-		// Row 1.5 (Mission 23): Mode toggle for relative goals.
+		// Row 1.5: Mode toggle for relative goals.
 		// "Reach X" = absolute (existing behavior). "Gain X more" = compute
 		// resolved target as currentValue + entered delta. SKILL/ITEM/CUSTOM
 		// all support this; the actual math runs in the submit handlers.
@@ -1961,14 +1960,14 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(shortcutRow, gbc);
 
-		// Swap fields when type changes. Mission 23: also relabel based on
+		// Swap fields when type changes. Also relabel based on
 		// current mode so "Quantity:" → "Gain Quantity:" when relative.
 		Runnable updateLabels = () ->
 		{
 			GoalType selected = (GoalType) typeCombo.getSelectedItem();
 			((CardLayout) field1Panel.getLayout()).show(field1Panel, selected.name());
 			((CardLayout) field2Panel.getLayout()).show(field2Panel, selected.name());
-			// Mission 23: relative mode is only meaningful for SKILL right now
+			// Relative mode is only meaningful for SKILL right now
 			// (and will support BOSS_KILL_COUNT in a future mission). Hide the
 			// row for ITEM_GRIND (no reliable baseline) and CUSTOM (no int target).
 			boolean modeRowVisible = selected == GoalType.SKILL;
@@ -1976,7 +1975,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			modeRow.setVisible(modeRowVisible);
 			if (!modeRowVisible) modeAbsolute.setSelected(true);
 			boolean rel = modeRelative.isSelected();
-			// Mission 23: if relative + SKILL, hand the form the player's
+			// If relative + SKILL, hand the form the player's
 			// current XP for the chosen skill so deltas resolve correctly.
 			if (rel && selected == GoalType.SKILL && client != null)
 			{
@@ -2115,7 +2114,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			return;
 		}
 
-		// Mission 23: in relative mode, the form returns a delta. Resolve to
+		// In relative mode, the form returns a delta. Resolve to
 		// absolute by adding the player's current XP for the chosen skill.
 		int targetXp;
 		if (relative)
@@ -2141,7 +2140,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 			return;
 		}
 
-		// Mission 26: wrap create + position in a single compound undo entry
+		// Wrap create + position in a single compound undo entry
 		// so one undo fully reverses the operation.
 		api.beginCompound("Add goal: " + skill.getName());
 		try
@@ -2182,7 +2181,7 @@ private void showRenameSectionDialog(com.goaltracker.api.SectionView section)
 	 * into the section the user right-clicked. No-op when preferredSectionId is
 	 * null (the toolbar + button) or the goal didn't actually get created.
 	 *
-	 * <p>Mission 25: also honors {@link #pendingAddPositionInSection} so the
+	 * <p>Also honors {@link #pendingAddPositionInSection} so the
 	 * goal lands at the exact slot the user picked from the context menu
 	 * (Top, Bottom, Above, Below). Field is cleared after use.
 	 */

@@ -4,7 +4,6 @@ import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.InventoryID;
 import net.runelite.api.Item;
@@ -16,39 +15,54 @@ import java.util.List;
 
 /**
  * Tracks item/resource quantity goals by checking inventory and bank.
+ * Overrides the base checkGoals() because of the pre-bank-visit guard
+ * and terminal completion logic that don't fit the standard loop.
  */
-@Slf4j
 @Singleton
-public class ItemTracker
+public class ItemTracker extends AbstractTracker
 {
-	private final Client client;
-	private final GoalTrackerApiImpl api;
-
 	/**
-	 * Sticky for the lifetime of the plugin session: true once we've ever seen
-	 * a non-null bank container. Used to drop the bank-null guard once the
-	 * user has opened their bank at least once.
+	 * Sticky for the lifetime of the plugin session: true once we've ever
+	 * seen a non-null bank container.
 	 */
 	private boolean bankSeenThisSession = false;
+
+	/**
+	 * Persistent storage containers we sum across when counting items.
+	 * Transient reward chests are intentionally excluded.
+	 */
+	private static final InventoryID[] COUNTED_CONTAINERS = {
+		InventoryID.INVENTORY,
+		InventoryID.BANK,
+		InventoryID.EQUIPMENT,
+		InventoryID.SEED_VAULT,
+		InventoryID.GROUP_STORAGE,
+		InventoryID.KINGDOM_OF_MISCELLANIA,
+	};
 
 	@Inject
 	public ItemTracker(Client client, GoalTrackerApiImpl api)
 	{
-		this.client = client;
-		this.api = api;
+		super(client, api);
+	}
+
+	@Override
+	protected GoalType targetType()
+	{
+		return GoalType.ITEM_GRIND;
+	}
+
+	@Override
+	protected int readCurrentValue(Goal goal)
+	{
+		return countItem(goal.getItemId());
 	}
 
 	/**
-	 * Update all item grind goals with current counts from inventory + bank.
-	 * Returns true if any goal was updated.
-	 *
-	 * <p>Pre-bank-visit policy: before the bank has ever been seen this
-	 * session, we allow updates ONLY when the new (inventory-only) count is
-	 * strictly greater than the persisted value. This lets users see their
-	 * inventory grow on a fresh session without risking a wipe of persisted
-	 * values from a partial inventory-only snapshot. After the first bank
-	 * visit, the guard drops and full bank+inventory counts apply.
+	 * Overrides the base loop to add pre-bank-visit guard and terminal
+	 * completion logic.
 	 */
+	@Override
 	public boolean checkGoals(List<Goal> goals)
 	{
 		boolean bankAvailable = client.getItemContainer(InventoryID.BANK) != null;
@@ -64,11 +78,8 @@ public class ItemTracker
 				continue;
 			}
 
-			// Mission 25: ITEM_GRIND goals are now terminal once complete.
-			// Dropping below target after completion does NOT auto-revert —
-			// the user must manually mark the goal incomplete from the
-			// right-click menu, at which point the next tracker pass
-			// re-evaluates from the live count.
+			// Terminal once complete — dropping below target does NOT
+			// auto-revert. User must manually mark incomplete.
 			if (goal.getStatus() == GoalStatus.COMPLETE)
 			{
 				continue;
@@ -98,30 +109,9 @@ public class ItemTracker
 	}
 
 	/**
-	 * Persistent storage containers we sum across when counting items. The
-	 * transient reward chests (Barrows, ToA, CoX, Wildy loot chest, etc) and
-	 * trade interfaces are intentionally excluded — they're populated briefly
-	 * and would double-count items the player is about to bank.
-	 *
-	 * <p>Each container is only summed when its ItemContainer is non-null,
-	 * which RuneLite only populates when the player has interacted with that
-	 * interface this session. Combined with the {@code bankSeenThisSession}
-	 * guard above, this gives a "best effort, never decrement past max-seen"
-	 * model — opening a new container only ever raises the count.
-	 */
-	private static final InventoryID[] COUNTED_CONTAINERS = {
-		InventoryID.INVENTORY,
-		InventoryID.BANK,
-		InventoryID.EQUIPMENT,
-		InventoryID.SEED_VAULT,
-		InventoryID.GROUP_STORAGE,
-		InventoryID.KINGDOM_OF_MISCELLANIA,
-	};
-
-	/**
-	 * Count total quantity of an item across every storage container we know
-	 * how to read. Public so the create-goal UI can snapshot a baseline for
-	 * relative item goals (Mission 23).
+	 * Count total quantity of an item across every storage container.
+	 * Public so the create-goal UI can snapshot a baseline for relative
+	 * item goals.
 	 */
 	public int countItem(int itemId)
 	{

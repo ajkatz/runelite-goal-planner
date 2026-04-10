@@ -3,8 +3,12 @@ package com.goaltracker.ui;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.util.AsyncBufferedImage;
 
-import javax.swing.*;
-import java.awt.*;
+import javax.swing.ImageIcon;
+import javax.swing.JLabel;
+import javax.swing.SwingUtilities;
+import java.awt.Graphics2D;
+import java.awt.Image;
+import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
 import java.util.concurrent.ConcurrentHashMap;
 

@@ -15,7 +15,7 @@ public enum TagCategory
 	SKILLING("Skilling", new Color(76, 175, 80)),  // Green
 	QUEST("Quest", new Color(65, 155, 222)),       // Quest blue — quest associations
 	OTHER("Other", new Color(120, 120, 120));        // Gray
-	// SPECIAL was removed in Mission 19. The canonical "Pet" tag now lives in
+	// SPECIAL was removed. The canonical "Pet" tag now lives in
 	// OTHER with a per-tag pink color override (seeded by GoalTrackerPlugin).
 
 	private final String displayName;

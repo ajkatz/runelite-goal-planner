@@ -66,13 +66,13 @@ public final class ShapeIcons
 		return new TagIcon(size, color);
 	}
 
-	/** Curved undo arrow — left-facing hook. Mission 26. */
+	/** Curved undo arrow — left-facing hook. */
 	public static Icon undoArrow(int size, Color color)
 	{
 		return new UndoArrow(size, color, true);
 	}
 
-	/** Curved redo arrow — right-facing hook (mirror of undo). Mission 26. */
+	/** Curved redo arrow — right-facing hook (mirror of undo). */
 	public static Icon redoArrow(int size, Color color)
 	{
 		return new UndoArrow(size, color, false);

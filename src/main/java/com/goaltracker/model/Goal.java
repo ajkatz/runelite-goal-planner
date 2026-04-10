@@ -52,7 +52,7 @@ public class Goal
 	@Builder.Default
 	private int customColorRgb = -1;
 
-	// Tag references — IDs into the GoalStore tag collection (Mission 19).
+	// Tag references — IDs into the GoalStore tag collection.
 	// Tags themselves are first-class entities; goals only carry references.
 	@Builder.Default
 	private List<String> tagIds = new ArrayList<>();
@@ -61,7 +61,7 @@ public class Goal
 	@Builder.Default
 	private List<String> defaultTagIds = new ArrayList<>();
 
-	// ---- Relations (Mission 30) ----
+	// ---- Relations ----
 	// Outgoing edges in the requires-DAG: IDs of other goals this one depends
 	// on. "Horror from the Deep requires 35 Agility" → HFTD's requiredGoalIds
 	// contains the Agility goal's id. Incoming edges ("required by") are NOT

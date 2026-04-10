@@ -29,7 +29,7 @@ public class SkillTargetForm extends JPanel
 	/** Suppress the cross-update listener while we programmatically set a field. */
 	private boolean syncing = false;
 
-	/** Mission 23: when >= 0, the form interprets both fields as DELTAS over
+	/** When >= 0, the form interprets both fields as DELTAS over
 	 *  this current XP baseline (relative goal mode). When -1, fields are
 	 *  absolute targets (existing behavior). */
 	private int relativeBaselineXp = -1;
@@ -60,7 +60,7 @@ public class SkillTargetForm extends JPanel
 
 		// Wire bidirectional sync via DocumentListeners. The `syncing` guard prevents
 		// the level→xp update from re-triggering xp→level (and vice versa).
-		// Mission 23: when relativeBaselineXp >= 0, both fields are interpreted
+		// When relativeBaselineXp >= 0, both fields are interpreted
 		// as DELTAS — level field input = "+N levels", XP field input = "+N XP".
 		levelField.getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
 			if (syncing) return;
@@ -127,7 +127,7 @@ public class SkillTargetForm extends JPanel
 	 *
 	 * <p>Pass -1 to switch back to absolute mode (existing behavior).
 	 *
-	 * <p>Mission 23.
+	 *
 	 */
 	public void setRelativeBaseline(int currentXp)
 	{

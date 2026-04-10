@@ -60,7 +60,7 @@ public class GoalView
 	 *  These are the only tags removable via the Remove Tag UI. */
 	public List<TagView> customTags;
 
-	// ----- relations (Mission 30) -----
+	// ----- relations -----
 
 	/** Goals this one requires (outgoing edges), resolved at queryAllGoals
 	 *  time. Empty list if none. Used by the card hover tooltip to show

@@ -28,10 +28,10 @@ import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
-import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
+import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
@@ -116,8 +116,6 @@ public class GoalTrackerPlugin extends Plugin
 
 	private GoalPanel panel;
 	private NavigationButton navButton;
-	private int tickCounter = 0;
-	private static final int SCAN_INTERVAL_TICKS = 25; // ~15 seconds (1 tick = 0.6s)
 
 	/**
 	 * Bind the public {@link GoalTrackerApi} interface to its implementation so
@@ -243,7 +241,7 @@ public class GoalTrackerPlugin extends Plugin
 							.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
 							.build();
 
-						// Mission 26: route through the command path so this is undoable.
+						// Route through the command path so this is undoable.
 						// Wrap create + position in a single compound entry so
 						// one undo reverses the whole gesture.
 						final String capturedGoalId = goal.getId();
@@ -289,7 +287,7 @@ public class GoalTrackerPlugin extends Plugin
 	 * Build tags for an item, including source tags and inherited attributes (e.g., Slayer Task).
 	 */
 	/**
-	 * Mission 26: route an already-built Goal through the undo/redo command
+	 * Route an already-built Goal through the undo/redo command
 	 * system so user-triggered "Add Goal" actions from menu entries (CA,
 	 * diary, inventory/bank/collection log) land on the undo stack.
 	 */
@@ -360,7 +358,7 @@ public class GoalTrackerPlugin extends Plugin
 		if (isPet)
 		{
 			tags.removeIf(t -> "All Pets".equals(t.getLabel()));
-			// Mission 19: SPECIAL category removed; the Pet tag now lives in OTHER
+			// SPECIAL category removed; the Pet tag now lives in OTHER
 			// with a per-tag pink color override seeded by seedCanonicalSystemTags.
 			tags.add(0, new ItemTag("Pet", TagCategory.OTHER));
 		}
@@ -368,31 +366,25 @@ public class GoalTrackerPlugin extends Plugin
 		return tags;
 	}
 
+	/**
+	 * Varbit/varp changes drive quest, diary, CA, and account tracking.
+	 * Deferred to the next client tick via invokeLater because
+	 * Quest.getState() runs a script internally, and VarbitChanged fires
+	 * mid-script — calling getState() synchronously would cause a
+	 * "scripts are not reentrant" assertion error.
+	 */
 	@Subscribe
-	public void onGameTick(GameTick event)
+	public void onVarbitChanged(VarbitChanged event)
 	{
-		tickCounter++;
-		if (tickCounter >= SCAN_INTERVAL_TICKS)
+		clientThread.invokeLater(() ->
 		{
-			tickCounter = 0;
-			// Tracker batch contract: each tracker's checkGoals() mutates via
-			// GoalTrackerApiImpl.recordGoalProgress() which intentionally does
-			// NOT save/reconcile/fire onGoalsChanged. We flush once here if any
-			// tracker reports an update, so the UI rebuild + store save happen
-			// exactly once per tick instead of per-goal. Preserves the
-			// over-querying cleanup from Mission 10.
-			boolean updated = skillTracker.checkGoals(goalStore.getGoals());
-			updated |= questTracker.checkGoals(goalStore.getGoals());
-			updated |= diaryTracker.checkGoals(goalStore.getGoals());
-			updated |= combatAchievementTracker.checkGoals(goalStore.getGoals());
-			updated |= accountTracker.checkGoals(goalStore.getGoals());
-			if (updated)
-			{
-				goalStore.reconcileCompletedSection();
-				goalStore.save();
-				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-			}
-		}
+			java.util.List<Goal> goals = goalStore.getGoals();
+			boolean updated = questTracker.checkGoals(goals);
+			updated |= diaryTracker.checkGoals(goals);
+			updated |= combatAchievementTracker.checkGoals(goals);
+			updated |= accountTracker.checkGoals(goals);
+			flushIfUpdated(updated);
+		});
 	}
 
 	/**
@@ -774,7 +766,7 @@ public class GoalTrackerPlugin extends Plugin
 	 *   <li>One SKILLING tag per Skill enum value (Attack, Strength, ..., Sailing)
 	 *       — these are the read-only "skill tags" used for icon-based filtering</li>
 	 *   <li>"Pet" in the OTHER category with a pink color override —
-	 *       canonical pet collection tag (was SPECIAL category before Mission 19)</li>
+	 *       canonical pet collection tag</li>
 	 * </ul>
 	 *
 	 * <p>Other system tags (per-monster Boss/Raid, per-item source tags) are still
@@ -794,7 +786,7 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			com.goaltracker.model.Tag tag = goalStore.findOrCreateSystemTag(
 				skill.getName(), com.goaltracker.model.TagCategory.SKILLING);
-			// Mission 21: skill tags render via the new uniform iconKey path.
+			// Skill tags render via the uniform iconKey path.
 			// setTagIcon is idempotent on the same value.
 			if (tag != null)
 			{
@@ -818,7 +810,7 @@ public class GoalTrackerPlugin extends Plugin
 			}
 		}
 		// Pet: OTHER category with a per-tag pink color override. OTHER is the
-		// only category that supports per-tag colors in Mission 20+ — every
+		// only category that supports per-tag colors — every
 		// other category uses a category-wide color, but OTHER tags each
 		// carry their own. recolorTag is idempotent on the same value.
 		com.goaltracker.model.Tag pet = goalStore.findOrCreateSystemTag(
@@ -1208,16 +1200,11 @@ public class GoalTrackerPlugin extends Plugin
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
-		boolean updated = skillTracker.checkGoals(goalStore.getGoals());
-		if (updated)
-		{
-			// Same reconcile-after-tracker pattern as the GameTick and
-			// ItemContainerChanged handlers — newly-COMPLETE skill goals need
-			// to be pulled into the Completed section in the same EDT batch.
-			goalStore.reconcileCompletedSection();
-			goalStore.save();
-			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-		}
+		java.util.List<Goal> goals = goalStore.getGoals();
+		boolean updated = skillTracker.checkGoals(goals);
+		// Account metrics (combat level, total level) are derived from stats.
+		updated |= accountTracker.checkGoals(goals);
+		flushIfUpdated(updated);
 	}
 
 	/**
@@ -1230,34 +1217,29 @@ public class GoalTrackerPlugin extends Plugin
 	private void refreshItemGoalsNow()
 	{
 		clientThread.invokeLater(() ->
-		{
-			boolean updated = itemTracker.checkGoals(goalStore.getGoals());
-			if (updated)
-			{
-				goalStore.reconcileCompletedSection();
-				goalStore.save();
-				javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
-			}
-		});
+			flushIfUpdated(itemTracker.checkGoals(goalStore.getGoals())));
 	}
 
 	@Subscribe
 	public void onItemContainerChanged(ItemContainerChanged event)
 	{
-		// Only check items when bank or inventory changes
 		int containerId = event.getContainerId();
 		if (containerId != InventoryID.BANK.getId() && containerId != InventoryID.INVENTORY.getId())
 		{
 			return;
 		}
 
-		boolean updated = itemTracker.checkGoals(goalStore.getGoals());
+		flushIfUpdated(itemTracker.checkGoals(goalStore.getGoals()));
+	}
+
+	/**
+	 * Common flush after tracker updates: reconcile completed goals into
+	 * the Completed section, persist, and rebuild the UI on the EDT.
+	 */
+	private void flushIfUpdated(boolean updated)
+	{
 		if (updated)
 		{
-			// Reconcile so newly-COMPLETE goals get pulled into the Completed
-			// section. Without this, item goals could flip to COMPLETE but
-			// remain visually parked in their original section until the next
-			// GameTick pass (which DOES reconcile).
 			goalStore.reconcileCompletedSection();
 			goalStore.save();
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());

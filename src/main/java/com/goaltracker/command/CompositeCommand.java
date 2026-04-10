@@ -4,7 +4,7 @@ import java.util.List;
 
 /**
  * A single Command that wraps an ordered list of sub-commands so they
- * appear as one entry in undo/redo history. Mission 26.
+ * appear as one entry in undo/redo history.
  *
  * <p>Used by the create-and-position flow in GoalPanel where adding a goal
  * is followed by an immediate move/reposition: without compounding, the

@@ -2,69 +2,42 @@ package com.goaltracker.tracker;
 
 import com.goaltracker.api.GoalTrackerApiImpl;
 import com.goaltracker.model.Goal;
-import com.goaltracker.model.GoalStatus;
 import com.goaltracker.model.GoalType;
-import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.List;
 
 /**
  * Tracks achievement diary completion via varbits set by the game when a
- * diary tier is completed. The varbit ID for each (area, tier) is stored on
- * the Goal itself at creation time (see GoalTrackerPlugin.buildDiaryGoal),
- * so this tracker just polls each goal's stored varbit.
- *
- * Diary goals with varbitId == 0 (e.g. Karamja Easy/Medium/Hard, which lack
- * a named completion varbit in runelite-api) are skipped and stay manual.
+ * diary tier is completed. Goals with varbitId &lt;= 0 (e.g. Karamja
+ * Easy/Medium/Hard) are skipped and stay manual.
  */
-@Slf4j
 @Singleton
-public class DiaryTracker
+public class DiaryTracker extends AbstractTracker
 {
-	private final Client client;
-	private final GoalTrackerApiImpl api;
-
 	@Inject
 	public DiaryTracker(Client client, GoalTrackerApiImpl api)
 	{
-		this.client = client;
-		this.api = api;
+		super(client, api);
 	}
 
-	/**
-	 * Update all diary goals with current state from the game.
-	 * Returns true if any goal was updated. Mutations route through
-	 * {@link GoalTrackerApiImpl#recordGoalProgress(String, int)}.
-	 */
-	public boolean checkGoals(List<Goal> goals)
+	@Override
+	protected GoalType targetType()
 	{
-		boolean anyUpdated = false;
+		return GoalType.DIARY;
+	}
 
-		for (Goal goal : goals)
-		{
-			if (goal.getType() != GoalType.DIARY || goal.getStatus() != GoalStatus.ACTIVE)
-			{
-				continue;
-			}
+	@Override
+	protected boolean shouldTrack(Goal goal)
+	{
+		return goal.getVarbitId() > 0;
+	}
 
-			int varbitId = goal.getVarbitId();
-			if (varbitId <= 0)
-			{
-				// No tracking varbit (e.g. Karamja E/M/H) — leave manual.
-				continue;
-			}
-
-			int varbitValue = client.getVarbitValue(varbitId);
-			int newValue = varbitValue > 0 ? 1 : 0;
-			if (api.recordGoalProgress(goal.getId(), newValue))
-			{
-				anyUpdated = true;
-			}
-		}
-
-		return anyUpdated;
+	@Override
+	protected int readCurrentValue(Goal goal)
+	{
+		int varbitValue = client.getVarbitValue(goal.getVarbitId());
+		return varbitValue > 0 ? 1 : 0;
 	}
 }

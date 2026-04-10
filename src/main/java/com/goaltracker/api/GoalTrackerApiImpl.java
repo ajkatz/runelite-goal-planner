@@ -61,7 +61,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	/** Ephemeral selection set — not persisted, lost on plugin restart. */
 	private final java.util.Set<String> selectedGoalIds = new java.util.LinkedHashSet<>();
 
-	/** Mission 26: undo/redo history. Session-only. Tracker-driven mutations
+	/** Undo/redo history. Session-only. Tracker-driven mutations
 	 *  bypass this — only user actions routed through {@link #executeCommand}
 	 *  appear in history. */
 	private final com.goaltracker.command.CommandHistory commandHistory =
@@ -141,7 +141,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 		final String goalId = goal.getId();
 		final String displayName = goal.getName();
-		// Mission 30: wrap create + auto-link in a compound so one undo
+		// Wrap create + auto-link in a compound so one undo
 		// reverses the whole gesture (the new goal AND all the chain
 		// edges that got added to existing same-skill goals).
 		//
@@ -181,7 +181,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	/**
-	 * Mission 30: when a new SKILL or ITEM_GRIND goal is added, scan all
+	 * When a new SKILL or ITEM_GRIND goal is added, scan all
 	 * existing goals globally for same-identity same-type goals and
 	 * auto-link them based on target ordering:
 	 * <ul>
@@ -1086,7 +1086,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			if (tag != null) v.customTags.add(toTagView(tag));
 		}
 
-		// Mission 30+: resolve relations for the card hover tooltip.
+		// Resolve relations for the card hover tooltip.
 		// Skill-chain edges (same skill, different level) are internal
 		// bookkeeping and excluded from the display lists.
 		v.requiresNames = new ArrayList<>();
@@ -1285,7 +1285,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (goalId == null) return false;
 		Goal g = findGoal(goalId);
 		if (g == null) return false;
-		// Mission 30: delete with doubly-linked-list-style bridging. Before
+		// Delete with doubly-linked-list-style bridging. Before
 		// removing the node we snapshot its incoming edges and compute/apply
 		// bypass bridges (Pi → Sj for each predecessor/successor pair, minus
 		// duplicates). On revert we undo the bypasses, re-insert the goal at
@@ -1437,7 +1437,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		{
 			return false; // CA/quest/diary targets are immutable
 		}
-		// Mission 26: undoable. Snapshot previous target + name + description
+		// Undoable. Snapshot previous target + name + description
 		// since the display strings are auto-derived from the target.
 		final int prevTarget = g.getTargetValue();
 		final String prevName = g.getName();
@@ -1590,7 +1590,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 			.targetValue(1)
 			.currentValue(0)
 			.build();
-		// Mission 26: undoable. Wrap in a Command that adds/removes the same
+		// Undoable. Wrap in a Command that adds/removes the same
 		// Goal entity (preserving id) so redo restores the exact same goal
 		// and any later commands referencing it still resolve.
 		final String goalId = goal.getId();
@@ -1662,7 +1662,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (g == null) return false;
 		if (g.getType() != GoalType.CUSTOM && g.getType() != GoalType.ITEM_GRIND) return false;
 		if (g.getStatus() == com.goaltracker.model.GoalStatus.COMPLETE) return false; // already
-		// Mission 26: snapshot the previous current value + completedAt so the
+		// Snapshot the previous current value + completedAt so the
 		// undo Command can restore them exactly. The status flip is the obvious
 		// piece; the timestamp is the subtle one (revert needs to clear it).
 		final long prevCompletedAt = g.getCompletedAt();
@@ -1770,7 +1770,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	// ---------------------------------------------------------------------
-	// Bulk multi-selection actions (Mission 24)
+	// Bulk multi-selection actions
 	// ---------------------------------------------------------------------
 
 	@Override
@@ -1789,7 +1789,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		log.debug("API.internal bulkRestoreDefaults({} goals)", goalIds == null ? 0 : goalIds.size());
 		if (goalIds == null || goalIds.isEmpty()) return 0;
-		// Mission 26: snapshot every changed goal's pre-state for revert.
+		// Snapshot every changed goal's pre-state for revert.
 		// Snapshot list is the source of truth for both apply (forward) and
 		// revert — the Command operates on this exact set, not a re-derived one.
 		final java.util.List<String[]> snapshots = new java.util.ArrayList<>(); // [goalId, prevColor, prevTagsCsv]
@@ -1847,7 +1847,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal bulkRemoveTagFromGoals({} goals, tagId={})",
 			goalIds == null ? 0 : goalIds.size(), tagId);
 		if (goalIds == null || goalIds.isEmpty() || tagId == null) return 0;
-		// Mission 26: snapshot which goals will lose this tag and at what
+		// Snapshot which goals will lose this tag and at what
 		// index, so revert can re-insert at the same position.
 		final String fTagId = tagId;
 		final java.util.List<int[]> snapshots = new java.util.ArrayList<>(); // unused
@@ -2041,7 +2041,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	// ---------------------------------------------------------------------
-	// Undo / redo (Mission 26)
+	// Undo / redo
 	// ---------------------------------------------------------------------
 
 	/**
@@ -2092,11 +2092,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 	private Goal findGoal(String goalId)
 	{
-		for (Goal g : goalStore.getGoals())
-		{
-			if (g.getId().equals(goalId)) return g;
-		}
-		return null;
+		return goalStore.findGoalById(goalId);
 	}
 
 	// ===== Internal API =====
@@ -2123,7 +2119,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		String targetSectionId = goals.get(newGlobalIndex).getSectionId();
 		if (sourceSectionId == null || !sourceSectionId.equals(targetSectionId)) return false;
 
-		// Mission 26: snapshot the FROM global index so revert can move it
+		// Snapshot the FROM global index so revert can move it
 		// back. Setting priority alone isn't enough — normalizeOrder has a
 		// stable-sort tie-breaker that doesn't distinguish the moved goal
 		// from its neighbors at the same priority. The inverse of "move from
@@ -2237,7 +2233,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");
-		// Mission 26: snapshot every goal so revert can re-add them all in
+		// Snapshot every goal so revert can re-add them all in
 		// their original order. The Goal entities are kept by reference; this
 		// is fine because removeGoal pops them out of the live list and we
 		// stash them in a side collection.
@@ -2470,7 +2466,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public int removeAllUserSections()
 	{
 		log.debug("API.internal removeAllUserSections()");
-		// Mission 26: snapshot user sections + which goals were in each so we
+		// Snapshot user sections + which goals were in each so we
 		// can recreate everything on revert.
 		final java.util.List<Section> sectionSnapshots = new ArrayList<>();
 		final java.util.Map<String, java.util.List<String>> goalsBySection = new java.util.HashMap<>();
@@ -2559,7 +2555,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (g == null) return false;
 		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
 		if (g.getCustomColorRgb() == normalized) return false;
-		// Mission 26: undoable. Snapshot the previous color so revert restores it.
+		// Undoable. Snapshot the previous color so revert restores it.
 		final int previousColor = g.getCustomColorRgb();
 		final String name = g.getName();
 		return executeCommand(new com.goaltracker.command.Command()
@@ -2582,7 +2578,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override
 	public boolean setTagColor(String goalId, String tagLabel, int colorRgb)
 	{
-		// Mission 20: per-tag colors are OTHER-only. For OTHER tags this
+		// Per-tag colors are OTHER-only. For OTHER tags this
 		// stores the color on the tag entity; for other categories it
 		// delegates to setCategoryColor which affects every tag in the
 		// category. SKILLING is rejected.
@@ -2783,7 +2779,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	// ---------------------------------------------------------------------
-	// Tag entity CRUD (Mission 19)
+	// Tag entity CRUD
 	// ---------------------------------------------------------------------
 
 	@Override
@@ -3018,7 +3014,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	// =====================================================================
-	// Relations — Mission 30
+	// Relations
 	// =====================================================================
 
 	@Override

@@ -30,7 +30,7 @@ public interface GoalTrackerInternalApi
 	/**
 	 * Move a goal to a specific position within a section. Combines
 	 * {@link #moveGoalToSection} + an in-section reorder. Used by the
-	 * Mission 25 contextual Add Goal flow to drop newly-created goals at
+	 * Contextual Add Goal flow to drop newly-created goals at
 	 * the user's chosen anchor point. Position is 0-based within the
 	 * section's goal list (0 = top, size = bottom). Position values out
 	 * of range are clamped.
@@ -40,7 +40,7 @@ public interface GoalTrackerInternalApi
 	boolean positionGoalInSection(String goalId, String sectionId, int positionInSection);
 
 	// ---------------------------------------------------------------------
-	// Undo / redo (Mission 26)
+	// Undo / redo
 	// ---------------------------------------------------------------------
 
 	/** True if there is at least one user action available to undo. */
@@ -75,7 +75,7 @@ public interface GoalTrackerInternalApi
 	 * into a single undo entry instead of pushing individually. Pair with
 	 * {@link #endCompound()} to close. Used by multi-step flows like
 	 * "create goal and immediately reposition" where the user expects one
-	 * undo to fully reverse the operation. Mission 26.
+	 * undo to fully reverse the operation.
 	 */
 	void beginCompound(String description);
 
@@ -227,7 +227,7 @@ public interface GoalTrackerInternalApi
 	 * performs a single {@code goalStore.save() + reconcileCompletedSection()
 	 * + panel.rebuild()} once at the end of each tick if anything updated.
 	 * Firing the callback per goal would defeat the over-querying cleanup
-	 * from Mission 10.
+	 *
 	 *
 	 * @return true if the goal was mutated, false if no change
 	 */
@@ -264,7 +264,7 @@ public interface GoalTrackerInternalApi
 
 	/**
 	 * Clear the entire selection. Used by single-click on an already-selected
-	 * card per the click semantics in Mission 15.
+	 * card per the click semantics.
 	 *
 	 * @return true if the selection was non-empty before
 	 */
@@ -309,7 +309,7 @@ public interface GoalTrackerInternalApi
 	boolean addTagWithCategory(String goalId, String label, String categoryName);
 
 	// ---------------------------------------------------------------------
-	// Tag entity CRUD (Mission 19)
+	// Tag entity CRUD
 	// ---------------------------------------------------------------------
 
 	/**
@@ -338,7 +338,7 @@ public interface GoalTrackerInternalApi
 	java.util.List<GoalView> searchGoals(String query);
 
 	// ---------------------------------------------------------------------
-	// Bulk multi-selection actions (Mission 24)
+	// Bulk multi-selection actions
 	// ---------------------------------------------------------------------
 
 	/**
@@ -352,7 +352,7 @@ public interface GoalTrackerInternalApi
 	 * Reset every eligible goal in the selection back to its defaults: tagIds
 	 * = defaultTagIds, customColorRgb = -1. Ineligible goals (none of those
 	 * are overridden) are skipped silently. Fires a single onGoalsChanged at
-	 * the end. Mission 24.
+	 * the end.
 	 *
 	 * @return number of goals actually changed
 	 */
@@ -362,7 +362,7 @@ public interface GoalTrackerInternalApi
 	 * Remove a tag from every selected goal where it is both present and
 	 * removable. CUSTOM goals can drop any tag; non-CUSTOM goals can only
 	 * drop tags NOT in defaultTagIds. Skips silently otherwise. Fires a
-	 * single onGoalsChanged. Mission 24.
+	 * single onGoalsChanged.
 	 *
 	 * @return number of goals from which the tag was removed
 	 */
@@ -373,7 +373,6 @@ public interface GoalTrackerInternalApi
 	 * {@link #removeGoal} in a compound loop, this captures every goal's
 	 * original priority BEFORE any removals so undo restores them to their
 	 * exact original positions (no collapsing at an intermediate index).
-	 * Mission 26 follow-up.
 	 *
 	 * @return number of goals actually removed
 	 */
@@ -382,8 +381,7 @@ public interface GoalTrackerInternalApi
 	/**
 	 * Move a batch of goals into the same target section as a single atomic
 	 * command. Captures every goal's original section + priority upfront so
-	 * undo restores them to their exact original positions. Mission 26
-	 * follow-up.
+	 * undo restores them to their exact original positions.
 	 *
 	 * @return number of goals actually moved
 	 */
@@ -393,13 +391,12 @@ public interface GoalTrackerInternalApi
 	 * For a set of selected goals, return every removable tag (deduped) with
 	 * a count of how many goals in the selection have it (and where it's
 	 * removable). Sorted by count descending then by label ascending. Used
-	 * to populate the bulk Remove Tag dropdown. Mission 24.
+	 * to populate the bulk Remove Tag dropdown.
 	 */
 	java.util.List<TagRemovalOption> getRemovableTagsForSelection(java.util.Set<String> goalIds);
 
 	/**
 	 * Lightweight DTO returned by {@link #getRemovableTagsForSelection}.
-	 * Mission 24.
 	 */
 	final class TagRemovalOption
 	{
@@ -453,7 +450,7 @@ public interface GoalTrackerInternalApi
 	boolean deleteTag(String tagId);
 
 	/**
-	 * Set a per-category color override (Mission 20). Affects every tag in
+	 * Set a per-category color override. Affects every tag in
 	 * the given category. SKILLING is read-only (returns false) — skill icon
 	 * tags ignore the category color anyway.
 	 *
@@ -477,7 +474,7 @@ public interface GoalTrackerInternalApi
 	boolean isCategoryColorOverridden(String categoryName);
 
 	/**
-	 * Set an icon on a tag (Mission 21). Works on any tag including system tags.
+	 * Set an icon on a tag. Works on any tag including system tags.
 	 * Pass null or empty to clear. The iconKey is resolved at render time:
 	 * Skill enum names go to SkillIconManager; everything else looks up
 	 * {@code /icons/<key>.png} from the bundled classpath resources. Icons
@@ -491,7 +488,7 @@ public interface GoalTrackerInternalApi
 	boolean clearTagIcon(String tagId);
 
 	// =====================================================================
-	// Relations — Mission 30
+	// Relations
 	// Goal-to-goal "requires" edges forming a DAG. Relations cross sections
 	// freely; topo sort is per-section (session 2).
 	// =====================================================================

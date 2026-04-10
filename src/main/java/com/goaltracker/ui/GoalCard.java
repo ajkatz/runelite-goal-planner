@@ -85,7 +85,7 @@ public class GoalCard extends JPanel
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		// Tooltip composition order (Mission 30): base tooltip from the type
+		// Tooltip composition order: base tooltip from the type
 		// (CA task description, etc.) or truncated-name fallback, PLUS the
 		// relation info (Requires / Required by) if any edges exist. Built
 		// as HTML so multiple lines render cleanly.
@@ -293,7 +293,7 @@ public class GoalCard extends JPanel
 
 	private JComponent createTagComponent(TagView tag)
 	{
-		// Mission 21: uniform icon resolver. If the tag has an iconKey, try
+		// Uniform icon resolver. If the tag has an iconKey, try
 		// to resolve it via SkillIconManager (for Skill enum names) then via
 		// bundled /icons/<key>.png. Falls through to colored pill if both fail.
 		if (tag.iconKey != null && !tag.iconKey.isEmpty())
@@ -694,7 +694,6 @@ public class GoalCard extends JPanel
 	 * </ol>
 	 *
 	 * <p>Returns null if all three sections are empty (no tooltip at all).
-	 * Mission 30.
 	 */
 	private static String buildTooltipHtml(GoalView view, SkillIconManager skillIconManager)
 	{

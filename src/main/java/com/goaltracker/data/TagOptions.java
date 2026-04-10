@@ -2,7 +2,9 @@ package com.goaltracker.data;
 
 import com.goaltracker.model.TagCategory;
 
-import java.util.*;
+import java.util.Arrays;
+import java.util.EnumMap;
+import java.util.Map;
 
 /**
  * Known tag labels per category for the Add Tag dialog.

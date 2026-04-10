@@ -14,7 +14,7 @@ import lombok.NoArgsConstructor;
  * get back the actual {@link Tag} entity (with an id), which the goal
  * then references via its {@code tagIds} list.
  *
- * <p>Mission 19 (tag refactor): the previous version of this class held
+ * <p>The previous version of this class held
  * persisted color overrides and was embedded in {@code Goal.tags}. That
  * model is gone — tags are now first-class entities. This class exists
  * solely as a value type for the data layer.

@@ -1,7 +1,7 @@
 package com.goaltracker.command;
 
 /**
- * A reversible user action on the goal tracker (Mission 26).
+ * A reversible user action on the goal tracker.
  *
  * <p>Commands carry the state needed to revert themselves at construction
  * time — typically a snapshot of "before" values plus the parameters of the

@@ -6,7 +6,7 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
- * In-memory undo / redo stack for {@link Command} entries (Mission 26).
+ * In-memory undo / redo stack for {@link Command} entries.
  *
  * <p>Standard semantics:
  * <ul>
@@ -36,7 +36,7 @@ public class CommandHistory
 	private final Deque<Command> undoStack = new ArrayDeque<>();
 	private final Deque<Command> redoStack = new ArrayDeque<>();
 
-	/** Mission 26: when non-null, execute() appends to this buffer instead of
+	/** When non-null, execute() appends to this buffer instead of
 	 *  pushing to undoStack. endCompound() collapses the buffer into a single
 	 *  CompositeCommand and pushes it. */
 	private java.util.List<Command> compoundBuffer = null;

@@ -32,7 +32,7 @@ import java.util.List;
  * Rename / Recolor / Delete actions. Used for the entity-level operations
  * that don't fit naturally on individual goal cards.
  *
- * <p>System tag rules apply (Mission 19):
+ * <p>System tag rules apply:
  * <ul>
  *   <li>System tags can NOT be renamed (button disabled)</li>
  *   <li>System tags in the SKILLING category can NOT be recolored (button disabled)</li>
@@ -153,7 +153,7 @@ public class TagManagementDialog extends JDialog
 		listPanel.setLayout(new BoxLayout(listPanel, BoxLayout.Y_AXIS));
 		listPanel.setBorder(new EmptyBorder(8, 8, 8, 8));
 
-		// Category color header — Mission 20. Skipped for the All tab and the
+		// Category color header. Skipped for the All tab and the
 		// OTHER tab (which uses per-tag colors instead). SKILLING DOES get
 		// the header — system skill tags render as icons (color ignored) but
 		// user-created SKILLING tags fall through to colored pills where the
@@ -276,7 +276,7 @@ public class TagManagementDialog extends JDialog
 		row.setMaximumSize(new Dimension(Integer.MAX_VALUE, 36));
 		row.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		// Mission 21: when an icon is set, render the icon in place of the
+		// When an icon is set, render the icon in place of the
 		// color swatch. The resolved icon mirrors the in-card render path so
 		// the user sees the same image they'll see on goal cards.
 		java.awt.Component swatch;
@@ -337,7 +337,7 @@ public class TagManagementDialog extends JDialog
 		rename.addActionListener(e -> handleRename(tag));
 		actions.add(rename);
 
-		// Mission 20: per-tag recolor is OTHER-only. Other categories use the
+		// Per-tag recolor is OTHER-only. Other categories use the
 		// per-tab category color header. SKILLING is fully read-only.
 		JButton recolor = new JButton("Recolor");
 		recolor.setMargin(new java.awt.Insets(2, 6, 2, 6));
