@@ -1908,6 +1908,17 @@ public final class QuestRequirements
 	);
 
 	// ============================================================
+	// Recommended skills (wiki-sourced suggestions, not hard
+	// requirements). Seeded as optional goals.
+	// ============================================================
+	private static final Map<Quest, List<SkillReq>> RECOMMENDED_SKILLS = new EnumMap<>(Quest.class);
+
+	static
+	{
+		RECOMMENDED_SKILLS.put(Quest.DRAGON_SLAYER_I, List.of(new SkillReq(Skill.MAGIC, 33)));
+	}
+
+	// ============================================================
 	// Recommended combat levels (wiki-sourced suggestions, not hard
 	// requirements). Seeded as optional goals.
 	// ============================================================
@@ -2065,6 +2076,16 @@ public final class QuestRequirements
 	}
 
 	/**
+	 * Recommended skills for a quest (wiki suggestions, not hard requirements).
+	 * Seeded as optional goals. Returns an empty list if none.
+	 */
+	public static List<SkillReq> recommendedSkills(Quest quest)
+	{
+		if (quest == null) return Collections.emptyList();
+		return RECOMMENDED_SKILLS.getOrDefault(quest, Collections.emptyList());
+	}
+
+	/**
 	 * Recommended combat level for a quest (wiki suggestion), or 0 if none.
 	 * Not a hard requirement — seeded as an optional goal.
 	 */
@@ -2102,7 +2123,8 @@ public final class QuestRequirements
 		if (r == null) return false;
 		return !r.skills.isEmpty() || !r.prereqQuests.isEmpty()
 			|| r.questPoints > 0 || r.combatLevel > 0 || r.kudos > 0
-			|| recommendedCombatLevel(quest) > 0;
+			|| recommendedCombatLevel(quest) > 0
+			|| !recommendedSkills(quest).isEmpty();
 	}
 
 	private QuestRequirements() {}

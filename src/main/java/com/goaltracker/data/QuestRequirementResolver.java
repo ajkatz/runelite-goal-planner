@@ -225,6 +225,28 @@ public final class QuestRequirementResolver
 			}
 		}
 
+		// Recommended skills (wiki suggestions) — seeded as optional.
+		// Only added for skills not already in the hard requirements.
+		java.util.Set<String> hardSkillNames = new java.util.HashSet<>();
+		for (QuestRequirements.SkillReq req : reqs.skills)
+		{
+			hardSkillNames.add(req.skill.name());
+		}
+		for (QuestRequirements.SkillReq rec : QuestRequirements.recommendedSkills(quest))
+		{
+			if (hardSkillNames.contains(rec.skill.name())) continue;
+			int currentLevel = skillLevelLookup.applyAsInt(rec.skill);
+			if (currentLevel >= rec.level) continue;
+			int targetXp = Experience.getXpForLevel(rec.level);
+			templates.add(Goal.builder()
+				.type(GoalType.SKILL)
+				.name(rec.skill.getName() + " - Level " + rec.level + " (recommended)")
+				.skillName(rec.skill.name())
+				.targetValue(targetXp)
+				.optional(true)
+				.build());
+		}
+
 		return new Resolved(templates, skippedSkills, skippedQuests, reqs.questPoints, reqs.combatLevel);
 	}
 
