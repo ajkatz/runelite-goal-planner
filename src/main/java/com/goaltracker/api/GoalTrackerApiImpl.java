@@ -210,7 +210,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	{
 		if (newGoal == null) return;
 		GoalType type = newGoal.getType();
-		if (type != GoalType.SKILL && type != GoalType.ITEM_GRIND) return;
+		if (type != GoalType.SKILL && type != GoalType.ITEM_GRIND && type != GoalType.ACCOUNT) return;
 
 		String newId = newGoal.getId();
 		int newTarget = newGoal.getTargetValue();
@@ -227,6 +227,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				if (newGoal.getSkillName() == null
 					|| other.getSkillName() == null
 					|| !newGoal.getSkillName().equals(other.getSkillName())) continue;
+			}
+			else if (type == GoalType.ACCOUNT)
+			{
+				if (newGoal.getAccountMetric() == null
+					|| other.getAccountMetric() == null
+					|| !newGoal.getAccountMetric().equals(other.getAccountMetric())) continue;
 			}
 			else // ITEM_GRIND
 			{
@@ -1177,14 +1183,21 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	}
 
 	/**
-	 * True when both goals are SKILL type with the same skill — these are
-	 * implicit chain links (e.g. 40 Prayer → 60 Prayer) that should not
-	 * clutter the tooltip.
+	 * True when both goals are implicit chain links that should not
+	 * clutter the tooltip: same-skill edges (40 Prayer → 60 Prayer)
+	 * or same-metric account edges (96 Combat → 126 Combat).
 	 */
 	private static boolean isSkillChainEdge(Goal a, Goal b)
 	{
-		if (a.getType() != GoalType.SKILL || b.getType() != GoalType.SKILL) return false;
-		return a.getSkillName() != null && a.getSkillName().equals(b.getSkillName());
+		if (a.getType() == GoalType.SKILL && b.getType() == GoalType.SKILL)
+		{
+			return a.getSkillName() != null && a.getSkillName().equals(b.getSkillName());
+		}
+		if (a.getType() == GoalType.ACCOUNT && b.getType() == GoalType.ACCOUNT)
+		{
+			return a.getAccountMetric() != null && a.getAccountMetric().equals(b.getAccountMetric());
+		}
+		return false;
 	}
 
 	private static GoalView.RelationView toRelationView(Goal g)
@@ -1526,17 +1539,26 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 		final String goalId = goal.getId();
 		final String displayName = goalName;
-		executeCommand(new com.goaltracker.command.Command()
+		beginCompound("Add goal: " + displayName);
+		try
 		{
-			@Override public boolean apply()
+			executeCommand(new com.goaltracker.command.Command()
 			{
-				if (findGoal(goalId) != null) return false;
-				goalStore.addGoal(goal);
-				return true;
-			}
-			@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
-			@Override public String getDescription() { return "Add account goal: " + displayName; }
-		});
+				@Override public boolean apply()
+				{
+					if (findGoal(goalId) != null) return false;
+					goalStore.addGoal(goal);
+					return true;
+				}
+				@Override public boolean revert() { goalStore.removeGoal(goalId); return true; }
+				@Override public String getDescription() { return "Add account goal: " + displayName; }
+			});
+			autoLinkSkillOrItemChain(goal);
+		}
+		finally
+		{
+			endCompound();
+		}
 		log.info("addAccountGoal created: {} ({})", goalId, goalName);
 		return goalId;
 	}

@@ -88,6 +88,9 @@ public class GoalTrackerPlugin extends Plugin
 	private com.goaltracker.tracker.AccountTracker accountTracker;
 
 	@Inject
+	private net.runelite.client.plugins.PluginManager pluginManager;
+
+	@Inject
 	private SkillIconManager skillIconManager;
 
 	@Inject
@@ -143,6 +146,7 @@ public class GoalTrackerPlugin extends Plugin
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
 			goalTrackerApi, goalReorderingService, this::openItemSearch);
 		panel.setClient(client);
+		panel.setQuestHelperCallback(this::openQuestInHelper, this::isQuestHelperAvailable);
 
 		// Wire the API's UI-refresh hook so external addGoal calls trigger a rebuild
 		// on the Swing thread.
@@ -529,6 +533,74 @@ public class GoalTrackerPlugin extends Plugin
 					"Invalid", javax.swing.JOptionPane.WARNING_MESSAGE);
 			}
 		}
+	}
+
+	private boolean isQuestHelperAvailable()
+	{
+		for (net.runelite.client.plugins.Plugin plugin : pluginManager.getPlugins())
+		{
+			if (plugin.getClass().getSimpleName().equals("QuestHelperPlugin")
+				&& pluginManager.isPluginEnabled(plugin))
+			{
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Attempt to open a quest in the Quest Helper plugin. Uses reflection
+	 * since Quest Helper is a plugin-hub plugin with no compile-time dependency.
+	 */
+	private void openQuestInHelper(String questEnumName)
+	{
+		for (net.runelite.client.plugins.Plugin plugin : pluginManager.getPlugins())
+		{
+			if (!plugin.getClass().getSimpleName().equals("QuestHelperPlugin")) continue;
+			if (!pluginManager.isPluginEnabled(plugin)) continue;
+			try
+			{
+				net.runelite.api.Quest quest = net.runelite.api.Quest.valueOf(questEnumName);
+				String displayName = quest.getName();
+
+				// QuestHelperQuest.getByName(displayName) → QuestHelper
+				Class<?> qhqClass = Class.forName("com.questhelper.questinfo.QuestHelperQuest",
+					true, plugin.getClass().getClassLoader());
+				java.lang.reflect.Method getByName = qhqClass.getMethod("getByName", String.class);
+				Object questHelper = getByName.invoke(null, displayName);
+				if (questHelper == null)
+				{
+					log.warn("Quest Helper has no helper for '{}'", displayName);
+					break;
+				}
+
+				// questManager.startUpQuest(questHelper, true)
+				java.lang.reflect.Method getQm = plugin.getClass().getMethod("getQuestManager");
+				Object questManager = getQm.invoke(plugin);
+				if (questManager == null) break;
+
+				// Find startUpQuest method by scanning — the parameter type
+				// may not match exactly via getMethod due to classloader boundaries.
+				java.lang.reflect.Method startUp = null;
+				for (java.lang.reflect.Method m : questManager.getClass().getMethods())
+				{
+					if ("startUpQuest".equals(m.getName()) && m.getParameterCount() == 2)
+					{
+						startUp = m;
+						break;
+					}
+				}
+				if (startUp == null) break;
+				startUp.invoke(questManager, questHelper, true);
+				log.info("Opened {} in Quest Helper", displayName);
+				return;
+			}
+			catch (Exception e)
+			{
+				log.warn("Failed to open quest in Quest Helper: {}", e.getMessage(), e);
+			}
+		}
+		log.info("Quest Helper not available for quest {}", questEnumName);
 	}
 
 	/** Quest list widget group ID (InterfaceID.QUESTLIST). */

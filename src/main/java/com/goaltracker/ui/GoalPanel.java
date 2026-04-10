@@ -88,6 +88,18 @@ public class GoalPanel extends PluginPanel
 	private JButton undoButton;
 	private JButton redoButton;
 
+	/** Callback to open a quest in Quest Helper. */
+	private java.util.function.Consumer<String> questHelperCallback;
+	/** Checks whether Quest Helper is currently available. */
+	private java.util.function.Supplier<Boolean> questHelperAvailable;
+
+	public void setQuestHelperCallback(java.util.function.Consumer<String> callback,
+									   java.util.function.Supplier<Boolean> available)
+	{
+		this.questHelperCallback = callback;
+		this.questHelperAvailable = available;
+	}
+
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goaltracker.api.GoalTrackerApiImpl api,
@@ -137,28 +149,16 @@ public class GoalPanel extends PluginPanel
 			JMenuItem removeSelected = new JMenuItem("Remove selected goals\u2026"
 				+ (selected.isEmpty() ? "" : " (" + selected.size() + ")"));
 			removeSelected.setEnabled(!selected.isEmpty());
-			removeSelected.addActionListener(ev -> {
-				int confirm = JOptionPane.showConfirmDialog(this,
-					"Remove " + selected.size() + " selected goal"
-						+ (selected.size() == 1 ? "" : "s") + "?",
-					"Remove selected", JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
-				if (confirm != JOptionPane.YES_OPTION) return;
-				api.bulkRemoveGoals(new java.util.LinkedHashSet<>(selected));
-			});
+			removeSelected.addActionListener(ev ->
+				api.bulkRemoveGoals(new java.util.LinkedHashSet<>(selected)));
 			popup.add(removeSelected);
 			popup.addSeparator();
 
-			JMenuItem removeAllGoals = new JMenuItem("Remove all goals\u2026");
-			removeAllGoals.addActionListener(ev -> twoStepConfirmAndRun(
-				"Remove all goals?",
-				"Are you sure? This cannot be undone.",
-				api::removeAllGoals));
+			JMenuItem removeAllGoals = new JMenuItem("Remove all goals");
+			removeAllGoals.addActionListener(ev -> api.removeAllGoals());
 			popup.add(removeAllGoals);
-			JMenuItem removeAllSections = new JMenuItem("Remove all sections\u2026");
-			removeAllSections.addActionListener(ev -> twoStepConfirmAndRun(
-				"Delete all custom sections?",
-				"Are you sure? Goals in them will move to Incomplete. This cannot be undone.",
-				api::removeAllUserSections));
+			JMenuItem removeAllSections = new JMenuItem("Remove all sections");
+			removeAllSections.addActionListener(ev -> api.removeAllUserSections());
 			popup.add(removeAllSections);
 			popup.show(removeButton, 0, removeButton.getHeight());
 		});
@@ -851,17 +851,6 @@ public class GoalPanel extends PluginPanel
 	 * Two-step yes/no confirmation guard for destructive actions. Mission 25.
 	 * The action only runs if the user clicks Yes on BOTH dialogs in sequence.
 	 */
-	private void twoStepConfirmAndRun(String firstPrompt, String secondPrompt, Runnable action)
-	{
-		int first = JOptionPane.showConfirmDialog(this, firstPrompt, "Confirm",
-			JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
-		if (first != JOptionPane.YES_OPTION) return;
-		int second = JOptionPane.showConfirmDialog(this, secondPrompt, "Are you sure?",
-			JOptionPane.YES_NO_OPTION, JOptionPane.PLAIN_MESSAGE);
-		if (second != JOptionPane.YES_OPTION) return;
-		action.run();
-	}
-
 	/**
 	 * Walk the canonical goal order from the API and return the slice of ids
 	 * between (and including) anchorId and clickedId. The order is the same
@@ -1120,6 +1109,17 @@ public class GoalPanel extends PluginPanel
 			menu.add(editQty);
 		}
 
+		// Quest Helper link — only shown for incomplete quest goals when
+		// Quest Helper is available.
+		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null
+			&& !goal.isComplete() && questHelperCallback != null
+			&& questHelperAvailable != null && questHelperAvailable.get())
+		{
+			JMenuItem qhItem = new JMenuItem("Open in Quest Helper");
+			qhItem.addActionListener(e -> questHelperCallback.accept(goal.getQuestName()));
+			menu.add(qhItem);
+		}
+
 		// Tag management — routes through the shared TagPickerDialog so the
 		// single-item and bulk Add Tag flows stay in lockstep (category list,
 		// SKILLING lock, freeform/dropdown switch).
@@ -1269,15 +1269,7 @@ if (!removableTags.isEmpty())
 		}
 
 		JMenuItem remove = new JMenuItem("Remove Goal");
-		remove.addActionListener(e -> {
-			int confirm = JOptionPane.showConfirmDialog(
-				this,
-				"Remove \"" + goal.getName() + "\"?",
-				"Remove Goal",
-				JOptionPane.YES_NO_OPTION,
-				JOptionPane.PLAIN_MESSAGE);
-			if (confirm == JOptionPane.YES_OPTION) api.removeGoal(goal.getId());
-		});
+		remove.addActionListener(e -> api.removeGoal(goal.getId()));
 		menu.add(remove);
 
 		return menu;
@@ -1427,14 +1419,6 @@ if (!removableTags.isEmpty())
 		// 5. Remove
 		JMenuItem remove = new JMenuItem("Remove Goals");
 		remove.addActionListener(e -> {
-			int confirm = JOptionPane.showConfirmDialog(
-				this,
-				"Remove " + selectionSize + " goals?",
-				"Remove Goals",
-				JOptionPane.YES_NO_OPTION,
-				JOptionPane.PLAIN_MESSAGE
-			);
-			if (confirm != JOptionPane.YES_OPTION) return;
 			java.util.LinkedHashSet<String> ids = new java.util.LinkedHashSet<>();
 			for (Goal g : selectedGoals) ids.add(g.getId());
 			api.bulkRemoveGoals(ids);
