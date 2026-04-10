@@ -1,27 +1,27 @@
-# Mission: Account-wide goal types
+# Mission: Fill in remaining quest requirements
 Date: 2026-04-09
-Status: complete
+Status: active
 
 ## Goal
-Implement account-wide goal types (quest points, combat level, total level,
-CA points, slayer points, museum kudos) with live tracking, UI creation,
-and quest prereq seeder integration.
+Populate requirements (skills, prereq quests, QP, combat level, kudos) for
+all quests in the RuneLite Quest enum. Wiki-source all data.
 
-## Outcome
-- New GoalType.ACCOUNT with AccountMetric subtypes
-- AccountTracker reads live client state per metric
-- addAccountGoal API with validation caps per metric
-- Add Goal dialog: Account type with metric dropdown, CA tier shortcuts, Max button
-- Right-click menu: character summary CA → per-tier entries, QP → prompt
-- Quest prereq seeder produces QP/combat/kudos account goals
-- CA goals show tier-appropriate sword sprites + tier label in name
-- Skill levels always show >= 1
-- Music tracks deferred (no reliable bulk API)
+## Sub-goals
+- [x] S1 — Fill in 3 DT2 stubs (Secrets of the North, Garden of Death, His Faithful Servants)
+- [x] S2 — Add all 91 missing quests from the RuneLite Quest enum
+- [x] S3 — Add QP/XP/lamp reward data for all new entries
+- [x] S4 — Update tests and build
 
-## Learnings
-- MUSICMULTI varps are for playlists, not unlock tracking
-- Music unlock state requires per-track script callbacks
-- CA_POINTS varbit (14815) gives total points directly
-- Character summary pane is group 712, child 3
-- Total level box doesn't generate right-click menus
-- Bone Voyage requires 100 kudos (added kudos field to Reqs)
+## Predictions
+- Completion: All 209 quests covered
+- Confidence: High
+- Risks: Sailing skill not in RuneLite API (omitted from requirements)
+- Estimated cost: N/A (local dev)
+
+## Tasks Log
+- Filled 3 DT2 stubs + 9 transitive deps (SotN chain, Making Friends, Swan Song, etc.)
+- Added 91 new quest entries covering E-Z + Varlamore + Sailing + RFD chain
+- All 209 RuneLite Quest enum values now have TABLE entries
+- Added QP_REWARDS, XP_REWARDS, LAMP_REWARD entries for all new quests
+- Fixed null-for-missing-quest tests (RATCATCHERS now in table)
+- Sailing skill requirements omitted (not in RuneLite API yet)

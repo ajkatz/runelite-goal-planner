@@ -17,28 +17,14 @@ import net.runelite.api.Skill;
  * feeds each entry through {@code findOrCreateRequirement} inside a
  * compound command.
  *
- * <p><b>Proof-of-concept coverage.</b> This initial table is
- * intentionally small (a handful of quests spanning zero-req, single-
- * skill, multi-quest, and stress-test cases) to validate the data shape
- * and consumer flow. Full coverage is a follow-up and will likely
- * migrate to a resource file if the table grows enough to make .java
- * edits painful.
+ * <p><b>Coverage.</b> This table covers all 209 quests in the
+ * RuneLite {@link Quest} enum. Requirements are wiki-sourced.
+ * Sailing skill requirements are omitted (not yet in RuneLite API).
  *
- * <p><b>Stubbed non-goal requirements.</b> Two flavors of requirement
- * aren't yet expressible as goals and are recorded-but-not-seeded:
- * <ul>
- *   <li><b>Quest points</b> (e.g. Dragon Slayer II = 200 QP) — waits
- *       for the "Account-wide goals" roadmap item to land a QP goal
- *       type.</li>
- *   <li><b>Combat level</b> (e.g. Dream Mentor = 85 Combat) — combat
- *       level is derived from skill levels, so it'll probably become
- *       its own account-wide goal too.</li>
- * </ul>
- * Both are passed through the resolver as bookkeeping fields on
- * {@code Resolved} so the consumer can log a TODO with the parent
- * quest context. Grep {@code questPoints > 0} and
- * {@code combatLevel > 0} to find all the stub sites when those goal
- * types ship.
+ * <p><b>Account-wide requirements.</b> Quest points, combat level,
+ * and museum kudos are recorded as numeric fields on {@link Reqs} and
+ * resolved into {@code GoalType.ACCOUNT} goal templates by the
+ * {@link QuestRequirementResolver}.
  */
 public final class QuestRequirements
 {
@@ -767,9 +753,89 @@ public final class QuestRequirements
 				Quest.BELOW_ICE_MOUNTAIN,
 				Quest.HIS_FAITHFUL_SERVANTS),
 			0, 0);
-		// DT2 dependency stubs (requirements TBD in later missions)
+		// --- Secrets of the North chain (wiki-sourced 2026-04-09) ---
+
+		// Secrets of the North: Agility 69, Thieving 64, Hunter 56 + quest chain.
 		put(Quest.SECRETS_OF_THE_NORTH,
+			List.of(
+				new SkillReq(Skill.AGILITY, 69),
+				new SkillReq(Skill.THIEVING, 64),
+				new SkillReq(Skill.HUNTER, 56)),
+			List.of(
+				Quest.MAKING_FRIENDS_WITH_MY_ARM,
+				Quest.THE_GENERALS_SHADOW,
+				Quest.DEVIOUS_MINDS,
+				Quest.HAZEEL_CULT),
+			0, 0);
+
+		// Making Friends with My Arm: Firemaking 66, Mining 72, Construction 35, Agility 68.
+		put(Quest.MAKING_FRIENDS_WITH_MY_ARM,
+			List.of(
+				new SkillReq(Skill.FIREMAKING, 66),
+				new SkillReq(Skill.MINING, 72),
+				new SkillReq(Skill.CONSTRUCTION, 35),
+				new SkillReq(Skill.AGILITY, 68)),
+			List.of(
+				Quest.MY_ARMS_BIG_ADVENTURE,
+				Quest.SWAN_SONG,
+				Quest.COLD_WAR,
+				Quest.ROMEO__JULIET),
+			0, 0);
+		// My Arm's Big Adventure: Farming 29, Woodcutting 10.
+		put(Quest.MY_ARMS_BIG_ADVENTURE,
+			List.of(
+				new SkillReq(Skill.FARMING, 29),
+				new SkillReq(Skill.WOODCUTTING, 10)),
+			List.of(
+				Quest.EADGARS_RUSE,
+				Quest.THE_FEUD,
+				Quest.JUNGLE_POTION),
+			0, 0);
+		// The Feud: Thieving 30.
+		put(Quest.THE_FEUD,
+			List.of(new SkillReq(Skill.THIEVING, 30)),
+			List.of(),
+			0, 0);
+		// Swan Song: Magic 66, Cooking 62, Fishing 62, Smithing 45,
+		// Firemaking 42, Crafting 40 + 100 QP.
+		put(Quest.SWAN_SONG,
+			List.of(
+				new SkillReq(Skill.MAGIC, 66),
+				new SkillReq(Skill.COOKING, 62),
+				new SkillReq(Skill.FISHING, 62),
+				new SkillReq(Skill.SMITHING, 45),
+				new SkillReq(Skill.FIREMAKING, 42),
+				new SkillReq(Skill.CRAFTING, 40)),
+			List.of(
+				Quest.ONE_SMALL_FAVOUR,
+				Quest.GARDEN_OF_TRANQUILLITY),
+			100, 0);
+		// One Small Favour: Agility 36, Crafting 25, Herblore 18, Smithing 30.
+		put(Quest.ONE_SMALL_FAVOUR,
+			List.of(
+				new SkillReq(Skill.AGILITY, 36),
+				new SkillReq(Skill.CRAFTING, 25),
+				new SkillReq(Skill.HERBLORE, 18),
+				new SkillReq(Skill.SMITHING, 30)),
+			List.of(Quest.RUNE_MYSTERIES, Quest.SHILO_VILLAGE),
+			0, 0);
+
+		// The General's Shadow (miniquest): no skills, quest prereqs.
+		put(Quest.THE_GENERALS_SHADOW,
+			List.of(),
+			List.of(
+				Quest.CURSE_OF_THE_EMPTY_LORD,
+				Quest.DESERT_TREASURE_I,
+				Quest.FIGHT_ARENA),
+			0, 0);
+		// Fight Arena: no requirements.
+		put(Quest.FIGHT_ARENA,
 			List.of(), List.of(), 0, 0);
+
+		// Hazeel Cult: no requirements.
+		put(Quest.HAZEEL_CULT,
+			List.of(), List.of(), 0, 0);
+
 		put(Quest.ENAKHRAS_LAMENT,
 			List.of(
 				new SkillReq(Skill.CRAFTING, 50),
@@ -784,10 +850,15 @@ public final class QuestRequirements
 		put(Quest.ENTER_THE_ABYSS,
 			List.of(), List.of(Quest.RUNE_MYSTERIES),
 			0, 0);
+		// The Garden of Death: Farming 20.
 		put(Quest.THE_GARDEN_OF_DEATH,
-			List.of(), List.of(), 0, 0);
+			List.of(new SkillReq(Skill.FARMING, 20)),
+			List.of(), 0, 0);
+		// His Faithful Servants (miniquest): Priest in Peril.
 		put(Quest.HIS_FAITHFUL_SERVANTS,
-			List.of(), List.of(), 0, 0);
+			List.of(),
+			List.of(Quest.PRIEST_IN_PERIL),
+			0, 0);
 
 		// Devious Minds: Smithing 65, Runecraft 50, Fletching 50.
 		put(Quest.DEVIOUS_MINDS,
@@ -819,6 +890,638 @@ public final class QuestRequirements
 			List.of(new SkillReq(Skill.FISHING, 10)),
 			List.of(),
 			0, 0);
+
+		// ============================================================
+		// E-H members quests + dependencies (wiki-sourced 2026-04-09)
+		// ============================================================
+
+		// Elemental Workshop I: no hard requirements (skills boostable, not required to start).
+		put(Quest.ELEMENTAL_WORKSHOP_I,
+			List.of(), List.of(), 0, 0);
+		// Elemental Workshop II: Magic 20, Smithing 30.
+		put(Quest.ELEMENTAL_WORKSHOP_II,
+			List.of(
+				new SkillReq(Skill.MAGIC, 20),
+				new SkillReq(Skill.SMITHING, 30)),
+			List.of(Quest.ELEMENTAL_WORKSHOP_I),
+			0, 0);
+
+		// Enlightened Journey: Firemaking 20, Farming 30, Crafting 36, 20 QP.
+		put(Quest.ENLIGHTENED_JOURNEY,
+			List.of(
+				new SkillReq(Skill.FIREMAKING, 20),
+				new SkillReq(Skill.FARMING, 30),
+				new SkillReq(Skill.CRAFTING, 36)),
+			List.of(),
+			20, 0);
+
+		// The Enchanted Key (miniquest): Making History prereq.
+		put(Quest.THE_ENCHANTED_KEY,
+			List.of(),
+			List.of(Quest.MAKING_HISTORY),
+			0, 0);
+		// Making History: Priest in Peril + Restless Ghost.
+		put(Quest.MAKING_HISTORY,
+			List.of(),
+			List.of(Quest.PRIEST_IN_PERIL, Quest.THE_RESTLESS_GHOST),
+			0, 0);
+
+		// The Eyes of Glouphrie: Construction 5, Magic 46.
+		put(Quest.THE_EYES_OF_GLOUPHRIE,
+			List.of(
+				new SkillReq(Skill.CONSTRUCTION, 5),
+				new SkillReq(Skill.MAGIC, 46)),
+			List.of(Quest.THE_GRAND_TREE),
+			0, 0);
+
+		// --- Fairytale chain ---
+		put(Quest.FAIRYTALE_I__GROWING_PAINS,
+			List.of(),
+			List.of(Quest.LOST_CITY, Quest.NATURE_SPIRIT),
+			0, 0);
+		put(Quest.FAIRYTALE_II__CURE_A_QUEEN,
+			List.of(
+				new SkillReq(Skill.THIEVING, 40),
+				new SkillReq(Skill.FARMING, 49),
+				new SkillReq(Skill.HERBLORE, 57)),
+			List.of(Quest.FAIRYTALE_I__GROWING_PAINS),
+			0, 0);
+
+		// Family Pest (miniquest): Family Crest prereq.
+		put(Quest.FAMILY_PEST,
+			List.of(),
+			List.of(Quest.FAMILY_CREST),
+			0, 0);
+
+		// Forgettable Tale: Cooking 22, Farming 17.
+		put(Quest.FORGETTABLE_TALE,
+			List.of(
+				new SkillReq(Skill.COOKING, 22),
+				new SkillReq(Skill.FARMING, 17)),
+			List.of(Quest.THE_GIANT_DWARF, Quest.FISHING_CONTEST),
+			0, 0);
+
+		// --- Fremennik chain ---
+		put(Quest.THE_FREMENNIK_ISLES,
+			List.of(new SkillReq(Skill.CONSTRUCTION, 20)),
+			List.of(Quest.THE_FREMENNIK_TRIALS),
+			0, 0);
+		put(Quest.THE_FREMENNIK_EXILES,
+			List.of(
+				new SkillReq(Skill.CRAFTING, 65),
+				new SkillReq(Skill.SLAYER, 60),
+				new SkillReq(Skill.SMITHING, 60),
+				new SkillReq(Skill.FISHING, 60),
+				new SkillReq(Skill.RUNECRAFT, 55)),
+			List.of(
+				Quest.THE_FREMENNIK_ISLES,
+				Quest.LUNAR_DIPLOMACY,
+				Quest.MOUNTAIN_DAUGHTER,
+				Quest.HEROES_QUEST),
+			0, 0);
+		// Mountain Daughter: no hard requirements.
+		put(Quest.MOUNTAIN_DAUGHTER,
+			List.of(), List.of(), 0, 0);
+
+		// Getting Ahead: Crafting 30, Construction 26.
+		put(Quest.GETTING_AHEAD,
+			List.of(
+				new SkillReq(Skill.CRAFTING, 30),
+				new SkillReq(Skill.CONSTRUCTION, 26)),
+			List.of(),
+			0, 0);
+
+		// The Golem: no hard requirements.
+		put(Quest.THE_GOLEM,
+			List.of(), List.of(), 0, 0);
+
+		// Grim Tales: Farming 45, Herblore 52, Thieving 58, Agility 59, Woodcutting 71.
+		put(Quest.GRIM_TALES,
+			List.of(
+				new SkillReq(Skill.FARMING, 45),
+				new SkillReq(Skill.HERBLORE, 52),
+				new SkillReq(Skill.THIEVING, 58),
+				new SkillReq(Skill.AGILITY, 59),
+				new SkillReq(Skill.WOODCUTTING, 71)),
+			List.of(Quest.WITCHS_HOUSE),
+			0, 0);
+		put(Quest.WITCHS_HOUSE,
+			List.of(), List.of(), 0, 0);
+
+		// The Great Brain Robbery: Crafting 16, Construction 30, Prayer 50.
+		put(Quest.THE_GREAT_BRAIN_ROBBERY,
+			List.of(
+				new SkillReq(Skill.CRAFTING, 16),
+				new SkillReq(Skill.CONSTRUCTION, 30),
+				new SkillReq(Skill.PRAYER, 50)),
+			List.of(
+				Quest.CREATURE_OF_FENKENSTRAIN,
+				Quest.CABIN_FEVER,
+				Quest.RECIPE_FOR_DISASTER__PIRATE_PETE),
+			0, 0);
+
+		// The Hand in the Sand: Thieving 17, Crafting 49.
+		put(Quest.THE_HAND_IN_THE_SAND,
+			List.of(
+				new SkillReq(Skill.THIEVING, 17),
+				new SkillReq(Skill.CRAFTING, 49)),
+			List.of(),
+			0, 0);
+
+		// Haunted Mine: Priest in Peril.
+		put(Quest.HAUNTED_MINE,
+			List.of(),
+			List.of(Quest.PRIEST_IN_PERIL),
+			0, 0);
+
+		// Holy Grail: Attack 20 + Merlin's Crystal.
+		put(Quest.HOLY_GRAIL,
+			List.of(new SkillReq(Skill.ATTACK, 20)),
+			List.of(Quest.MERLINS_CRYSTAL),
+			0, 0);
+
+		// Hopespear's Will (miniquest): Prayer 50 + quest chain.
+		put(Quest.HOPESPEARS_WILL,
+			List.of(new SkillReq(Skill.PRAYER, 50)),
+			List.of(
+				Quest.DESERT_TREASURE_I,
+				Quest.FAIRYTALE_II__CURE_A_QUEEN,
+				Quest.LAND_OF_THE_GOBLINS),
+			0, 0);
+
+		// ============================================================
+		// I-O members quests + dependencies (wiki-sourced 2026-04-09)
+		// ============================================================
+
+		// In Search of Knowledge (miniquest): no requirements.
+		put(Quest.IN_SEARCH_OF_KNOWLEDGE,
+			List.of(), List.of(), 0, 0);
+
+		// King's Ransom: Magic 45, Defence 65 + quest chain.
+		put(Quest.KINGS_RANSOM,
+			List.of(
+				new SkillReq(Skill.MAGIC, 45),
+				new SkillReq(Skill.DEFENCE, 65)),
+			List.of(
+				Quest.BLACK_KNIGHTS_FORTRESS,
+				Quest.HOLY_GRAIL,
+				Quest.MURDER_MYSTERY,
+				Quest.ONE_SMALL_FAVOUR),
+			0, 0);
+		put(Quest.MURDER_MYSTERY,
+			List.of(), List.of(), 0, 0);
+
+		// Lair of Tarn Razorlor (miniquest): Slayer 40 + Haunted Mine.
+		put(Quest.LAIR_OF_TARN_RAZORLOR,
+			List.of(new SkillReq(Skill.SLAYER, 40)),
+			List.of(Quest.HAUNTED_MINE),
+			0, 0);
+
+		// Land of the Goblins: Agility 38, Fishing 40, Thieving 45, Herblore 48.
+		put(Quest.LAND_OF_THE_GOBLINS,
+			List.of(
+				new SkillReq(Skill.AGILITY, 38),
+				new SkillReq(Skill.FISHING, 40),
+				new SkillReq(Skill.THIEVING, 45),
+				new SkillReq(Skill.HERBLORE, 48)),
+			List.of(Quest.ANOTHER_SLICE_OF_HAM),
+			0, 0);
+
+		// Mage Arena I (miniquest): Magic 60.
+		put(Quest.MAGE_ARENA_I,
+			List.of(new SkillReq(Skill.MAGIC, 60)),
+			List.of(),
+			0, 0);
+		// Mage Arena II (miniquest): Magic 75.
+		put(Quest.MAGE_ARENA_II,
+			List.of(new SkillReq(Skill.MAGIC, 75)),
+			List.of(Quest.MAGE_ARENA_I),
+			0, 0);
+
+		// Monkey Madness II: Slayer 69, Crafting 70, Hunter 60,
+		// Agility 55, Thieving 55, Firemaking 60 + quest chain.
+		put(Quest.MONKEY_MADNESS_II,
+			List.of(
+				new SkillReq(Skill.SLAYER, 69),
+				new SkillReq(Skill.CRAFTING, 70),
+				new SkillReq(Skill.HUNTER, 60),
+				new SkillReq(Skill.AGILITY, 55),
+				new SkillReq(Skill.THIEVING, 55),
+				new SkillReq(Skill.FIREMAKING, 60)),
+			List.of(
+				Quest.ENLIGHTENED_JOURNEY,
+				Quest.THE_EYES_OF_GLOUPHRIE,
+				Quest.RECIPE_FOR_DISASTER__KING_AWOWOGEI,
+				Quest.MONKEY_MADNESS_I,
+				Quest.TROLL_STRONGHOLD,
+				Quest.WATCHTOWER),
+			0, 0);
+		// Watchtower: no hard requirements.
+		put(Quest.WATCHTOWER,
+			List.of(), List.of(), 0, 0);
+
+		// Monk's Friend: no requirements.
+		put(Quest.MONKS_FRIEND,
+			List.of(), List.of(), 0, 0);
+
+		// Observatory Quest: no requirements.
+		put(Quest.OBSERVATORY_QUEST,
+			List.of(), List.of(), 0, 0);
+
+		// Olaf's Quest: Firemaking 40, Woodcutting 50 + Fremennik Trials.
+		put(Quest.OLAFS_QUEST,
+			List.of(
+				new SkillReq(Skill.FIREMAKING, 40),
+				new SkillReq(Skill.WOODCUTTING, 50)),
+			List.of(Quest.THE_FREMENNIK_TRIALS),
+			0, 0);
+
+		// ============================================================
+		// P-T members quests + dependencies (wiki-sourced 2026-04-09)
+		// ============================================================
+
+		// --- Recipe for Disaster chain ---
+
+		// RFD: Another Cook's Quest (initial): Cooking 10 + Cook's Assistant.
+		put(Quest.RECIPE_FOR_DISASTER__ANOTHER_COOKS_QUEST,
+			List.of(new SkillReq(Skill.COOKING, 10)),
+			List.of(Quest.COOKS_ASSISTANT),
+			0, 0);
+		// RFD wrapper (same prereqs as initial subquest).
+		put(Quest.RECIPE_FOR_DISASTER,
+			List.of(new SkillReq(Skill.COOKING, 10)),
+			List.of(Quest.COOKS_ASSISTANT),
+			0, 0);
+		// RFD: Mountain Dwarf: Fishing Contest.
+		put(Quest.RECIPE_FOR_DISASTER__MOUNTAIN_DWARF,
+			List.of(),
+			List.of(Quest.FISHING_CONTEST),
+			0, 0);
+		// RFD: Wartface & Bentnoze: Goblin Diplomacy.
+		put(Quest.RECIPE_FOR_DISASTER__WARTFACE__BENTNOZE,
+			List.of(),
+			List.of(Quest.GOBLIN_DIPLOMACY),
+			0, 0);
+		// RFD: Pirate Pete: Cooking 31.
+		put(Quest.RECIPE_FOR_DISASTER__PIRATE_PETE,
+			List.of(new SkillReq(Skill.COOKING, 31)),
+			List.of(),
+			0, 0);
+		// RFD: Lumbridge Guide: Cooking 40 + quest chain.
+		put(Quest.RECIPE_FOR_DISASTER__LUMBRIDGE_GUIDE,
+			List.of(new SkillReq(Skill.COOKING, 40)),
+			List.of(
+				Quest.BIG_CHOMPY_BIRD_HUNTING,
+				Quest.PRIEST_IN_PERIL,
+				Quest.BIOHAZARD,
+				Quest.DEMON_SLAYER,
+				Quest.NATURE_SPIRIT,
+				Quest.THE_RESTLESS_GHOST,
+				Quest.WITCHS_HOUSE,
+				Quest.MURDER_MYSTERY),
+			0, 0);
+		// RFD: Evil Dave: Shadow of the Storm.
+		put(Quest.RECIPE_FOR_DISASTER__EVIL_DAVE,
+			List.of(),
+			List.of(Quest.SHADOW_OF_THE_STORM),
+			0, 0);
+		// Shadow of the Storm: Crafting 30 + quest chain.
+		put(Quest.SHADOW_OF_THE_STORM,
+			List.of(new SkillReq(Skill.CRAFTING, 30)),
+			List.of(Quest.THE_GOLEM, Quest.DEMON_SLAYER),
+			0, 0);
+		// RFD: Skrach Uglogwee: Firemaking 20, Cooking 41 + Big Chompy.
+		put(Quest.RECIPE_FOR_DISASTER__SKRACH_UGLOGWEE,
+			List.of(
+				new SkillReq(Skill.FIREMAKING, 20),
+				new SkillReq(Skill.COOKING, 41)),
+			List.of(Quest.BIG_CHOMPY_BIRD_HUNTING),
+			0, 0);
+		// RFD: Sir Amik Varze: Lost City + started Legends' Quest.
+		put(Quest.RECIPE_FOR_DISASTER__SIR_AMIK_VARZE,
+			List.of(),
+			List.of(Quest.LOST_CITY, Quest.LEGENDS_QUEST),
+			0, 0);
+		// RFD: King Awowogei: Agility 48, Cooking 70 + MM1.
+		put(Quest.RECIPE_FOR_DISASTER__KING_AWOWOGEI,
+			List.of(
+				new SkillReq(Skill.AGILITY, 48),
+				new SkillReq(Skill.COOKING, 70)),
+			List.of(Quest.MONKEY_MADNESS_I),
+			0, 0);
+		// RFD: Culinaromancer (final): 175 QP + all subquests + DT1 + HFTD.
+		put(Quest.RECIPE_FOR_DISASTER__CULINAROMANCER,
+			List.of(),
+			List.of(
+				Quest.DESERT_TREASURE_I,
+				Quest.HORROR_FROM_THE_DEEP),
+			175, 0);
+
+		// Rag and Bone Man I: no requirements.
+		put(Quest.RAG_AND_BONE_MAN_I,
+			List.of(), List.of(), 0, 0);
+		// Rag and Bone Man II: Defence 20 + Rag and Bone Man I.
+		put(Quest.RAG_AND_BONE_MAN_II,
+			List.of(new SkillReq(Skill.DEFENCE, 20)),
+			List.of(Quest.RAG_AND_BONE_MAN_I),
+			0, 0);
+
+		// Ratcatchers: Icthlarin's Little Helper.
+		put(Quest.RATCATCHERS,
+			List.of(),
+			List.of(Quest.ICTHLARINS_LITTLE_HELPER),
+			0, 0);
+
+		// Royal Trouble: Agility 40, Slayer 40 + Throne of Miscellania.
+		put(Quest.ROYAL_TROUBLE,
+			List.of(
+				new SkillReq(Skill.AGILITY, 40),
+				new SkillReq(Skill.SLAYER, 40)),
+			List.of(Quest.THRONE_OF_MISCELLANIA),
+			0, 0);
+		put(Quest.THRONE_OF_MISCELLANIA,
+			List.of(),
+			List.of(Quest.HEROES_QUEST, Quest.THE_FREMENNIK_TRIALS),
+			0, 0);
+
+		// Scorpion Catcher: Prayer 31 + Barcrawl.
+		put(Quest.SCORPION_CATCHER,
+			List.of(new SkillReq(Skill.PRAYER, 31)),
+			List.of(Quest.ALFRED_GRIMHANDS_BARCRAWL),
+			0, 0);
+
+		// Sea Slug: Firemaking 30.
+		put(Quest.SEA_SLUG,
+			List.of(new SkillReq(Skill.FIREMAKING, 30)),
+			List.of(),
+			0, 0);
+
+		// The Slug Menace: Crafting 30, Runecraft 30, Slayer 30, Thieving 30.
+		put(Quest.THE_SLUG_MENACE,
+			List.of(
+				new SkillReq(Skill.CRAFTING, 30),
+				new SkillReq(Skill.RUNECRAFT, 30),
+				new SkillReq(Skill.SLAYER, 30),
+				new SkillReq(Skill.THIEVING, 30)),
+			List.of(Quest.WANTED, Quest.SEA_SLUG),
+			0, 0);
+
+		// Shades of Mort'ton: Herblore 15, Crafting 20, Firemaking 5.
+		put(Quest.SHADES_OF_MORTTON,
+			List.of(
+				new SkillReq(Skill.HERBLORE, 15),
+				new SkillReq(Skill.CRAFTING, 20),
+				new SkillReq(Skill.FIREMAKING, 5)),
+			List.of(Quest.PRIEST_IN_PERIL),
+			0, 0);
+
+		// Sins of the Father: Woodcutting 62, Fletching 60, Crafting 56,
+		// Agility 52, Attack 50, Slayer 50, Magic 49.
+		put(Quest.SINS_OF_THE_FATHER,
+			List.of(
+				new SkillReq(Skill.WOODCUTTING, 62),
+				new SkillReq(Skill.FLETCHING, 60),
+				new SkillReq(Skill.CRAFTING, 56),
+				new SkillReq(Skill.AGILITY, 52),
+				new SkillReq(Skill.ATTACK, 50),
+				new SkillReq(Skill.SLAYER, 50),
+				new SkillReq(Skill.MAGIC, 49)),
+			List.of(Quest.VAMPYRE_SLAYER, Quest.A_TASTE_OF_HOPE),
+			0, 0);
+
+		// Skippy and the Mogres (miniquest): Cooking 20.
+		put(Quest.SKIPPY_AND_THE_MOGRES,
+			List.of(new SkillReq(Skill.COOKING, 20)),
+			List.of(),
+			0, 0);
+
+		// Sleeping Giants: Smithing 15.
+		put(Quest.SLEEPING_GIANTS,
+			List.of(new SkillReq(Skill.SMITHING, 15)),
+			List.of(),
+			0, 0);
+
+		// Spirits of the Elid: Magic 33, Ranged 37, Mining 37, Thieving 37.
+		put(Quest.SPIRITS_OF_THE_ELID,
+			List.of(
+				new SkillReq(Skill.MAGIC, 33),
+				new SkillReq(Skill.RANGED, 37),
+				new SkillReq(Skill.MINING, 37),
+				new SkillReq(Skill.THIEVING, 37)),
+			List.of(),
+			0, 0);
+
+		// Tears of Guthix: Firemaking 49, Crafting 20, Mining 20, 43 QP.
+		put(Quest.TEARS_OF_GUTHIX,
+			List.of(
+				new SkillReq(Skill.FIREMAKING, 49),
+				new SkillReq(Skill.CRAFTING, 20),
+				new SkillReq(Skill.MINING, 20)),
+			List.of(),
+			43, 0);
+
+		// The Tourist Trap: Fletching 10, Smithing 20.
+		put(Quest.THE_TOURIST_TRAP,
+			List.of(
+				new SkillReq(Skill.FLETCHING, 10),
+				new SkillReq(Skill.SMITHING, 20)),
+			List.of(),
+			0, 0);
+
+		// Tower of Life: Construction 10.
+		put(Quest.TOWER_OF_LIFE,
+			List.of(new SkillReq(Skill.CONSTRUCTION, 10)),
+			List.of(),
+			0, 0);
+
+		// Tribal Totem: Thieving 21.
+		put(Quest.TRIBAL_TOTEM,
+			List.of(new SkillReq(Skill.THIEVING, 21)),
+			List.of(),
+			0, 0);
+
+		// Troll Romance: Agility 28 + Troll Stronghold.
+		put(Quest.TROLL_ROMANCE,
+			List.of(new SkillReq(Skill.AGILITY, 28)),
+			List.of(Quest.TROLL_STRONGHOLD),
+			0, 0);
+
+		// Into the Tombs (miniquest): Beneath Cursed Sands.
+		put(Quest.INTO_THE_TOMBS,
+			List.of(),
+			List.of(Quest.BENEATH_CURSED_SANDS),
+			0, 0);
+
+		// The Frozen Door (miniquest): Agility 70, Ranged 70, Strength 70 + DT1.
+		put(Quest.THE_FROZEN_DOOR,
+			List.of(
+				new SkillReq(Skill.AGILITY, 70),
+				new SkillReq(Skill.RANGED, 70),
+				new SkillReq(Skill.STRENGTH, 70)),
+			List.of(Quest.DESERT_TREASURE_I),
+			0, 0);
+
+		// ============================================================
+		// U-Z + newer quests (wiki-sourced 2026-04-09)
+		// ============================================================
+
+		// The Path of Glouphrie: Slayer 56, Agility 45, Strength 60,
+		// Thieving 56, Ranged 47.
+		put(Quest.THE_PATH_OF_GLOUPHRIE,
+			List.of(
+				new SkillReq(Skill.SLAYER, 56),
+				new SkillReq(Skill.AGILITY, 45),
+				new SkillReq(Skill.STRENGTH, 60),
+				new SkillReq(Skill.THIEVING, 56),
+				new SkillReq(Skill.RANGED, 47)),
+			List.of(
+				Quest.THE_EYES_OF_GLOUPHRIE,
+				Quest.WATERFALL_QUEST,
+				Quest.TREE_GNOME_VILLAGE),
+			0, 0);
+
+		// While Guthix Sleeps: Thieving 72, Agility 66, Farming 65,
+		// Herblore 65, Hunter 62, Magic 67 + 180 QP + quest chain.
+		put(Quest.WHILE_GUTHIX_SLEEPS,
+			List.of(
+				new SkillReq(Skill.THIEVING, 72),
+				new SkillReq(Skill.AGILITY, 66),
+				new SkillReq(Skill.FARMING, 65),
+				new SkillReq(Skill.HERBLORE, 65),
+				new SkillReq(Skill.HUNTER, 62),
+				new SkillReq(Skill.MAGIC, 67)),
+			List.of(
+				Quest.DEFENDER_OF_VARROCK,
+				Quest.THE_PATH_OF_GLOUPHRIE,
+				Quest.FIGHT_ARENA,
+				Quest.DREAM_MENTOR,
+				Quest.THE_HAND_IN_THE_SAND,
+				Quest.WANTED,
+				Quest.TEMPLE_OF_THE_EYE,
+				Quest.TEARS_OF_GUTHIX,
+				Quest.NATURE_SPIRIT,
+				Quest.A_TAIL_OF_TWO_CATS),
+			180, 0);
+
+		// The Curse of Arrav: Mining 64, Ranged 62, Thieving 62,
+		// Agility 61, Strength 58, Slayer 37.
+		put(Quest.THE_CURSE_OF_ARRAV,
+			List.of(
+				new SkillReq(Skill.MINING, 64),
+				new SkillReq(Skill.RANGED, 62),
+				new SkillReq(Skill.THIEVING, 62),
+				new SkillReq(Skill.AGILITY, 61),
+				new SkillReq(Skill.STRENGTH, 58),
+				new SkillReq(Skill.SLAYER, 37)),
+			List.of(Quest.DEFENDER_OF_VARROCK, Quest.TROLL_ROMANCE),
+			0, 0);
+
+		// --- Varlamore quests ---
+
+		// Twilight's Promise: Children of the Sun prereq.
+		put(Quest.TWILIGHTS_PROMISE,
+			List.of(),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
+			0, 0);
+		// Perilous Moons: Slayer 48, Hunter 20, Fishing 20,
+		// Runecraft 20, Construction 10.
+		put(Quest.PERILOUS_MOONS,
+			List.of(
+				new SkillReq(Skill.SLAYER, 48),
+				new SkillReq(Skill.HUNTER, 20),
+				new SkillReq(Skill.FISHING, 20),
+				new SkillReq(Skill.RUNECRAFT, 20),
+				new SkillReq(Skill.CONSTRUCTION, 10)),
+			List.of(Quest.TWILIGHTS_PROMISE),
+			0, 0);
+		// The Heart of Darkness: Mining 55, Thieving 48, Slayer 48, Agility 46.
+		put(Quest.THE_HEART_OF_DARKNESS,
+			List.of(
+				new SkillReq(Skill.MINING, 55),
+				new SkillReq(Skill.THIEVING, 48),
+				new SkillReq(Skill.SLAYER, 48),
+				new SkillReq(Skill.AGILITY, 46)),
+			List.of(Quest.TWILIGHTS_PROMISE),
+			0, 0);
+		// The Final Dawn: Thieving 66, Runecraft 52, Fletching 52.
+		put(Quest.THE_FINAL_DAWN,
+			List.of(
+				new SkillReq(Skill.THIEVING, 66),
+				new SkillReq(Skill.RUNECRAFT, 52),
+				new SkillReq(Skill.FLETCHING, 52)),
+			List.of(Quest.THE_HEART_OF_DARKNESS, Quest.PERILOUS_MOONS),
+			0, 0);
+		// Meat and Greet: Children of the Sun prereq.
+		put(Quest.MEAT_AND_GREET,
+			List.of(),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
+			0, 0);
+		// Ethically Acquired Antiquities: Thieving 25.
+		put(Quest.ETHICALLY_ACQUIRED_ANTIQUITIES,
+			List.of(new SkillReq(Skill.THIEVING, 25)),
+			List.of(Quest.CHILDREN_OF_THE_SUN, Quest.SHIELD_OF_ARRAV),
+			0, 0);
+		// The Ribbiting Tale: Woodcutting 15.
+		put(Quest.THE_RIBBITING_TALE_OF_A_LILY_PAD_LABOUR_DISPUTE,
+			List.of(new SkillReq(Skill.WOODCUTTING, 15)),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
+			0, 0);
+		// Shadows of Custodia: Slayer 54, Fishing 45, Hunter 36.
+		put(Quest.SHADOWS_OF_CUSTODIA,
+			List.of(
+				new SkillReq(Skill.SLAYER, 54),
+				new SkillReq(Skill.FISHING, 45),
+				new SkillReq(Skill.HUNTER, 36)),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
+			0, 0);
+		// Scrambled: Construction 38, Cooking 36, Smithing 35.
+		put(Quest.SCRAMBLED,
+			List.of(
+				new SkillReq(Skill.CONSTRUCTION, 38),
+				new SkillReq(Skill.COOKING, 36),
+				new SkillReq(Skill.SMITHING, 35)),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
+			0, 0);
+
+		// --- Sailing quests (Sailing skill not in RuneLite API yet) ---
+		// Pandemonium: no representable requirements.
+		put(Quest.PANDEMONIUM,
+			List.of(), List.of(), 0, 0);
+		// Prying Times: Smithing 30 (Sailing 12 omitted).
+		put(Quest.PRYING_TIMES,
+			List.of(new SkillReq(Skill.SMITHING, 30)),
+			List.of(Quest.PANDEMONIUM, Quest.THE_KNIGHTS_SWORD),
+			0, 0);
+		// Current Affairs: Fishing 10 (Sailing 22 omitted).
+		put(Quest.CURRENT_AFFAIRS,
+			List.of(new SkillReq(Skill.FISHING, 10)),
+			List.of(Quest.PANDEMONIUM),
+			0, 0);
+		// Troubled Tortugans: Slayer 51, Construction 48, Hunter 45,
+		// Woodcutting 40, Crafting 34 (Sailing 45 omitted).
+		put(Quest.TROUBLED_TORTUGANS,
+			List.of(
+				new SkillReq(Skill.SLAYER, 51),
+				new SkillReq(Skill.CONSTRUCTION, 48),
+				new SkillReq(Skill.HUNTER, 45),
+				new SkillReq(Skill.WOODCUTTING, 40),
+				new SkillReq(Skill.CRAFTING, 34)),
+			List.of(Quest.PANDEMONIUM),
+			0, 0);
+		// The Red Reef: Smithing 48 (Sailing 52 omitted).
+		put(Quest.THE_RED_REEF,
+			List.of(new SkillReq(Skill.SMITHING, 48)),
+			List.of(Quest.TROUBLED_TORTUGANS),
+			0, 0);
+		// Vale Totems (miniquest): Fletching 20.
+		put(Quest.VALE_TOTEMS,
+			List.of(new SkillReq(Skill.FLETCHING, 20)),
+			List.of(),
+			0, 0);
+
+		// Learning the Ropes: no requirements.
+		put(Quest.LEARNING_THE_ROPES,
+			List.of(), List.of(), 0, 0);
 	}
 
 	// ============================================================
@@ -896,6 +1599,78 @@ public final class QuestRequirements
 		XP_REWARDS.put(Quest.ROVING_ELVES, List.of(Skill.STRENGTH));
 		XP_REWARDS.put(Quest.REGICIDE, List.of(Skill.AGILITY));
 		XP_REWARDS.put(Quest.BIG_CHOMPY_BIRD_HUNTING, List.of(Skill.FLETCHING, Skill.COOKING, Skill.RANGED));
+
+		// SotN chain + new dependencies
+		XP_REWARDS.put(Quest.SECRETS_OF_THE_NORTH, List.of(Skill.AGILITY, Skill.THIEVING, Skill.HUNTER));
+		XP_REWARDS.put(Quest.THE_GARDEN_OF_DEATH, List.of(Skill.FARMING));
+		XP_REWARDS.put(Quest.MAKING_FRIENDS_WITH_MY_ARM, List.of(Skill.CONSTRUCTION, Skill.FIREMAKING, Skill.MINING, Skill.AGILITY));
+		XP_REWARDS.put(Quest.MY_ARMS_BIG_ADVENTURE, List.of(Skill.HERBLORE, Skill.FARMING));
+		XP_REWARDS.put(Quest.SWAN_SONG, List.of(Skill.MAGIC, Skill.PRAYER, Skill.FISHING));
+		XP_REWARDS.put(Quest.THE_FEUD, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.THE_GENERALS_SHADOW, List.of(Skill.SLAYER));
+		XP_REWARDS.put(Quest.HAZEEL_CULT, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.FIGHT_ARENA, List.of(Skill.ATTACK, Skill.THIEVING));
+
+		// E-H quests
+		XP_REWARDS.put(Quest.ELEMENTAL_WORKSHOP_I, List.of(Skill.CRAFTING, Skill.SMITHING));
+		XP_REWARDS.put(Quest.ELEMENTAL_WORKSHOP_II, List.of(Skill.SMITHING, Skill.CRAFTING));
+		XP_REWARDS.put(Quest.ENLIGHTENED_JOURNEY, List.of(Skill.CRAFTING, Skill.FARMING, Skill.WOODCUTTING, Skill.FIREMAKING));
+		XP_REWARDS.put(Quest.THE_EYES_OF_GLOUPHRIE, List.of(Skill.MAGIC, Skill.WOODCUTTING, Skill.RUNECRAFT, Skill.CONSTRUCTION));
+		XP_REWARDS.put(Quest.FAIRYTALE_I__GROWING_PAINS, List.of(Skill.FARMING, Skill.ATTACK, Skill.MAGIC));
+		XP_REWARDS.put(Quest.FAIRYTALE_II__CURE_A_QUEEN, List.of(Skill.HERBLORE, Skill.THIEVING));
+		XP_REWARDS.put(Quest.FORGETTABLE_TALE, List.of(Skill.COOKING, Skill.FARMING));
+		XP_REWARDS.put(Quest.THE_FREMENNIK_ISLES, List.of(Skill.CONSTRUCTION, Skill.CRAFTING, Skill.WOODCUTTING));
+		XP_REWARDS.put(Quest.THE_FREMENNIK_EXILES, List.of(Skill.SLAYER, Skill.CRAFTING, Skill.RUNECRAFT));
+		XP_REWARDS.put(Quest.GETTING_AHEAD, List.of(Skill.CRAFTING, Skill.CONSTRUCTION));
+		XP_REWARDS.put(Quest.THE_GOLEM, List.of(Skill.THIEVING, Skill.CRAFTING));
+		XP_REWARDS.put(Quest.GRIM_TALES, List.of(Skill.WOODCUTTING, Skill.AGILITY, Skill.THIEVING, Skill.HERBLORE, Skill.FARMING, Skill.HITPOINTS));
+		XP_REWARDS.put(Quest.THE_GREAT_BRAIN_ROBBERY, List.of(Skill.PRAYER, Skill.CRAFTING, Skill.CONSTRUCTION));
+		XP_REWARDS.put(Quest.THE_HAND_IN_THE_SAND, List.of(Skill.THIEVING, Skill.CRAFTING));
+		XP_REWARDS.put(Quest.HAUNTED_MINE, List.of(Skill.STRENGTH));
+		XP_REWARDS.put(Quest.HOLY_GRAIL, List.of(Skill.PRAYER, Skill.DEFENCE));
+		XP_REWARDS.put(Quest.HOPESPEARS_WILL, List.of(Skill.PRAYER));
+		// I-O quests
+		XP_REWARDS.put(Quest.KINGS_RANSOM, List.of(Skill.DEFENCE, Skill.MAGIC));
+		XP_REWARDS.put(Quest.LAIR_OF_TARN_RAZORLOR, List.of(Skill.SLAYER));
+		XP_REWARDS.put(Quest.LAND_OF_THE_GOBLINS, List.of(Skill.AGILITY, Skill.FISHING, Skill.THIEVING, Skill.HERBLORE));
+		XP_REWARDS.put(Quest.MAKING_HISTORY, List.of(Skill.CRAFTING, Skill.PRAYER));
+		XP_REWARDS.put(Quest.MONKEY_MADNESS_II, List.of(Skill.SLAYER, Skill.AGILITY, Skill.THIEVING, Skill.HUNTER));
+		XP_REWARDS.put(Quest.MONKS_FRIEND, List.of(Skill.WOODCUTTING));
+		XP_REWARDS.put(Quest.MOUNTAIN_DAUGHTER, List.of(Skill.PRAYER, Skill.ATTACK));
+		XP_REWARDS.put(Quest.MURDER_MYSTERY, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.OBSERVATORY_QUEST, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.OLAFS_QUEST, List.of(Skill.DEFENCE));
+		// P-T quests
+		XP_REWARDS.put(Quest.RAG_AND_BONE_MAN_I, List.of(Skill.COOKING, Skill.PRAYER));
+		XP_REWARDS.put(Quest.RAG_AND_BONE_MAN_II, List.of(Skill.PRAYER));
+		XP_REWARDS.put(Quest.RATCATCHERS, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.ROYAL_TROUBLE, List.of(Skill.AGILITY, Skill.SLAYER, Skill.HITPOINTS));
+		XP_REWARDS.put(Quest.SCORPION_CATCHER, List.of(Skill.STRENGTH));
+		XP_REWARDS.put(Quest.SEA_SLUG, List.of(Skill.FISHING));
+		XP_REWARDS.put(Quest.THE_SLUG_MENACE, List.of(Skill.CRAFTING, Skill.RUNECRAFT, Skill.THIEVING));
+		XP_REWARDS.put(Quest.SHADES_OF_MORTTON, List.of(Skill.HERBLORE, Skill.CRAFTING));
+		XP_REWARDS.put(Quest.SPIRITS_OF_THE_ELID, List.of(Skill.PRAYER, Skill.THIEVING, Skill.MAGIC));
+		XP_REWARDS.put(Quest.TEARS_OF_GUTHIX, List.of(Skill.CRAFTING));
+		XP_REWARDS.put(Quest.TOWER_OF_LIFE, List.of(Skill.CONSTRUCTION, Skill.CRAFTING, Skill.THIEVING));
+		XP_REWARDS.put(Quest.TROLL_ROMANCE, List.of(Skill.AGILITY, Skill.STRENGTH));
+		XP_REWARDS.put(Quest.WITCHS_HOUSE, List.of(Skill.HITPOINTS));
+		XP_REWARDS.put(Quest.WATCHTOWER, List.of(Skill.MAGIC));
+		XP_REWARDS.put(Quest.TRIBAL_TOTEM, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.SLEEPING_GIANTS, List.of(Skill.SMITHING));
+		// U-Z + newer quests
+		XP_REWARDS.put(Quest.THE_PATH_OF_GLOUPHRIE, List.of(Skill.SLAYER, Skill.THIEVING, Skill.STRENGTH, Skill.MAGIC));
+		XP_REWARDS.put(Quest.WHILE_GUTHIX_SLEEPS, List.of(Skill.THIEVING, Skill.FARMING, Skill.HERBLORE, Skill.HUNTER));
+		XP_REWARDS.put(Quest.THE_CURSE_OF_ARRAV, List.of(Skill.MINING, Skill.THIEVING, Skill.AGILITY));
+		XP_REWARDS.put(Quest.TWILIGHTS_PROMISE, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.PERILOUS_MOONS, List.of(Skill.SLAYER, Skill.RUNECRAFT, Skill.HUNTER, Skill.FISHING));
+		XP_REWARDS.put(Quest.THE_HEART_OF_DARKNESS, List.of(Skill.MINING, Skill.THIEVING, Skill.SLAYER, Skill.AGILITY));
+		XP_REWARDS.put(Quest.THE_FINAL_DAWN, List.of(Skill.THIEVING, Skill.RUNECRAFT, Skill.FLETCHING));
+		XP_REWARDS.put(Quest.MEAT_AND_GREET, List.of(Skill.COOKING));
+		XP_REWARDS.put(Quest.ETHICALLY_ACQUIRED_ANTIQUITIES, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.THE_RIBBITING_TALE_OF_A_LILY_PAD_LABOUR_DISPUTE, List.of(Skill.WOODCUTTING));
+		XP_REWARDS.put(Quest.SHADOWS_OF_CUSTODIA, List.of(Skill.SLAYER, Skill.HUNTER, Skill.FISHING, Skill.CONSTRUCTION));
+		XP_REWARDS.put(Quest.SCRAMBLED, List.of(Skill.CONSTRUCTION, Skill.COOKING, Skill.SMITHING));
+		XP_REWARDS.put(Quest.SHADOW_OF_THE_STORM, List.of()); // choice-based combat XP
 	}
 
 	// ============================================================
@@ -1015,6 +1790,85 @@ public final class QuestRequirements
 		QP_REWARDS.put(Quest.ENAKHRAS_LAMENT, 2);
 		QP_REWARDS.put(Quest.RECRUITMENT_DRIVE, 1);
 		QP_REWARDS.put(Quest.WANTED, 1);
+		// SotN chain + new dependencies
+		QP_REWARDS.put(Quest.SECRETS_OF_THE_NORTH, 2);
+		QP_REWARDS.put(Quest.THE_GARDEN_OF_DEATH, 1);
+		QP_REWARDS.put(Quest.MAKING_FRIENDS_WITH_MY_ARM, 2);
+		QP_REWARDS.put(Quest.MY_ARMS_BIG_ADVENTURE, 1);
+		QP_REWARDS.put(Quest.SWAN_SONG, 2);
+		QP_REWARDS.put(Quest.ONE_SMALL_FAVOUR, 2);
+		QP_REWARDS.put(Quest.THE_FEUD, 1);
+		QP_REWARDS.put(Quest.FIGHT_ARENA, 2);
+		QP_REWARDS.put(Quest.HAZEEL_CULT, 1);
+		// Miniquests: His Faithful Servants, The General's Shadow = 0 QP
+		// E-H quests
+		QP_REWARDS.put(Quest.ELEMENTAL_WORKSHOP_I, 1);
+		QP_REWARDS.put(Quest.ELEMENTAL_WORKSHOP_II, 1);
+		QP_REWARDS.put(Quest.ENLIGHTENED_JOURNEY, 1);
+		QP_REWARDS.put(Quest.THE_EYES_OF_GLOUPHRIE, 2);
+		QP_REWARDS.put(Quest.FAIRYTALE_I__GROWING_PAINS, 2);
+		QP_REWARDS.put(Quest.FAIRYTALE_II__CURE_A_QUEEN, 2);
+		QP_REWARDS.put(Quest.FORGETTABLE_TALE, 2);
+		QP_REWARDS.put(Quest.THE_FREMENNIK_ISLES, 1);
+		QP_REWARDS.put(Quest.THE_FREMENNIK_EXILES, 2);
+		QP_REWARDS.put(Quest.GETTING_AHEAD, 1);
+		QP_REWARDS.put(Quest.THE_GOLEM, 1);
+		QP_REWARDS.put(Quest.GRIM_TALES, 1);
+		QP_REWARDS.put(Quest.THE_GREAT_BRAIN_ROBBERY, 2);
+		QP_REWARDS.put(Quest.THE_HAND_IN_THE_SAND, 1);
+		QP_REWARDS.put(Quest.HAUNTED_MINE, 2);
+		QP_REWARDS.put(Quest.HOLY_GRAIL, 2);
+		// I-O quests
+		QP_REWARDS.put(Quest.KINGS_RANSOM, 1);
+		QP_REWARDS.put(Quest.LAND_OF_THE_GOBLINS, 2);
+		QP_REWARDS.put(Quest.MAKING_HISTORY, 3);
+		QP_REWARDS.put(Quest.MONKEY_MADNESS_II, 4);
+		QP_REWARDS.put(Quest.MONKS_FRIEND, 1);
+		QP_REWARDS.put(Quest.MOUNTAIN_DAUGHTER, 2);
+		QP_REWARDS.put(Quest.MURDER_MYSTERY, 3);
+		QP_REWARDS.put(Quest.OBSERVATORY_QUEST, 2);
+		QP_REWARDS.put(Quest.OLAFS_QUEST, 1);
+		// P-T quests
+		QP_REWARDS.put(Quest.RAG_AND_BONE_MAN_I, 1);
+		QP_REWARDS.put(Quest.RAG_AND_BONE_MAN_II, 1);
+		QP_REWARDS.put(Quest.RATCATCHERS, 2);
+		QP_REWARDS.put(Quest.ROYAL_TROUBLE, 1);
+		QP_REWARDS.put(Quest.SCORPION_CATCHER, 1);
+		QP_REWARDS.put(Quest.SEA_SLUG, 1);
+		QP_REWARDS.put(Quest.THE_SLUG_MENACE, 1);
+		QP_REWARDS.put(Quest.SHADES_OF_MORTTON, 3);
+		QP_REWARDS.put(Quest.SHADOW_OF_THE_STORM, 1);
+		QP_REWARDS.put(Quest.SINS_OF_THE_FATHER, 2);
+		QP_REWARDS.put(Quest.SLEEPING_GIANTS, 1);
+		QP_REWARDS.put(Quest.SPIRITS_OF_THE_ELID, 2);
+		QP_REWARDS.put(Quest.TEARS_OF_GUTHIX, 1);
+		QP_REWARDS.put(Quest.THE_TOURIST_TRAP, 2);
+		QP_REWARDS.put(Quest.THRONE_OF_MISCELLANIA, 1);
+		QP_REWARDS.put(Quest.TOWER_OF_LIFE, 2);
+		QP_REWARDS.put(Quest.TRIBAL_TOTEM, 1);
+		QP_REWARDS.put(Quest.TROLL_ROMANCE, 2);
+		QP_REWARDS.put(Quest.WATCHTOWER, 4);
+		QP_REWARDS.put(Quest.WITCHS_HOUSE, 4);
+		// U-Z + newer quests
+		QP_REWARDS.put(Quest.THE_PATH_OF_GLOUPHRIE, 2);
+		QP_REWARDS.put(Quest.WHILE_GUTHIX_SLEEPS, 5);
+		QP_REWARDS.put(Quest.THE_CURSE_OF_ARRAV, 2);
+		QP_REWARDS.put(Quest.TWILIGHTS_PROMISE, 1);
+		QP_REWARDS.put(Quest.PERILOUS_MOONS, 2);
+		QP_REWARDS.put(Quest.THE_HEART_OF_DARKNESS, 2);
+		QP_REWARDS.put(Quest.THE_FINAL_DAWN, 3);
+		QP_REWARDS.put(Quest.MEAT_AND_GREET, 1);
+		QP_REWARDS.put(Quest.ETHICALLY_ACQUIRED_ANTIQUITIES, 1);
+		QP_REWARDS.put(Quest.THE_RIBBITING_TALE_OF_A_LILY_PAD_LABOUR_DISPUTE, 1);
+		QP_REWARDS.put(Quest.SHADOWS_OF_CUSTODIA, 2);
+		QP_REWARDS.put(Quest.SCRAMBLED, 1);
+		QP_REWARDS.put(Quest.PANDEMONIUM, 1);
+		QP_REWARDS.put(Quest.PRYING_TIMES, 1);
+		QP_REWARDS.put(Quest.CURRENT_AFFAIRS, 1);
+		QP_REWARDS.put(Quest.TROUBLED_TORTUGANS, 1);
+		QP_REWARDS.put(Quest.THE_RED_REEF, 2);
+		QP_REWARDS.put(Quest.LEARNING_THE_ROPES, 1);
+		QP_REWARDS.put(Quest.THE_GARDEN_OF_DEATH, 1);
 	}
 
 	/** Quests that reward an XP lamp (choice-based, not fixed skill). */
@@ -1037,7 +1891,21 @@ public final class QuestRequirements
 		Quest.LEGENDS_QUEST,
 		Quest.CLIENT_OF_KOUREND,
 		Quest.A_TAIL_OF_TWO_CATS,
-		Quest.DRAGON_SLAYER_II
+		Quest.DRAGON_SLAYER_II,
+		// SotN chain
+		Quest.ONE_SMALL_FAVOUR,
+		Quest.HIS_FAITHFUL_SERVANTS,
+		// E-Z quests
+		Quest.FAIRYTALE_II__CURE_A_QUEEN,
+		Quest.THE_GREAT_BRAIN_ROBBERY,
+		Quest.IN_SEARCH_OF_KNOWLEDGE,
+		Quest.KINGS_RANSOM,
+		Quest.MAKING_HISTORY,
+		Quest.INTO_THE_TOMBS,
+		Quest.THE_PATH_OF_GLOUPHRIE,
+		Quest.SINS_OF_THE_FATHER,
+		Quest.THE_FINAL_DAWN,
+		Quest.SHADOW_OF_THE_STORM
 	);
 
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,

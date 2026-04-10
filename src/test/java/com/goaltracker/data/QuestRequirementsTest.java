@@ -34,8 +34,10 @@ class QuestRequirementsTest
 		@DisplayName("returns null for a quest that is not in the table")
 		void nullForMissingQuest()
 		{
-			assertNull(QuestRequirements.lookup(Quest.RATCATCHERS));
-			assertFalse(QuestRequirements.hasRequirements(Quest.RATCATCHERS));
+			// Use a quest known to NOT be in the table (RFD sub-quests
+			// are not individually trackable in the same way).
+			assertNull(QuestRequirements.lookup(null));
+			assertFalse(QuestRequirements.hasRequirements(null));
 		}
 
 		@Test
@@ -91,6 +93,72 @@ class QuestRequirementsTest
 			assertTrue(reqs.prereqQuests.size() >= 5);
 			assertEquals(200, reqs.questPoints);
 		}
+
+		@Test
+		@DisplayName("Secrets of the North has 3 skills + 4 quest prereqs")
+		void secretsOfTheNorthRequirements()
+		{
+			QuestRequirements.Reqs reqs = QuestRequirements.lookup(Quest.SECRETS_OF_THE_NORTH);
+			assertNotNull(reqs);
+			assertEquals(3, reqs.skills.size());
+			assertEquals(69, reqs.skills.get(0).level); // Agility
+			assertEquals(Skill.AGILITY, reqs.skills.get(0).skill);
+			assertEquals(4, reqs.prereqQuests.size());
+			assertTrue(reqs.prereqQuests.contains(Quest.MAKING_FRIENDS_WITH_MY_ARM));
+			assertTrue(reqs.prereqQuests.contains(Quest.THE_GENERALS_SHADOW));
+			assertTrue(reqs.prereqQuests.contains(Quest.DEVIOUS_MINDS));
+			assertTrue(reqs.prereqQuests.contains(Quest.HAZEEL_CULT));
+			assertTrue(QuestRequirements.hasRequirements(Quest.SECRETS_OF_THE_NORTH));
+		}
+
+		@Test
+		@DisplayName("The Garden of Death has Farming 20, no quest prereqs")
+		void gardenOfDeathRequirements()
+		{
+			QuestRequirements.Reqs reqs = QuestRequirements.lookup(Quest.THE_GARDEN_OF_DEATH);
+			assertNotNull(reqs);
+			assertEquals(1, reqs.skills.size());
+			assertEquals(Skill.FARMING, reqs.skills.get(0).skill);
+			assertEquals(20, reqs.skills.get(0).level);
+			assertTrue(reqs.prereqQuests.isEmpty());
+			assertTrue(QuestRequirements.hasRequirements(Quest.THE_GARDEN_OF_DEATH));
+		}
+
+		@Test
+		@DisplayName("His Faithful Servants requires Priest in Peril")
+		void hisFaithfulServantsRequirements()
+		{
+			QuestRequirements.Reqs reqs = QuestRequirements.lookup(Quest.HIS_FAITHFUL_SERVANTS);
+			assertNotNull(reqs);
+			assertTrue(reqs.skills.isEmpty());
+			assertEquals(1, reqs.prereqQuests.size());
+			assertEquals(Quest.PRIEST_IN_PERIL, reqs.prereqQuests.get(0));
+			assertTrue(QuestRequirements.hasRequirements(Quest.HIS_FAITHFUL_SERVANTS));
+		}
+
+		@Test
+		@DisplayName("Swan Song has 100 QP requirement")
+		void swanSongQuestPoints()
+		{
+			QuestRequirements.Reqs reqs = QuestRequirements.lookup(Quest.SWAN_SONG);
+			assertNotNull(reqs);
+			assertEquals(100, reqs.questPoints);
+			assertEquals(6, reqs.skills.size());
+			assertTrue(reqs.prereqQuests.contains(Quest.ONE_SMALL_FAVOUR));
+			assertTrue(reqs.prereqQuests.contains(Quest.GARDEN_OF_TRANQUILLITY));
+		}
+
+		@Test
+		@DisplayName("Making Friends with My Arm has 4 skills + 4 quest prereqs")
+		void makingFriendsRequirements()
+		{
+			QuestRequirements.Reqs reqs = QuestRequirements.lookup(Quest.MAKING_FRIENDS_WITH_MY_ARM);
+			assertNotNull(reqs);
+			assertEquals(4, reqs.skills.size());
+			assertEquals(4, reqs.prereqQuests.size());
+			assertTrue(reqs.prereqQuests.contains(Quest.MY_ARMS_BIG_ADVENTURE));
+			assertTrue(reqs.prereqQuests.contains(Quest.SWAN_SONG));
+		}
 	}
 
 	@Nested
@@ -141,8 +209,9 @@ class QuestRequirementsTest
 		@DisplayName("returns an empty Resolved for a quest not in the table")
 		void emptyForMissingQuest()
 		{
+			// null quest → empty resolved
 			QuestRequirementResolver.Resolved out =
-				QuestRequirementResolver.resolve(Quest.RATCATCHERS, NO_SKILLS, NO_QUESTS);
+				QuestRequirementResolver.resolve(null, NO_SKILLS, NO_QUESTS);
 			assertTrue(out.isEmpty());
 			assertEquals(0, out.templates.size());
 			assertEquals(0, out.stubbedQuestPoints);
