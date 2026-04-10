@@ -139,6 +139,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override public void removeAllGoals() { mutationService.removeAllGoals(); }
 	@Override public boolean moveGoal(String goalId, int newGlobalIndex) { return mutationService.moveGoal(goalId, newGlobalIndex); }
 	@Override public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection) { return mutationService.positionGoalInSection(goalId, sectionId, positionInSection); }
+	@Override public boolean setGoalOptional(String goalId, boolean optional) { return mutationService.setGoalOptional(goalId, optional); }
 
 	// =====================================================================
 	// Tag delegations

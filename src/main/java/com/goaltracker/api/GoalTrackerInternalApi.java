@@ -195,6 +195,13 @@ public interface GoalTrackerInternalApi
 	boolean setGoalColor(String goalId, int colorRgb);
 
 	/**
+	 * Toggle a goal's optional state.
+	 *
+	 * @return true if the state changed, false on: not found
+	 */
+	boolean setGoalOptional(String goalId, boolean optional);
+
+	/**
 	 * Set a tag's color override. Works on default and custom tags alike.
 	 * Pass -1 to clear the override and revert to the TagCategory default.
 	 *

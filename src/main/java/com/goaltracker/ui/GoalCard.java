@@ -81,7 +81,7 @@ public class GoalCard extends JPanel
 		leftPanel.add(iconLabel, BorderLayout.WEST);
 
 		nameLabel = new JLabel(formatNameHtml());
-		nameLabel.setForeground(TEXT_PRIMARY);
+		nameLabel.setForeground(view.optional ? new Color(160, 160, 160) : TEXT_PRIMARY);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 
@@ -484,10 +484,22 @@ public class GoalCard extends JPanel
 		g2.setColor(tint);
 		g2.fillRoundRect(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS);
 
-		// Selection indicator: 2px outline around the rounded rect. White on
-		// active goals, grey on completed goals — completed cards can be
-		// selected for bulk tag/recolor ops but cannot be moved, so the muted
-		// outline communicates "selectable but not reorderable".
+		// Optional goals: diagonal hatching overlay (like Outlook optional meetings).
+		if (view.optional)
+		{
+			java.awt.Shape oldClip = g2.getClip();
+			g2.setClip(new java.awt.geom.RoundRectangle2D.Float(0, 0, w, h, CORNER_RADIUS, CORNER_RADIUS));
+			g2.setColor(new Color(255, 255, 255, 30));
+			g2.setStroke(new java.awt.BasicStroke(2f));
+			int spacing = 10;
+			for (int x = -h; x < w + h; x += spacing)
+			{
+				g2.drawLine(x, h, x + h, 0);
+			}
+			g2.setClip(oldClip);
+		}
+
+		// Selection indicator
 		if (view.selected)
 		{
 			g2.setStroke(new java.awt.BasicStroke(2f));

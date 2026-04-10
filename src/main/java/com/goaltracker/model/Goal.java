@@ -74,12 +74,15 @@ public class Goal
 	private List<String> requiredGoalIds = new ArrayList<>();
 
 	/** True when this goal was created by the find-or-create requirement
-	 *  flow as a seed (user didn't manually add it). Used by the absorption
-	 *  rule to decide which goals it's allowed to consume when collapsing
-	 *  same-skill goals in the same topo tier — user-added goals are
-	 *  preserved regardless of absorbability. Default false. */
+	 *  flow as a seed (user didn't manually add it). Default false. */
 	@Builder.Default
 	private boolean autoSeeded = false;
+
+	/** True when the user marks this goal as optional. Optional goals are
+	 *  still tracked but visually de-emphasized (e.g. reduced opacity).
+	 *  Default false. */
+	@Builder.Default
+	private boolean optional = false;
 
 	// Integrations
 	private String wikiUrl;

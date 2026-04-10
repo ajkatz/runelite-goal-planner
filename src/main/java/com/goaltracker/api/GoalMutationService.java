@@ -186,6 +186,40 @@ class GoalMutationService
 		return true;
 	}
 
+	boolean setGoalOptional(String goalId, boolean optional)
+	{
+		log.debug("API.internal setGoalOptional(goalId={}, optional={})", goalId, optional);
+		if (goalId == null) return false;
+		Goal g = api.findGoal(goalId);
+		if (g == null) return false;
+		if (g.isOptional() == optional) return false; // no-op
+		final boolean oldValue = g.isOptional();
+		api.executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				Goal goal = api.findGoal(goalId);
+				if (goal == null) return false;
+				goal.setOptional(optional);
+				api.goalStore.save();
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Goal goal = api.findGoal(goalId);
+				if (goal == null) return false;
+				goal.setOptional(oldValue);
+				api.goalStore.save();
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return optional ? "Mark optional" : "Mark required";
+			}
+		});
+		return true;
+	}
+
 	boolean changeTarget(String goalId, int newTarget)
 	{
 		log.debug("API.public changeTarget(goalId={}, newTarget={})", goalId, newTarget);

@@ -53,6 +53,8 @@ public class GoalView
 	/** Ephemeral UI selection state — true when this card is currently selected
 	 *  in the panel. Lost on plugin restart. */
 	public boolean selected;
+	/** True when the user has marked this goal as optional. */
+	public boolean optional;
 	/** Auto-generated tags from goal creation (boss/raid/tier/etc).
 	 *  Cannot be removed by the user; restored by Restore Defaults. */
 	public List<TagView> defaultTags;

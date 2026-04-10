@@ -213,6 +213,14 @@ class GoalContextMenuBuilder
 			}
 		}
 
+		// Optional toggle
+		{
+			boolean isOptional = goal.isOptional();
+			JMenuItem optionalItem = new JMenuItem(isOptional ? "Mark Required" : "Mark Optional");
+			optionalItem.addActionListener(e -> api.setGoalOptional(goal.getId(), !isOptional));
+			menu.add(optionalItem);
+		}
+
 		if (goal.getType() == GoalType.CUSTOM && !goal.isComplete())
 		{
 			JMenuItem editName = new JMenuItem("Change Name");

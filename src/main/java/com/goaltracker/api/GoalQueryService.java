@@ -132,6 +132,7 @@ class GoalQueryService
 		v.sectionId = g.getSectionId();
 		v.spriteId = g.getSpriteId();
 		v.selected = api.selectedGoalIds.contains(g.getId());
+		v.optional = g.isOptional();
 
 		// Background color: type default + optional user override. DTO carries both
 		// so consumers can show "reset to default" affordances with the right preview.
