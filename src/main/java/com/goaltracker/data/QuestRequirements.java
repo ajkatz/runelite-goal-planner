@@ -2030,6 +2030,7 @@ public final class QuestRequirements
 		RECOMMENDED_COMBAT.put(Quest.HOPESPEARS_WILL, 90);
 		RECOMMENDED_COMBAT.put(Quest.RECRUITMENT_DRIVE, 10);
 		RECOMMENDED_COMBAT.put(Quest.CURSE_OF_THE_EMPTY_LORD, 50);
+		RECOMMENDED_COMBAT.put(Quest.BLACK_KNIGHTS_FORTRESS, 15);
 	}
 
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
