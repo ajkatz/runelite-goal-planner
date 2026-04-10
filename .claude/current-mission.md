@@ -1,6 +1,6 @@
 # Mission: Recommended quest prerequisites — members quests
 Date: 2026-04-10
-Status: incomplete
+Status: complete
 
 ## Goal
 Wiki-source recommended skills and combat levels for members quests.
