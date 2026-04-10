@@ -523,8 +523,11 @@ class GoalCreationService
 		java.util.Set<String> preExistingGoalIds,
 		java.util.List<String> gestureGoalIds)
 	{
-		// Two-queue priority system: skills (and future quest-point goals)
-		// always process before quests, regardless of discovery depth.
+		// Three-queue priority system: optional recommendations (combat level,
+		// recommended skills) process first, then required skills/account goals,
+		// then quests. This puts optional goals at the top of the card list so
+		// the user sees them prominently.
+		java.util.ArrayDeque<SeedEntry> optionalPriority = new java.util.ArrayDeque<>();
 		java.util.ArrayDeque<SeedEntry> highPriority = new java.util.ArrayDeque<>();
 		java.util.ArrayDeque<SeedEntry> lowPriority = new java.util.ArrayDeque<>();
 
@@ -533,7 +536,11 @@ class GoalCreationService
 		{
 			if (t == null) continue;
 			SeedEntry entry = new SeedEntry(rootGoalId, rootQuest, t);
-			if (t.getType() == GoalType.QUEST)
+			if (t.isOptional())
+			{
+				optionalPriority.add(entry);
+			}
+			else if (t.getType() == GoalType.QUEST)
 			{
 				lowPriority.add(entry);
 			}
@@ -543,12 +550,22 @@ class GoalCreationService
 			}
 		}
 
-		while (!highPriority.isEmpty() || !lowPriority.isEmpty())
+		while (!optionalPriority.isEmpty() || !highPriority.isEmpty() || !lowPriority.isEmpty())
 		{
-			// Always drain skills before processing quests
-			SeedEntry entry = !highPriority.isEmpty()
-				? highPriority.poll()
-				: lowPriority.poll();
+			// Drain optional first, then skills/account, then quests
+			SeedEntry entry;
+			if (!optionalPriority.isEmpty())
+			{
+				entry = optionalPriority.poll();
+			}
+			else if (!highPriority.isEmpty())
+			{
+				entry = highPriority.poll();
+			}
+			else
+			{
+				entry = lowPriority.poll();
+			}
 
 			Goal template = entry.template;
 			final String parentTagLabel = entry.parentQuest.getName();
@@ -652,7 +669,11 @@ class GoalCreationService
 				{
 					if (childTemplate == null) continue;
 					SeedEntry childEntry = new SeedEntry(seedGoalId, childQuestForNextLevel, childTemplate);
-					if (childTemplate.getType() == GoalType.QUEST)
+					if (childTemplate.isOptional())
+					{
+						optionalPriority.add(childEntry);
+					}
+					else if (childTemplate.getType() == GoalType.QUEST)
 					{
 						lowPriority.add(childEntry);
 					}

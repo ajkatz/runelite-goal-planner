@@ -2042,6 +2042,10 @@ public final class QuestRequirements
 		RECOMMENDED_COMBAT.put(Quest.RECRUITMENT_DRIVE, 10);
 		RECOMMENDED_COMBAT.put(Quest.CURSE_OF_THE_EMPTY_LORD, 50);
 		RECOMMENDED_COMBAT.put(Quest.BLACK_KNIGHTS_FORTRESS, 15);
+		RECOMMENDED_COMBAT.put(Quest.PRINCE_ALI_RESCUE, 10);
+		RECOMMENDED_COMBAT.put(Quest.SHIELD_OF_ARRAV, 10);
+		RECOMMENDED_COMBAT.put(Quest.THE_ASCENT_OF_ARCEUUS, 15);
+		RECOMMENDED_COMBAT.put(Quest.BIOHAZARD, 10);
 	}
 
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
