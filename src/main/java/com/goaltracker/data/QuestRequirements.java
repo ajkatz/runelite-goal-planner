@@ -2059,7 +2059,8 @@ public final class QuestRequirements
 		Reqs r = lookup(quest);
 		if (r == null) return false;
 		return !r.skills.isEmpty() || !r.prereqQuests.isEmpty()
-			|| r.questPoints > 0 || r.combatLevel > 0 || r.kudos > 0;
+			|| r.questPoints > 0 || r.combatLevel > 0 || r.kudos > 0
+			|| recommendedCombatLevel(quest) > 0;
 	}
 
 	private QuestRequirements() {}
