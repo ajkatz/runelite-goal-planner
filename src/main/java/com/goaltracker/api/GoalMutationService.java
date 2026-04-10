@@ -429,23 +429,33 @@ class GoalMutationService
 	void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");
-		final java.util.List<Goal> snapshot = new ArrayList<>(api.goalStore.getGoals());
-		if (snapshot.isEmpty()) return;
+		// Only remove incomplete goals — completed goals are preserved.
+		final java.util.List<Goal> toRemove = new ArrayList<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (g.getStatus() != com.goaltracker.model.GoalStatus.COMPLETE)
+			{
+				toRemove.add(g);
+			}
+		}
+		if (toRemove.isEmpty()) return;
+		final java.util.Set<String> removedIds = new java.util.LinkedHashSet<>();
+		for (Goal g : toRemove) removedIds.add(g.getId());
 		final java.util.Set<String> selectionSnapshot = new java.util.LinkedHashSet<>(api.selectedGoalIds);
 		api.executeCommand(new com.goaltracker.command.Command()
 		{
 			@Override public boolean apply()
 			{
-				while (!api.goalStore.getGoals().isEmpty())
+				for (Goal g : toRemove)
 				{
-					api.goalStore.removeGoal(api.goalStore.getGoals().get(0).getId());
+					api.goalStore.removeGoal(g.getId());
 				}
-				api.selectedGoalIds.clear();
+				api.selectedGoalIds.removeAll(removedIds);
 				return true;
 			}
 			@Override public boolean revert()
 			{
-				for (Goal g : snapshot)
+				for (Goal g : toRemove)
 				{
 					if (api.findGoal(g.getId()) == null) api.goalStore.addGoal(g);
 				}
@@ -453,7 +463,7 @@ class GoalMutationService
 				api.selectedGoalIds.addAll(selectionSnapshot);
 				return true;
 			}
-			@Override public String getDescription() { return "Remove all goals (" + snapshot.size() + ")"; }
+			@Override public String getDescription() { return "Remove all incomplete goals (" + toRemove.size() + ")"; }
 		});
 	}
 

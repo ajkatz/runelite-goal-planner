@@ -507,11 +507,27 @@ class GoalDialogFactory
 
 		panel.setPreferredSize(new Dimension(320, panel.getPreferredSize().height));
 
-		int result = JOptionPane.showConfirmDialog(
-			parentComponent, panel, "Add Goal", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE
-		);
+		// Non-modal dialog so the sidebar stays responsive while this is open.
+		Window ownerWindow = SwingUtilities.getWindowAncestor(parentComponent);
+		JDialog dialog = new JDialog(
+			ownerWindow instanceof java.awt.Frame ? (java.awt.Frame) ownerWindow : null,
+			"Add Goal", false);
+		dialog.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 
-		if (result == JOptionPane.OK_OPTION)
+		JPanel buttonRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 0));
+		JButton okButton = new JButton("OK");
+		JButton cancelButton = new JButton("Cancel");
+		buttonRow.add(okButton);
+		buttonRow.add(cancelButton);
+
+		JPanel content = new JPanel(new BorderLayout(0, 8));
+		content.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 8, 8, 8));
+		content.add(panel, BorderLayout.CENTER);
+		content.add(buttonRow, BorderLayout.SOUTH);
+		dialog.setContentPane(content);
+
+		cancelButton.addActionListener(e -> dialog.dispose());
+		okButton.addActionListener(e ->
 		{
 			GoalType selectedType = (GoalType) typeCombo.getSelectedItem();
 			boolean relative = modeRelative.isSelected();
@@ -519,6 +535,7 @@ class GoalDialogFactory
 			if (selectedType == GoalType.SKILL)
 			{
 				addSkillGoal(skillCombo, skillTargetForm, preferredSectionId, relative);
+				dialog.dispose();
 			}
 			else if (selectedType == GoalType.ITEM_GRIND)
 			{
@@ -527,20 +544,17 @@ class GoalDialogFactory
 					int qty = Integer.parseInt(itemQtyField.getText().trim().replace(",", ""));
 					if (qty <= 0)
 					{
-						JOptionPane.showMessageDialog(parentComponent, "Quantity must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(dialog, "Quantity must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
-					// Snapshot + clear the pending position state up front: the
-					// item flow goes async through the chatbox in the plugin,
-					// so we can't rely on moveToPreferredSection (which the
-					// skill/custom flows use) to read these fields later.
 					int capturedPosition = pendingAddPositionInSection;
 					pendingAddPositionInSection = -1;
+					dialog.dispose();
 					itemSearchCallback.accept(qty, preferredSectionId, capturedPosition);
 				}
-				catch (NumberFormatException e)
+				catch (NumberFormatException ex)
 				{
-					JOptionPane.showMessageDialog(parentComponent, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(dialog, "Invalid quantity.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 			else if (selectedType == GoalType.ACCOUNT)
@@ -553,7 +567,7 @@ class GoalDialogFactory
 					int target = Integer.parseInt(accountTargetField.getText().trim().replace(",", ""));
 					if (target <= 0)
 					{
-						JOptionPane.showMessageDialog(parentComponent, "Target must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
+						JOptionPane.showMessageDialog(dialog, "Target must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
 					api.beginCompound("Add goal: " + metric.getDisplayName());
@@ -566,18 +580,23 @@ class GoalDialogFactory
 					{
 						api.endCompound();
 					}
+					dialog.dispose();
 				}
-				catch (NumberFormatException e)
+				catch (NumberFormatException ex)
 				{
-					JOptionPane.showMessageDialog(parentComponent, "Invalid target number.", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(dialog, "Invalid target number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 			else if (selectedType == GoalType.CUSTOM)
 			{
-				// CUSTOM goals are boolean (target=1) — relative mode is a no-op.
 				addCustomGoal(nameField, descField, preferredSectionId);
+				dialog.dispose();
 			}
-		}
+		});
+
+		dialog.pack();
+		dialog.setLocationRelativeTo(parentComponent);
+		dialog.setVisible(true);
 	}
 
 	private void addSkillGoal(JComboBox<Skill> skillCombo, SkillTargetForm form, String preferredSectionId, boolean relative)

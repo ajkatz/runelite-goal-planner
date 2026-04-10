@@ -216,15 +216,6 @@ public class GoalTrackerPlugin extends Plugin
 
 					javax.swing.SwingUtilities.invokeLater(() ->
 					{
-						int confirm = javax.swing.JOptionPane.showConfirmDialog(
-							panel,
-							"Add goal: " + FormatUtil.formatNumber(targetQty) + " x " + itemName + "?",
-							"Confirm Item Goal",
-							javax.swing.JOptionPane.OK_CANCEL_OPTION,
-							javax.swing.JOptionPane.PLAIN_MESSAGE
-						);
-						if (confirm != javax.swing.JOptionPane.OK_OPTION) return;
-
 						// Set sectionId at build time so addGoal places the
 						// goal in the right section instead of defaulting to
 						// Incomplete. Position-within-section is applied as a
@@ -1147,28 +1138,9 @@ public class GoalTrackerPlugin extends Plugin
 				.setType(MenuAction.RUNELITE)
 				.onClick(e ->
 				{
-					int qty;
-					if (fromCollectionLog)
-					{
-						// Collection log items default to 1, skip the dialog
-						qty = 1;
-					}
-					else
-					{
-						String input = javax.swing.JOptionPane.showInputDialog(
-							panel,
-							"Target quantity for " + itemName + ":",
-							"1"
-						);
-						if (input == null) return;
-						try
-						{
-							qty = Integer.parseInt(input.trim().replace(",", ""));
-							if (qty <= 0) return;
-						}
-						catch (NumberFormatException ignored) { return; }
-					}
-
+					// Build tags on the client thread (ItemManager requires it),
+					// then show the quantity prompt on the EDT so it doesn't
+					// block the game's rendering loop.
 					java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
 					java.util.List<String> autoTagIds = new java.util.ArrayList<>();
 					for (ItemTag spec : autoTags)
@@ -1177,19 +1149,37 @@ public class GoalTrackerPlugin extends Plugin
 							goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
 						if (tag != null) autoTagIds.add(tag.getId());
 					}
-					Goal goal = Goal.builder()
-						.type(GoalType.ITEM_GRIND)
-						.name(itemName)
-						.description(FormatUtil.formatNumber(qty) + " total")
-						.itemId(realItemId)
-						.targetValue(qty)
-						.currentValue(-1)
-						.tagIds(new java.util.ArrayList<>(autoTagIds))
-						.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
-						.build();
 
-					addGoalUndoable(goal, "Add goal: " + itemName);
-					refreshItemGoalsNow();
+					javax.swing.SwingUtilities.invokeLater(() ->
+					{
+						String input = javax.swing.JOptionPane.showInputDialog(
+							panel,
+							"Target quantity for " + itemName + ":",
+							"1"
+						);
+						if (input == null) return;
+						int qty;
+						try
+						{
+							qty = Integer.parseInt(input.trim().replace(",", ""));
+							if (qty <= 0) return;
+						}
+						catch (NumberFormatException ignored) { return; }
+
+						Goal goal = Goal.builder()
+							.type(GoalType.ITEM_GRIND)
+							.name(itemName)
+							.description(FormatUtil.formatNumber(qty) + " total")
+							.itemId(realItemId)
+							.targetValue(qty)
+							.currentValue(-1)
+							.tagIds(new java.util.ArrayList<>(autoTagIds))
+							.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
+							.build();
+
+						addGoalUndoable(goal, "Add goal: " + itemName);
+						refreshItemGoalsNow();
+					});
 				});
 
 			// Only add one "Add Goal" entry
