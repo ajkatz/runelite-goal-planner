@@ -1916,6 +1916,7 @@ public final class QuestRequirements
 	static
 	{
 		RECOMMENDED_SKILLS.put(Quest.DRAGON_SLAYER_I, List.of(new SkillReq(Skill.MAGIC, 33)));
+		RECOMMENDED_SKILLS.put(Quest.DORICS_QUEST, List.of(new SkillReq(Skill.MINING, 15)));
 	}
 
 	// ============================================================
