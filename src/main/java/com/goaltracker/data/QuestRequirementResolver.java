@@ -207,6 +207,24 @@ public final class QuestRequirementResolver
 				.build());
 		}
 
+		// Recommended combat level (wiki suggestion) — seeded as optional.
+		// Only added when there's no hard combat level requirement (which
+		// takes precedence and is already added above as non-optional).
+		if (reqs.combatLevel == 0)
+		{
+			int recommended = QuestRequirements.recommendedCombatLevel(quest);
+			if (recommended > 0)
+			{
+				templates.add(Goal.builder()
+					.type(GoalType.ACCOUNT)
+					.name(recommended + " Combat Level (recommended)")
+					.accountMetric(com.goaltracker.model.AccountMetric.COMBAT_LEVEL.name())
+					.targetValue(recommended)
+					.optional(true)
+					.build());
+			}
+		}
+
 		return new Resolved(templates, skippedSkills, skippedQuests, reqs.questPoints, reqs.combatLevel);
 	}
 

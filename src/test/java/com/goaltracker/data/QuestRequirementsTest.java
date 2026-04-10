@@ -233,10 +233,12 @@ class QuestRequirementsTest
 
 			assertEquals(1, out.skippedSkills);
 			assertEquals(0, out.skippedQuests);
-			// Only the Barcrawl template remains — no skill template.
-			assertEquals(1, out.templates.size());
-			assertEquals(GoalType.QUEST, out.templates.get(0).getType());
-			assertEquals("ALFRED_GRIMHANDS_BARCRAWL", out.templates.get(0).getQuestName());
+			// Barcrawl template + optional combat recommendation.
+			assertEquals(2, out.templates.size());
+			Goal questT = out.templates.stream()
+				.filter(g -> g.getType() == GoalType.QUEST)
+				.findFirst().orElseThrow();
+			assertEquals("ALFRED_GRIMHANDS_BARCRAWL", questT.getQuestName());
 		}
 
 		@Test
@@ -252,8 +254,8 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.HORROR_FROM_THE_DEEP, skills, NO_QUESTS);
 
-			// 1 skill + 1 quest prereq = 2 templates.
-			assertEquals(2, out.templates.size());
+			// 1 skill + 1 quest prereq + 1 optional combat = 3 templates.
+			assertEquals(3, out.templates.size());
 			Goal skillT = out.templates.stream()
 				.filter(g -> g.getType() == GoalType.SKILL)
 				.findFirst().orElseThrow();
@@ -275,7 +277,9 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.MONKEY_MADNESS_I, NO_SKILLS, quests);
 
-			assertTrue(out.templates.isEmpty());
+			// Both quest prereqs skipped; only the optional combat recommendation remains.
+			assertEquals(1, out.templates.size());
+			assertTrue(out.templates.get(0).isOptional());
 			assertEquals(2, out.skippedQuests);
 		}
 
@@ -291,8 +295,9 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.MONKEY_MADNESS_I, NO_SKILLS, quests);
 
-			assertEquals(2, out.templates.size());
-			assertTrue(out.templates.stream().allMatch(g -> g.getType() == GoalType.QUEST));
+			// 2 quest prereqs + 1 optional combat recommendation.
+			assertEquals(3, out.templates.size());
+			assertEquals(2, out.templates.stream().filter(g -> g.getType() == GoalType.QUEST).count());
 			assertEquals(0, out.skippedQuests);
 		}
 
@@ -330,10 +335,14 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II, maxed, allFinished);
 
-			assertEquals(1, out.templates.size());
-			assertEquals(GoalType.ACCOUNT, out.templates.get(0).getType());
-			assertEquals("QUEST_POINTS", out.templates.get(0).getAccountMetric());
-			assertEquals(200, out.templates.get(0).getTargetValue());
+			// QP template + optional combat recommendation.
+			assertEquals(2, out.templates.size());
+			Goal qpTemplate = out.templates.stream()
+				.filter(g -> "QUEST_POINTS".equals(g.getAccountMetric()))
+				.findFirst().orElseThrow();
+			assertEquals(GoalType.ACCOUNT, qpTemplate.getType());
+			assertEquals(200, qpTemplate.getTargetValue());
+			assertFalse(qpTemplate.isOptional());
 			assertEquals(200, out.stubbedQuestPoints);
 			assertFalse(out.isEmpty());
 		}
@@ -347,8 +356,8 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.MONKEY_MADNESS_I, NO_SKILLS, quests);
 
-			// Both prereqs treated as unfinished → both get templates.
-			assertEquals(2, out.templates.size());
+			// Both prereqs treated as unfinished + optional combat = 3 templates.
+			assertEquals(3, out.templates.size());
 			assertEquals(0, out.skippedQuests);
 		}
 
@@ -364,7 +373,7 @@ class QuestRequirementsTest
 			QuestRequirementResolver.Resolved out =
 				QuestRequirementResolver.resolve(Quest.MONKEY_MADNESS_I, NO_SKILLS, quests);
 
-			assertEquals(2, out.templates.size());
+			assertEquals(3, out.templates.size());
 		}
 	}
 }

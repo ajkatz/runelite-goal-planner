@@ -52,7 +52,6 @@ public final class QuestRequirements
 		public final int combatLevel;
 		/** Minimum museum kudos required. 0 = none. */
 		public final int kudos;
-
 		public Reqs(List<SkillReq> skills, List<Quest> prereqQuests, int questPoints, int combatLevel)
 		{
 			this(skills, prereqQuests, questPoints, combatLevel, 0);
@@ -1908,6 +1907,90 @@ public final class QuestRequirements
 		Quest.SHADOW_OF_THE_STORM
 	);
 
+	// ============================================================
+	// Recommended combat levels (wiki-sourced suggestions, not hard
+	// requirements). Seeded as optional goals.
+	// ============================================================
+	private static final Map<Quest, Integer> RECOMMENDED_COMBAT = new EnumMap<>(Quest.class);
+
+	static
+	{
+		RECOMMENDED_COMBAT.put(Quest.DEMON_SLAYER, 15);
+		RECOMMENDED_COMBAT.put(Quest.VAMPYRE_SLAYER, 20);
+		RECOMMENDED_COMBAT.put(Quest.THE_CORSAIR_CURSE, 20);
+		RECOMMENDED_COMBAT.put(Quest.DRAGON_SLAYER_I, 45);
+		RECOMMENDED_COMBAT.put(Quest.MONKEY_MADNESS_I, 65);
+		RECOMMENDED_COMBAT.put(Quest.TREE_GNOME_VILLAGE, 45);
+		RECOMMENDED_COMBAT.put(Quest.THE_GRAND_TREE, 50);
+		RECOMMENDED_COMBAT.put(Quest.HORROR_FROM_THE_DEEP, 50);
+		RECOMMENDED_COMBAT.put(Quest.LOST_CITY, 45);
+		RECOMMENDED_COMBAT.put(Quest.DESERT_TREASURE_I, 70);
+		RECOMMENDED_COMBAT.put(Quest.DRAGON_SLAYER_II, 100);
+		RECOMMENDED_COMBAT.put(Quest.SONG_OF_THE_ELVES, 95);
+		RECOMMENDED_COMBAT.put(Quest.LEGENDS_QUEST, 65);
+		RECOMMENDED_COMBAT.put(Quest.HEROES_QUEST, 50);
+		RECOMMENDED_COMBAT.put(Quest.UNDERGROUND_PASS, 60);
+		RECOMMENDED_COMBAT.put(Quest.REGICIDE, 60);
+		RECOMMENDED_COMBAT.put(Quest.MOURNINGS_END_PART_I, 60);
+		RECOMMENDED_COMBAT.put(Quest.MOURNINGS_END_PART_II, 65);
+		RECOMMENDED_COMBAT.put(Quest.FAMILY_CREST, 55);
+		RECOMMENDED_COMBAT.put(Quest.WATERFALL_QUEST, 25);
+		RECOMMENDED_COMBAT.put(Quest.FIGHT_ARENA, 50);
+		RECOMMENDED_COMBAT.put(Quest.SHILO_VILLAGE, 45);
+		RECOMMENDED_COMBAT.put(Quest.HAUNTED_MINE, 50);
+		RECOMMENDED_COMBAT.put(Quest.CABIN_FEVER, 35);
+		RECOMMENDED_COMBAT.put(Quest.RUM_DEAL, 50);
+		RECOMMENDED_COMBAT.put(Quest.ZOGRE_FLESH_EATERS, 45);
+		RECOMMENDED_COMBAT.put(Quest.CREATURE_OF_FENKENSTRAIN, 30);
+		RECOMMENDED_COMBAT.put(Quest.NATURE_SPIRIT, 20);
+		RECOMMENDED_COMBAT.put(Quest.IN_SEARCH_OF_THE_MYREQUE, 45);
+		RECOMMENDED_COMBAT.put(Quest.IN_AID_OF_THE_MYREQUE, 45);
+		RECOMMENDED_COMBAT.put(Quest.DARKNESS_OF_HALLOWVALE, 50);
+		RECOMMENDED_COMBAT.put(Quest.A_TASTE_OF_HOPE, 70);
+		RECOMMENDED_COMBAT.put(Quest.SINS_OF_THE_FATHER, 95);
+		RECOMMENDED_COMBAT.put(Quest.A_NIGHT_AT_THE_THEATRE, 95);
+		RECOMMENDED_COMBAT.put(Quest.HOLY_GRAIL, 50);
+		RECOMMENDED_COMBAT.put(Quest.MONKEY_MADNESS_II, 90);
+		RECOMMENDED_COMBAT.put(Quest.THE_FREMENNIK_TRIALS, 40);
+		RECOMMENDED_COMBAT.put(Quest.THE_FREMENNIK_ISLES, 50);
+		RECOMMENDED_COMBAT.put(Quest.THE_FREMENNIK_EXILES, 80);
+		RECOMMENDED_COMBAT.put(Quest.MOUNTAIN_DAUGHTER, 40);
+		RECOMMENDED_COMBAT.put(Quest.CONTACT, 70);
+		RECOMMENDED_COMBAT.put(Quest.BENEATH_CURSED_SANDS, 85);
+		RECOMMENDED_COMBAT.put(Quest.SHADOW_OF_THE_STORM, 50);
+		RECOMMENDED_COMBAT.put(Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE, 100);
+		RECOMMENDED_COMBAT.put(Quest.SECRETS_OF_THE_NORTH, 85);
+		RECOMMENDED_COMBAT.put(Quest.DEFENDER_OF_VARROCK, 65);
+		RECOMMENDED_COMBAT.put(Quest.THE_GREAT_BRAIN_ROBBERY, 60);
+		RECOMMENDED_COMBAT.put(Quest.SCORPION_CATCHER, 40);
+		RECOMMENDED_COMBAT.put(Quest.GRIM_TALES, 55);
+		RECOMMENDED_COMBAT.put(Quest.THE_SLUG_MENACE, 35);
+		RECOMMENDED_COMBAT.put(Quest.OLAFS_QUEST, 50);
+		RECOMMENDED_COMBAT.put(Quest.MAKING_FRIENDS_WITH_MY_ARM, 65);
+		RECOMMENDED_COMBAT.put(Quest.SWAN_SONG, 60);
+		RECOMMENDED_COMBAT.put(Quest.BIG_CHOMPY_BIRD_HUNTING, 25);
+		RECOMMENDED_COMBAT.put(Quest.A_KINGDOM_DIVIDED, 70);
+		RECOMMENDED_COMBAT.put(Quest.ELEMENTAL_WORKSHOP_I, 15);
+		RECOMMENDED_COMBAT.put(Quest.FAIRYTALE_I__GROWING_PAINS, 50);
+		RECOMMENDED_COMBAT.put(Quest.FAIRYTALE_II__CURE_A_QUEEN, 55);
+		RECOMMENDED_COMBAT.put(Quest.TROLL_STRONGHOLD, 50);
+		RECOMMENDED_COMBAT.put(Quest.THE_TOURIST_TRAP, 20);
+		RECOMMENDED_COMBAT.put(Quest.WITCHS_HOUSE, 35);
+		RECOMMENDED_COMBAT.put(Quest.HIS_FAITHFUL_SERVANTS, 70);
+		RECOMMENDED_COMBAT.put(Quest.THE_GARDEN_OF_DEATH, 20);
+		RECOMMENDED_COMBAT.put(Quest.WHILE_GUTHIX_SLEEPS, 95);
+		RECOMMENDED_COMBAT.put(Quest.THE_CURSE_OF_ARRAV, 85);
+		RECOMMENDED_COMBAT.put(Quest.LAND_OF_THE_GOBLINS, 65);
+		RECOMMENDED_COMBAT.put(Quest.PERILOUS_MOONS, 75);
+		RECOMMENDED_COMBAT.put(Quest.THE_HEART_OF_DARKNESS, 65);
+		RECOMMENDED_COMBAT.put(Quest.THE_FINAL_DAWN, 85);
+		RECOMMENDED_COMBAT.put(Quest.MEAT_AND_GREET, 60);
+		RECOMMENDED_COMBAT.put(Quest.SHADOWS_OF_CUSTODIA, 60);
+		RECOMMENDED_COMBAT.put(Quest.ROYAL_TROUBLE, 50);
+		RECOMMENDED_COMBAT.put(Quest.TROLL_ROMANCE, 50);
+		RECOMMENDED_COMBAT.put(Quest.ICTHLARINS_LITTLE_HELPER, 50);
+	}
+
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
 		int questPoints, int combatLevel)
 	{
@@ -1937,6 +2020,16 @@ public final class QuestRequirements
 	{
 		if (quest == null) return Collections.emptyList();
 		return XP_REWARDS.getOrDefault(quest, Collections.emptyList());
+	}
+
+	/**
+	 * Recommended combat level for a quest (wiki suggestion), or 0 if none.
+	 * Not a hard requirement — seeded as an optional goal.
+	 */
+	public static int recommendedCombatLevel(Quest quest)
+	{
+		if (quest == null) return 0;
+		return RECOMMENDED_COMBAT.getOrDefault(quest, 0);
 	}
 
 	/**

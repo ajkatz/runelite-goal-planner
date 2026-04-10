@@ -263,10 +263,9 @@ class AddQuestGoalWithPrereqsTest
 			apiWithClient.resolveQuestRequirements(Quest.HORROR_FROM_THE_DEEP);
 		assertNotNull(out);
 		// 1 unmet skill req (Agility 30 < 35) + 1 unmet quest prereq
-		// (Alfred Grimhand's Barcrawl — default NOT_STARTED on a fresh
-		// mocked Client) = 2 templates.
-		assertEquals(2, out.templates.size(),
-			"HFTD should produce one skill template and one Barcrawl quest template");
+		// (Alfred Grimhand's Barcrawl) + 1 optional combat recommendation = 3 templates.
+		assertEquals(3, out.templates.size(),
+			"HFTD should produce skill + Barcrawl + optional combat templates");
 	}
 
 	@Test

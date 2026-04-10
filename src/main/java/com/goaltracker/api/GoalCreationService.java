@@ -627,6 +627,12 @@ class GoalCreationService
 				seedGoalId = result.goalId;
 			}
 
+			// Propagate optional flag from template to created goal.
+			if (template.isOptional())
+			{
+				api.setGoalOptional(seedGoalId, true);
+			}
+
 			gestureGoalIds.add(seedGoalId);
 			api.addRequirement(entry.parentGoalId, seedGoalId);
 			api.addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
