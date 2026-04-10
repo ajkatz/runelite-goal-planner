@@ -734,14 +734,42 @@ public class GoalCard extends JPanel
 			sb.append(stripped);
 			if (hasRelations) sb.append("<br><br>");
 		}
-		if (!requires.isEmpty())
+		// Split into required vs recommended (optional).
+		java.util.List<GoalView.RelationView> reqRequired = new java.util.ArrayList<>();
+		java.util.List<GoalView.RelationView> reqRecommended = new java.util.ArrayList<>();
+		for (GoalView.RelationView r : requires)
 		{
-			sb.append("<b>Requires:</b> ").append(formatRelations(requires, skillIconManager));
-			if (!requiredBy.isEmpty()) sb.append("<br>");
+			if (r.optional) reqRecommended.add(r); else reqRequired.add(r);
 		}
-		if (!requiredBy.isEmpty())
+		java.util.List<GoalView.RelationView> byRequired = new java.util.ArrayList<>();
+		java.util.List<GoalView.RelationView> byRecommended = new java.util.ArrayList<>();
+		for (GoalView.RelationView r : requiredBy)
 		{
-			sb.append("<b>Required by:</b> ").append(formatRelations(requiredBy, skillIconManager));
+			if (r.optional) byRecommended.add(r); else byRequired.add(r);
+		}
+
+		boolean first = true;
+		if (!reqRequired.isEmpty())
+		{
+			sb.append("<b>Requires:</b> ").append(formatRelations(reqRequired, skillIconManager));
+			first = false;
+		}
+		if (!reqRecommended.isEmpty())
+		{
+			if (!first) sb.append("<br>");
+			sb.append("<b>Recommends:</b> ").append(formatRelations(reqRecommended, skillIconManager));
+			first = false;
+		}
+		if (!byRequired.isEmpty())
+		{
+			if (!first) sb.append("<br>");
+			sb.append("<b>Required by:</b> ").append(formatRelations(byRequired, skillIconManager));
+			first = false;
+		}
+		if (!byRecommended.isEmpty())
+		{
+			if (!first) sb.append("<br>");
+			sb.append("<b>Recommended by:</b> ").append(formatRelations(byRecommended, skillIconManager));
 		}
 		sb.append("</html>");
 		return sb.toString();

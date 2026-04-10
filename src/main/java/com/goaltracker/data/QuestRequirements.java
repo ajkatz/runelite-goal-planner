@@ -69,6 +69,30 @@ public final class QuestRequirements
 
 	private static final Map<Quest, Reqs> TABLE = new EnumMap<>(Quest.class);
 
+	/** Miniquests — 0 QP, shorter, different description in the goal card. */
+	private static final java.util.Set<Quest> MINIQUESTS = java.util.EnumSet.of(
+		Quest.ALFRED_GRIMHANDS_BARCRAWL,
+		Quest.BARBARIAN_TRAINING,
+		Quest.BEAR_YOUR_SOUL,
+		Quest.CURSE_OF_THE_EMPTY_LORD,
+		Quest.DADDYS_HOME,
+		Quest.ENTER_THE_ABYSS,
+		Quest.FAMILY_PEST,
+		Quest.THE_ENCHANTED_KEY,
+		Quest.THE_FROZEN_DOOR,
+		Quest.THE_GENERALS_SHADOW,
+		Quest.HIS_FAITHFUL_SERVANTS,
+		Quest.HOPESPEARS_WILL,
+		Quest.IN_SEARCH_OF_KNOWLEDGE,
+		Quest.INTO_THE_TOMBS,
+		Quest.LAIR_OF_TARN_RAZORLOR,
+		Quest.LEARNING_THE_ROPES,
+		Quest.MAGE_ARENA_I,
+		Quest.MAGE_ARENA_II,
+		Quest.SKIPPY_AND_THE_MOGRES,
+		Quest.VALE_TOTEMS
+	);
+
 	/** The complete set of F2P quests, used to auto-tag quest goals. */
 	private static final java.util.Set<Quest> F2P_QUESTS = java.util.EnumSet.of(
 		Quest.BELOW_ICE_MOUNTAIN,
@@ -1512,10 +1536,10 @@ public final class QuestRequirements
 			List.of(new SkillReq(Skill.SMITHING, 48)),
 			List.of(Quest.TROUBLED_TORTUGANS),
 			0, 0);
-		// Vale Totems (miniquest): Fletching 20.
+		// Vale Totems (miniquest): Fletching 20 + Children of the Sun.
 		put(Quest.VALE_TOTEMS,
 			List.of(new SkillReq(Skill.FLETCHING, 20)),
-			List.of(),
+			List.of(Quest.CHILDREN_OF_THE_SUN),
 			0, 0);
 
 		// Learning the Ropes: no requirements.
@@ -2048,6 +2072,8 @@ public final class QuestRequirements
 		RECOMMENDED_COMBAT.put(Quest.THE_ASCENT_OF_ARCEUUS, 15);
 		RECOMMENDED_COMBAT.put(Quest.BIOHAZARD, 10);
 		RECOMMENDED_COMBAT.put(Quest.THE_IDES_OF_MILK, 15);
+		RECOMMENDED_COMBAT.put(Quest.IN_SEARCH_OF_KNOWLEDGE, 45);
+		RECOMMENDED_COMBAT.put(Quest.BARBARIAN_TRAINING, 70);
 	}
 
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
@@ -2117,6 +2143,12 @@ public final class QuestRequirements
 	}
 
 	/** True iff the quest is free-to-play. */
+	/** True iff the quest is a miniquest (not a full quest). */
+	public static boolean isMiniquest(Quest quest)
+	{
+		return quest != null && MINIQUESTS.contains(quest);
+	}
+
 	public static boolean isF2P(Quest quest)
 	{
 		return quest != null && F2P_QUESTS.contains(quest);

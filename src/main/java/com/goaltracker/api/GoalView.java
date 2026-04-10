@@ -89,12 +89,15 @@ public class GoalView
 		public String skillName;
 		/** Target level for SKILL goals (used for compact display). */
 		public int targetLevel;
+		/** True when this relation target is an optional/recommended goal. */
+		public boolean optional;
 
-		public RelationView(String name, String skillName, int targetLevel)
+		public RelationView(String name, String skillName, int targetLevel, boolean optional)
 		{
 			this.name = name;
 			this.skillName = skillName;
 			this.targetLevel = targetLevel;
+			this.optional = optional;
 		}
 	}
 	/** Topological tier within this goal's section, assigned by

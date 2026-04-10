@@ -293,7 +293,7 @@ class GoalQueryService
 			skillName = g.getSkillName();
 			targetLevel = Experience.getLevelForXp(g.getTargetValue());
 		}
-		return new GoalView.RelationView(g.getName(), skillName, targetLevel);
+		return new GoalView.RelationView(g.getName(), skillName, targetLevel, g.isOptional());
 	}
 
 	static SectionView toSectionView(Section s)

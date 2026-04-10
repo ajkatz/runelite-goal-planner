@@ -288,9 +288,19 @@ class GoalCreationService
 		}
 
 		int qpReward = com.goaltracker.data.QuestRequirements.questPointReward(quest);
-		String description = qpReward > 0
-			? qpReward + " Quest Point" + (qpReward != 1 ? "s" : "")
-			: "Quest";
+		String description;
+		if (qpReward > 0)
+		{
+			description = qpReward + " Quest Point" + (qpReward != 1 ? "s" : "");
+		}
+		else if (com.goaltracker.data.QuestRequirements.isMiniquest(quest))
+		{
+			description = "Miniquest";
+		}
+		else
+		{
+			description = "Quest";
+		}
 
 		Goal goal = Goal.builder()
 			.type(GoalType.QUEST)
