@@ -549,8 +549,18 @@ class GoalCreationService
 		java.util.ArrayDeque<SeedEntry> highPriority = new java.util.ArrayDeque<>();
 		java.util.ArrayDeque<SeedEntry> lowPriority = new java.util.ArrayDeque<>();
 
+		// Sort skill templates by target value descending so higher-level
+		// skills are processed (and thus positioned) first in the card list.
+		java.util.List<Goal> sortedTemplates = new java.util.ArrayList<>(rootTemplates);
+		sortedTemplates.sort((a, b) -> {
+			boolean aSkill = a != null && a.getType() == GoalType.SKILL;
+			boolean bSkill = b != null && b.getType() == GoalType.SKILL;
+			if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+			return 0; // preserve original order for non-skill types
+		});
+
 		// Seed initial templates into the appropriate queue
-		for (Goal t : rootTemplates)
+		for (Goal t : sortedTemplates)
 		{
 			if (t == null) continue;
 			SeedEntry entry = new SeedEntry(rootGoalId, rootQuest, t);
@@ -681,9 +691,15 @@ class GoalCreationService
 				}
 				com.goaltracker.data.QuestRequirementResolver.Resolved childResolved =
 					api.resolveQuestRequirements(childQuestForNextLevel);
-				// QP and combat level requirements are now seeded as ACCOUNT
-				// goal templates by the resolver — no stub logging needed.
-				for (Goal childTemplate : childResolved.templates)
+				// Sort child skill templates highest-level-first.
+				java.util.List<Goal> sortedChildTemplates = new java.util.ArrayList<>(childResolved.templates);
+				sortedChildTemplates.sort((a, b) -> {
+					boolean aSkill = a != null && a.getType() == GoalType.SKILL;
+					boolean bSkill = b != null && b.getType() == GoalType.SKILL;
+					if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+					return 0;
+				});
+				for (Goal childTemplate : sortedChildTemplates)
 				{
 					if (childTemplate == null) continue;
 					SeedEntry childEntry = new SeedEntry(seedGoalId, childQuestForNextLevel, childTemplate);
