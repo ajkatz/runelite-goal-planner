@@ -555,7 +555,7 @@ class GoalCreationService
 		sortedTemplates.sort((a, b) -> {
 			boolean aSkill = a != null && a.getType() == GoalType.SKILL;
 			boolean bSkill = b != null && b.getType() == GoalType.SKILL;
-			if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+			if (aSkill && bSkill) return Integer.compare(a.getTargetValue(), b.getTargetValue());
 			return 0; // preserve original order for non-skill types
 		});
 
@@ -703,7 +703,7 @@ class GoalCreationService
 				sortedChildTemplates.sort((a, b) -> {
 					boolean aSkill = a != null && a.getType() == GoalType.SKILL;
 					boolean bSkill = b != null && b.getType() == GoalType.SKILL;
-					if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+					if (aSkill && bSkill) return Integer.compare(a.getTargetValue(), b.getTargetValue());
 					return 0;
 				});
 				for (Goal childTemplate : sortedChildTemplates)
