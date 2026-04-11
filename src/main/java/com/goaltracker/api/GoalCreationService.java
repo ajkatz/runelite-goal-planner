@@ -680,10 +680,23 @@ class GoalCreationService
 
 			gestureGoalIds.add(seedGoalId);
 			api.addRequirement(entry.parentGoalId, seedGoalId);
-			// Tag with the parent quest name. Truncate to 30 chars (tag label limit).
-			String tagLabel = parentTagLabel.length() <= 30
-				? parentTagLabel
-				: parentTagLabel.substring(0, 30);
+			// Tag with the parent quest name. Truncate at word boundary if over 30 chars.
+			String tagLabel = parentTagLabel;
+			if (tagLabel.length() > 30)
+			{
+				// Try to cut at " - " subtitle separator first (e.g. "Desert Treasure II - The Fallen Empire")
+				int dash = tagLabel.indexOf(" - ");
+				if (dash > 0 && dash <= 30)
+				{
+					tagLabel = tagLabel.substring(0, dash);
+				}
+				else
+				{
+					// Fall back to last space before 30 chars
+					int lastSpace = tagLabel.lastIndexOf(' ', 30);
+					tagLabel = lastSpace > 0 ? tagLabel.substring(0, lastSpace) : tagLabel.substring(0, 30);
+				}
+			}
 			try
 			{
 				api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
