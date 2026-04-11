@@ -367,6 +367,10 @@ public class GoalTrackerPlugin extends Plugin
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
+		// Only track when fully logged in — varbits fire during login
+		// before the client is ready, which can hang Quest.getState().
+		if (client.getGameState() != GameState.LOGGED_IN) return;
+
 		clientThread.invokeLater(() ->
 		{
 			java.util.List<Goal> goals = goalStore.getGoals();
@@ -1207,6 +1211,7 @@ public class GoalTrackerPlugin extends Plugin
 	@Subscribe
 	public void onStatChanged(StatChanged event)
 	{
+		if (client.getGameState() != GameState.LOGGED_IN) return;
 		java.util.List<Goal> goals = goalStore.getGoals();
 		boolean updated = skillTracker.checkGoals(goals);
 		// Account metrics (combat level, total level) are derived from stats.
