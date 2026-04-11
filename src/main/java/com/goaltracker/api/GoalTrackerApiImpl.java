@@ -241,7 +241,10 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override public void endCompound()
 	{
 		commandHistory.endCompound();
-		onGoalsChanged.run();
+		// Only fire the UI refresh when the outermost compound closes.
+		// Nested compounds (e.g. addQuestGoal inside addQuestGoalWithPrereqs)
+		// decrement the depth counter but don't close the buffer.
+		if (!commandHistory.isInCompound()) onGoalsChanged.run();
 	}
 
 	// =====================================================================
