@@ -21,23 +21,39 @@ public final class DiaryRequirementResolver
 {
 	private static final int QUEST_SPRITE_ID = 899;
 
+	/** A resolved unlock with its unmet quest prereqs. */
+	public static class ResolvedUnlock
+	{
+		public final String name;
+		public final List<Goal> questTemplates;
+
+		public ResolvedUnlock(String name, List<Goal> questTemplates)
+		{
+			this.name = name;
+			this.questTemplates = questTemplates;
+		}
+	}
+
 	/** Resolution result. */
 	public static class Resolved
 	{
 		public final List<Goal> templates;
+		public final List<ResolvedUnlock> unlocks;
 		public final int skippedSkills;
 		public final int skippedQuests;
 
-		public Resolved(List<Goal> templates, int skippedSkills, int skippedQuests)
+		public Resolved(List<Goal> templates, List<ResolvedUnlock> unlocks,
+			int skippedSkills, int skippedQuests)
 		{
 			this.templates = templates;
+			this.unlocks = unlocks;
 			this.skippedSkills = skippedSkills;
 			this.skippedQuests = skippedQuests;
 		}
 
 		public boolean isEmpty()
 		{
-			return templates.isEmpty();
+			return templates.isEmpty() && unlocks.isEmpty();
 		}
 	}
 
@@ -72,7 +88,7 @@ public final class DiaryRequirementResolver
 		DiaryRequirements.Reqs reqs = DiaryRequirements.lookup(area, tier);
 		if (reqs == null)
 		{
-			return new Resolved(List.of(), 0, 0);
+			return new Resolved(List.of(), List.of(), 0, 0);
 		}
 
 		List<Goal> templates = new ArrayList<>();
@@ -126,7 +142,45 @@ public final class DiaryRequirementResolver
 				.build());
 		}
 
-		return new Resolved(templates, skippedSkills, skippedQuests);
+		// Unlocks: virtual milestones with their own quest prereq trees.
+		// An unlock is considered "met" if ALL its prereq quests are FINISHED.
+		List<ResolvedUnlock> resolvedUnlocks = new ArrayList<>();
+		for (DiaryRequirements.Unlock unlock : reqs.unlocks)
+		{
+			boolean allMet = true;
+			List<Goal> unlockQuestTemplates = new ArrayList<>();
+			for (Quest prereq : unlock.prereqQuests)
+			{
+				QuestState state;
+				try
+				{
+					state = questStateLookup.apply(prereq);
+				}
+				catch (Exception e)
+				{
+					state = null;
+				}
+				if (state == QuestState.FINISHED)
+				{
+					continue;
+				}
+				allMet = false;
+				unlockQuestTemplates.add(Goal.builder()
+					.type(GoalType.QUEST)
+					.name(prereq.getName())
+					.description("Quest")
+					.questName(prereq.name())
+					.targetValue(1)
+					.spriteId(QUEST_SPRITE_ID)
+					.build());
+			}
+			if (!allMet)
+			{
+				resolvedUnlocks.add(new ResolvedUnlock(unlock.name, unlockQuestTemplates));
+			}
+		}
+
+		return new Resolved(templates, resolvedUnlocks, skippedSkills, skippedQuests);
 	}
 
 	private DiaryRequirementResolver() {}

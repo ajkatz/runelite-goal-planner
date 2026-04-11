@@ -839,15 +839,18 @@ class GoalCreationService
 	 * as prerequisite goals. Parallel to addQuestGoalWithPrereqs.
 	 */
 	String addDiaryGoalWithPrereqs(String areaDisplayName, GoalTrackerApi.DiaryTier tier,
-		java.util.List<Goal> prereqTemplates)
+		com.goaltracker.data.DiaryRequirementResolver.Resolved resolved)
 	{
-		log.debug("API.public addDiaryGoalWithPrereqs(area={}, tier={}, prereqs={})",
-			areaDisplayName, tier, prereqTemplates == null ? 0 : prereqTemplates.size());
+		log.debug("API.public addDiaryGoalWithPrereqs(area={}, tier={}, templates={}, unlocks={})",
+			areaDisplayName, tier,
+			resolved == null ? 0 : resolved.templates.size(),
+			resolved == null ? 0 : resolved.unlocks.size());
 		if (areaDisplayName == null || tier == null) return null;
-		if (prereqTemplates == null || prereqTemplates.isEmpty())
+		if (resolved == null || resolved.isEmpty())
 		{
 			return addDiaryGoal(areaDisplayName, tier);
 		}
+		java.util.List<Goal> prereqTemplates = resolved.templates;
 
 		AchievementDiaryData.Tier internalTier = mapDiaryTier(tier);
 		String tierStr = internalTier.getDisplayName();
@@ -911,6 +914,12 @@ class GoalCreationService
 						template.getTargetValue());
 					if (seedGoalId == null) continue;
 				}
+				else if (template.getType() == GoalType.CUSTOM)
+				{
+					// Unlock milestones (e.g. "Fairy Rings Unlocked").
+					seedGoalId = addCustomGoal(template.getName(), template.getDescription());
+					if (seedGoalId == null) continue;
+				}
 				else
 				{
 					continue;
@@ -925,6 +934,50 @@ class GoalCreationService
 				catch (Exception e)
 				{
 					log.warn("addDiaryGoalWithPrereqs: failed to tag {}: {}", seedGoalId, e.getMessage());
+				}
+			}
+
+			// Unlocks: create CUSTOM goal → link quest prereqs to it → link to diary.
+			for (com.goaltracker.data.DiaryRequirementResolver.ResolvedUnlock unlock : resolved.unlocks)
+			{
+				String unlockGoalId = addCustomGoal(unlock.name, "Unlock");
+				if (unlockGoalId == null) continue;
+				gestureGoalIds.add(unlockGoalId);
+				api.addRequirement(diaryGoalId, unlockGoalId);
+				try
+				{
+					api.addTagWithCategory(unlockGoalId, tagLabel, TagCategory.QUEST.name());
+				}
+				catch (Exception e)
+				{
+					log.warn("addDiaryGoalWithPrereqs: failed to tag unlock: {}", e.getMessage());
+				}
+
+				// Link the unlock's quest prereqs to the unlock goal.
+				for (Goal questTemplate : unlock.questTemplates)
+				{
+					if (questTemplate.getType() != GoalType.QUEST || questTemplate.getQuestName() == null)
+						continue;
+					try
+					{
+						Quest quest = Quest.valueOf(questTemplate.getQuestName());
+						String questGoalId = addQuestGoal(quest);
+						if (questGoalId == null) continue;
+						gestureGoalIds.add(questGoalId);
+						api.addRequirement(unlockGoalId, questGoalId);
+						try
+						{
+							api.addTagWithCategory(questGoalId, tagLabel, TagCategory.QUEST.name());
+						}
+						catch (Exception e2)
+						{
+							log.warn("addDiaryGoalWithPrereqs: failed to tag quest: {}", e2.getMessage());
+						}
+					}
+					catch (IllegalArgumentException e)
+					{
+						log.warn("addDiaryGoalWithPrereqs: unknown quest {}", questTemplate.getQuestName());
+					}
 				}
 			}
 

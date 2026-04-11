@@ -943,7 +943,7 @@ public class GoalTrackerPlugin extends Plugin
 									com.goaltracker.data.DiaryRequirementResolver.resolve(
 										areaDisplayName, tier, client);
 								goalTrackerApi.addDiaryGoalWithPrereqs(
-									areaDisplayName, apiTier, live.templates);
+									areaDisplayName, apiTier, live);
 							});
 					}
 				}

@@ -8,15 +8,15 @@ import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 
 /**
- * Pre-defined achievement diary tier requirements (skill levels and
- * quest prerequisites). Keyed on "{Area}|{TIER}" strings matching
- * {@link AchievementDiaryData.Tier}. Consumed by the "Add Goal with
- * Requirements" flow for diaries.
+ * Pre-defined achievement diary tier requirements (skill levels,
+ * quest prerequisites, and unlock milestones). Keyed on
+ * "{Area}|{TIER}" strings matching {@link AchievementDiaryData.Tier}.
  *
- * <p>Requirements are the HIGHEST skill level needed for any task in
- * that tier, and all quests that must be completed (or started — we
- * treat "started" as "completed" for simplicity since the player
- * will need it done eventually).
+ * <p><b>Unlocks</b> are virtual milestones like "Fairy Rings" that
+ * represent in-game capabilities with their own prerequisite trees.
+ * They're seeded as CUSTOM goals with quest requirements attached,
+ * replacing misleading quest entries (e.g. Fairytale II when only
+ * fairy ring access is needed).
  */
 public final class DiaryRequirements
 {
@@ -33,18 +33,50 @@ public final class DiaryRequirements
 		}
 	}
 
+	/**
+	 * A virtual unlock milestone (e.g. "Fairy Rings Unlocked").
+	 * Seeded as a CUSTOM goal with quest prerequisites.
+	 */
+	public static final class Unlock
+	{
+		public final String name;
+		public final List<Quest> prereqQuests;
+
+		public Unlock(String name, List<Quest> prereqQuests)
+		{
+			this.name = name;
+			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
+		}
+	}
+
 	/** Full requirement set for a diary tier. */
 	public static final class Reqs
 	{
 		public final List<SkillReq> skills;
 		public final List<Quest> prereqQuests;
+		public final List<Unlock> unlocks;
 
 		public Reqs(List<SkillReq> skills, List<Quest> prereqQuests)
 		{
+			this(skills, prereqQuests, Collections.emptyList());
+		}
+
+		public Reqs(List<SkillReq> skills, List<Quest> prereqQuests, List<Unlock> unlocks)
+		{
 			this.skills = Collections.unmodifiableList(skills);
 			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
+			this.unlocks = Collections.unmodifiableList(unlocks);
 		}
 	}
+
+	// ============================================================
+	// Predefined unlocks — reusable across multiple diary areas
+	// ============================================================
+
+	/** Fairy rings: requires Fairytale I + Lost City (NOT full Fairytale II). */
+	public static final Unlock FAIRY_RINGS = new Unlock(
+		"Fairy Rings Unlocked",
+		List.of(Quest.FAIRYTALE_I__GROWING_PAINS, Quest.LOST_CITY));
 
 	private static final Map<String, Reqs> TABLE = new HashMap<>();
 
@@ -57,6 +89,12 @@ public final class DiaryRequirements
 		List<SkillReq> skills, List<Quest> quests)
 	{
 		TABLE.put(key(area, tier), new Reqs(skills, quests));
+	}
+
+	private static void put(String area, AchievementDiaryData.Tier tier,
+		List<SkillReq> skills, List<Quest> quests, List<Unlock> unlocks)
+	{
+		TABLE.put(key(area, tier), new Reqs(skills, quests, unlocks));
 	}
 
 	/**
@@ -75,7 +113,7 @@ public final class DiaryRequirements
 	{
 		Reqs r = lookup(area, tier);
 		if (r == null) return false;
-		return !r.skills.isEmpty() || !r.prereqQuests.isEmpty();
+		return !r.skills.isEmpty() || !r.prereqQuests.isEmpty() || !r.unlocks.isEmpty();
 	}
 
 	// ============================================================
@@ -102,14 +140,14 @@ public final class DiaryRequirements
 				new SkillReq(Skill.FARMING, 31),
 				new SkillReq(Skill.RANGED, 21)),
 			List.of(
-				Quest.FAIRYTALE_II__CURE_A_QUEEN,
 				Quest.SEA_SLUG,
 				Quest.WATCHTOWER,
 				Quest.ENLIGHTENED_JOURNEY,
 				Quest.THE_HAND_IN_THE_SAND,
 				Quest.RUNE_MYSTERIES,
 				Quest.TOWER_OF_LIFE,
-				Quest.UNDERGROUND_PASS));
+				Quest.UNDERGROUND_PASS),
+			List.of(FAIRY_RINGS));
 
 		put("Ardougne", AchievementDiaryData.Tier.HARD,
 			List.of(
@@ -141,8 +179,8 @@ public final class DiaryRequirements
 				Quest.RUNE_MYSTERIES,
 				Quest.TOWER_OF_LIFE,
 				Quest.WATCHTOWER,
-				Quest.FAIRYTALE_II__CURE_A_QUEEN,
-				Quest.SEA_SLUG));
+				Quest.SEA_SLUG),
+			List.of(FAIRY_RINGS));
 
 		put("Ardougne", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -176,8 +214,8 @@ public final class DiaryRequirements
 				Quest.RUNE_MYSTERIES,
 				Quest.TOWER_OF_LIFE,
 				Quest.WATCHTOWER,
-				Quest.FAIRYTALE_II__CURE_A_QUEEN,
-				Quest.SEA_SLUG));
+				Quest.SEA_SLUG),
+			List.of(FAIRY_RINGS));
 	}
 
 	private DiaryRequirements() {}

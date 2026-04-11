@@ -107,7 +107,7 @@ public interface GoalTrackerApi
 	 * as prerequisite goals.
 	 */
 	String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier,
-		java.util.List<com.goaltracker.model.Goal> prereqTemplates);
+		com.goaltracker.data.DiaryRequirementResolver.Resolved resolved);
 
 	/**
 	 * Add a combat achievement goal by wiki/in-game task id. Auto-tracks via the
