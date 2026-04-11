@@ -868,6 +868,15 @@ class GoalCreationService
 
 			Goal diaryGoal = api.findGoal(diaryGoalId);
 			String sectionId = diaryGoal != null ? diaryGoal.getSectionId() : null;
+
+			// Cycle guard + pre-existing goal snapshot for recursive seeding.
+			java.util.Set<Quest> visited = new java.util.HashSet<>();
+			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
+			for (Goal g : api.goalStore.getGoals())
+			{
+				preExistingGoalIds.add(g.getId());
+			}
+
 			String tagLabel = areaDisplayName + " " + tierStr;
 			if (tagLabel.length() > 30)
 			{
@@ -893,19 +902,28 @@ class GoalCreationService
 
 				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
 				{
-					// Route quest templates through addQuestGoal for proper
-					// duplicate guard, tagging, and sprite assignment.
+					// Route quest templates through addQuestGoal, then recursively
+					// seed their own skill/quest requirements using the existing BFS.
 					try
 					{
 						Quest quest = Quest.valueOf(template.getQuestName());
 						seedGoalId = addQuestGoal(quest);
+						if (seedGoalId == null) continue;
+
+						// Recurse: resolve this quest's own requirements and seed them.
+						com.goaltracker.data.QuestRequirementResolver.Resolved questResolved =
+							api.resolveQuestRequirements(quest);
+						if (questResolved != null && !questResolved.isEmpty())
+						{
+							seedPrereqsInto(seedGoalId, quest, questResolved.templates,
+								visited, preExistingGoalIds, gestureGoalIds);
+						}
 					}
 					catch (IllegalArgumentException e)
 					{
 						log.warn("addDiaryGoalWithPrereqs: unknown quest {}", template.getQuestName());
 						continue;
 					}
-					if (seedGoalId == null) continue;
 				}
 				else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
 				{
@@ -982,6 +1000,14 @@ class GoalCreationService
 						catch (Exception e2)
 						{
 							log.warn("addDiaryGoalWithPrereqs: failed to tag quest: {}", e2.getMessage());
+						}
+						// Recurse into this quest's own requirements.
+						com.goaltracker.data.QuestRequirementResolver.Resolved qr =
+							api.resolveQuestRequirements(quest);
+						if (qr != null && !qr.isEmpty())
+						{
+							seedPrereqsInto(questGoalId, quest, qr.templates,
+								visited, preExistingGoalIds, gestureGoalIds);
 						}
 					}
 					catch (IllegalArgumentException e)
