@@ -903,7 +903,7 @@ public class GoalTrackerPlugin extends Plugin
 			// Achievement diary: right-click an area row -> add 4 "Add Goal: <Tier>" entries
 			boolean isDiaryRow = widgetGroupId == AchievementDiaryData.GROUP_ID
 				&& entry.getParam1() == AchievementDiaryData.TASKBOX;
-			if (isDiaryRow)
+			if (isDiaryRow && entry.getOption() != null && entry.getOption().startsWith("Open"))
 			{
 				String areaDisplayName = AchievementDiaryData.parseAreaFromOption(entry.getOption());
 				if (areaDisplayName == null)
