@@ -869,14 +869,6 @@ class GoalCreationService
 			Goal diaryGoal = api.findGoal(diaryGoalId);
 			String sectionId = diaryGoal != null ? diaryGoal.getSectionId() : null;
 
-			// Cycle guard + pre-existing goal snapshot for recursive seeding.
-			java.util.Set<Quest> visited = new java.util.HashSet<>();
-			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
-			for (Goal g : api.goalStore.getGoals())
-			{
-				preExistingGoalIds.add(g.getId());
-			}
-
 			String tagLabel = areaDisplayName + " " + tierStr;
 			if (tagLabel.length() > 30)
 			{
@@ -902,21 +894,25 @@ class GoalCreationService
 
 				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
 				{
-					// Route quest templates through addQuestGoal, then recursively
-					// seed their own skill/quest requirements using the existing BFS.
+					// Add the quest and recursively seed its own prereq tree.
 					try
 					{
 						Quest quest = Quest.valueOf(template.getQuestName());
 						seedGoalId = addQuestGoal(quest);
 						if (seedGoalId == null) continue;
 
-						// Recurse: resolve this quest's own requirements and seed them.
+						// Seed this quest's own requirements recursively.
 						com.goaltracker.data.QuestRequirementResolver.Resolved questResolved =
 							api.resolveQuestRequirements(quest);
 						if (questResolved != null && !questResolved.isEmpty())
 						{
+							java.util.Set<Quest> visited = new java.util.HashSet<>();
+							visited.add(quest);
+							java.util.Set<String> preExisting = new java.util.HashSet<>();
+							for (Goal g : api.goalStore.getGoals())
+								preExisting.add(g.getId());
 							seedPrereqsInto(seedGoalId, quest, questResolved.templates,
-								visited, preExistingGoalIds, gestureGoalIds);
+								visited, preExisting, gestureGoalIds);
 						}
 					}
 					catch (IllegalArgumentException e)
@@ -1006,13 +1002,18 @@ class GoalCreationService
 						{
 							log.warn("addDiaryGoalWithPrereqs: failed to tag quest: {}", e2.getMessage());
 						}
-						// Recurse into this quest's own requirements.
+						// Seed this quest's own requirements recursively.
 						com.goaltracker.data.QuestRequirementResolver.Resolved qr =
 							api.resolveQuestRequirements(quest);
 						if (qr != null && !qr.isEmpty())
 						{
+							java.util.Set<Quest> vis = new java.util.HashSet<>();
+							vis.add(quest);
+							java.util.Set<String> pre = new java.util.HashSet<>();
+							for (Goal g2 : api.goalStore.getGoals())
+								pre.add(g2.getId());
 							seedPrereqsInto(questGoalId, quest, qr.templates,
-								visited, preExistingGoalIds, gestureGoalIds);
+								vis, pre, gestureGoalIds);
 						}
 					}
 					catch (IllegalArgumentException e)
