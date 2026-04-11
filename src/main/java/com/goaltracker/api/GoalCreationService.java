@@ -680,7 +680,18 @@ class GoalCreationService
 
 			gestureGoalIds.add(seedGoalId);
 			api.addRequirement(entry.parentGoalId, seedGoalId);
-			api.addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
+			// Tag with the parent quest name. Truncate to 30 chars (tag label limit).
+			String tagLabel = parentTagLabel.length() <= 30
+				? parentTagLabel
+				: parentTagLabel.substring(0, 30);
+			try
+			{
+				api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
+			}
+			catch (Exception e)
+			{
+				log.warn("seedPrereqsInto: failed to tag {} with '{}': {}", seedGoalId, tagLabel, e.getMessage());
+			}
 
 			// Discover child quest's prereqs and route to appropriate queue.
 			if (childQuestForNextLevel != null)
