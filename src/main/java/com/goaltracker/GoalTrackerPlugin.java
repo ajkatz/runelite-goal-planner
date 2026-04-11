@@ -943,14 +943,13 @@ public class GoalTrackerPlugin extends Plugin
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
 							{
-								// Resolve on the client thread (needs client API),
-								// then seed on the EDT so the game doesn't freeze.
+								// Resolve and seed on the client thread — recursive
+								// quest resolution needs Quest.getState(client).
 								com.goaltracker.data.DiaryRequirementResolver.Resolved live =
 									com.goaltracker.data.DiaryRequirementResolver.resolve(
 										areaDisplayName, tier, client);
-								javax.swing.SwingUtilities.invokeLater(() ->
-									goalTrackerApi.addDiaryGoalWithPrereqs(
-										areaDisplayName, apiTier, live));
+								goalTrackerApi.addDiaryGoalWithPrereqs(
+									areaDisplayName, apiTier, live);
 							});
 					}
 				}
@@ -1005,23 +1004,20 @@ public class GoalTrackerPlugin extends Plugin
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
 							{
-								// Resolve on the client thread (needs client API),
-								// then seed on the EDT so the game doesn't freeze.
+								// Resolve and seed on the client thread — recursive
+								// quest resolution needs Quest.getState(client).
 								com.goaltracker.data.QuestRequirementResolver.Resolved live =
 									goalTrackerApi.resolveQuestRequirements(quest);
-								javax.swing.SwingUtilities.invokeLater(() ->
+								if (live.skippedSkills > 0 || live.skippedQuests > 0)
 								{
-									if (live.skippedSkills > 0 || live.skippedQuests > 0)
-									{
-										log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
-											quest.getName(), live.skippedSkills, live.skippedQuests);
-									}
-									String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
-									if (createdId == null)
-									{
-										log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
-									}
-								});
+									log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
+										quest.getName(), live.skippedSkills, live.skippedQuests);
+								}
+								String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
+								if (createdId == null)
+								{
+									log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
+								}
 							});
 					}
 				}
