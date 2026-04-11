@@ -939,11 +939,14 @@ public class GoalTrackerPlugin extends Plugin
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
 							{
+								// Resolve on the client thread (needs client API),
+								// then seed on the EDT so the game doesn't freeze.
 								com.goaltracker.data.DiaryRequirementResolver.Resolved live =
 									com.goaltracker.data.DiaryRequirementResolver.resolve(
 										areaDisplayName, tier, client);
-								goalTrackerApi.addDiaryGoalWithPrereqs(
-									areaDisplayName, apiTier, live);
+								javax.swing.SwingUtilities.invokeLater(() ->
+									goalTrackerApi.addDiaryGoalWithPrereqs(
+										areaDisplayName, apiTier, live));
 							});
 					}
 				}
@@ -998,21 +1001,23 @@ public class GoalTrackerPlugin extends Plugin
 							.setType(MenuAction.RUNELITE)
 							.onClick(e ->
 							{
-								// Re-resolve at click time — player state may have
-								// changed since the menu was built, and the resolver
-								// is cheap.
+								// Resolve on the client thread (needs client API),
+								// then seed on the EDT so the game doesn't freeze.
 								com.goaltracker.data.QuestRequirementResolver.Resolved live =
 									goalTrackerApi.resolveQuestRequirements(quest);
-								if (live.skippedSkills > 0 || live.skippedQuests > 0)
+								javax.swing.SwingUtilities.invokeLater(() ->
 								{
-									log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
-										quest.getName(), live.skippedSkills, live.skippedQuests);
-								}
-								String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
-								if (createdId == null)
-								{
-									log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
-								}
+									if (live.skippedSkills > 0 || live.skippedQuests > 0)
+									{
+										log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
+											quest.getName(), live.skippedSkills, live.skippedQuests);
+									}
+									String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
+									if (createdId == null)
+									{
+										log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
+									}
+								});
 							});
 					}
 				}
