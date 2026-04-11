@@ -233,7 +233,7 @@ class SectionService
 				if (s.isCollapsed() == collapsed) return false;
 				s.setCollapsed(collapsed);
 				api.goalStore.save();
-				api.onGoalsChanged.run();
+				api.fireIfNotInCompound();
 				return true;
 			}
 		}
@@ -251,7 +251,7 @@ class SectionService
 				boolean next = !s.isCollapsed();
 				s.setCollapsed(next);
 				api.goalStore.save();
-				api.onGoalsChanged.run();
+				api.fireIfNotInCompound();
 				return next;
 			}
 		}

@@ -428,7 +428,7 @@ class TagService
 				{
 					changed = api.goalStore.setCategoryColor(tag.getCategory(), colorRgb);
 				}
-				if (changed) api.onGoalsChanged.run();
+				if (changed) api.fireIfNotInCompound();
 				return changed;
 			}
 		}

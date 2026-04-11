@@ -202,8 +202,18 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	public boolean executeCommand(com.goaltracker.command.Command cmd)
 	{
 		boolean ok = commandHistory.execute(cmd);
-		if (ok && !commandHistory.isInCompound()) onGoalsChanged.run();
+		if (ok) fireIfNotInCompound();
 		return ok;
+	}
+
+	/**
+	 * Fire the UI refresh callback unless we're inside a compound
+	 * transaction. All mutation paths should use this instead of calling
+	 * onGoalsChanged.run() directly to avoid per-sub-command rebuilds.
+	 */
+	void fireIfNotInCompound()
+	{
+		if (!commandHistory.isInCompound()) onGoalsChanged.run();
 	}
 
 	@Override public boolean canUndo() { return commandHistory.canUndo(); }
@@ -247,7 +257,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (next.equals(selectedGoalIds)) return false;
 		selectedGoalIds.clear();
 		selectedGoalIds.addAll(next);
-		onGoalsChanged.run();
+		fireIfNotInCompound();
 		return true;
 	}
 
@@ -257,7 +267,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal addToGoalSelection(goalId={})", goalId);
 		if (goalId == null) return false;
 		if (!selectedGoalIds.add(goalId)) return false;
-		onGoalsChanged.run();
+		fireIfNotInCompound();
 		return true;
 	}
 
@@ -267,7 +277,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal removeFromGoalSelection(goalId={})", goalId);
 		if (goalId == null) return false;
 		if (!selectedGoalIds.remove(goalId)) return false;
-		onGoalsChanged.run();
+		fireIfNotInCompound();
 		return true;
 	}
 
@@ -277,7 +287,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal clearGoalSelection()");
 		if (selectedGoalIds.isEmpty()) return false;
 		selectedGoalIds.clear();
-		onGoalsChanged.run();
+		fireIfNotInCompound();
 		return true;
 	}
 
@@ -300,7 +310,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				if (selectedGoalIds.add(g.getId())) added++;
 			}
 		}
-		if (added > 0) onGoalsChanged.run();
+		if (added > 0) fireIfNotInCompound();
 		return added;
 	}
 
@@ -317,7 +327,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				if (selectedGoalIds.remove(g.getId())) removed++;
 			}
 		}
-		if (removed > 0) onGoalsChanged.run();
+		if (removed > 0) fireIfNotInCompound();
 		return removed;
 	}
 

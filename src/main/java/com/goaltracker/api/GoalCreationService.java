@@ -261,7 +261,7 @@ class GoalCreationService
 			.build();
 
 		api.goalStore.addGoal(goal);
-		api.onGoalsChanged.run();
+		api.fireIfNotInCompound();
 		log.info("addItemGoal created: {} ({} x {})", goal.getId(), targetQuantity, itemName);
 		return goal.getId();
 	}

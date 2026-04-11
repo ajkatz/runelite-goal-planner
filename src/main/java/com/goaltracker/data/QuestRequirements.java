@@ -1941,6 +1941,9 @@ public final class QuestRequirements
 	{
 		RECOMMENDED_SKILLS.put(Quest.DRAGON_SLAYER_I, List.of(new SkillReq(Skill.MAGIC, 33)));
 		RECOMMENDED_SKILLS.put(Quest.DORICS_QUEST, List.of(new SkillReq(Skill.MINING, 15)));
+		RECOMMENDED_SKILLS.put(Quest.CONTACT, List.of(
+			new SkillReq(Skill.AGILITY, 50),
+			new SkillReq(Skill.THIEVING, 50)));
 	}
 
 	// ============================================================
