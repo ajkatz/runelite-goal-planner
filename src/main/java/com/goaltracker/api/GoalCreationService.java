@@ -942,6 +942,16 @@ class GoalCreationService
 			{
 				String unlockGoalId = addCustomGoal(unlock.name, "Unlock");
 				if (unlockGoalId == null) continue;
+				// Set item icon on the unlock goal.
+				if (unlock.itemId > 0)
+				{
+					Goal unlockGoal = api.findGoal(unlockGoalId);
+					if (unlockGoal != null)
+					{
+						unlockGoal.setItemId(unlock.itemId);
+						api.goalStore.save();
+					}
+				}
 				gestureGoalIds.add(unlockGoalId);
 				api.addRequirement(diaryGoalId, unlockGoalId);
 				try

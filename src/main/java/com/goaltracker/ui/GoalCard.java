@@ -155,8 +155,7 @@ public class GoalCard extends JPanel
 			return makeColorDot(backgroundColor());
 		}
 
-		// Item image
-		if ("ITEM_GRIND".equals(view.type))
+		// Item image (ITEM_GRIND goals + CUSTOM goals with itemId, e.g. unlock milestones)
 		{
 			Object idObj = view.attributes.get("itemId");
 			if (idObj instanceof Number && itemManager != null)

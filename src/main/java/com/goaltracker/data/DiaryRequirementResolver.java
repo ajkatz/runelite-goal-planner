@@ -26,11 +26,13 @@ public final class DiaryRequirementResolver
 	{
 		public final String name;
 		public final List<Goal> questTemplates;
+		public final int itemId;
 
-		public ResolvedUnlock(String name, List<Goal> questTemplates)
+		public ResolvedUnlock(String name, List<Goal> questTemplates, int itemId)
 		{
 			this.name = name;
 			this.questTemplates = questTemplates;
+			this.itemId = itemId;
 		}
 	}
 
@@ -176,7 +178,7 @@ public final class DiaryRequirementResolver
 			}
 			if (!allMet)
 			{
-				resolvedUnlocks.add(new ResolvedUnlock(unlock.name, unlockQuestTemplates));
+				resolvedUnlocks.add(new ResolvedUnlock(unlock.name, unlockQuestTemplates, unlock.itemId));
 			}
 		}
 

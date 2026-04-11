@@ -41,11 +41,14 @@ public final class DiaryRequirements
 	{
 		public final String name;
 		public final List<Quest> prereqQuests;
+		/** Item ID for the icon (e.g. fairy ring POH item). 0 = no icon. */
+		public final int itemId;
 
-		public Unlock(String name, List<Quest> prereqQuests)
+		public Unlock(String name, List<Quest> prereqQuests, int itemId)
 		{
 			this.name = name;
 			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
+			this.itemId = itemId;
 		}
 	}
 
@@ -76,7 +79,8 @@ public final class DiaryRequirements
 	/** Fairy rings: requires Fairytale I + Lost City (NOT full Fairytale II). */
 	public static final Unlock FAIRY_RINGS = new Unlock(
 		"Fairy Rings Unlocked",
-		List.of(Quest.FAIRYTALE_I__GROWING_PAINS, Quest.LOST_CITY));
+		List.of(Quest.FAIRYTALE_I__GROWING_PAINS, Quest.LOST_CITY),
+		20636); // ItemID.FAIRY_RING (POH fairy ring)
 
 	private static final Map<String, Reqs> TABLE = new HashMap<>();
 

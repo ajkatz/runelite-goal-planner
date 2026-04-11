@@ -294,6 +294,8 @@ class GoalQueryService
 				}
 				break;
 			case CUSTOM:
+				if (g.getItemId() > 0) v.attributes.put("itemId", g.getItemId());
+				break;
 			default:
 				break;
 		}
