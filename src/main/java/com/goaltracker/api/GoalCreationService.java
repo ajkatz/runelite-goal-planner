@@ -944,7 +944,12 @@ class GoalCreationService
 				}
 
 				gestureGoalIds.add(seedGoalId);
-				api.addRequirement(diaryGoalId, seedGoalId);
+				boolean linked = api.addRequirement(diaryGoalId, seedGoalId);
+				if (!linked)
+				{
+					log.warn("addDiaryGoalWithPrereqs: failed to link diary {} -> prereq {} ({})",
+						diaryGoalId, seedGoalId, template.getName());
+				}
 				try
 				{
 					api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
