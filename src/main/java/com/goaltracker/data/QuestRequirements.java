@@ -19,7 +19,6 @@ import net.runelite.api.Skill;
  *
  * <p><b>Coverage.</b> This table covers all 209 quests in the
  * RuneLite {@link Quest} enum. Requirements are wiki-sourced.
- * Sailing skill requirements are omitted (not yet in RuneLite API).
  *
  * <p><b>Account-wide requirements.</b> Quest points, combat level,
  * and museum kudos are recorded as numeric fields on {@link Reqs} and
@@ -1510,20 +1509,25 @@ public final class QuestRequirements
 		// Pandemonium: no representable requirements.
 		put(Quest.PANDEMONIUM,
 			List.of(), List.of(), 0, 0);
-		// Prying Times: Smithing 30 (Sailing 12 omitted).
+		// Prying Times: Sailing 12, Smithing 30.
 		put(Quest.PRYING_TIMES,
-			List.of(new SkillReq(Skill.SMITHING, 30)),
+			List.of(
+				new SkillReq(Skill.SAILING, 12),
+				new SkillReq(Skill.SMITHING, 30)),
 			List.of(Quest.PANDEMONIUM, Quest.THE_KNIGHTS_SWORD),
 			0, 0);
-		// Current Affairs: Fishing 10 (Sailing 22 omitted).
+		// Current Affairs: Sailing 22, Fishing 10.
 		put(Quest.CURRENT_AFFAIRS,
-			List.of(new SkillReq(Skill.FISHING, 10)),
+			List.of(
+				new SkillReq(Skill.SAILING, 22),
+				new SkillReq(Skill.FISHING, 10)),
 			List.of(Quest.PANDEMONIUM),
 			0, 0);
-		// Troubled Tortugans: Slayer 51, Construction 48, Hunter 45,
-		// Woodcutting 40, Crafting 34 (Sailing 45 omitted).
+		// Troubled Tortugans: Sailing 45, Slayer 51, Construction 48,
+		// Hunter 45, Woodcutting 40, Crafting 34.
 		put(Quest.TROUBLED_TORTUGANS,
 			List.of(
+				new SkillReq(Skill.SAILING, 45),
 				new SkillReq(Skill.SLAYER, 51),
 				new SkillReq(Skill.CONSTRUCTION, 48),
 				new SkillReq(Skill.HUNTER, 45),
@@ -1531,9 +1535,11 @@ public final class QuestRequirements
 				new SkillReq(Skill.CRAFTING, 34)),
 			List.of(Quest.PANDEMONIUM),
 			0, 0);
-		// The Red Reef: Smithing 48 (Sailing 52 omitted).
+		// The Red Reef: Sailing 52, Smithing 48.
 		put(Quest.THE_RED_REEF,
-			List.of(new SkillReq(Skill.SMITHING, 48)),
+			List.of(
+				new SkillReq(Skill.SAILING, 52),
+				new SkillReq(Skill.SMITHING, 48)),
 			List.of(Quest.TROUBLED_TORTUGANS),
 			0, 0);
 		// Vale Totems (miniquest): Fletching 20 + Children of the Sun.
