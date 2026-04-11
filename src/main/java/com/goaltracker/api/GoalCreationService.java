@@ -596,7 +596,7 @@ class GoalCreationService
 			}
 
 			Goal template = entry.template;
-			final String parentTagLabel = entry.parentQuest.getName();
+			final String parentTagLabel = com.goaltracker.data.QuestRequirements.displayName(entry.parentQuest);
 			Goal parentGoal = api.findGoal(entry.parentGoalId);
 			String sectionId = parentGoal == null ? null : parentGoal.getSectionId();
 
@@ -680,30 +680,13 @@ class GoalCreationService
 
 			gestureGoalIds.add(seedGoalId);
 			api.addRequirement(entry.parentGoalId, seedGoalId);
-			// Tag with the parent quest name. Truncate at word boundary if over 30 chars.
-			String tagLabel = parentTagLabel;
-			if (tagLabel.length() > 30)
-			{
-				// Try to cut at " - " subtitle separator first (e.g. "Desert Treasure II - The Fallen Empire")
-				int dash = tagLabel.indexOf(" - ");
-				if (dash > 0 && dash <= 30)
-				{
-					tagLabel = tagLabel.substring(0, dash);
-				}
-				else
-				{
-					// Fall back to last space before 30 chars
-					int lastSpace = tagLabel.lastIndexOf(' ', 30);
-					tagLabel = lastSpace > 0 ? tagLabel.substring(0, lastSpace) : tagLabel.substring(0, 30);
-				}
-			}
 			try
 			{
-				api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
+				api.addTagWithCategory(seedGoalId, parentTagLabel, TagCategory.QUEST.name());
 			}
 			catch (Exception e)
 			{
-				log.warn("seedPrereqsInto: failed to tag {} with '{}': {}", seedGoalId, tagLabel, e.getMessage());
+				log.warn("seedPrereqsInto: failed to tag {} with '{}': {}", seedGoalId, parentTagLabel, e.getMessage());
 			}
 
 			// Discover child quest's prereqs and route to appropriate queue.

@@ -2085,6 +2085,39 @@ public final class QuestRequirements
 		RECOMMENDED_COMBAT.put(Quest.BARBARIAN_TRAINING, 70);
 	}
 
+	// ============================================================
+	// Display names — short labels for quests whose RuneLite enum
+	// name is too long for tags or UI labels. Falls back to
+	// Quest.getName() when not overridden.
+	// ============================================================
+	private static final Map<Quest, String> DISPLAY_NAMES = new EnumMap<>(Quest.class);
+
+	static
+	{
+		DISPLAY_NAMES.put(Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE, "Desert Treasure II");
+		DISPLAY_NAMES.put(Quest.THE_RIBBITING_TALE_OF_A_LILY_PAD_LABOUR_DISPUTE, "Ribbiting Tale");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__ANOTHER_COOKS_QUEST, "RFD: Another Cook's Quest");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__MOUNTAIN_DWARF, "RFD: Mountain Dwarf");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__WARTFACE__BENTNOZE, "RFD: Goblin Generals");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__PIRATE_PETE, "RFD: Pirate Pete");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__LUMBRIDGE_GUIDE, "RFD: Lumbridge Guide");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__EVIL_DAVE, "RFD: Evil Dave");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__SKRACH_UGLOGWEE, "RFD: Skrach Uglogwee");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__SIR_AMIK_VARZE, "RFD: Sir Amik Varze");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__KING_AWOWOGEI, "RFD: King Awowogei");
+		DISPLAY_NAMES.put(Quest.RECIPE_FOR_DISASTER__CULINAROMANCER, "RFD: Culinaromancer");
+	}
+
+	/**
+	 * Short display name for a quest, suitable for tags and UI labels.
+	 * Falls back to {@code quest.getName()} if no override is defined.
+	 */
+	public static String displayName(Quest quest)
+	{
+		if (quest == null) return null;
+		return DISPLAY_NAMES.getOrDefault(quest, quest.getName());
+	}
+
 	private static void put(Quest quest, List<SkillReq> skills, List<Quest> prereqQuests,
 		int questPoints, int combatLevel)
 	{
