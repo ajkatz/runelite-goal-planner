@@ -153,6 +153,7 @@ public final class DiaryRequirements
 				Quest.UNDERGROUND_PASS),
 			List.of(FAIRY_RINGS));
 
+		// Hard: only NEW requirements beyond Medium tier.
 		put("Ardougne", AchievementDiaryData.Tier.HARD,
 			List.of(
 				new SkillReq(Skill.THIEVING, 72),
@@ -175,17 +176,13 @@ public final class DiaryRequirements
 				new SkillReq(Skill.PRAYER, 42),
 				new SkillReq(Skill.FLETCHING, 5)),
 			List.of(
-				Quest.ENLIGHTENED_JOURNEY,
-				Quest.THE_HAND_IN_THE_SAND,
 				Quest.LEGENDS_QUEST,
 				Quest.MONKEY_MADNESS_I,
-				Quest.MOURNINGS_END_PART_II,
-				Quest.RUNE_MYSTERIES,
-				Quest.TOWER_OF_LIFE,
-				Quest.WATCHTOWER,
-				Quest.SEA_SLUG),
-			List.of(FAIRY_RINGS));
+				Quest.MOURNINGS_END_PART_II));
 
+		// Elite: only NEW requirements beyond Hard tier.
+		// Skills listed only where Elite level > Hard level.
+		// Quests listed only if not already in Hard/Medium/Easy.
 		put("Ardougne", AchievementDiaryData.Tier.ELITE,
 			List.of(
 				new SkillReq(Skill.MAGIC, 94),
@@ -195,31 +192,10 @@ public final class DiaryRequirements
 				new SkillReq(Skill.FARMING, 85),
 				new SkillReq(Skill.THIEVING, 82),
 				new SkillReq(Skill.FISHING, 81),
-				new SkillReq(Skill.FLETCHING, 69),
-				new SkillReq(Skill.RUNECRAFT, 65),
-				new SkillReq(Skill.RANGED, 60),
-				new SkillReq(Skill.HUNTER, 59),
-				new SkillReq(Skill.MINING, 52),
-				new SkillReq(Skill.CRAFTING, 50),
-				new SkillReq(Skill.CONSTRUCTION, 50),
-				new SkillReq(Skill.FIREMAKING, 50),
-				new SkillReq(Skill.STRENGTH, 50),
-				new SkillReq(Skill.WOODCUTTING, 50),
-				new SkillReq(Skill.HERBLORE, 45),
-				new SkillReq(Skill.PRAYER, 42)),
+				new SkillReq(Skill.FLETCHING, 69)),
 			List.of(
 				Quest.DESERT_TREASURE_I,
-				Quest.ENLIGHTENED_JOURNEY,
-				Quest.THE_HAND_IN_THE_SAND,
-				Quest.HAUNTED_MINE,
-				Quest.LEGENDS_QUEST,
-				Quest.MONKEY_MADNESS_I,
-				Quest.MOURNINGS_END_PART_II,
-				Quest.RUNE_MYSTERIES,
-				Quest.TOWER_OF_LIFE,
-				Quest.WATCHTOWER,
-				Quest.SEA_SLUG),
-			List.of(FAIRY_RINGS));
+				Quest.HAUNTED_MINE));
 	}
 
 	private DiaryRequirements() {}
