@@ -122,6 +122,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override public List<GoalView> searchGoals(String query) { return queryService.searchGoals(query); }
 	@Override public List<SectionView> queryAllSections() { return queryService.queryAllSections(); }
 	@Override public java.util.List<GoalView> queryGoalsTopologicallySorted(String sectionId) { return queryService.queryGoalsTopologicallySorted(sectionId); }
+	@Override public java.util.Map<String, java.util.List<GoalView>> queryAllGoalsTopologicallySorted() { return queryService.queryAllGoalsTopologicallySorted(); }
 
 	// =====================================================================
 	// Mutation delegations

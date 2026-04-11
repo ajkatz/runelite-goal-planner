@@ -314,14 +314,14 @@ public class GoalPanel extends PluginPanel
 		{
 			flatIndexById.put(goalViews.get(i).id, i);
 		}
-		// Set of visible goal ids (post-search-filter) so the per-section topo
-		// list can drop anything the user's search filter excluded.
 		java.util.Set<String> visibleIds = flatIndexById.keySet();
+
+		// Batch topo-sort all sections in one pass.
+		java.util.Map<String, java.util.List<com.goaltracker.api.GoalView>> allTopoOrders =
+			api.queryAllGoalsTopologicallySorted();
 
 		for (com.goaltracker.api.SectionView section : sectionViews)
 		{
-			// Find contiguous slice of goalViews in this section (flat-priority
-			// index bounds for arrow-button use).
 			int sectionStart = -1;
 			int sectionEnd = -1;
 			for (int i = 0; i < goalViews.size(); i++)
@@ -334,10 +334,9 @@ public class GoalPanel extends PluginPanel
 			}
 			int sectionCount = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
 
-			// Topologically-sorted view of this section's goals.
-			// Filter out any that were excluded by the search filter.
+			// Use pre-computed topo order for this section.
 			java.util.List<com.goaltracker.api.GoalView> topoOrder =
-				api.queryGoalsTopologicallySorted(section.id);
+				allTopoOrders.getOrDefault(section.id, java.util.Collections.emptyList());
 			if (filterActive)
 			{
 				java.util.List<com.goaltracker.api.GoalView> filtered = new java.util.ArrayList<>();

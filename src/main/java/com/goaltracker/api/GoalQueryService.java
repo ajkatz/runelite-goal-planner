@@ -359,50 +359,50 @@ class GoalQueryService
 	List<GoalView> queryGoalsTopologicallySorted(String sectionId)
 	{
 		log.debug("API.internal queryGoalsTopologicallySorted(sectionId={})", sectionId);
-		List<GoalView> out = new ArrayList<>();
-		if (sectionId == null) return out;
-
-		// 1. Collect the section's goals in priority order.
+		if (sectionId == null) return new ArrayList<>();
 		List<Goal> sectionGoals = new ArrayList<>();
 		for (Goal g : api.goalStore.getGoals())
 		{
 			if (sectionId.equals(g.getSectionId())) sectionGoals.add(g);
 		}
+		return topoSortSection(sectionGoals, sectionId);
+	}
+
+	/**
+	 * Topo-sort ALL sections in one pass. Returns a map of sectionId →
+	 * sorted GoalView list. Avoids repeated scans of the goals list.
+	 */
+	java.util.Map<String, List<GoalView>> queryAllGoalsTopologicallySorted()
+	{
+		// Group goals by section in one scan.
+		java.util.Map<String, List<Goal>> goalsBySection = new java.util.LinkedHashMap<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (g.getSectionId() != null)
+			{
+				goalsBySection.computeIfAbsent(g.getSectionId(), k -> new ArrayList<>())
+					.add(g);
+			}
+		}
+		java.util.Map<String, List<GoalView>> result = new java.util.LinkedHashMap<>();
+		for (java.util.Map.Entry<String, List<Goal>> entry : goalsBySection.entrySet())
+		{
+			result.put(entry.getKey(), topoSortSection(entry.getValue(), entry.getKey()));
+		}
+		return result;
+	}
+
+	/** Core topo-sort for a single section's goals. */
+	private List<GoalView> topoSortSection(List<Goal> sectionGoals, String sectionId)
+	{
+		List<GoalView> out = new ArrayList<>();
 		sectionGoals.sort(java.util.Comparator.comparingInt(Goal::getPriority));
 		if (sectionGoals.isEmpty()) return out;
 
-		java.util.Set<String> sectionIds = new java.util.HashSet<>();
-		for (Goal g : sectionGoals) sectionIds.add(g.getId());
+		java.util.Set<String> goalIds = new java.util.HashSet<>();
+		for (Goal g : sectionGoals) goalIds.add(g.getId());
 
-		// 2. Compute in-degree of each goal (count of in-section requirements).
-		java.util.Map<String, Integer> inDegree = new java.util.HashMap<>();
-		for (Goal g : sectionGoals)
-		{
-			int count = 0;
-			if (g.getRequiredGoalIds() != null)
-			{
-				for (String req : g.getRequiredGoalIds())
-				{
-					if (sectionIds.contains(req)) count++;
-				}
-			}
-			inDegree.put(g.getId(), count);
-		}
-
-		// 3. Reverse-lookup: for each goal, which OTHER in-section goals
-		//    have this one in their requiredGoalIds?
-		java.util.Map<String, java.util.List<String>> dependents = new java.util.HashMap<>();
-		for (Goal g : sectionGoals) dependents.put(g.getId(), new ArrayList<>());
-		for (Goal g : sectionGoals)
-		{
-			if (g.getRequiredGoalIds() == null) continue;
-			for (String req : g.getRequiredGoalIds())
-			{
-				if (sectionIds.contains(req)) dependents.get(req).add(g.getId());
-			}
-		}
-
-		// 4. Stable local-repair sort.
+		// Stable local-repair sort.
 		List<Goal> ordered = new ArrayList<>(sectionGoals);
 		int maxIter = sectionGoals.size() * sectionGoals.size() + 1;
 		int iter = 0;
@@ -421,7 +421,7 @@ class GoalQueryService
 				int maxReqPos = -1;
 				for (String reqId : reqs)
 				{
-					if (!sectionIds.contains(reqId)) continue;
+					if (!goalIds.contains(reqId)) continue;
 					Integer p = pos.get(reqId);
 					if (p != null && p > maxReqPos) maxReqPos = p;
 				}
@@ -436,14 +436,13 @@ class GoalQueryService
 		}
 		if (!converged)
 		{
-			log.warn("queryGoalsTopologicallySorted: local-repair hit iteration bound "
+			log.warn("topoSortSection: local-repair hit iteration bound "
 				+ "in section {} — graph may contain a cycle", sectionId);
 		}
 
 		for (Goal g : ordered)
 		{
-			GoalView v = toGoalView(g);
-			out.add(v);
+			out.add(toGoalView(g));
 		}
 		return out;
 	}

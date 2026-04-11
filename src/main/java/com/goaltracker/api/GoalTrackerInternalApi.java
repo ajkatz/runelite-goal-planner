@@ -568,6 +568,12 @@ public interface GoalTrackerInternalApi
 	java.util.List<com.goaltracker.api.GoalView> queryGoalsTopologicallySorted(String sectionId);
 
 	/**
+	 * Topo-sort ALL sections in one pass. Returns a map of sectionId →
+	 * sorted GoalView list.
+	 */
+	java.util.Map<String, java.util.List<com.goaltracker.api.GoalView>> queryAllGoalsTopologicallySorted();
+
+	/**
 	 * Resolve a requirement template to a concrete goal id, creating a
 	 * seed goal if no existing goal satisfies the template structurally.
 	 *
