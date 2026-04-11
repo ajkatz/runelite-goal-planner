@@ -80,7 +80,7 @@ public final class DiaryRequirements
 	public static final Unlock FAIRY_RINGS = new Unlock(
 		"Fairy Rings Unlocked",
 		List.of(Quest.FAIRYTALE_I__GROWING_PAINS, Quest.LOST_CITY),
-		20636); // ItemID.FAIRY_RING (POH fairy ring)
+		772); // ItemID.DRAMEN_STAFF
 
 	private static final Map<String, Reqs> TABLE = new HashMap<>();
 
