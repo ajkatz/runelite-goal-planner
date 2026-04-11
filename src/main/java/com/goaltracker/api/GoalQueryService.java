@@ -50,10 +50,45 @@ class GoalQueryService
 		if (query == null) return all;
 		String needle = query.trim().toLowerCase();
 		if (needle.isEmpty()) return all;
+
+		// Phase 1: find direct matches.
+		java.util.Set<String> matchedIds = new java.util.LinkedHashSet<>();
+		java.util.Map<String, GoalView> viewById = new java.util.LinkedHashMap<>();
+		for (GoalView gv : all)
+		{
+			viewById.put(gv.id, gv);
+			if (matchesSearch(gv, needle)) matchedIds.add(gv.id);
+		}
+
+		// Phase 2: expand to include the full relation tree (both directions)
+		// for every direct match. BFS from each matched goal.
+		java.util.Set<String> expanded = new java.util.LinkedHashSet<>(matchedIds);
+		java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(matchedIds);
+		while (!queue.isEmpty())
+		{
+			String id = queue.poll();
+			Goal g = api.goalStore.findGoalById(id);
+			if (g == null) continue;
+			// Walk outgoing edges (requirements)
+			if (g.getRequiredGoalIds() != null)
+			{
+				for (String reqId : g.getRequiredGoalIds())
+				{
+					if (expanded.add(reqId)) queue.add(reqId);
+				}
+			}
+			// Walk incoming edges (dependents)
+			for (String depId : api.goalStore.getDependents(id))
+			{
+				if (expanded.add(depId)) queue.add(depId);
+			}
+		}
+
+		// Phase 3: return all expanded goals in canonical order.
 		List<GoalView> out = new ArrayList<>();
 		for (GoalView gv : all)
 		{
-			if (matchesSearch(gv, needle)) out.add(gv);
+			if (expanded.contains(gv.id)) out.add(gv);
 		}
 		return out;
 	}
