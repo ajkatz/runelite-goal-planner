@@ -875,12 +875,13 @@ class GoalCreationService
 				tagLabel = areaDisplayName;
 			}
 
-			// Sort skill templates highest-level-first.
+			// Sort skill templates lowest-level-first so the card list shows
+			// easiest goals at the top (do first) and hardest at the bottom.
 			java.util.List<Goal> sortedTemplates = new java.util.ArrayList<>(prereqTemplates);
 			sortedTemplates.sort((a, b) -> {
 				boolean aSkill = a != null && a.getType() == GoalType.SKILL;
 				boolean bSkill = b != null && b.getType() == GoalType.SKILL;
-				if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+				if (aSkill && bSkill) return Integer.compare(a.getTargetValue(), b.getTargetValue());
 				return 0;
 			});
 

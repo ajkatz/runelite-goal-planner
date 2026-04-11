@@ -97,9 +97,10 @@ public final class DiaryRequirementResolver
 		int skippedSkills = 0;
 		int skippedQuests = 0;
 
-		// Sort skills highest-level-first for queue priority.
+		// Sort skills lowest-level-first so the card list reads bottom-to-top
+		// (lowest at top = do first, highest at bottom = do last).
 		List<DiaryRequirements.SkillReq> sortedSkills = new ArrayList<>(reqs.skills);
-		sortedSkills.sort((a, b) -> Integer.compare(b.level, a.level));
+		sortedSkills.sort((a, b) -> Integer.compare(a.level, b.level));
 
 		for (DiaryRequirements.SkillReq req : sortedSkills)
 		{
