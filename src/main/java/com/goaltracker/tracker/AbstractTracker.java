@@ -51,7 +51,10 @@ public abstract class AbstractTracker
 	{
 		boolean anyUpdated = false;
 
-		for (Goal goal : goals)
+		// Snapshot to avoid ConcurrentModificationException if the list
+		// is modified by a compound transaction on another thread.
+		List<Goal> snapshot = new java.util.ArrayList<>(goals);
+		for (Goal goal : snapshot)
 		{
 			if (goal.getType() != targetType() || goal.getStatus() != GoalStatus.ACTIVE)
 			{
