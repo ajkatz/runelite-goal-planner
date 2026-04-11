@@ -910,30 +910,42 @@ public class GoalTrackerPlugin extends Plugin
 				{
 					continue;
 				}
-				// Add one menu entry per tier. createMenuEntry(1) inserts at index 1 and
-				// RuneLite renders higher indices above lower ones, so iterating Easy→Elite
-				// puts Easy at the top of the added group and Elite at the bottom.
+				final String diaryMenuTarget = "<col=ff9040>" + areaDisplayName + "</col>";
 				for (final AchievementDiaryData.Tier tier : AchievementDiaryData.Tier.values())
 				{
+					final GoalTrackerApi.DiaryTier apiTier;
+					switch (tier)
+					{
+						case EASY:   apiTier = GoalTrackerApi.DiaryTier.EASY; break;
+						case MEDIUM: apiTier = GoalTrackerApi.DiaryTier.MEDIUM; break;
+						case HARD:   apiTier = GoalTrackerApi.DiaryTier.HARD; break;
+						case ELITE:  apiTier = GoalTrackerApi.DiaryTier.ELITE; break;
+						default:     continue;
+					}
+
 					client.createMenuEntry(1)
 						.setOption("Add Goal: " + tier.getDisplayName())
-						.setTarget("<col=ff9040>" + areaDisplayName + "</col>")
+						.setTarget(diaryMenuTarget)
 						.setType(MenuAction.RUNELITE)
 						.onClick(e ->
-						{
-							Goal goal = buildDiaryGoal(areaDisplayName, tier);
-							if (goal == null) return;
-							String tierDescription = tier.getDisplayName() + " Achievement Diary";
-							if (goalStore.exists(g ->
-								g.getType() == GoalType.DIARY
-									&& areaDisplayName.equalsIgnoreCase(g.getName())
-									&& tierDescription.equalsIgnoreCase(g.getDescription())))
+							goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier));
+
+					// Secondary entry: "Add Goal with Requirements" when data exists
+					if (com.goaltracker.data.DiaryRequirements.hasRequirements(areaDisplayName, tier))
+					{
+						client.createMenuEntry(1)
+							.setOption("Add Goal with Requirements: " + tier.getDisplayName())
+							.setTarget(diaryMenuTarget)
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
 							{
-								log.info("Diary goal already exists: {} {}", areaDisplayName, tier);
-								return;
-							}
-							addGoalUndoable(goal, "Add diary goal: " + areaDisplayName + " " + tier.getDisplayName());
-						});
+								com.goaltracker.data.DiaryRequirementResolver.Resolved live =
+									com.goaltracker.data.DiaryRequirementResolver.resolve(
+										areaDisplayName, tier, client);
+								goalTrackerApi.addDiaryGoalWithPrereqs(
+									areaDisplayName, apiTier, live.templates);
+							});
+					}
 				}
 				break;
 			}

@@ -109,6 +109,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override public String addQuestGoal(Quest quest) { return creationService.addQuestGoal(quest); }
 	@Override public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
 	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { return creationService.addDiaryGoal(areaDisplayName, tier); }
+	@Override public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, java.util.List<Goal> prereqTemplates) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, prereqTemplates); }
 	@Override public String addCombatAchievementGoal(int caTaskId) { return creationService.addCombatAchievementGoal(caTaskId); }
 	@Override public String addAccountGoal(String metricName, int target) { return creationService.addAccountGoal(metricName, target); }
 	public String addCustomGoal(String name, String description) { return creationService.addCustomGoal(name, description); }

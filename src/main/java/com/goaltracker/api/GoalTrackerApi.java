@@ -103,6 +103,13 @@ public interface GoalTrackerApi
 	String addDiaryGoal(String areaDisplayName, DiaryTier tier);
 
 	/**
+	 * Add a diary goal with all unmet skill and quest requirements seeded
+	 * as prerequisite goals.
+	 */
+	String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier,
+		java.util.List<com.goaltracker.model.Goal> prereqTemplates);
+
+	/**
 	 * Add a combat achievement goal by wiki/in-game task id. Auto-tracks via the
 	 * bit-packed CA_TASK_COMPLETED varplayers.
 	 *

@@ -834,6 +834,110 @@ class GoalCreationService
 		}
 	}
 
+	/**
+	 * Add a diary goal with all unmet skill and quest requirements seeded
+	 * as prerequisite goals. Parallel to addQuestGoalWithPrereqs.
+	 */
+	String addDiaryGoalWithPrereqs(String areaDisplayName, GoalTrackerApi.DiaryTier tier,
+		java.util.List<Goal> prereqTemplates)
+	{
+		log.debug("API.public addDiaryGoalWithPrereqs(area={}, tier={}, prereqs={})",
+			areaDisplayName, tier, prereqTemplates == null ? 0 : prereqTemplates.size());
+		if (areaDisplayName == null || tier == null) return null;
+		if (prereqTemplates == null || prereqTemplates.isEmpty())
+		{
+			return addDiaryGoal(areaDisplayName, tier);
+		}
+
+		AchievementDiaryData.Tier internalTier = mapDiaryTier(tier);
+		String tierStr = internalTier.getDisplayName();
+		String compoundDesc = "Add diary with requirements: " + areaDisplayName + " " + tierStr;
+
+		api.beginCompound(compoundDesc);
+		try
+		{
+			String diaryGoalId = addDiaryGoal(areaDisplayName, tier);
+			if (diaryGoalId == null)
+			{
+				log.warn("addDiaryGoalWithPrereqs: addDiaryGoal returned null");
+				return null;
+			}
+
+			Goal diaryGoal = api.findGoal(diaryGoalId);
+			String sectionId = diaryGoal != null ? diaryGoal.getSectionId() : null;
+			String tagLabel = areaDisplayName + " " + tierStr;
+			if (tagLabel.length() > 30)
+			{
+				tagLabel = areaDisplayName;
+			}
+
+			// Sort skill templates highest-level-first.
+			java.util.List<Goal> sortedTemplates = new java.util.ArrayList<>(prereqTemplates);
+			sortedTemplates.sort((a, b) -> {
+				boolean aSkill = a != null && a.getType() == GoalType.SKILL;
+				boolean bSkill = b != null && b.getType() == GoalType.SKILL;
+				if (aSkill && bSkill) return Integer.compare(b.getTargetValue(), a.getTargetValue());
+				return 0;
+			});
+
+			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
+			gestureGoalIds.add(diaryGoalId);
+
+			for (Goal template : sortedTemplates)
+			{
+				if (template == null) continue;
+				String seedGoalId;
+
+				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+				{
+					// Route quest templates through addQuestGoal for proper
+					// duplicate guard, tagging, and sprite assignment.
+					try
+					{
+						Quest quest = Quest.valueOf(template.getQuestName());
+						seedGoalId = addQuestGoal(quest);
+					}
+					catch (IllegalArgumentException e)
+					{
+						log.warn("addDiaryGoalWithPrereqs: unknown quest {}", template.getQuestName());
+						continue;
+					}
+					if (seedGoalId == null) continue;
+				}
+				else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
+				{
+					seedGoalId = addSkillGoal(
+						Skill.valueOf(template.getSkillName()),
+						template.getTargetValue());
+					if (seedGoalId == null) continue;
+				}
+				else
+				{
+					continue;
+				}
+
+				gestureGoalIds.add(seedGoalId);
+				api.addRequirement(diaryGoalId, seedGoalId);
+				try
+				{
+					api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
+				}
+				catch (Exception e)
+				{
+					log.warn("addDiaryGoalWithPrereqs: failed to tag {}: {}", seedGoalId, e.getMessage());
+				}
+			}
+
+			// Select all goals created in this gesture.
+			api.replaceGoalSelection(gestureGoalIds);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+		return areaDisplayName;
+	}
+
 	String addCombatAchievementGoal(int caTaskId)
 	{
 		log.debug("API.public addCombatAchievementGoal(caTaskId={})", caTaskId);
