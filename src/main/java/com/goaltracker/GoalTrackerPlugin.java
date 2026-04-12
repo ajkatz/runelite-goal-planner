@@ -883,6 +883,7 @@ public class GoalTrackerPlugin extends Plugin
 		{
 			return;
 		}
+		boolean bulkQuestMenuAdded = false;
 
 		// Find the first entry to determine context
 		MenuEntry first = entries[entries.length - 1];
@@ -968,12 +969,26 @@ public class GoalTrackerPlugin extends Plugin
 			if (isQuestList)
 			{
 				final String menuTarget = entry.getTarget();
-				// Resolve the quest from the menu target up front so we can skip
-				// adding the menu entry if the name doesn't match a known Quest.
 				final net.runelite.api.Quest quest = findQuestByDisplayName(stripColorTags(menuTarget));
 				if (quest == null)
 				{
 					continue;
+				}
+
+				// Bulk actions — add once per menu open.
+				if (!bulkQuestMenuAdded)
+				{
+					bulkQuestMenuAdded = true;
+					client.createMenuEntry(1)
+						.setOption("Add All Unfinished Quests (F2P)")
+						.setTarget("")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> addAllUnfinishedQuests(true));
+					client.createMenuEntry(1)
+						.setOption("Add All Unfinished Quests")
+						.setTarget("")
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> addAllUnfinishedQuests(false));
 				}
 
 				client.createMenuEntry(1)
@@ -1244,6 +1259,45 @@ public class GoalTrackerPlugin extends Plugin
 		}
 
 		flushIfUpdated(itemTracker.checkGoals(goalStore.getGoals()));
+	}
+
+	/**
+	 * Add all unfinished quests as goals. If f2pOnly is true, only F2P
+	 * quests are added. Skips quests already finished and quests that
+	 * already have a goal.
+	 */
+	private void addAllUnfinishedQuests(boolean f2pOnly)
+	{
+		goalTrackerApi.beginCompound(f2pOnly ? "Add all F2P quests" : "Add all quests");
+		try
+		{
+			int added = 0;
+			for (net.runelite.api.Quest quest : net.runelite.api.Quest.values())
+			{
+				if (f2pOnly && !com.goaltracker.data.QuestRequirements.isF2P(quest))
+				{
+					continue;
+				}
+				try
+				{
+					if (quest.getState(client) == net.runelite.api.QuestState.FINISHED)
+					{
+						continue;
+					}
+				}
+				catch (Exception e)
+				{
+					continue;
+				}
+				String id = goalTrackerApi.addQuestGoal(quest);
+				if (id != null) added++;
+			}
+			log.info("Added {} unfinished {} quests", added, f2pOnly ? "F2P" : "all");
+		}
+		finally
+		{
+			goalTrackerApi.endCompound();
+		}
 	}
 
 	/**
