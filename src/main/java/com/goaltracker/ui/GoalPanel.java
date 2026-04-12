@@ -299,6 +299,7 @@ public class GoalPanel extends PluginPanel
 
 	public void rebuild()
 	{
+		long start = System.currentTimeMillis();
 		goalListPanel.removeAll();
 		cardMap.clear();
 		refreshUndoRedoButtons();
@@ -504,6 +505,11 @@ public class GoalPanel extends PluginPanel
 
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
+		long elapsed = System.currentTimeMillis() - start;
+		if (elapsed > 50)
+		{
+			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
+		}
 	}
 
 	// ------------------------------------------------------------------

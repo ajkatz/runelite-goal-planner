@@ -790,14 +790,20 @@ public class GoalStore
 	public void saveDirtyGoals()
 	{
 		if (dirtyGoalIds.isEmpty()) return;
+		long start = System.currentTimeMillis();
+		int count = dirtyGoalIds.size();
 		for (String id : dirtyGoalIds)
 		{
 			Goal g = findGoalById(id);
 			if (g != null) saveGoal(g);
 		}
 		dirtyGoalIds.clear();
-		// Also save sections in case reconcileCompletedSection moved goals
 		saveSections();
+		long elapsed = System.currentTimeMillis() - start;
+		if (elapsed > 50)
+		{
+			log.warn("saveDirtyGoals took {}ms ({} goals)", elapsed, count);
+		}
 	}
 
 	/** Force an immediate save of everything (e.g. on plugin shutdown). */
@@ -827,6 +833,7 @@ public class GoalStore
 	public void resumeSave()
 	{
 		saveSuspended = false;
+		long start = System.currentTimeMillis();
 		// Flush dirty goals
 		for (String id : dirtyGoalIds)
 		{
@@ -847,6 +854,12 @@ public class GoalStore
 		if (tagIdsDirty) { saveTagIds(); tagIdsDirty = false; }
 		if (sectionsDirty) { saveSections(); sectionsDirty = false; }
 		if (categoryColorsDirty) { saveCategoryColors(); categoryColorsDirty = false; }
+		long elapsed = System.currentTimeMillis() - start;
+		if (elapsed > 50)
+		{
+			log.warn("resumeSave took {}ms ({} dirty goals, {} dirty tags)",
+				elapsed, dirtyGoalIds.size(), dirtyTagIds.size());
+		}
 	}
 
 	// ---------------------------------------------------------------------
