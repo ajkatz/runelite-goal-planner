@@ -966,6 +966,22 @@ public class GoalTrackerPlugin extends Plugin
 			// Quest list: right-click a row -> add Quest goal
 			boolean isQuestList = widgetGroupId == QUESTLIST_GROUP_ID
 				&& entry.getParam1() == QUESTLIST_LIST_WIDGET;
+			// Bulk quest actions — trigger on any right-click within the quest list pane.
+			if (!bulkQuestMenuAdded && widgetGroupId == QUESTLIST_GROUP_ID)
+			{
+				bulkQuestMenuAdded = true;
+				client.createMenuEntry(1)
+					.setOption("Add All Unfinished Quests (F2P)")
+					.setTarget("")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> addAllUnfinishedQuests(true));
+				client.createMenuEntry(1)
+					.setOption("Add All Unfinished Quests")
+					.setTarget("")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> addAllUnfinishedQuests(false));
+			}
+
 			if (isQuestList)
 			{
 				final String menuTarget = entry.getTarget();
@@ -973,22 +989,6 @@ public class GoalTrackerPlugin extends Plugin
 				if (quest == null)
 				{
 					continue;
-				}
-
-				// Bulk actions — add once per menu open.
-				if (!bulkQuestMenuAdded)
-				{
-					bulkQuestMenuAdded = true;
-					client.createMenuEntry(1)
-						.setOption("Add All Unfinished Quests (F2P)")
-						.setTarget("")
-						.setType(MenuAction.RUNELITE)
-						.onClick(e -> addAllUnfinishedQuests(true));
-					client.createMenuEntry(1)
-						.setOption("Add All Unfinished Quests")
-						.setTarget("")
-						.setType(MenuAction.RUNELITE)
-						.onClick(e -> addAllUnfinishedQuests(false));
 				}
 
 				client.createMenuEntry(1)
@@ -1268,31 +1268,53 @@ public class GoalTrackerPlugin extends Plugin
 	 */
 	private void addAllUnfinishedQuests(boolean f2pOnly)
 	{
+		// Resolve all quest requirements on the client thread, then seed on EDT.
+		java.util.List<net.runelite.api.Quest> toAdd = new java.util.ArrayList<>();
+		java.util.Map<net.runelite.api.Quest, com.goaltracker.data.QuestRequirementResolver.Resolved> resolved =
+			new java.util.LinkedHashMap<>();
+
+		for (net.runelite.api.Quest quest : net.runelite.api.Quest.values())
+		{
+			if (f2pOnly && !com.goaltracker.data.QuestRequirements.isF2P(quest))
+			{
+				continue;
+			}
+			try
+			{
+				if (quest.getState(client) == net.runelite.api.QuestState.FINISHED)
+				{
+					continue;
+				}
+			}
+			catch (Exception e)
+			{
+				continue;
+			}
+			toAdd.add(quest);
+			if (com.goaltracker.data.QuestRequirements.hasRequirements(quest))
+			{
+				resolved.put(quest, goalTrackerApi.resolveQuestRequirements(quest));
+			}
+		}
+
 		goalTrackerApi.beginCompound(f2pOnly ? "Add all F2P quests" : "Add all quests");
 		try
 		{
 			int added = 0;
-			for (net.runelite.api.Quest quest : net.runelite.api.Quest.values())
+			for (net.runelite.api.Quest quest : toAdd)
 			{
-				if (f2pOnly && !com.goaltracker.data.QuestRequirements.isF2P(quest))
+				com.goaltracker.data.QuestRequirementResolver.Resolved res = resolved.get(quest);
+				if (res != null && !res.isEmpty())
 				{
-					continue;
+					goalTrackerApi.addQuestGoalWithPrereqs(quest, res.templates);
 				}
-				try
+				else
 				{
-					if (quest.getState(client) == net.runelite.api.QuestState.FINISHED)
-					{
-						continue;
-					}
+					goalTrackerApi.addQuestGoal(quest);
 				}
-				catch (Exception e)
-				{
-					continue;
-				}
-				String id = goalTrackerApi.addQuestGoal(quest);
-				if (id != null) added++;
+				added++;
 			}
-			log.info("Added {} unfinished {} quests", added, f2pOnly ? "F2P" : "all");
+			log.info("Added {} unfinished {} quests with requirements", added, f2pOnly ? "F2P" : "all");
 		}
 		finally
 		{
