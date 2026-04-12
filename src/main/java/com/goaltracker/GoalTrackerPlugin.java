@@ -146,10 +146,11 @@ public class GoalTrackerPlugin extends Plugin
 		panel.setClient(client);
 		panel.setQuestHelperCallback(this::openQuestInHelper, this::isQuestHelperAvailable);
 
-		// Wire the API's UI-refresh hook so external addGoal calls trigger a rebuild
-		// on the Swing thread.
+		// Wire the API's UI-refresh hooks.
 		goalTrackerApi.setOnGoalsChanged(
 			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild()));
+		goalTrackerApi.onSelectionChanged =
+			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.refreshSelection());
 
 		BufferedImage icon;
 		try

@@ -282,6 +282,21 @@ public class GoalPanel extends PluginPanel
 		dialogFactory.setClient(client);
 	}
 
+	/**
+	 * Lightweight selection refresh — updates card borders without
+	 * rebuilding the entire panel. O(cards) repaint vs O(goals * sections)
+	 * full rebuild.
+	 */
+	public void refreshSelection()
+	{
+		java.util.Set<String> selected = api.getSelectedGoalIds();
+		for (java.util.Map.Entry<String, GoalCard> entry : cardMap.entrySet())
+		{
+			entry.getValue().setSelected(selected.contains(entry.getKey()));
+		}
+		refreshUndoRedoButtons();
+	}
+
 	public void rebuild()
 	{
 		goalListPanel.removeAll();

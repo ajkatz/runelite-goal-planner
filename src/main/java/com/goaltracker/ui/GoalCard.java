@@ -452,6 +452,16 @@ public class GoalCard extends JPanel
 		upButton.setVisible(!first);
 	}
 
+	/** Update the selection highlight without rebuilding the card. */
+	public void setSelected(boolean selected)
+	{
+		if (view.selected != selected)
+		{
+			view.selected = selected;
+			repaint();
+		}
+	}
+
 	public void setLastInList(boolean last)
 	{
 		downButton.setVisible(!last);

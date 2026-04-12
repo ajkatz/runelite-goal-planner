@@ -40,6 +40,8 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 	/** Optional UI-refresh hook the plugin sets after the panel is constructed. */
 	Runnable onGoalsChanged = () -> {};
+	/** Lightweight selection-only refresh — avoids full rebuild for selection changes. */
+	Runnable onSelectionChanged = () -> {};
 
 	/** Ephemeral selection set — not persisted, lost on plugin restart. */
 	final java.util.Set<String> selectedGoalIds = new java.util.LinkedHashSet<>();
@@ -271,7 +273,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		if (next.equals(selectedGoalIds)) return false;
 		selectedGoalIds.clear();
 		selectedGoalIds.addAll(next);
-		fireIfNotInCompound();
+		if (!commandHistory.isInCompound()) onSelectionChanged.run();
 		return true;
 	}
 
@@ -281,7 +283,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal addToGoalSelection(goalId={})", goalId);
 		if (goalId == null) return false;
 		if (!selectedGoalIds.add(goalId)) return false;
-		fireIfNotInCompound();
+		if (!commandHistory.isInCompound()) onSelectionChanged.run();
 		return true;
 	}
 
@@ -291,7 +293,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal removeFromGoalSelection(goalId={})", goalId);
 		if (goalId == null) return false;
 		if (!selectedGoalIds.remove(goalId)) return false;
-		fireIfNotInCompound();
+		if (!commandHistory.isInCompound()) onSelectionChanged.run();
 		return true;
 	}
 
@@ -301,7 +303,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		log.debug("API.internal clearGoalSelection()");
 		if (selectedGoalIds.isEmpty()) return false;
 		selectedGoalIds.clear();
-		fireIfNotInCompound();
+		if (!commandHistory.isInCompound()) onSelectionChanged.run();
 		return true;
 	}
 
@@ -324,7 +326,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				if (selectedGoalIds.add(g.getId())) added++;
 			}
 		}
-		if (added > 0) fireIfNotInCompound();
+		if (added > 0 && !commandHistory.isInCompound()) onSelectionChanged.run();
 		return added;
 	}
 
@@ -341,7 +343,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 				if (selectedGoalIds.remove(g.getId())) removed++;
 			}
 		}
-		if (removed > 0) fireIfNotInCompound();
+		if (removed > 0 && !commandHistory.isInCompound()) onSelectionChanged.run();
 		return removed;
 	}
 
