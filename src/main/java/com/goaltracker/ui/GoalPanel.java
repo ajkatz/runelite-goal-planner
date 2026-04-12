@@ -621,32 +621,28 @@ public class GoalPanel extends PluginPanel
 	private void attachSelectionClick(GoalCard card, com.goaltracker.api.GoalView view)
 	{
 		final String goalId = view.id;
-		final boolean wasSelected = view.selected;
 		card.addMouseListener(new MouseAdapter()
 		{
 			@Override
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getButton() != MouseEvent.BUTTON1) return;
-				// Relation-pick mode intercepts left-clicks.
-				// Clicking the source card cancels; clicking any other card
-				// completes the relation in the pending direction.
 				if (pendingRelationSourceId != null)
 				{
 					handleRelationPickTarget(goalId);
 					return;
 				}
+				// Check LIVE selection state, not the stale build-time value.
+				boolean isSelected = api.getSelectedGoalIds().contains(goalId);
 				boolean cmdCtrl = e.isMetaDown() || e.isControlDown();
 				boolean shift = e.isShiftDown();
-				// Excel-style shift-click extends selection from
-				// the anchor to the clicked goal in linear panel order.
 				if (shift && selectionAnchorId != null && !cmdCtrl)
 				{
 					java.util.Set<String> range = computeRangeSelection(selectionAnchorId, goalId);
 					if (!range.isEmpty())
 					{
 						java.util.Set<String> current = new java.util.LinkedHashSet<>(api.getSelectedGoalIds());
-						if (wasSelected)
+						if (isSelected)
 						{
 							// Shift-click on selected goal: deselect the range.
 							current.removeAll(range);
@@ -663,13 +659,13 @@ public class GoalPanel extends PluginPanel
 				}
 				if (cmdCtrl)
 				{
-					if (wasSelected) api.removeFromGoalSelection(goalId);
+					if (isSelected) api.removeFromGoalSelection(goalId);
 					else api.addToGoalSelection(goalId);
 					selectionAnchorId = goalId;
 				}
 				else
 				{
-					if (wasSelected) api.clearGoalSelection();
+					if (isSelected) api.clearGoalSelection();
 					else api.replaceGoalSelection(java.util.Collections.singleton(goalId));
 					selectionAnchorId = goalId;
 				}
