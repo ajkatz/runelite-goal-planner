@@ -1,16 +1,25 @@
-# Mission: Achievement diary requirements system
-Date: 2026-04-11
-Status: complete
+# Mission: Incremental persistence for 10K+ goal scalability
+Date: 2026-04-12
+Status: active
 
 ## Goal
-Build diary requirements system parallel to quest requirements.
+Replace the monolithic JSON blob persistence with per-goal incremental
+storage. Each goal gets its own ConfigManager key so mutations are O(1)
+instead of serializing the entire list. Target: seamless performance
+at 10,000+ completed goals.
+
+## Sub-goals
+- [ ] S1 — Design the per-goal key schema
+- [ ] S2 — Implement incremental save (add/update/remove individual goals)
+- [ ] S3 — Implement incremental load (reconstruct from per-goal keys)
+- [ ] S4 — Migration path from monolithic JSON to per-goal keys
+- [ ] S5 — Same treatment for tags and sections
+- [ ] S6 — Performance testing with large goal counts
+
+## Predictions
+- Completion: S1-S4 confident, S5-S6 depends on time
+- Confidence: Medium — ConfigManager API constraints unknown
+- Risks: ConfigManager may have key count limits or sync issues
+- Estimated cost: N/A
 
 ## Tasks Log
-- DiaryRequirements.java: Ardougne Easy/Medium/Hard/Elite data
-- DiaryRequirementResolver.java: resolves against live player state
-- addDiaryGoalWithPrereqs API + right-click menu wiring
-- Unlock milestones (Fairy Rings = Fairytale I + Lost City, Dramen staff icon)
-- Recursive quest prereq seeding within diary trees
-- Higher tiers stripped of lower-tier requirements
-- Fixed: diary menu "Open" filter, tag label 30-char crash, ConcurrentModificationException, client thread assertion, LOGGED_IN guard, nested compound UI refresh
-- Unified ascending skill sort across all seeders

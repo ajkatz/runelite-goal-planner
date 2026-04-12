@@ -40,12 +40,21 @@ public class GoalStore
 	private static final String TAGS_KEY = "tags";
 	private static final String CATEGORY_COLORS_KEY = "categoryColors";
 
+	// V2 per-entity persistence keys
+	private static final String SCHEMA_KEY = "schema";
+	private static final String SCHEMA_VERSION = "2";
+	private static final String GOAL_ORDER_KEY = "goal_order";
+	private static final String GOAL_PREFIX = "g.";
+	private static final String TAG_IDS_KEY = "tag_ids";
+	private static final String TAG_PREFIX = "t.";
+
 	private static final Gson GSON = new GsonBuilder().create();
 	private static final Type GOAL_LIST_TYPE = new TypeToken<List<Goal>>(){}.getType();
 	private static final Type SECTION_LIST_TYPE = new TypeToken<List<Section>>(){}.getType();
 	private static final Type TAG_LIST_TYPE = new TypeToken<List<Tag>>(){}.getType();
 	private static final Type CATEGORY_COLOR_MAP_TYPE =
 		new TypeToken<java.util.Map<String, Integer>>(){}.getType();
+	private static final Type STRING_LIST_TYPE = new TypeToken<List<String>>(){}.getType();
 
 	private final ConfigManager configManager;
 	private List<Goal> goals = new ArrayList<>();
@@ -54,10 +63,15 @@ public class GoalStore
 	/** Per-category color overrides. Key = TagCategory.name(), value = packed 0xRRGGBB. */
 	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
 
-	/** When true, save() is deferred. Call resumeSave() to persist. */
+	/** When true, granular saves are deferred. Call resumeSave() to persist. */
 	private boolean saveSuspended = false;
-	/** True when save() was called while suspended. */
-	private boolean dirty = false;
+	/** Granular dirty tracking for suspend/resume. */
+	private final java.util.Set<String> dirtyGoalIds = new java.util.HashSet<>();
+	private final java.util.Set<String> dirtyTagIds = new java.util.HashSet<>();
+	private boolean goalOrderDirty = false;
+	private boolean tagIdsDirty = false;
+	private boolean sectionsDirty = false;
+	private boolean categoryColorsDirty = false;
 
 	/** O(1) goal lookup by id. Maintained on add/remove/load. */
 	private final java.util.Map<String, Goal> goalIndex = new java.util.HashMap<>();
@@ -76,85 +90,15 @@ public class GoalStore
 
 	public void load()
 	{
-		// Goals
-		String goalsJson = configManager.getConfiguration(CONFIG_GROUP, GOALS_KEY);
-		if (goalsJson != null && !goalsJson.isEmpty())
+		String schema = configManager.getConfiguration(CONFIG_GROUP, SCHEMA_KEY);
+		if (SCHEMA_VERSION.equals(schema))
 		{
-			try
-			{
-				List<Goal> loaded = GSON.fromJson(goalsJson, GOAL_LIST_TYPE);
-				if (loaded != null)
-				{
-					goals = new ArrayList<>(loaded);
-					goals.sort(Comparator.comparingInt(Goal::getPriority));
-					log.info("Loaded {} goals", goals.size());
-				}
-			}
-			catch (Exception e)
-			{
-				log.error("Failed to load goals", e);
-				goals = new ArrayList<>();
-			}
+			loadV2();
 		}
-
-		// Sections
-		String sectionsJson = configManager.getConfiguration(CONFIG_GROUP, SECTIONS_KEY);
-		if (sectionsJson != null && !sectionsJson.isEmpty())
+		else
 		{
-			try
-			{
-				List<Section> loaded = GSON.fromJson(sectionsJson, SECTION_LIST_TYPE);
-				if (loaded != null)
-				{
-					sections = new ArrayList<>(loaded);
-					log.info("Loaded {} sections", sections.size());
-				}
-			}
-			catch (Exception e)
-			{
-				log.error("Failed to load sections", e);
-				sections = new ArrayList<>();
-			}
-		}
-
-		// Tags (first-class tag entities)
-		String tagsJson = configManager.getConfiguration(CONFIG_GROUP, TAGS_KEY);
-		if (tagsJson != null && !tagsJson.isEmpty())
-		{
-			try
-			{
-				List<Tag> loaded = GSON.fromJson(tagsJson, TAG_LIST_TYPE);
-				if (loaded != null)
-				{
-					tags = new ArrayList<>(loaded);
-					log.info("Loaded {} tags", tags.size());
-				}
-			}
-			catch (Exception e)
-			{
-				log.error("Failed to load tags", e);
-				tags = new ArrayList<>();
-			}
-		}
-
-		// Category colors
-		String categoryColorsJson = configManager.getConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY);
-		if (categoryColorsJson != null && !categoryColorsJson.isEmpty())
-		{
-			try
-			{
-				java.util.Map<String, Integer> loaded = GSON.fromJson(categoryColorsJson, CATEGORY_COLOR_MAP_TYPE);
-				if (loaded != null)
-				{
-					categoryColors = new java.util.HashMap<>(loaded);
-					log.info("Loaded {} category color overrides", categoryColors.size());
-				}
-			}
-			catch (Exception e)
-			{
-				log.error("Failed to load category colors", e);
-				categoryColors = new java.util.HashMap<>();
-			}
+			loadV1();
+			migrateToV2();
 		}
 
 		// Migrate any tags with a null category. Happens when an enum value is
@@ -195,9 +139,186 @@ public class GoalStore
 		// external JSON edits or a bug slipping past the API layer.
 		boolean relationsScrubbed = scrubInvalidRelationEdges();
 
-		if (tagsMigrated || relationsScrubbed) save();
+		if (tagsMigrated || relationsScrubbed)
+		{
+			// Migration touched tags and/or goal relation edges — persist affected entities.
+			for (Goal g : goals) saveGoal(g);
+			saveGoalOrder();
+			for (Tag t : tags) saveTag(t);
+			saveTagIds();
+			saveSections();
+			saveCategoryColors();
+		}
 
 		rebuildIndexes();
+	}
+
+	/** Load from V1 monolithic format (goals/tags as single JSON blobs). */
+	private void loadV1()
+	{
+		// Goals
+		String goalsJson = configManager.getConfiguration(CONFIG_GROUP, GOALS_KEY);
+		if (goalsJson != null && !goalsJson.isEmpty())
+		{
+			try
+			{
+				List<Goal> loaded = GSON.fromJson(goalsJson, GOAL_LIST_TYPE);
+				if (loaded != null)
+				{
+					goals = new ArrayList<>(loaded);
+					goals.sort(Comparator.comparingInt(Goal::getPriority));
+					log.info("Loaded {} goals (v1)", goals.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load goals (v1)", e);
+				goals = new ArrayList<>();
+			}
+		}
+
+		// Tags (monolithic)
+		String tagsJson = configManager.getConfiguration(CONFIG_GROUP, TAGS_KEY);
+		if (tagsJson != null && !tagsJson.isEmpty())
+		{
+			try
+			{
+				List<Tag> loaded = GSON.fromJson(tagsJson, TAG_LIST_TYPE);
+				if (loaded != null)
+				{
+					tags = new ArrayList<>(loaded);
+					log.info("Loaded {} tags (v1)", tags.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load tags (v1)", e);
+				tags = new ArrayList<>();
+			}
+		}
+
+		// Sections (same format in both versions)
+		loadSectionsAndCategoryColors();
+	}
+
+	/** Load from V2 per-entity format (individual goal/tag keys). */
+	private void loadV2()
+	{
+		// Goals: read order list, then each goal individually
+		String orderJson = configManager.getConfiguration(CONFIG_GROUP, GOAL_ORDER_KEY);
+		List<String> goalIds = orderJson != null
+			? GSON.fromJson(orderJson, STRING_LIST_TYPE)
+			: new ArrayList<>();
+		goals = new ArrayList<>();
+		for (String id : goalIds)
+		{
+			String goalJson = configManager.getConfiguration(CONFIG_GROUP, GOAL_PREFIX + id);
+			if (goalJson != null)
+			{
+				try
+				{
+					Goal g = GSON.fromJson(goalJson, Goal.class);
+					if (g != null) goals.add(g);
+				}
+				catch (Exception e)
+				{
+					log.error("Failed to load goal {}", id, e);
+				}
+			}
+		}
+		log.info("Loaded {} goals (v2)", goals.size());
+
+		// Tags: read ID list, then each tag individually
+		String tagIdsJson = configManager.getConfiguration(CONFIG_GROUP, TAG_IDS_KEY);
+		List<String> tagIdList = tagIdsJson != null
+			? GSON.fromJson(tagIdsJson, STRING_LIST_TYPE)
+			: new ArrayList<>();
+		tags = new ArrayList<>();
+		for (String id : tagIdList)
+		{
+			String tagJson = configManager.getConfiguration(CONFIG_GROUP, TAG_PREFIX + id);
+			if (tagJson != null)
+			{
+				try
+				{
+					Tag t = GSON.fromJson(tagJson, Tag.class);
+					if (t != null) tags.add(t);
+				}
+				catch (Exception e)
+				{
+					log.error("Failed to load tag {}", id, e);
+				}
+			}
+		}
+		log.info("Loaded {} tags (v2)", tags.size());
+
+		// Sections + categoryColors: same format as v1
+		loadSectionsAndCategoryColors();
+	}
+
+	/** Load sections and category colors (same format in both v1 and v2). */
+	private void loadSectionsAndCategoryColors()
+	{
+		// Sections
+		String sectionsJson = configManager.getConfiguration(CONFIG_GROUP, SECTIONS_KEY);
+		if (sectionsJson != null && !sectionsJson.isEmpty())
+		{
+			try
+			{
+				List<Section> loaded = GSON.fromJson(sectionsJson, SECTION_LIST_TYPE);
+				if (loaded != null)
+				{
+					sections = new ArrayList<>(loaded);
+					log.info("Loaded {} sections", sections.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load sections", e);
+				sections = new ArrayList<>();
+			}
+		}
+
+		// Category colors
+		String categoryColorsJson = configManager.getConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY);
+		if (categoryColorsJson != null && !categoryColorsJson.isEmpty())
+		{
+			try
+			{
+				java.util.Map<String, Integer> loaded = GSON.fromJson(categoryColorsJson, CATEGORY_COLOR_MAP_TYPE);
+				if (loaded != null)
+				{
+					categoryColors = new java.util.HashMap<>(loaded);
+					log.info("Loaded {} category color overrides", categoryColors.size());
+				}
+			}
+			catch (Exception e)
+			{
+				log.error("Failed to load category colors", e);
+				categoryColors = new java.util.HashMap<>();
+			}
+		}
+	}
+
+	/** Migrate from V1 monolithic to V2 per-entity persistence. */
+	private void migrateToV2()
+	{
+		log.info("Migrating persistence from v1 (monolithic) to v2 (per-entity)");
+		// Write each goal individually
+		for (Goal g : goals) saveGoal(g);
+		saveGoalOrder();
+		// Write each tag individually
+		for (Tag t : tags) saveTag(t);
+		saveTagIds();
+		// Write sections and categoryColors
+		saveSections();
+		saveCategoryColors();
+		// Mark as migrated
+		configManager.setConfiguration(CONFIG_GROUP, SCHEMA_KEY, SCHEMA_VERSION);
+		// Delete old monolithic keys
+		configManager.unsetConfiguration(CONFIG_GROUP, GOALS_KEY);
+		configManager.unsetConfiguration(CONFIG_GROUP, TAGS_KEY);
+		log.info("Migration complete: {} goals, {} tags", goals.size(), tags.size());
 	}
 
 	/** Rebuild all lookup indexes from the current lists. */
@@ -500,7 +621,7 @@ public class GoalStore
 		{
 			log.info("Built-in sections normalized (created={}, reordered={})", created, reordered);
 			sections.sort(Comparator.comparingInt(Section::getOrder));
-			save();
+			saveSections();
 		}
 	}
 
@@ -527,30 +648,147 @@ public class GoalStore
 		if (anyChanged)
 		{
 			log.info("Migrated orphaned goals into built-in sections");
-			save();
+			for (Goal g : goals) saveGoal(g);
+			saveGoalOrder();
 		}
 	}
 
+	// -----------------------------------------------------------------
+	// Granular per-entity save methods (V2 persistence)
+	// -----------------------------------------------------------------
+
+	private void saveGoal(Goal g)
+	{
+		configManager.setConfiguration(CONFIG_GROUP, GOAL_PREFIX + g.getId(), GSON.toJson(g));
+	}
+
+	private void deleteGoalKey(String id)
+	{
+		configManager.unsetConfiguration(CONFIG_GROUP, GOAL_PREFIX + id);
+	}
+
+	private void saveGoalOrder()
+	{
+		List<String> ids = new ArrayList<>();
+		for (Goal g : goals) ids.add(g.getId());
+		configManager.setConfiguration(CONFIG_GROUP, GOAL_ORDER_KEY, GSON.toJson(ids));
+	}
+
+	private void saveTag(Tag t)
+	{
+		configManager.setConfiguration(CONFIG_GROUP, TAG_PREFIX + t.getId(), GSON.toJson(t));
+	}
+
+	private void deleteTagKey(String id)
+	{
+		configManager.unsetConfiguration(CONFIG_GROUP, TAG_PREFIX + id);
+	}
+
+	private void saveTagIds()
+	{
+		List<String> ids = new ArrayList<>();
+		for (Tag t : tags) ids.add(t.getId());
+		configManager.setConfiguration(CONFIG_GROUP, TAG_IDS_KEY, GSON.toJson(ids));
+	}
+
+	private void saveSections()
+	{
+		configManager.setConfiguration(CONFIG_GROUP, SECTIONS_KEY, GSON.toJson(sections));
+	}
+
+	private void saveCategoryColors()
+	{
+		configManager.setConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY, GSON.toJson(categoryColors));
+	}
+
+	// -----------------------------------------------------------------
+	// IfNotSuspended helpers — defer writes during compound operations
+	// -----------------------------------------------------------------
+
+	private void saveGoalIfNotSuspended(Goal g)
+	{
+		if (saveSuspended) { dirtyGoalIds.add(g.getId()); return; }
+		saveGoal(g);
+	}
+
+	private void deleteGoalKeyIfNotSuspended(String id)
+	{
+		if (saveSuspended) { dirtyGoalIds.add(id); return; }
+		deleteGoalKey(id);
+	}
+
+	private void saveGoalOrderIfNotSuspended()
+	{
+		if (saveSuspended) { goalOrderDirty = true; return; }
+		saveGoalOrder();
+	}
+
+	private void saveTagIfNotSuspended(Tag t)
+	{
+		if (saveSuspended) { dirtyTagIds.add(t.getId()); return; }
+		saveTag(t);
+	}
+
+	private void deleteTagKeyIfNotSuspended(String id)
+	{
+		if (saveSuspended) { dirtyTagIds.add(id); return; }
+		deleteTagKey(id);
+	}
+
+	private void saveTagIdsIfNotSuspended()
+	{
+		if (saveSuspended) { tagIdsDirty = true; return; }
+		saveTagIds();
+	}
+
+	private void saveSectionsIfNotSuspended()
+	{
+		if (saveSuspended) { sectionsDirty = true; return; }
+		saveSections();
+	}
+
+	private void saveCategoryColorsIfNotSuspended()
+	{
+		if (saveSuspended) { categoryColorsDirty = true; return; }
+		saveCategoryColors();
+	}
+
 	/**
-	 * Persist state. When save is suspended (during compound transactions),
-	 * the write is deferred until resumeSave(). This avoids O(n) JSON
-	 * serialization per sub-command in a batch operation.
+	 * Convenience save for external callers that mutate Goal/Section/Tag
+	 * objects directly (outside GoalStore mutation methods) and then ask
+	 * the store to persist. Saves all entities, respecting suspension.
 	 */
 	public void save()
 	{
 		if (saveSuspended)
 		{
-			dirty = true;
+			// Mark everything dirty so resumeSave() flushes it all.
+			for (Goal g : goals) dirtyGoalIds.add(g.getId());
+			goalOrderDirty = true;
+			for (Tag t : tags) dirtyTagIds.add(t.getId());
+			tagIdsDirty = true;
+			sectionsDirty = true;
+			categoryColorsDirty = true;
 			return;
 		}
-		doSave();
+		saveNow();
 	}
 
-	/** Force an immediate save (e.g. on plugin shutdown). */
+	/** Force an immediate save of everything (e.g. on plugin shutdown). */
 	public void saveNow()
 	{
-		dirty = false;
-		doSave();
+		for (Goal g : goals) saveGoal(g);
+		saveGoalOrder();
+		for (Tag t : tags) saveTag(t);
+		saveTagIds();
+		saveSections();
+		saveCategoryColors();
+		dirtyGoalIds.clear();
+		dirtyTagIds.clear();
+		goalOrderDirty = false;
+		tagIdsDirty = false;
+		sectionsDirty = false;
+		categoryColorsDirty = false;
 	}
 
 	/** Suspend automatic saves. Call resumeSave() to flush. */
@@ -559,40 +797,30 @@ public class GoalStore
 		saveSuspended = true;
 	}
 
-	/** Resume saves and flush if any were deferred. */
+	/** Resume saves and flush any deferred writes. */
 	public void resumeSave()
 	{
 		saveSuspended = false;
-		if (dirty)
+		// Flush dirty goals
+		for (String id : dirtyGoalIds)
 		{
-			dirty = false;
-			doSave();
+			Goal g = findGoalById(id);
+			if (g != null) saveGoal(g);
+			else deleteGoalKey(id);
 		}
-	}
-
-	private void doSave()
-	{
-		try
+		dirtyGoalIds.clear();
+		if (goalOrderDirty) { saveGoalOrder(); goalOrderDirty = false; }
+		// Flush dirty tags
+		for (String id : dirtyTagIds)
 		{
-			String goalsJson = GSON.toJson(goals);
-			configManager.setConfiguration(CONFIG_GROUP, GOALS_KEY, goalsJson);
-
-			String sectionsJson = GSON.toJson(sections);
-			configManager.setConfiguration(CONFIG_GROUP, SECTIONS_KEY, sectionsJson);
-
-			String tagsJson = GSON.toJson(tags);
-			configManager.setConfiguration(CONFIG_GROUP, TAGS_KEY, tagsJson);
-
-			String categoryColorsJson = GSON.toJson(categoryColors);
-			configManager.setConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY, categoryColorsJson);
-
-			log.debug("Saved {} goals / {} sections / {} tags / {} category colors",
-				goals.size(), sections.size(), tags.size(), categoryColors.size());
+			Tag t = findTag(id);
+			if (t != null) saveTag(t);
+			else deleteTagKey(id);
 		}
-		catch (Exception e)
-		{
-			log.error("Failed to save goals/sections/tags", e);
-		}
+		dirtyTagIds.clear();
+		if (tagIdsDirty) { saveTagIds(); tagIdsDirty = false; }
+		if (sectionsDirty) { saveSections(); sectionsDirty = false; }
+		if (categoryColorsDirty) { saveCategoryColors(); categoryColorsDirty = false; }
 	}
 
 	// ---------------------------------------------------------------------
@@ -657,7 +885,7 @@ public class GoalStore
 		{
 			categoryColors.put(category.name(), normalized);
 		}
-		save();
+		saveCategoryColorsIfNotSuspended();
 		return true;
 	}
 
@@ -735,7 +963,8 @@ public class GoalStore
 		goals.add(goal);
 		goalIndex.put(goal.getId(), goal);
 		addToDependentIndex(goal);
-		save();
+		saveGoalIfNotSuspended(goal);
+		saveGoalOrderIfNotSuspended();
 	}
 
 	/** Register a goal's outgoing edges in the reverse dependentIndex. */
@@ -773,7 +1002,8 @@ public class GoalStore
 		goalIndex.put(goal.getId(), goal);
 		addToDependentIndex(goal);
 		reindex();
-		save();
+		saveGoalIfNotSuspended(goal);
+		saveGoalOrderIfNotSuspended();
 	}
 
 	public void removeGoal(String goalId)
@@ -791,10 +1021,12 @@ public class GoalStore
 		// {@link #removeGoalWithBypass}. Plain removeGoal just breaks the
 		// chain cleanly.
 		// Scrub incoming edges from the dependentIndex and the goals themselves.
+		List<Goal> edgeScrubbed = new ArrayList<>();
 		for (Goal g : goals)
 		{
 			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().remove(goalId))
 			{
+				edgeScrubbed.add(g);
 				// Also clean reverse index
 				java.util.Set<String> deps = dependentIndex.get(goalId);
 				if (deps != null) deps.remove(g.getId());
@@ -814,7 +1046,9 @@ public class GoalStore
 		goals.removeIf(g -> g.getId().equals(goalId));
 		goalIndex.remove(goalId);
 		reindex();
-		save();
+		for (Goal g : edgeScrubbed) saveGoalIfNotSuspended(g);
+		deleteGoalKeyIfNotSuspended(goalId);
+		saveGoalOrderIfNotSuspended();
 	}
 
 	// ---------------------------------------------------------------------
@@ -845,7 +1079,7 @@ public class GoalStore
 		if (wouldCreateCycle(fromGoalId, toGoalId)) return false;
 		from.getRequiredGoalIds().add(toGoalId);
 		dependentIndex.computeIfAbsent(toGoalId, k -> new java.util.HashSet<>()).add(fromGoalId);
-		save();
+		saveGoalIfNotSuspended(from);
 		return true;
 	}
 
@@ -863,7 +1097,7 @@ public class GoalStore
 		{
 			java.util.Set<String> deps = dependentIndex.get(toGoalId);
 			if (deps != null) deps.remove(fromGoalId);
-			save();
+			saveGoalIfNotSuspended(from);
 		}
 		return removed;
 	}
@@ -1118,7 +1352,14 @@ public class GoalStore
 		goals.removeIf(g -> g.getId().equals(goalId));
 		goalIndex.remove(goalId);
 		reindex();
-		save();
+		// Save affected predecessors (bypass edges + scrubbed edges)
+		for (String predId : predecessors)
+		{
+			Goal pred = findGoalById(predId);
+			if (pred != null) saveGoalIfNotSuspended(pred);
+		}
+		deleteGoalKeyIfNotSuspended(goalId);
+		saveGoalOrderIfNotSuspended();
 
 		return new RemoveGoalBypassSnapshot(snapshotGoal, originalIndex, predecessors, addedBypassEdges);
 	}
@@ -1134,7 +1375,7 @@ public class GoalStore
 				break;
 			}
 		}
-		save();
+		saveGoalIfNotSuspended(goal);
 	}
 
 	/**
@@ -1147,6 +1388,7 @@ public class GoalStore
 		String completedId = getCompletedSection().getId();
 		String incompleteId = getIncompleteSection().getId();
 		boolean anyMoved = false;
+		List<Goal> movedGoals = new ArrayList<>();
 		for (Goal goal : goals)
 		{
 			boolean isComplete = goal.isComplete();
@@ -1155,6 +1397,7 @@ public class GoalStore
 			{
 				goal.setSectionId(completedId);
 				anyMoved = true;
+				movedGoals.add(goal);
 			}
 			else if (!isComplete && completedId.equals(currentSid))
 			{
@@ -1162,12 +1405,14 @@ public class GoalStore
 				// return it to the Incomplete section.
 				goal.setSectionId(incompleteId);
 				anyMoved = true;
+				movedGoals.add(goal);
 			}
 		}
 		if (anyMoved)
 		{
 			normalizeOrder();
-			save();
+			for (Goal g : movedGoals) saveGoalIfNotSuspended(g);
+			saveGoalOrderIfNotSuspended();
 		}
 		return anyMoved;
 	}
@@ -1176,7 +1421,8 @@ public class GoalStore
 	{
 		goals = new ArrayList<>(newGoals);
 		reindex();
-		save();
+		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		saveGoalOrderIfNotSuspended();
 	}
 
 	// ---------------------------------------------------------------------
@@ -1269,7 +1515,7 @@ public class GoalStore
 		sections.add(created);
 		sectionIndex.put(created.getId(), created);
 		renumberUserSections();
-		save();
+		saveSectionsIfNotSuspended();
 		return created;
 	}
 
@@ -1292,7 +1538,7 @@ public class GoalStore
 		sections.add(recreated);
 		sectionIndex.put(recreated.getId(), recreated);
 		renumberUserSections();
-		save();
+		saveSectionsIfNotSuspended();
 		return recreated;
 	}
 
@@ -1310,7 +1556,7 @@ public class GoalStore
 		Section dup = findUserSectionByName(trimmed);
 		if (dup != null && !dup.getId().equals(sectionId)) return false;
 		section.setName(trimmed);
-		save();
+		saveSectionsIfNotSuspended();
 		return true;
 	}
 
@@ -1325,11 +1571,13 @@ public class GoalStore
 		if (section == null || section.isBuiltIn()) return false;
 
 		String incompleteId = getIncompleteSection().getId();
+		List<Goal> movedGoals = new ArrayList<>();
 		for (Goal g : goals)
 		{
 			if (sectionId.equals(g.getSectionId()))
 			{
 				g.setSectionId(incompleteId);
+				movedGoals.add(g);
 			}
 		}
 		sections.removeIf(s -> sectionId.equals(s.getId()));
@@ -1337,7 +1585,9 @@ public class GoalStore
 		renumberUserSections();
 		normalizeOrder();
 		reconcileCompletedSection();
-		save();
+		for (Goal g : movedGoals) saveGoalIfNotSuspended(g);
+		saveSectionsIfNotSuspended();
+		saveGoalOrderIfNotSuspended();
 		return true;
 	}
 
@@ -1370,7 +1620,8 @@ public class GoalStore
 			userSections.get(i).setOrder(i + 1); // 0 reserved for Incomplete
 		}
 		normalizeOrder();
-		save();
+		saveSectionsIfNotSuspended();
+		saveGoalOrderIfNotSuspended();
 		return true;
 	}
 
@@ -1410,7 +1661,8 @@ public class GoalStore
 		}
 		goal.setPriority(maxPriorityInDest + 1);
 		normalizeOrder();
-		save();
+		saveGoalIfNotSuspended(goal);
+		saveGoalOrderIfNotSuspended();
 		return true;
 	}
 
@@ -1455,7 +1707,10 @@ public class GoalStore
 		renumberUserSections();
 		normalizeOrder();
 		reconcileCompletedSection();
-		save();
+		// Goals may have been reassigned by both the section delete and reconcile
+		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		saveSectionsIfNotSuspended();
+		saveGoalOrderIfNotSuspended();
 		return doomed.size();
 	}
 
@@ -1537,7 +1792,8 @@ public class GoalStore
 			.build();
 		tags.add(created);
 		tagIndex.put(created.getId(), created);
-		save();
+		saveTagIfNotSuspended(created);
+		saveTagIdsIfNotSuspended();
 		return created;
 	}
 
@@ -1558,7 +1814,8 @@ public class GoalStore
 			.build();
 		tags.add(created);
 		tagIndex.put(created.getId(), created);
-		save();
+		saveTagIfNotSuspended(created);
+		saveTagIdsIfNotSuspended();
 		return created;
 	}
 
@@ -1603,7 +1860,7 @@ public class GoalStore
 			// No destination exists — just flip the category in place and
 			// preserve all customizations.
 			source.setCategory(toCategory);
-			save();
+			saveTagIfNotSuspended(source);
 			return true;
 		}
 
@@ -1651,7 +1908,12 @@ public class GoalStore
 			}
 		}
 		tags.remove(source);
-		save();
+		tagIndex.remove(source.getId());
+		// Save affected goals (tag references rewritten) + tags
+		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		saveTagIfNotSuspended(dest);
+		deleteTagKeyIfNotSuspended(sourceId);
+		saveTagIdsIfNotSuspended();
 		return true;
 	}
 
@@ -1670,7 +1932,7 @@ public class GoalStore
 		Tag dup = findTagByLabel(trimmed, t.getCategory());
 		if (dup != null && !dup.getId().equals(tagId)) return false;
 		t.setLabel(trimmed);
-		save();
+		saveTagIfNotSuspended(t);
 		return true;
 	}
 
@@ -1689,7 +1951,7 @@ public class GoalStore
 		int normalized = colorRgb < 0 ? -1 : (colorRgb & 0xFFFFFF);
 		if (t.getColorRgb() == normalized) return false;
 		t.setColorRgb(normalized);
-		save();
+		saveTagIfNotSuspended(t);
 		return true;
 	}
 
@@ -1707,7 +1969,7 @@ public class GoalStore
 		String normalized = (iconKey == null || iconKey.trim().isEmpty()) ? null : iconKey.trim();
 		if (java.util.Objects.equals(t.getIconKey(), normalized)) return false;
 		t.setIconKey(normalized);
-		save();
+		saveTagIfNotSuspended(t);
 		return true;
 	}
 
@@ -1726,14 +1988,19 @@ public class GoalStore
 	{
 		Tag t = findTag(tagId);
 		if (t == null || t.isSystem()) return false;
+		List<Goal> affectedGoals = new ArrayList<>();
 		for (Goal g : goals)
 		{
-			if (g.getTagIds() != null) g.getTagIds().remove(tagId);
-			if (g.getDefaultTagIds() != null) g.getDefaultTagIds().remove(tagId);
+			boolean changed = false;
+			if (g.getTagIds() != null) changed |= g.getTagIds().remove(tagId);
+			if (g.getDefaultTagIds() != null) changed |= g.getDefaultTagIds().remove(tagId);
+			if (changed) affectedGoals.add(g);
 		}
 		tags.removeIf(x -> tagId.equals(x.getId()));
 		tagIndex.remove(tagId);
-		save();
+		for (Goal g : affectedGoals) saveGoalIfNotSuspended(g);
+		deleteTagKeyIfNotSuspended(tagId);
+		saveTagIdsIfNotSuspended();
 		return true;
 	}
 
@@ -1747,7 +2014,8 @@ public class GoalStore
 		if (tag == null || findTag(tag.getId()) != null) return;
 		tags.add(tag);
 		tagIndex.put(tag.getId(), tag);
-		save();
+		saveTagIfNotSuspended(tag);
+		saveTagIdsIfNotSuspended();
 	}
 
 	public void reorder(int fromIndex, int toIndex)
@@ -1759,7 +2027,7 @@ public class GoalStore
 		Goal moved = goals.remove(fromIndex);
 		goals.add(toIndex, moved);
 		reindex();
-		save();
+		saveGoalOrderIfNotSuspended();
 	}
 
 	private void reindex()

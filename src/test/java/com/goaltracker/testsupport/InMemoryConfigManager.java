@@ -43,6 +43,11 @@ public final class InMemoryConfigManager
 			return null;
 		}).when(mock).setConfiguration(Mockito.anyString(), Mockito.anyString(), Mockito.any());
 
+		Mockito.doAnswer(inv -> {
+			store.remove(key(inv.getArgument(0), inv.getArgument(1)));
+			return null;
+		}).when(mock).unsetConfiguration(Mockito.anyString(), Mockito.anyString());
+
 		return mock;
 	}
 
