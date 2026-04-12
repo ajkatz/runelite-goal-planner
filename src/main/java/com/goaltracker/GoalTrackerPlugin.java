@@ -176,7 +176,7 @@ public class GoalTrackerPlugin extends Plugin
 	protected void shutDown() throws Exception
 	{
 		log.info("Goal Tracker stopped");
-		goalStore.save();
+		goalStore.saveNow();
 		if (navButton != null)
 		{
 			clientToolbar.removeNavigation(navButton);

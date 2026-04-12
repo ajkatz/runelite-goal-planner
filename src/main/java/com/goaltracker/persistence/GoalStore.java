@@ -54,6 +54,11 @@ public class GoalStore
 	/** Per-category color overrides. Key = TagCategory.name(), value = packed 0xRRGGBB. */
 	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
 
+	/** When true, save() is deferred. Call resumeSave() to persist. */
+	private boolean saveSuspended = false;
+	/** True when save() was called while suspended. */
+	private boolean dirty = false;
+
 	/** O(1) goal lookup by id. Maintained on add/remove/load. */
 	private final java.util.Map<String, Goal> goalIndex = new java.util.HashMap<>();
 	/** O(1) section lookup by id. Maintained on create/delete/load. */
@@ -526,7 +531,46 @@ public class GoalStore
 		}
 	}
 
+	/**
+	 * Persist state. When save is suspended (during compound transactions),
+	 * the write is deferred until resumeSave(). This avoids O(n) JSON
+	 * serialization per sub-command in a batch operation.
+	 */
 	public void save()
+	{
+		if (saveSuspended)
+		{
+			dirty = true;
+			return;
+		}
+		doSave();
+	}
+
+	/** Force an immediate save (e.g. on plugin shutdown). */
+	public void saveNow()
+	{
+		dirty = false;
+		doSave();
+	}
+
+	/** Suspend automatic saves. Call resumeSave() to flush. */
+	public void suspendSave()
+	{
+		saveSuspended = true;
+	}
+
+	/** Resume saves and flush if any were deferred. */
+	public void resumeSave()
+	{
+		saveSuspended = false;
+		if (dirty)
+		{
+			dirty = false;
+			doSave();
+		}
+	}
+
+	private void doSave()
 	{
 		try
 		{

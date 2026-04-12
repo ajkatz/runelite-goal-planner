@@ -226,7 +226,9 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override
 	public boolean undo()
 	{
+		goalStore.suspendSave();
 		boolean ok = commandHistory.undo();
+		goalStore.resumeSave();
 		if (ok) onGoalsChanged.run();
 		return ok;
 	}
@@ -234,19 +236,26 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override
 	public boolean redo()
 	{
+		goalStore.suspendSave();
 		boolean ok = commandHistory.redo();
+		goalStore.resumeSave();
 		if (ok) onGoalsChanged.run();
 		return ok;
 	}
 
-	@Override public void beginCompound(String description) { commandHistory.beginCompound(description); }
+	@Override public void beginCompound(String description)
+	{
+		commandHistory.beginCompound(description);
+		goalStore.suspendSave();
+	}
 	@Override public void endCompound()
 	{
 		commandHistory.endCompound();
-		// Only fire the UI refresh when the outermost compound closes.
-		// Nested compounds (e.g. addQuestGoal inside addQuestGoalWithPrereqs)
-		// decrement the depth counter but don't close the buffer.
-		if (!commandHistory.isInCompound()) onGoalsChanged.run();
+		if (!commandHistory.isInCompound())
+		{
+			goalStore.resumeSave();
+			onGoalsChanged.run();
+		}
 	}
 
 	// =====================================================================
