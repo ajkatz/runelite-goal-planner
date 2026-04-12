@@ -146,9 +146,16 @@ public class GoalTrackerPlugin extends Plugin
 		panel.setClient(client);
 		panel.setQuestHelperCallback(this::openQuestInHelper, this::isQuestHelperAvailable);
 
-		// Wire the API's UI-refresh hooks.
-		goalTrackerApi.setOnGoalsChanged(
-			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild()));
+		// Wire the API's UI-refresh hooks with debouncing.
+		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
+		// every skill chain goal) produce exactly one rebuild.
+		final javax.swing.Timer rebuildDebounce = new javax.swing.Timer(100, e ->
+			panel.rebuild());
+		rebuildDebounce.setRepeats(false);
+		goalTrackerApi.setOnGoalsChanged(() ->
+		{
+			rebuildDebounce.restart();
+		});
 		goalTrackerApi.setOnSelectionChanged(
 			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.refreshSelection()));
 
