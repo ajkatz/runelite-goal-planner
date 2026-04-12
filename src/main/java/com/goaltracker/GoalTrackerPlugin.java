@@ -1314,12 +1314,64 @@ public class GoalTrackerPlugin extends Plugin
 				}
 				added++;
 			}
+			// Final pass: promote all zero-dependency quests to the top
+			// across all goals added in this bulk action.
+			promoteLeafGoalsToTop();
+
 			log.info("Added {} unfinished {} quests with requirements", added, f2pOnly ? "F2P" : "all");
 		}
 		finally
 		{
 			goalTrackerApi.endCompound();
 		}
+	}
+
+	/**
+	 * Re-prioritize all incomplete goals: zero-dependency leaf quests
+	 * (no requirements in QuestRequirements AND no in-store requirement
+	 * edges) get moved to the top. Everything else keeps its relative
+	 * order. Called at the end of bulk add actions.
+	 */
+	private void promoteLeafGoalsToTop()
+	{
+		java.util.List<Goal> allGoals = goalStore.getGoals();
+		String incompleteSectionId = goalStore.getIncompleteSection().getId();
+
+		java.util.List<Goal> leaves = new java.util.ArrayList<>();
+		java.util.List<Goal> rest = new java.util.ArrayList<>();
+
+		for (Goal g : allGoals)
+		{
+			if (!incompleteSectionId.equals(g.getSectionId()))
+			{
+				rest.add(g);
+				continue;
+			}
+			boolean isLeaf = false;
+			if (g.getType() == GoalType.QUEST && g.getQuestName() != null)
+			{
+				try
+				{
+					net.runelite.api.Quest q = net.runelite.api.Quest.valueOf(g.getQuestName());
+					if (!com.goaltracker.data.QuestRequirements.hasRequirements(q))
+					{
+						boolean hasReqEdges = g.getRequiredGoalIds() != null
+							&& !g.getRequiredGoalIds().isEmpty();
+						if (!hasReqEdges) isLeaf = true;
+					}
+				}
+				catch (IllegalArgumentException ignored) {}
+			}
+			if (isLeaf) leaves.add(g);
+			else rest.add(g);
+		}
+
+		if (leaves.isEmpty()) return;
+
+		int p = 0;
+		for (Goal g : leaves) { g.setPriority(p++); }
+		for (Goal g : rest) { g.setPriority(p++); }
+		goalStore.normalizeOrder();
 	}
 
 	/**
