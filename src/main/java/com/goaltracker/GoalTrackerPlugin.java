@@ -1355,9 +1355,21 @@ public class GoalTrackerPlugin extends Plugin
 					net.runelite.api.Quest q = net.runelite.api.Quest.valueOf(g.getQuestName());
 					if (!com.goaltracker.data.QuestRequirements.hasRequirements(q))
 					{
-						boolean hasReqEdges = g.getRequiredGoalIds() != null
-							&& !g.getRequiredGoalIds().isEmpty();
-						if (!hasReqEdges) isLeaf = true;
+						// Check for active (non-completed) requirement edges.
+						boolean hasActiveReqs = false;
+						if (g.getRequiredGoalIds() != null)
+						{
+							for (String reqId : g.getRequiredGoalIds())
+							{
+								Goal req = goalStore.findGoalById(reqId);
+								if (req != null && !req.isComplete())
+								{
+									hasActiveReqs = true;
+									break;
+								}
+							}
+						}
+						if (!hasActiveReqs) isLeaf = true;
 					}
 				}
 				catch (IllegalArgumentException ignored) {}
