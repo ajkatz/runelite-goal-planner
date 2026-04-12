@@ -66,13 +66,17 @@ public class GoalCard extends JPanel
 		boolean hasTags = !allTags.isEmpty();
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
 
-		setLayout(new BorderLayout(4, 0));
+		setLayout(new BorderLayout(0, 0));
 		setBorder(new EmptyBorder(4, 10, 4, 4));
 		setPreferredSize(new Dimension(0, height));
 		setMaximumSize(new Dimension(Integer.MAX_VALUE, height));
 		setOpaque(false);
 
-		// Left: icon + name (two lines)
+		// Top row: icon + name | status/progress | arrows
+		JPanel topRow = new JPanel(new BorderLayout(4, 0));
+		topRow.setOpaque(false);
+
+		// Left: icon + name
 		JPanel leftPanel = new JPanel(new BorderLayout(6, 0));
 		leftPanel.setOpaque(false);
 
@@ -84,23 +88,9 @@ public class GoalCard extends JPanel
 		nameLabel.setForeground(view.optional ? new Color(160, 160, 160) : TEXT_PRIMARY);
 		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
+		leftPanel.add(nameLabel, BorderLayout.CENTER);
 
-		// Tooltip composition order: base tooltip from the type
-		// (CA task description, etc.) or truncated-name fallback, PLUS the
-		// relation info (Requires / Required by) if any edges exist. Built
-		// as HTML so multiple lines render cleanly.
 		setToolTipText(buildTooltipHtml(view, skillIconManager));
-
-		JPanel nameAndTags = new JPanel(new BorderLayout(0, 0));
-		nameAndTags.setOpaque(false);
-		nameAndTags.add(nameLabel, BorderLayout.CENTER);
-
-		if (hasTags)
-		{
-			nameAndTags.add(buildTagRow(allTags), BorderLayout.SOUTH);
-		}
-
-		leftPanel.add(nameAndTags, BorderLayout.CENTER);
 
 		// Right side: status (XP, percent, checkmark, etc.)
 		statusLabel = new JLabel(formatPercent());
@@ -109,13 +99,11 @@ public class GoalCard extends JPanel
 		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		// Right: up/down arrows. Hidden for completed cards (no reordering) so the
-		// status label gets full right-side width instead of leaving a dead gap.
 		upButton = createArrowButton(true, onMoveUp);
 		downButton = createArrowButton(false, onMoveDown);
 
-		add(leftPanel, BorderLayout.WEST);
-		add(statusLabel, BorderLayout.CENTER);
+		topRow.add(leftPanel, BorderLayout.WEST);
+		topRow.add(statusLabel, BorderLayout.CENTER);
 
 		if (!isComplete())
 		{
@@ -124,7 +112,21 @@ public class GoalCard extends JPanel
 			arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
 			arrowPanel.add(upButton);
 			arrowPanel.add(downButton);
-			add(arrowPanel, BorderLayout.EAST);
+			topRow.add(arrowPanel, BorderLayout.EAST);
+		}
+
+		// Stack: top row + tags below (tags span full card width)
+		if (hasTags)
+		{
+			JPanel content = new JPanel(new BorderLayout(0, 0));
+			content.setOpaque(false);
+			content.add(topRow, BorderLayout.CENTER);
+			content.add(buildTagRow(allTags), BorderLayout.SOUTH);
+			add(content, BorderLayout.CENTER);
+		}
+		else
+		{
+			add(topRow, BorderLayout.CENTER);
 		}
 	}
 
