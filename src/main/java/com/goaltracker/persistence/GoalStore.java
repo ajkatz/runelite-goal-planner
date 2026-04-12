@@ -774,6 +774,32 @@ public class GoalStore
 		saveNow();
 	}
 
+	/**
+	 * Mark a goal as dirty for the tracker flush path. Called by
+	 * recordGoalProgress so only changed goals are written.
+	 */
+	public void markGoalDirty(String goalId)
+	{
+		dirtyGoalIds.add(goalId);
+	}
+
+	/**
+	 * Save only goals that were marked dirty (by recordGoalProgress).
+	 * Much cheaper than saveNow() when only a few goals changed.
+	 */
+	public void saveDirtyGoals()
+	{
+		if (dirtyGoalIds.isEmpty()) return;
+		for (String id : dirtyGoalIds)
+		{
+			Goal g = findGoalById(id);
+			if (g != null) saveGoal(g);
+		}
+		dirtyGoalIds.clear();
+		// Also save sections in case reconcileCompletedSection moved goals
+		saveSections();
+	}
+
 	/** Force an immediate save of everything (e.g. on plugin shutdown). */
 	public void saveNow()
 	{

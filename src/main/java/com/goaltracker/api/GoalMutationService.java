@@ -303,6 +303,8 @@ class GoalMutationService
 			log.info("API.internal recordGoalProgress: goal un-completed {} ({})",
 				g.getId(), g.getName());
 		}
+		// Mark this goal as dirty for the next saveDirtyGoals() call.
+		api.goalStore.markGoalDirty(goalId);
 		return true;
 	}
 

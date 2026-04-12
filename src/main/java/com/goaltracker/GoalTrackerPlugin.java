@@ -1250,7 +1250,7 @@ public class GoalTrackerPlugin extends Plugin
 		if (updated)
 		{
 			goalStore.reconcileCompletedSection();
-			goalStore.save();
+			goalStore.saveDirtyGoals();
 			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
 		}
 	}
