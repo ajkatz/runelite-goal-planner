@@ -1350,29 +1350,23 @@ public class GoalTrackerPlugin extends Plugin
 			boolean isLeaf = false;
 			if (g.getType() == GoalType.QUEST && g.getQuestName() != null)
 			{
-				try
+				// A quest is a leaf if it has no active (non-completed)
+				// requirement edges — regardless of what QuestRequirements
+				// says about its data-level requirements.
+				boolean hasActiveReqs = false;
+				if (g.getRequiredGoalIds() != null)
 				{
-					net.runelite.api.Quest q = net.runelite.api.Quest.valueOf(g.getQuestName());
-					if (!com.goaltracker.data.QuestRequirements.hasRequirements(q))
+					for (String reqId : g.getRequiredGoalIds())
 					{
-						// Check for active (non-completed) requirement edges.
-						boolean hasActiveReqs = false;
-						if (g.getRequiredGoalIds() != null)
+						Goal req = goalStore.findGoalById(reqId);
+						if (req != null && !req.isComplete())
 						{
-							for (String reqId : g.getRequiredGoalIds())
-							{
-								Goal req = goalStore.findGoalById(reqId);
-								if (req != null && !req.isComplete())
-								{
-									hasActiveReqs = true;
-									break;
-								}
-							}
+							hasActiveReqs = true;
+							break;
 						}
-						if (!hasActiveReqs) isLeaf = true;
 					}
 				}
-				catch (IllegalArgumentException ignored) {}
+				if (!hasActiveReqs) isLeaf = true;
 			}
 			if (isLeaf) leaves.add(g);
 			else rest.add(g);
