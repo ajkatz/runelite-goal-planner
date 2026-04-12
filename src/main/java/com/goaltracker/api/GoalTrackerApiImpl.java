@@ -101,6 +101,11 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 		this.onGoalsChanged = callback != null ? callback : () -> {};
 	}
 
+	public void setOnSelectionChanged(Runnable callback)
+	{
+		this.onSelectionChanged = callback != null ? callback : () -> {};
+	}
+
 	// =====================================================================
 	// Goal creation delegations
 	// =====================================================================

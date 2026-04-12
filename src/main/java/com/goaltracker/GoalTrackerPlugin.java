@@ -149,8 +149,8 @@ public class GoalTrackerPlugin extends Plugin
 		// Wire the API's UI-refresh hooks.
 		goalTrackerApi.setOnGoalsChanged(
 			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild()));
-		goalTrackerApi.onSelectionChanged =
-			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.refreshSelection());
+		goalTrackerApi.setOnSelectionChanged(
+			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.refreshSelection()));
 
 		BufferedImage icon;
 		try
