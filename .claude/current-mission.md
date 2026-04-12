@@ -1,25 +1,25 @@
-# Mission: Incremental persistence for 10K+ goal scalability
+# Mission: Incremental persistence and performance
 Date: 2026-04-12
-Status: active
+Status: complete
 
 ## Goal
-Replace the monolithic JSON blob persistence with per-goal incremental
-storage. Each goal gets its own ConfigManager key so mutations are O(1)
-instead of serializing the entire list. Target: seamless performance
-at 10,000+ completed goals.
-
-## Sub-goals
-- [ ] S1 — Design the per-goal key schema
-- [ ] S2 — Implement incremental save (add/update/remove individual goals)
-- [ ] S3 — Implement incremental load (reconstruct from per-goal keys)
-- [ ] S4 — Migration path from monolithic JSON to per-goal keys
-- [ ] S5 — Same treatment for tags and sections
-- [ ] S6 — Performance testing with large goal counts
-
-## Predictions
-- Completion: S1-S4 confident, S5-S6 depends on time
-- Confidence: Medium — ConfigManager API constraints unknown
-- Risks: ConfigManager may have key count limits or sync issues
-- Estimated cost: N/A
+Per-entity persistence, performance optimization, diary requirements,
+selection fixes, bulk quest actions.
 
 ## Tasks Log
+- Per-entity persistence (goals + tags as individual ConfigManager keys)
+- Schema migration v1 → v2
+- Dirty tracking with compound save suspension
+- Tracker-only save path (saveDirtyGoals)
+- Lightweight selection refresh (no rebuild on click)
+- Live selection state fix (stale wasSelected capture)
+- Shift-click additive selection + deselection
+- Debounced panel rebuild (200ms coalescing, EDT-safe)
+- Performance timing logs
+- GoalCard layout fix (tags below progress)
+- Bulk "Add All Unfinished Quests" with requirements
+- Skip completed goals in requirement seeding
+- Leaf quest promotion after bulk actions
+- Unreleased quest exclusion (The Red Reef)
+- ConcurrentModificationException fix (tracker snapshot)
+- LOGGED_IN game state guard
