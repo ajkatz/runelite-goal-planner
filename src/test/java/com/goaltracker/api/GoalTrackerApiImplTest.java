@@ -64,6 +64,7 @@ class GoalTrackerApiImplTest
 
 		callbackFireCount = new AtomicInteger(0);
 		api.setOnGoalsChanged(callbackFireCount::incrementAndGet);
+		api.setOnSelectionChanged(callbackFireCount::incrementAndGet);
 	}
 
 	// ====================================================================
