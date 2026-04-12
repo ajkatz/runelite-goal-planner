@@ -452,6 +452,12 @@ public class GoalCard extends JPanel
 		upButton.setVisible(!first);
 	}
 
+	/** The goal ID this card represents. */
+	public String getGoalId()
+	{
+		return view.id;
+	}
+
 	/** Update the selection highlight without rebuilding the card. */
 	public void setSelected(boolean selected)
 	{

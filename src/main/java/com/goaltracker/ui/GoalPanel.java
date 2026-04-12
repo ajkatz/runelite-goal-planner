@@ -696,20 +696,36 @@ public class GoalPanel extends PluginPanel
 	 * each section in priority order. Returns an empty set if either id is
 	 * missing from the canonical list (e.g. just deleted).
 	 */
+	/**
+	 * Compute the range of goals between anchor and clicked in the
+	 * RENDERED card order (topo-sorted per section), not flat priority.
+	 * Uses the cardMap insertion order which matches the visual layout.
+	 */
 	private java.util.Set<String> computeRangeSelection(String anchorId, String clickedId)
 	{
-		java.util.List<com.goaltracker.api.GoalView> all = api.queryAllGoals();
-		int aIdx = -1, bIdx = -1;
-		for (int i = 0; i < all.size(); i++)
+		// Walk the rendered card order (cardMap is LinkedHashMap-like via
+		// insertion order during rebuild). Use goalListPanel's components
+		// to get the actual visual order.
+		java.util.List<String> renderedOrder = new java.util.ArrayList<>();
+		for (java.awt.Component comp : goalListPanel.getComponents())
 		{
-			String id = all.get(i).id;
+			if (comp instanceof GoalCard)
+			{
+				GoalCard card = (GoalCard) comp;
+				renderedOrder.add(card.getGoalId());
+			}
+		}
+		int aIdx = -1, bIdx = -1;
+		for (int i = 0; i < renderedOrder.size(); i++)
+		{
+			String id = renderedOrder.get(i);
 			if (id.equals(anchorId)) aIdx = i;
 			if (id.equals(clickedId)) bIdx = i;
 		}
 		if (aIdx < 0 || bIdx < 0) return java.util.Collections.emptySet();
 		int lo = Math.min(aIdx, bIdx), hi = Math.max(aIdx, bIdx);
 		java.util.LinkedHashSet<String> out = new java.util.LinkedHashSet<>();
-		for (int i = lo; i <= hi; i++) out.add(all.get(i).id);
+		for (int i = lo; i <= hi; i++) out.add(renderedOrder.get(i));
 		return out;
 	}
 
