@@ -639,11 +639,18 @@ public class GoalPanel extends PluginPanel
 					java.util.Set<String> range = computeRangeSelection(selectionAnchorId, goalId);
 					if (!range.isEmpty())
 					{
-						// Add the range to the existing selection — shift-click
-						// never deselects, it only extends.
-						java.util.Set<String> merged = new java.util.LinkedHashSet<>(api.getSelectedGoalIds());
-						merged.addAll(range);
-						api.replaceGoalSelection(merged);
+						java.util.Set<String> current = new java.util.LinkedHashSet<>(api.getSelectedGoalIds());
+						if (wasSelected)
+						{
+							// Shift-click on selected goal: deselect the range.
+							current.removeAll(range);
+						}
+						else
+						{
+							// Shift-click on unselected goal: add the range.
+							current.addAll(range);
+						}
+						api.replaceGoalSelection(current);
 					}
 					selectionAnchorId = goalId;
 					return;
