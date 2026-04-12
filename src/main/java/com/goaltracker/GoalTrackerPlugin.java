@@ -1273,8 +1273,14 @@ public class GoalTrackerPlugin extends Plugin
 		java.util.Map<net.runelite.api.Quest, com.goaltracker.data.QuestRequirementResolver.Resolved> resolved =
 			new java.util.LinkedHashMap<>();
 
+		// Quests in the RuneLite enum but not yet released in-game.
+		java.util.Set<net.runelite.api.Quest> UNRELEASED = java.util.EnumSet.of(
+			net.runelite.api.Quest.THE_RED_REEF
+		);
+
 		for (net.runelite.api.Quest quest : net.runelite.api.Quest.values())
 		{
+			if (UNRELEASED.contains(quest)) continue;
 			if (f2pOnly && !com.goaltracker.data.QuestRequirements.isF2P(quest))
 			{
 				continue;
