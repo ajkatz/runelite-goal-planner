@@ -672,6 +672,14 @@ class GoalCreationService
 				seedGoalId = result.goalId;
 			}
 
+			// Skip completed goals — they're already done, no need to
+			// link them as requirements in the tree.
+			Goal seedGoal = api.findGoal(seedGoalId);
+			if (seedGoal != null && seedGoal.isComplete())
+			{
+				continue;
+			}
+
 			// Propagate optional flag from template to created goal.
 			if (template.isOptional())
 			{
@@ -936,6 +944,13 @@ class GoalCreationService
 					if (seedGoalId == null) continue;
 				}
 				else
+				{
+					continue;
+				}
+
+				// Skip completed goals — already done.
+				Goal seedGoal = api.findGoal(seedGoalId);
+				if (seedGoal != null && seedGoal.isComplete())
 				{
 					continue;
 				}
