@@ -478,29 +478,39 @@ class GoalMutationService
 		final java.util.Set<String> removedIds = new java.util.LinkedHashSet<>();
 		for (Goal g : toRemove) removedIds.add(g.getId());
 		final java.util.Set<String> selectionSnapshot = new java.util.LinkedHashSet<>(api.selectedGoalIds);
-		api.executeCommand(new com.goaltracker.command.Command()
+		// Suspend saves so the bulk loop writes one goal_order at the end,
+		// not N times (one per removal).
+		api.goalStore.suspendSave();
+		try
 		{
-			@Override public boolean apply()
+			api.executeCommand(new com.goaltracker.command.Command()
 			{
-				for (Goal g : toRemove)
+				@Override public boolean apply()
 				{
-					api.goalStore.removeGoal(g.getId());
+					for (Goal g : toRemove)
+					{
+						api.goalStore.removeGoal(g.getId());
+					}
+					api.selectedGoalIds.removeAll(removedIds);
+					return true;
 				}
-				api.selectedGoalIds.removeAll(removedIds);
-				return true;
-			}
-			@Override public boolean revert()
-			{
-				for (Goal g : toRemove)
+				@Override public boolean revert()
 				{
-					if (api.findGoal(g.getId()) == null) api.goalStore.addGoal(g);
+					for (Goal g : toRemove)
+					{
+						if (api.findGoal(g.getId()) == null) api.goalStore.addGoal(g);
+					}
+					api.goalStore.normalizeOrder();
+					api.selectedGoalIds.addAll(selectionSnapshot);
+					return true;
 				}
-				api.goalStore.normalizeOrder();
-				api.selectedGoalIds.addAll(selectionSnapshot);
-				return true;
-			}
-			@Override public String getDescription() { return "Remove all incomplete goals (" + toRemove.size() + ")"; }
-		});
+				@Override public String getDescription() { return "Remove all incomplete goals (" + toRemove.size() + ")"; }
+			});
+		}
+		finally
+		{
+			api.goalStore.resumeSave();
+		}
 	}
 
 	boolean moveGoal(String goalId, int newGlobalIndex)

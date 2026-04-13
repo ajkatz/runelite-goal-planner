@@ -1162,39 +1162,43 @@ public class GoalTrackerPlugin extends Plugin
 				continue;
 			}
 
-			// Collection log left-pane: boss/raid category tabs have itemId <= 0.
-			// Check if the entry name matches a known boss for KC goals.
-			if (isCollectionLog && itemId <= 0)
+			// Collection log: check if the entry name matches a known boss for KC goals.
+			// For raids and multi-tier bosses, show one menu entry per tier.
+			if (isCollectionLog)
 			{
 				String targetName = stripColorTags(entry.getTarget());
-				if (targetName != null && com.goaltracker.data.BossKillData.isKnownBoss(targetName))
+				java.util.List<String> bossCandidates = com.goaltracker.data.BossKillData.resolveCollectionLogName(targetName);
+				if (!bossCandidates.isEmpty())
 				{
-					final String bossName = targetName;
-					client.createMenuEntry(1)
-						.setOption("Add Boss KC Goal")
-						.setTarget(entry.getTarget())
-						.setType(MenuAction.RUNELITE)
-						.onClick(e ->
-						{
-							javax.swing.SwingUtilities.invokeLater(() ->
+					for (String resolvedName : bossCandidates)
+					{
+						final String bossName = resolvedName;
+						client.createMenuEntry(1)
+							.setOption("Add " + bossName + " KC Goal")
+							.setTarget(entry.getTarget())
+							.setType(MenuAction.RUNELITE)
+							.onClick(e ->
 							{
-								String input = javax.swing.JOptionPane.showInputDialog(
-									panel,
-									"Target kill count for " + bossName + ":",
-									"1"
-								);
-								if (input == null) return;
-								try
+								javax.swing.SwingUtilities.invokeLater(() ->
 								{
-									int kills = Integer.parseInt(input.trim().replace(",", ""));
-									if (kills <= 0) return;
-									goalTrackerApi.addBossGoal(bossName, kills);
-								}
-								catch (NumberFormatException ignored) {}
+									String input = javax.swing.JOptionPane.showInputDialog(
+										panel,
+										"Target kill count for " + bossName + ":",
+										"1"
+									);
+									if (input == null) return;
+									try
+									{
+										int kills = Integer.parseInt(input.trim().replace(",", ""));
+										if (kills <= 0) return;
+										goalTrackerApi.addBossGoal(bossName, kills);
+									}
+									catch (NumberFormatException ignored) {}
+								});
 							});
-						});
+					}
+					continue;
 				}
-				continue;
 			}
 			if (itemId <= 0)
 			{

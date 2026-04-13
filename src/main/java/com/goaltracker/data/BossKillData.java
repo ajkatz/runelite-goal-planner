@@ -209,6 +209,42 @@ public final class BossKillData
 	}
 
 	/**
+	 * Collection log name → list of matching boss data names.
+	 * Used when right-clicking raid entries in the collection log
+	 * to show one menu entry per tier.
+	 */
+	private static final Map<String, java.util.List<String>> COLLECTION_LOG_ALIASES = new HashMap<>();
+
+	static
+	{
+		COLLECTION_LOG_ALIASES.put("Chambers of Xeric", java.util.List.of("CoX", "CoX (CM)"));
+		COLLECTION_LOG_ALIASES.put("Theatre of Blood", java.util.List.of("ToB", "ToB (HM)", "ToB (Story)"));
+		COLLECTION_LOG_ALIASES.put("Tombs of Amascut", java.util.List.of("ToA (Entry)", "ToA", "ToA (Expert)"));
+		COLLECTION_LOG_ALIASES.put("The Nightmare", java.util.List.of("The Nightmare", "Phosani's Nightmare"));
+		COLLECTION_LOG_ALIASES.put("Duke Sucellus", java.util.List.of("Duke Sucellus", "Duke (Awake)"));
+		COLLECTION_LOG_ALIASES.put("The Leviathan", java.util.List.of("The Leviathan", "Leviathan (Awake)"));
+		COLLECTION_LOG_ALIASES.put("The Whisperer", java.util.List.of("The Whisperer", "Whisperer (Awake)"));
+		COLLECTION_LOG_ALIASES.put("Vardorvis", java.util.List.of("Vardorvis", "Vardorvis (Awake)"));
+		COLLECTION_LOG_ALIASES.put("The Fight Caves", java.util.List.of("TzTok-Jad"));
+		COLLECTION_LOG_ALIASES.put("The Inferno", java.util.List.of("TzKal-Zuk"));
+	}
+
+	/**
+	 * Resolve a collection log entry name to matching boss data names.
+	 * Returns a list of boss names (one per tier/variant) if the name
+	 * maps to multiple entries, or a single-element list for exact
+	 * matches. Returns empty if unknown.
+	 */
+	public static java.util.List<String> resolveCollectionLogName(String name)
+	{
+		if (name == null) return java.util.Collections.emptyList();
+		java.util.List<String> aliases = COLLECTION_LOG_ALIASES.get(name);
+		if (aliases != null) return aliases;
+		if (BOSSES.containsKey(name)) return java.util.List.of(name);
+		return java.util.Collections.emptyList();
+	}
+
+	/**
 	 * All boss names in alphabetical order for the dropdown.
 	 */
 	public static String[] getBossNames()
