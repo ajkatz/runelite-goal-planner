@@ -147,7 +147,7 @@ public final class BossKillData
 		PET_ICONS.put("Alchemical Hydra", ItemID.IKKLE_HYDRA);
 
 		// Other bosses
-		PET_ICONS.put("Araxxor", ItemID.SMOL_HEREDIT); // closest available
+		PET_ICONS.put("Araxxor", ItemID.NID);
 		PET_ICONS.put("Corporeal Beast", ItemID.PET_DARK_CORE);
 		PET_ICONS.put("Giant Mole", ItemID.BABY_MOLE);
 		PET_ICONS.put("Kalphite Queen", ItemID.KALPHITE_PRINCESS);
