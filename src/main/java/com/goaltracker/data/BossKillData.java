@@ -50,14 +50,14 @@ public final class BossKillData
 		BOSSES.put("Cerberus", VarPlayerID.TOTAL_CERBERUS_KILLS);
 		BOSSES.put("Grotesque Guardians", VarPlayerID.TOTAL_GARGBOSS_KILLS);
 		BOSSES.put("Kraken", VarPlayerID.TOTAL_KRAKEN_BOSS_KILLS);
-		BOSSES.put("Thermonuclear Smoke Devil", VarPlayerID.TOTAL_THERMY_KILLS);
+		BOSSES.put("Thermy", VarPlayerID.TOTAL_THERMY_KILLS);
 		BOSSES.put("Alchemical Hydra", VarPlayerID.TOTAL_HYDRABOSS_KILLS);
 
 		// Other bosses
 		BOSSES.put("Araxxor", VarPlayerID.TOTAL_ARAXXOR_KILLS);
 		BOSSES.put("Bryophyta", VarPlayerID.TOTAL_BRYOPHYTA_KILLS);
 		BOSSES.put("Corporeal Beast", VarPlayerID.TOTAL_CORP_KILLS);
-		BOSSES.put("Deranged Archaeologist", VarPlayerID.TOTAL_DERANGEDARCHAEOLOGIST_KILLS);
+		BOSSES.put("Deranged Arch.", VarPlayerID.TOTAL_DERANGEDARCHAEOLOGIST_KILLS);
 		BOSSES.put("Giant Mole", VarPlayerID.TOTAL_MOLE_KILLS);
 		BOSSES.put("Hespori", VarPlayerID.TOTAL_HESPORI_KILLS);
 		BOSSES.put("Kalphite Queen", VarPlayerID.TOTAL_KALPHITE_KILLS);
@@ -76,20 +76,20 @@ public final class BossKillData
 		BOSSES.put("The Leviathan", VarPlayerID.TOTAL_LEVIATHAN_KILLS);
 		BOSSES.put("The Whisperer", VarPlayerID.TOTAL_WHISPERER_KILLS);
 		BOSSES.put("Vardorvis", VarPlayerID.TOTAL_VARDORVIS_KILLS);
-		BOSSES.put("Duke Sucellus (Awakened)", VarPlayerID.TOTAL_DUKE_SUCELLUS_AWAKENED_KILLS);
-		BOSSES.put("The Leviathan (Awakened)", VarPlayerID.TOTAL_LEVIATHAN_AWAKENED_KILLS);
-		BOSSES.put("The Whisperer (Awakened)", VarPlayerID.TOTAL_WHISPERER_AWAKENED_KILLS);
-		BOSSES.put("Vardorvis (Awakened)", VarPlayerID.TOTAL_VARDORVIS_AWAKENED_KILLS);
+		BOSSES.put("Duke (Awake)", VarPlayerID.TOTAL_DUKE_SUCELLUS_AWAKENED_KILLS);
+		BOSSES.put("Leviathan (Awake)", VarPlayerID.TOTAL_LEVIATHAN_AWAKENED_KILLS);
+		BOSSES.put("Whisperer (Awake)", VarPlayerID.TOTAL_WHISPERER_AWAKENED_KILLS);
+		BOSSES.put("Vardorvis (Awake)", VarPlayerID.TOTAL_VARDORVIS_AWAKENED_KILLS);
 
 		// Raids
-		BOSSES.put("Chambers of Xeric", VarPlayerID.TOTAL_COMPLETED_XERICCHAMBERS);
-		BOSSES.put("Chambers of Xeric (CM)", VarPlayerID.TOTAL_COMPLETED_XERICCHAMBERS_CHALLENGE);
-		BOSSES.put("Theatre of Blood", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD);
-		BOSSES.put("Theatre of Blood (HM)", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD_HARD);
-		BOSSES.put("Theatre of Blood (Story)", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD_STORY);
-		BOSSES.put("Tombs of Amascut (Entry)", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_ENTRY);
-		BOSSES.put("Tombs of Amascut", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT);
-		BOSSES.put("Tombs of Amascut (Expert)", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_EXPERT);
+		BOSSES.put("CoX", VarPlayerID.TOTAL_COMPLETED_XERICCHAMBERS);
+		BOSSES.put("CoX (CM)", VarPlayerID.TOTAL_COMPLETED_XERICCHAMBERS_CHALLENGE);
+		BOSSES.put("ToB", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD);
+		BOSSES.put("ToB (HM)", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD_HARD);
+		BOSSES.put("ToB (Story)", VarPlayerID.TOTAL_COMPLETED_THEATREOFBLOOD_STORY);
+		BOSSES.put("ToA (Entry)", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_ENTRY);
+		BOSSES.put("ToA", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT);
+		BOSSES.put("ToA (Expert)", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_EXPERT);
 
 		// Waves
 		BOSSES.put("TzTok-Jad", VarPlayerID.TOTAL_JAD_KILLS);
@@ -101,14 +101,14 @@ public final class BossKillData
 		BOSSES.put("Phosani's Nightmare", VarPlayerID.TOTAL_NIGHTMARE_CHALLENGE_KILLS);
 		BOSSES.put("Tempoross", VarPlayerID.TOTAL_TEMPOROSS_KILLS);
 		BOSSES.put("Wintertodt", VarPlayerID.TOTAL_WINTERTODT_KILLS);
-		BOSSES.put("Guardians of the Rift", VarPlayerID.TOTAL_GOTR_KILLS);
+		BOSSES.put("GotR", VarPlayerID.TOTAL_GOTR_KILLS);
 
 		// Newer bosses
 		BOSSES.put("Amoxliatl", VarPlayerID.TOTAL_AMOXLIATL_KILLS);
 		BOSSES.put("Hueycoatl", VarPlayerID.TOTAL_HUEY_KILLS);
 		BOSSES.put("Royal Titans", VarPlayerID.TOTAL_ROYAL_TITAN_KILLS);
 		BOSSES.put("Yama", VarPlayerID.TOTAL_YAMA_KILLS);
-		BOSSES.put("The Scurrius", VarPlayerID.TOTAL_RAT_BOSS_KILLS);
+		BOSSES.put("Scurrius", VarPlayerID.TOTAL_RAT_BOSS_KILLS);
 	}
 
 	/** Boss name → pet item ID for the card icon. 0 = no pet icon. */
@@ -146,13 +146,13 @@ public final class BossKillData
 		PET_ICONS.put("Cerberus", 13247); // Hellpuppy
 		PET_ICONS.put("Grotesque Guardians", ItemID.NOON);
 		PET_ICONS.put("Kraken", ItemID.PET_KRAKEN);
-		PET_ICONS.put("Thermonuclear Smoke Devil", ItemID.PET_SMOKE_DEVIL);
+		PET_ICONS.put("Thermy", ItemID.PET_SMOKE_DEVIL);
 		PET_ICONS.put("Alchemical Hydra", ItemID.IKKLE_HYDRA);
 
 		// Other bosses
 		PET_ICONS.put("Araxxor", ItemID.NID);
 		PET_ICONS.put("Bryophyta", ItemID.BRYOPHYTAS_ESSENCE);
-		PET_ICONS.put("Deranged Archaeologist", ItemID.STEEL_RING);
+		PET_ICONS.put("Deranged Arch.", ItemID.STEEL_RING);
 		PET_ICONS.put("Corporeal Beast", ItemID.PET_DARK_CORE);
 		PET_ICONS.put("Giant Mole", ItemID.BABY_MOLE);
 		PET_ICONS.put("Kalphite Queen", ItemID.KALPHITE_PRINCESS);
@@ -163,27 +163,27 @@ public final class BossKillData
 		PET_ICONS.put("Mimic", ItemID.MIMIC);
 		PET_ICONS.put("Vorkath", ItemID.VORKI);
 		PET_ICONS.put("Zulrah", ItemID.PET_SNAKELING);
-		PET_ICONS.put("Scurrius", ItemID.SCURRY); // not "The Scurrius"
+		PET_ICONS.put("Scurrius", ItemID.SCURRY); // not "Scurrius"
 
 		// DT2
 		PET_ICONS.put("Duke Sucellus", ItemID.BARON);
 		PET_ICONS.put("The Leviathan", ItemID.LIL_CREATOR);
 		PET_ICONS.put("The Whisperer", ItemID.WISP);
 		PET_ICONS.put("Vardorvis", ItemID.BUTCH);
-		PET_ICONS.put("Duke Sucellus (Awakened)", ItemID.BARON);
-		PET_ICONS.put("The Leviathan (Awakened)", ItemID.LIL_CREATOR);
-		PET_ICONS.put("The Whisperer (Awakened)", ItemID.WISP);
-		PET_ICONS.put("Vardorvis (Awakened)", ItemID.BUTCH);
+		PET_ICONS.put("Duke (Awake)", ItemID.BARON);
+		PET_ICONS.put("Leviathan (Awake)", ItemID.LIL_CREATOR);
+		PET_ICONS.put("Whisperer (Awake)", ItemID.WISP);
+		PET_ICONS.put("Vardorvis (Awake)", ItemID.BUTCH);
 
 		// Raids
-		PET_ICONS.put("Chambers of Xeric", ItemID.OLMLET);
-		PET_ICONS.put("Chambers of Xeric (CM)", ItemID.OLMLET);
-		PET_ICONS.put("Theatre of Blood", ItemID.LIL_ZIK);
-		PET_ICONS.put("Theatre of Blood (HM)", ItemID.LIL_ZIK);
-		PET_ICONS.put("Theatre of Blood (Story)", ItemID.LIL_ZIK);
-		PET_ICONS.put("Tombs of Amascut (Entry)", ItemID.TUMEKENS_GUARDIAN);
-		PET_ICONS.put("Tombs of Amascut", ItemID.TUMEKENS_GUARDIAN);
-		PET_ICONS.put("Tombs of Amascut (Expert)", ItemID.TUMEKENS_GUARDIAN);
+		PET_ICONS.put("CoX", ItemID.OLMLET);
+		PET_ICONS.put("CoX (CM)", ItemID.OLMLET);
+		PET_ICONS.put("ToB", ItemID.LIL_ZIK);
+		PET_ICONS.put("ToB (HM)", ItemID.LIL_ZIK);
+		PET_ICONS.put("ToB (Story)", ItemID.LIL_ZIK);
+		PET_ICONS.put("ToA (Entry)", ItemID.TUMEKENS_GUARDIAN);
+		PET_ICONS.put("ToA", ItemID.TUMEKENS_GUARDIAN);
+		PET_ICONS.put("ToA (Expert)", ItemID.TUMEKENS_GUARDIAN);
 
 		// Waves
 		PET_ICONS.put("TzTok-Jad", ItemID.TZREKJAD);
@@ -196,7 +196,7 @@ public final class BossKillData
 		PET_ICONS.put("Wintertodt", ItemID.PHOENIX);
 		PET_ICONS.put("Tempoross", ItemID.TINY_TEMPOR);
 		PET_ICONS.put("Zalcano", ItemID.SMOLCANO);
-		PET_ICONS.put("Guardians of the Rift", ItemID.ABYSSAL_PROTECTOR);
+		PET_ICONS.put("GotR", ItemID.ABYSSAL_PROTECTOR);
 		PET_ICONS.put("Hespori", ItemID.BOTTOMLESS_COMPOST_BUCKET);
 
 		// Newer
@@ -204,7 +204,7 @@ public final class BossKillData
 		PET_ICONS.put("Hueycoatl", ItemID.HUBERTE);
 		PET_ICONS.put("Royal Titans", ItemID.BRAN);
 		PET_ICONS.put("Yama", ItemID.YAMI);
-		PET_ICONS.put("The Scurrius", ItemID.SCURRY);
+		PET_ICONS.put("Scurrius", ItemID.SCURRY);
 		PET_ICONS.put("Gryphon", ItemID.GRYPHON);
 	}
 
