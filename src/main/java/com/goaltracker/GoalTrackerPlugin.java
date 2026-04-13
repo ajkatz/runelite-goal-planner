@@ -984,6 +984,11 @@ public class GoalTrackerPlugin extends Plugin
 					.setTarget("")
 					.setType(MenuAction.RUNELITE)
 					.onClick(e -> addAllUnfinishedQuests(false));
+				client.createMenuEntry(1)
+					.setOption("Add All Bosses (1 KC)")
+					.setTarget("")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> addAllBossGoals());
 			}
 
 			if (isQuestList)
@@ -1357,6 +1362,29 @@ public class GoalTrackerPlugin extends Plugin
 			promoteLeafGoalsToTop();
 
 			log.info("Added {} unfinished {} quests with requirements", added, f2pOnly ? "F2P" : "all");
+		}
+		finally
+		{
+			goalTrackerApi.endCompound();
+		}
+	}
+
+	/**
+	 * Add all known bosses as kill count goals with target 1.
+	 * Stress test utility.
+	 */
+	private void addAllBossGoals()
+	{
+		goalTrackerApi.beginCompound("Add all bosses (1 KC)");
+		try
+		{
+			int added = 0;
+			for (String bossName : com.goaltracker.data.BossKillData.getBossNames())
+			{
+				String id = goalTrackerApi.addBossGoal(bossName, 1);
+				if (id != null) added++;
+			}
+			log.info("Added {} boss goals", added);
 		}
 		finally
 		{
