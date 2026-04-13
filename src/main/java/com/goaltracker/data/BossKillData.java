@@ -134,6 +134,7 @@ public final class BossKillData
 		PET_ICONS.put("Chaos Fanatic", ItemID.PET_CHAOS_ELEMENTAL);
 		PET_ICONS.put("Crazy Archaeologist", ItemID.FEDORA);
 		PET_ICONS.put("Scorpia", ItemID.SCORPIAS_OFFSPRING);
+		PET_ICONS.put("Obor", ItemID.HILL_GIANT_CLUB);
 		PET_ICONS.put("Venenatis", ItemID.CALLISTO_CUB); // shares cub model
 		PET_ICONS.put("Vet'ion", ItemID.VETION_JR);
 		PET_ICONS.put("Artio", ItemID.CALLISTO_CUB);
@@ -158,7 +159,8 @@ public final class BossKillData
 		PET_ICONS.put("King Black Dragon", ItemID.PRINCE_BLACK_DRAGON);
 		PET_ICONS.put("Phantom Muspah", ItemID.MUPHIN);
 		PET_ICONS.put("Sarachnis", ItemID.SRARACHA);
-		PET_ICONS.put("Skotos", ItemID.SKOTOS); // Skotizo pet = Skotos
+		PET_ICONS.put("Skotizo", ItemID.SKOTOS);
+		PET_ICONS.put("Mimic", ItemID.MIMIC);
 		PET_ICONS.put("Vorkath", ItemID.VORKI);
 		PET_ICONS.put("Zulrah", ItemID.PET_SNAKELING);
 		PET_ICONS.put("Scurrius", ItemID.SCURRY); // not "The Scurrius"
@@ -194,9 +196,14 @@ public final class BossKillData
 		PET_ICONS.put("Wintertodt", ItemID.PHOENIX);
 		PET_ICONS.put("Tempoross", ItemID.TINY_TEMPOR);
 		PET_ICONS.put("Zalcano", ItemID.SMOLCANO);
+		PET_ICONS.put("Guardians of the Rift", ItemID.ABYSSAL_PROTECTOR);
+		PET_ICONS.put("Hespori", ItemID.BOTTOMLESS_COMPOST_BUCKET);
 
 		// Newer
 		PET_ICONS.put("Amoxliatl", ItemID.MOXI);
+		PET_ICONS.put("Hueycoatl", ItemID.HUBERTE);
+		PET_ICONS.put("Royal Titans", ItemID.BRAN);
+		PET_ICONS.put("Yama", ItemID.YAMI);
 		PET_ICONS.put("The Scurrius", ItemID.SCURRY);
 		PET_ICONS.put("Gryphon", ItemID.GRYPHON);
 	}
