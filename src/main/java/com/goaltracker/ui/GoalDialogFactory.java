@@ -453,10 +453,8 @@ class GoalDialogFactory
 			GoalType selected = (GoalType) typeCombo.getSelectedItem();
 			((CardLayout) field1Panel.getLayout()).show(field1Panel, selected.name());
 			((CardLayout) field2Panel.getLayout()).show(field2Panel, selected.name());
-			// Relative mode is only meaningful for SKILL right now
-			// (and will support BOSS_KILL_COUNT in a future mission). Hide the
-			// row for ITEM_GRIND (no reliable baseline) and CUSTOM (no int target).
-			boolean modeRowVisible = selected == GoalType.SKILL;
+			// Relative mode for SKILL and BOSS (e.g. "Gain 50 more kills").
+			boolean modeRowVisible = selected == GoalType.SKILL || selected == GoalType.BOSS;
 			modeLabel.setVisible(modeRowVisible);
 			modeRow.setVisible(modeRowVisible);
 			if (!modeRowVisible) modeAbsolute.setSelected(true);
@@ -484,7 +482,7 @@ class GoalDialogFactory
 					break;
 				case BOSS:
 					label1.setText("Boss:");
-					label2.setText("Target Kills:");
+					label2.setText(rel ? "Gain Kills:" : "Target Kills:");
 					break;
 				case ITEM_GRIND:
 					label1.setText(rel ? "Gain qty:" : "Quantity:");
@@ -554,16 +552,27 @@ class GoalDialogFactory
 				if (selectedBoss == null) return;
 				try
 				{
-					int kills = Integer.parseInt(bossKillsField.getText().trim().replace(",", ""));
-					if (kills <= 0)
+					int enteredKills = Integer.parseInt(bossKillsField.getText().trim().replace(",", ""));
+					if (enteredKills <= 0)
 					{
 						JOptionPane.showMessageDialog(dialog, "Kill count must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
 						return;
 					}
+					// Relative mode: target = current KC + entered delta.
+					int targetKills = enteredKills;
+					if (relative && client != null)
+					{
+						int varpId = com.goaltracker.data.BossKillData.getVarpId(selectedBoss);
+						if (varpId >= 0)
+						{
+							int currentKc = client.getVarpValue(varpId);
+							targetKills = currentKc + enteredKills;
+						}
+					}
 					api.beginCompound("Add boss goal: " + selectedBoss);
 					try
 					{
-						String createdId = api.addBossGoal(selectedBoss, kills);
+						String createdId = api.addBossGoal(selectedBoss, targetKills);
 						moveToPreferredSection(createdId, preferredSectionId);
 					}
 					finally

@@ -692,16 +692,17 @@ public class GoalCard extends JPanel
 		{
 			return "";
 		}
-		if ("SKILL".equals(type) && view.targetValue > 0)
+		if (("SKILL".equals(type) || "BOSS".equals(type)) && view.targetValue > 0)
 		{
 			int remaining = Math.max(0, view.targetValue - view.currentValue);
 			double pct = view.targetValue == 0 ? 0
 				: Math.max(0.0, Math.min(100.0, (view.currentValue * 100.0) / view.targetValue));
+			String unit = "SKILL".equals(type) ? " left" : " kills left";
 			return "<html>"
 				+ FormatUtil.formatNumber(view.currentValue) + " / " + FormatUtil.formatNumber(view.targetValue)
 				+ " (" + String.format("%.0f%%", pct) + ")"
 				+ "<br><span style='font-size:9px; color:#a0a0a0'>"
-				+ FormatUtil.formatXp(remaining) + " left</span></html>";
+				+ FormatUtil.formatNumber(remaining) + unit + "</span></html>";
 		}
 		double pct = view.targetValue == 0 ? 0
 			: Math.max(0.0, Math.min(100.0, (view.currentValue * 100.0) / view.targetValue));
