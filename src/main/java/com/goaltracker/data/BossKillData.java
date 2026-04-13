@@ -192,6 +192,7 @@ public final class BossKillData
 		PET_ICONS.put("Zalcano", ItemID.SMOLCANO);
 
 		// Newer
+		PET_ICONS.put("Amoxliatl", ItemID.MOXI);
 		PET_ICONS.put("The Scurrius", ItemID.SCURRY);
 		PET_ICONS.put("Gryphon", ItemID.GRYPHON);
 	}
