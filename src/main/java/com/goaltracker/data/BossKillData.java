@@ -131,6 +131,8 @@ public final class BossKillData
 		// Wilderness
 		PET_ICONS.put("Callisto", ItemID.CALLISTO_CUB);
 		PET_ICONS.put("Chaos Elemental", ItemID.PET_CHAOS_ELEMENTAL);
+		PET_ICONS.put("Chaos Fanatic", ItemID.PET_CHAOS_ELEMENTAL);
+		PET_ICONS.put("Crazy Archaeologist", ItemID.PET_CHAOS_ELEMENTAL);
 		PET_ICONS.put("Scorpia", ItemID.SCORPIAS_OFFSPRING);
 		PET_ICONS.put("Venenatis", ItemID.CALLISTO_CUB); // shares cub model
 		PET_ICONS.put("Vet'ion", ItemID.VETION_JR);

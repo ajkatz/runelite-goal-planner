@@ -1157,12 +1157,40 @@ public class GoalTrackerPlugin extends Plugin
 				continue;
 			}
 
-			// Collection log: only act on real item slots in the right pane.
-			// The left-pane category tabs (Bosses → Vorkath, etc.) share the
-			// same widget group id but have entry.getItemId() <= 0, with the
-			// identifier holding a tab index. The previous fallback to
-			// entry.getIdentifier() picked up tab index 1 → canonical item id
-			// 1 ("Toolkit"), producing a phantom Add Goal on tab clicks.
+			// Collection log left-pane: boss/raid category tabs have itemId <= 0.
+			// Check if the entry name matches a known boss for KC goals.
+			if (isCollectionLog && itemId <= 0)
+			{
+				String targetName = stripColorTags(entry.getTarget());
+				if (targetName != null && com.goaltracker.data.BossKillData.isKnownBoss(targetName))
+				{
+					final String bossName = targetName;
+					client.createMenuEntry(1)
+						.setOption("Add Boss KC Goal")
+						.setTarget(entry.getTarget())
+						.setType(MenuAction.RUNELITE)
+						.onClick(e ->
+						{
+							javax.swing.SwingUtilities.invokeLater(() ->
+							{
+								String input = javax.swing.JOptionPane.showInputDialog(
+									panel,
+									"Target kill count for " + bossName + ":",
+									"1"
+								);
+								if (input == null) return;
+								try
+								{
+									int kills = Integer.parseInt(input.trim().replace(",", ""));
+									if (kills <= 0) return;
+									goalTrackerApi.addBossGoal(bossName, kills);
+								}
+								catch (NumberFormatException ignored) {}
+							});
+						});
+				}
+				continue;
+			}
 			if (itemId <= 0)
 			{
 				continue;
