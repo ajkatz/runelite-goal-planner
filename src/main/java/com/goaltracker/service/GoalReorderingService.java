@@ -254,4 +254,60 @@ public class GoalReorderingService
 		return isActiveSkillGoal(a) && isActiveSkillGoal(b)
 			&& a.getSkillName().equals(b.getSkillName());
 	}
+
+	/**
+	 * Re-prioritize incomplete goals: quest goals with zero active
+	 * (non-completed) requirement edges get moved to the top of the
+	 * Incomplete section. Everything else keeps its relative order.
+	 *
+	 * <p>Called after any operation that adds requirement edges
+	 * (addQuestGoalWithPrereqs, addDiaryGoalWithPrereqs, bulk adds)
+	 * so the user sees "do first" goals at the top.
+	 */
+	public void promoteLeafGoalsToTop()
+	{
+		java.util.List<Goal> allGoals = goalStore.getGoals();
+		String incompleteSectionId = goalStore.getIncompleteSection().getId();
+
+		java.util.List<Goal> leaves = new java.util.ArrayList<>();
+		java.util.List<Goal> rest = new java.util.ArrayList<>();
+
+		for (Goal g : allGoals)
+		{
+			if (!incompleteSectionId.equals(g.getSectionId()))
+			{
+				rest.add(g);
+				continue;
+			}
+			boolean isLeaf = false;
+			if (g.getType() == GoalType.QUEST && g.getQuestName() != null)
+			{
+				// A quest is a leaf if it has no active (non-completed)
+				// requirement edges.
+				boolean hasActiveReqs = false;
+				if (g.getRequiredGoalIds() != null)
+				{
+					for (String reqId : g.getRequiredGoalIds())
+					{
+						Goal req = goalStore.findGoalById(reqId);
+						if (req != null && !req.isComplete())
+						{
+							hasActiveReqs = true;
+							break;
+						}
+					}
+				}
+				if (!hasActiveReqs) isLeaf = true;
+			}
+			if (isLeaf) leaves.add(g);
+			else rest.add(g);
+		}
+
+		if (leaves.isEmpty()) return;
+
+		int p = 0;
+		for (Goal g : leaves) { g.setPriority(p++); }
+		for (Goal g : rest) { g.setPriority(p++); }
+		goalStore.normalizeOrder();
+	}
 }

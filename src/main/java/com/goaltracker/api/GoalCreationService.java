@@ -235,6 +235,11 @@ class GoalCreationService
 		try
 		{
 			itemName = api.itemManager.getItemComposition(itemId).getName();
+			// Strip the "(Members)" suffix that some items have in-game
+			if (itemName != null && itemName.endsWith("(Members)"))
+			{
+				itemName = itemName.substring(0, itemName.length() - "(Members)".length()).trim();
+			}
 		}
 		catch (Exception e)
 		{
@@ -260,10 +265,25 @@ class GoalCreationService
 			.defaultTagIds(new ArrayList<>(tagIds))
 			.build();
 
-		api.goalStore.addGoal(goal);
-		api.fireIfNotInCompound();
-		log.info("addItemGoal created: {} ({} x {})", goal.getId(), targetQuantity, itemName);
-		return goal.getId();
+		final String goalId = goal.getId();
+		final String displayName = itemName;
+		api.executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				if (api.findGoal(goalId) != null) return false;
+				api.goalStore.addGoal(goal);
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				api.goalStore.removeGoal(goalId);
+				return true;
+			}
+			@Override public String getDescription() { return "Add item goal: " + displayName; }
+		});
+		log.info("addItemGoal created: {} ({} x {})", goalId, targetQuantity, itemName);
+		return goalId;
 	}
 
 	String addQuestGoal(Quest quest)
@@ -481,6 +501,10 @@ class GoalCreationService
 				Goal g = api.findGoal(id);
 				if (g != null) { g.setPriority(p++); api.goalStore.updateGoal(g); }
 			}
+
+			// Promote leaf quests (zero active requirements) to the top
+			// so the user sees "do first" goals at the top of the list.
+			api.reorderingService.promoteLeafGoalsToTop();
 
 			// Select all goals created by the gesture. Add directly to
 			// the ephemeral set (no per-goal callback) — the compound's
@@ -937,6 +961,21 @@ class GoalCreationService
 						template.getTargetValue());
 					if (seedGoalId == null) continue;
 				}
+				else if (template.getType() == GoalType.BOSS && template.getBossName() != null)
+				{
+					seedGoalId = addBossGoal(template.getBossName(), template.getTargetValue());
+					if (seedGoalId == null) continue;
+				}
+				else if (template.getType() == GoalType.ITEM_GRIND && template.getItemId() > 0)
+				{
+					seedGoalId = addItemGoal(template.getItemId(), template.getTargetValue());
+					if (seedGoalId == null) continue;
+				}
+				else if (template.getType() == GoalType.ACCOUNT && template.getAccountMetric() != null)
+				{
+					seedGoalId = addAccountGoal(template.getAccountMetric(), template.getTargetValue());
+					if (seedGoalId == null) continue;
+				}
 				else if (template.getType() == GoalType.CUSTOM)
 				{
 					// Unlock milestones (e.g. "Fairy Rings Unlocked").
@@ -1037,7 +1076,55 @@ class GoalCreationService
 						log.warn("addDiaryGoalWithPrereqs: unknown quest {}", questTemplate.getQuestName());
 					}
 				}
+
+				// Link the unlock's skill prereqs to the unlock goal.
+				// These are optional (suggested, not strictly required).
+				for (Goal skillTemplate : unlock.skillTemplates)
+				{
+					if (skillTemplate.getType() != GoalType.SKILL || skillTemplate.getSkillName() == null)
+						continue;
+					String skillGoalId = addSkillGoal(
+						Skill.valueOf(skillTemplate.getSkillName()),
+						skillTemplate.getTargetValue());
+					if (skillGoalId == null) continue;
+					Goal skillGoal = api.findGoal(skillGoalId);
+					if (skillGoal != null) skillGoal.setOptional(true);
+					gestureGoalIds.add(skillGoalId);
+					api.addRequirement(unlockGoalId, skillGoalId);
+					try
+					{
+						api.addTagWithCategory(skillGoalId, tagLabel, TagCategory.QUEST.name());
+					}
+					catch (Exception e)
+					{
+						log.warn("addDiaryGoalWithPrereqs: failed to tag unlock skill: {}", e.getMessage());
+					}
+				}
+
+				// Link the unlock's account metric prereqs to the unlock goal.
+				for (Goal accountTemplate : unlock.accountTemplates)
+				{
+					if (accountTemplate.getType() != GoalType.ACCOUNT || accountTemplate.getAccountMetric() == null)
+						continue;
+					String accountGoalId = addAccountGoal(
+						accountTemplate.getAccountMetric(),
+						accountTemplate.getTargetValue());
+					if (accountGoalId == null) continue;
+					gestureGoalIds.add(accountGoalId);
+					api.addRequirement(unlockGoalId, accountGoalId);
+					try
+					{
+						api.addTagWithCategory(accountGoalId, tagLabel, TagCategory.QUEST.name());
+					}
+					catch (Exception e)
+					{
+						log.warn("addDiaryGoalWithPrereqs: failed to tag unlock account: {}", e.getMessage());
+					}
+				}
 			}
+
+			// Promote leaf quests (zero active requirements) to the top.
+			api.reorderingService.promoteLeafGoalsToTop();
 
 			// Select all goals created in this gesture.
 			api.replaceGoalSelection(gestureGoalIds);

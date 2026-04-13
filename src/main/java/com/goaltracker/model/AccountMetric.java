@@ -16,7 +16,9 @@ public enum AccountMetric
 	// MUSIC_TRACKS deferred — no reliable bulk API for counting unlocked tracks
 	CA_POINTS("CA Points", new Color(139, 69, 19), 0, null, 1, 2630),
 	SLAYER_POINTS("Slayer Points", new Color(0, 160, 160), 0, null, 1, 64000),
-	KUDOS("Museum Kudos", new Color(200, 170, 50), 0, "item:11182", 1, 243);
+	KUDOS("Museum Kudos", new Color(200, 170, 50), 0, "item:11182", 1, 243),
+	/** Combined Attack + Strength level (e.g. 130 for Warriors Guild entry). */
+	ATT_STR_COMBINED("Att + Str Combined", new Color(180, 50, 50), 0, "item:8850", 2, 198);
 
 	private final String displayName;
 	private final Color color;

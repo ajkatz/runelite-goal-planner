@@ -115,7 +115,7 @@ public class GoalTrackerPlugin extends Plugin
 	private GoalTrackerApiImpl goalTrackerApi;
 
 	@Inject
-	private com.goaltracker.service.GoalReorderingService goalReorderingService;
+	private com.goaltracker.service.GoalReorderingService reorderingService;
 
 	private GoalPanel panel;
 	private NavigationButton navButton;
@@ -145,7 +145,7 @@ public class GoalTrackerPlugin extends Plugin
 		migrateCaTaskIds();
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
-			goalTrackerApi, goalReorderingService, this::openItemSearch);
+			goalTrackerApi, reorderingService, this::openItemSearch);
 		panel.setClient(client);
 		panel.setQuestHelperCallback(this::openQuestInHelper, this::isQuestHelperAvailable);
 
@@ -213,7 +213,10 @@ public class GoalTrackerPlugin extends Plugin
 				clientThread.invokeLater(() ->
 				{
 					int canonicalId = itemManager.canonicalize(itemId);
-					String itemName = itemManager.getItemComposition(canonicalId).getName();
+					String rawItemName = itemManager.getItemComposition(canonicalId).getName();
+					final String itemName = rawItemName != null && rawItemName.endsWith("(Members)")
+						? rawItemName.substring(0, rawItemName.length() - "(Members)".length()).trim()
+						: rawItemName;
 					java.util.List<ItemTag> autoTags = buildItemTags(canonicalId);
 					java.util.List<String> autoTagIds = new java.util.ArrayList<>();
 					for (ItemTag spec : autoTags)
@@ -1207,7 +1210,10 @@ public class GoalTrackerPlugin extends Plugin
 
 			// Get the real item ID (noted items have different IDs)
 			final int realItemId = itemManager.canonicalize(itemId);
-			String itemName = itemManager.getItemComposition(realItemId).getName();
+			String rawName = itemManager.getItemComposition(realItemId).getName();
+			final String itemName = rawName != null && rawName.endsWith("(Members)")
+				? rawName.substring(0, rawName.length() - "(Members)".length()).trim()
+				: rawName;
 			final boolean fromCollectionLog = isCollectionLog;
 
 			// Add at index 1 to put it near the bottom of the menu
@@ -1363,7 +1369,7 @@ public class GoalTrackerPlugin extends Plugin
 			}
 			// Final pass: promote all zero-dependency quests to the top
 			// across all goals added in this bulk action.
-			promoteLeafGoalsToTop();
+			reorderingService.promoteLeafGoalsToTop();
 
 			log.info("Added {} unfinished {} quests with requirements", added, f2pOnly ? "F2P" : "all");
 		}
@@ -1396,59 +1402,6 @@ public class GoalTrackerPlugin extends Plugin
 		}
 	}
 
-	/**
-	 * Re-prioritize all incomplete goals: zero-dependency leaf quests
-	 * (no requirements in QuestRequirements AND no in-store requirement
-	 * edges) get moved to the top. Everything else keeps its relative
-	 * order. Called at the end of bulk add actions.
-	 */
-	private void promoteLeafGoalsToTop()
-	{
-		java.util.List<Goal> allGoals = goalStore.getGoals();
-		String incompleteSectionId = goalStore.getIncompleteSection().getId();
-
-		java.util.List<Goal> leaves = new java.util.ArrayList<>();
-		java.util.List<Goal> rest = new java.util.ArrayList<>();
-
-		for (Goal g : allGoals)
-		{
-			if (!incompleteSectionId.equals(g.getSectionId()))
-			{
-				rest.add(g);
-				continue;
-			}
-			boolean isLeaf = false;
-			if (g.getType() == GoalType.QUEST && g.getQuestName() != null)
-			{
-				// A quest is a leaf if it has no active (non-completed)
-				// requirement edges — regardless of what QuestRequirements
-				// says about its data-level requirements.
-				boolean hasActiveReqs = false;
-				if (g.getRequiredGoalIds() != null)
-				{
-					for (String reqId : g.getRequiredGoalIds())
-					{
-						Goal req = goalStore.findGoalById(reqId);
-						if (req != null && !req.isComplete())
-						{
-							hasActiveReqs = true;
-							break;
-						}
-					}
-				}
-				if (!hasActiveReqs) isLeaf = true;
-			}
-			if (isLeaf) leaves.add(g);
-			else rest.add(g);
-		}
-
-		if (leaves.isEmpty()) return;
-
-		int p = 0;
-		for (Goal g : leaves) { g.setPriority(p++); }
-		for (Goal g : rest) { g.setPriority(p++); }
-		goalStore.normalizeOrder();
-	}
 
 	/**
 	 * Common flush after tracker updates: reconcile completed goals into

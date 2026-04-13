@@ -17,6 +17,8 @@ import com.goaltracker.tracker.QuestTracker;
 import com.goaltracker.tracker.SkillTracker;
 import net.runelite.api.Client;
 import net.runelite.api.Experience;
+import net.runelite.api.ItemComposition;
+import net.runelite.api.ItemID;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /**
  * Integration test: simulate a fresh account completing the Ardougne Easy
@@ -60,6 +63,15 @@ class DiaryCompletionIntegrationTest
 		Client client = MockClientFactory.createClient(freshState);
 
 		ItemManager itemManager = mock(ItemManager.class);
+		// Stub item compositions for item goals used in diary prereqs
+		ItemComposition kqHeadComp = mock(ItemComposition.class);
+		when(kqHeadComp.getName()).thenReturn("KQ head");
+		when(itemManager.getItemComposition(ItemID.KQ_HEAD)).thenReturn(kqHeadComp);
+
+		ItemComposition crystalKeyComp = mock(ItemComposition.class);
+		when(crystalKeyComp.getName()).thenReturn("Crystal key");
+		when(itemManager.getItemComposition(ItemID.CRYSTAL_KEY)).thenReturn(crystalKeyComp);
+
 		WikiCaRepository wikiCaRepository = mock(WikiCaRepository.class);
 		GoalReorderingService reorderingService = new GoalReorderingService(store);
 		api = new GoalTrackerApiImpl(store, reorderingService, itemManager, wikiCaRepository, client);
@@ -397,5 +409,168 @@ class DiaryCompletionIntegrationTest
 			assertEquals(completedSectionId(), g.getSectionId(),
 				"completed goal should be in Completed section: " + g.getName());
 		}
+	}
+
+	// ================================================================
+	// Undo: adding a diary with requirements then undoing removes all
+	// ================================================================
+
+	@Test
+	@DisplayName("undo removes all seeded goals including boss prereqs")
+	void undoRemovesAllSeededGoals()
+	{
+		// Desert Hard has boss prereq (KQ 1kc)
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Desert", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Desert", GoalTrackerApi.DiaryTier.HARD, resolved);
+
+		int goalsAfterAdd = store.getGoals().size();
+		assertTrue(goalsAfterAdd > 1,
+			"should have diary + prereqs, got " + goalsAfterAdd);
+
+		// Verify boss goal was seeded
+		boolean hasBossGoal = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == GoalType.BOSS
+				&& "Kalphite Queen".equals(g.getBossName()));
+		assertTrue(hasBossGoal, "KQ boss goal should be seeded for Desert Hard");
+
+		// Undo the entire diary creation
+		assertTrue(api.undo(), "undo should succeed");
+
+		assertEquals(0, store.getGoals().size(),
+			"all goals should be removed after undo, but " + store.getGoals().size()
+			+ " remain: " + store.getGoals().stream()
+				.map(g -> g.getName() + " (" + g.getType() + ")")
+				.collect(Collectors.joining(", ")));
+	}
+
+	@Test
+	@DisplayName("undo removes item prereqs from diary with requirements")
+	void undoRemovesItemPrereqs()
+	{
+		// Desert Elite has item prereq (KQ Head 1x)
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Desert", AchievementDiaryData.Tier.ELITE,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Desert", GoalTrackerApi.DiaryTier.ELITE, resolved);
+
+		// Verify item goal was seeded
+		boolean hasItemGoal = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == GoalType.ITEM_GRIND
+				&& g.getItemId() == ItemID.KQ_HEAD);
+		assertTrue(hasItemGoal, "KQ Head item goal should be seeded for Desert Elite");
+
+		// Undo
+		assertTrue(api.undo());
+
+		assertEquals(0, store.getGoals().size(),
+			"all goals including item prereqs should be removed after undo, but "
+			+ store.getGoals().size() + " remain: " + store.getGoals().stream()
+				.map(g -> g.getName() + " (" + g.getType() + ")")
+				.collect(Collectors.joining(", ")));
+	}
+
+	// ================================================================
+	// Falador Medium: Crystal Key item + Mith Grapple unlock with skills
+	// ================================================================
+
+	@Test
+	@DisplayName("Falador Medium seeds Crystal Key item goal")
+	void faladorMediumSeedsCrystalKey()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.MEDIUM,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.MEDIUM, resolved);
+
+		boolean hasCrystalKey = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == GoalType.ITEM_GRIND
+				&& g.getItemId() == ItemID.CRYSTAL_KEY);
+		assertTrue(hasCrystalKey, "Crystal Key item goal should be seeded");
+	}
+
+	@Test
+	@DisplayName("Falador Medium seeds Mith Grapple unlock with Fletching 59 + Smithing 59 skill prereqs")
+	void faladorMediumSeedsMithGrappleWithSkills()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.MEDIUM,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.MEDIUM, resolved);
+
+		// Mith Grapple custom goal should exist
+		boolean hasMithGrapple = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == GoalType.CUSTOM
+				&& "Mith Grapple".equals(g.getName()));
+		assertTrue(hasMithGrapple, "Mith Grapple unlock goal should be seeded");
+
+		// Fletching 59 and Smithing 59 should be seeded as optional skill prereqs
+		Goal fletching59 = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.SKILL
+				&& "FLETCHING".equals(g.getSkillName())
+				&& g.getTargetValue() == Experience.getXpForLevel(59))
+			.findFirst().orElse(null);
+		Goal smithing59 = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.SKILL
+				&& "SMITHING".equals(g.getSkillName())
+				&& g.getTargetValue() == Experience.getXpForLevel(59))
+			.findFirst().orElse(null);
+		assertNotNull(fletching59, "Fletching 59 should be seeded for Mith Grapple");
+		assertNotNull(smithing59, "Smithing 59 should be seeded for Mith Grapple");
+		assertTrue(fletching59.isOptional(), "Fletching 59 should be optional");
+		assertTrue(smithing59.isOptional(), "Smithing 59 should be optional");
+	}
+
+	@Test
+	@DisplayName("Falador Medium undo removes Crystal Key and Mith Grapple with skill prereqs")
+	void faladorMediumUndoRemovesAll()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.MEDIUM,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.MEDIUM, resolved);
+
+		int goalsAfterAdd = store.getGoals().size();
+		assertTrue(goalsAfterAdd > 5, "should have many goals, got " + goalsAfterAdd);
+
+		assertTrue(api.undo());
+
+		assertEquals(0, store.getGoals().size(),
+			"all goals should be removed after undo, but " + store.getGoals().size()
+			+ " remain: " + store.getGoals().stream()
+				.map(g -> g.getName() + " (" + g.getType() + ")")
+				.collect(Collectors.joining(", ")));
+	}
+
+	@Test
+	@DisplayName("Falador Medium skips Mith Grapple when player already has 59 Fletching and Smithing")
+	void faladorMediumSkipsMithGrappleWhenMet()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.MEDIUM,
+			skill -> (skill == Skill.FLETCHING || skill == Skill.SMITHING) ? 59 : 1,
+			quest -> QuestState.NOT_STARTED);
+
+		// Mith Grapple unlock should NOT appear in resolved (all skill prereqs met)
+		boolean hasMithGrappleUnlock = resolved.unlocks.stream()
+			.anyMatch(u -> "Mith Grapple".equals(u.name));
+		assertFalse(hasMithGrappleUnlock,
+			"Mith Grapple should be skipped when Fletching and Smithing are already 59+");
 	}
 }

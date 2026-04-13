@@ -7,6 +7,7 @@ import com.goaltracker.model.GoalType;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Client;
 import net.runelite.api.Player;
+import net.runelite.api.Skill;
 import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
 
@@ -74,6 +75,9 @@ public class AccountTracker extends AbstractTracker
 				return client.getVarbitValue(VarbitID.SLAYER_POINTS);
 			case KUDOS:
 				return client.getVarbitValue(VarbitID.VM_KUDOS);
+			case ATT_STR_COMBINED:
+				return client.getRealSkillLevel(Skill.ATTACK)
+					+ client.getRealSkillLevel(Skill.STRENGTH);
 			default:
 				return -1;
 		}
