@@ -1,8 +1,10 @@
 package com.goaltracker.data;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import net.runelite.api.ItemID;
 import net.runelite.api.gameval.VarPlayerID;
 
 /**
@@ -109,6 +111,91 @@ public final class BossKillData
 		BOSSES.put("The Scurrius", VarPlayerID.TOTAL_RAT_BOSS_KILLS);
 	}
 
+	/** Boss name → pet item ID for the card icon. 0 = no pet icon. */
+	private static final Map<String, Integer> PET_ICONS = new HashMap<>();
+
+	static
+	{
+		// GWD
+		PET_ICONS.put("Commander Zilyana", ItemID.PET_ZILYANA);
+		PET_ICONS.put("General Graardor", ItemID.PET_GENERAL_GRAARDOR);
+		PET_ICONS.put("K'ril Tsutsaroth", ItemID.PET_KRIL_TSUTSAROTH);
+		PET_ICONS.put("Kree'arra", ItemID.PET_KREEARRA);
+		PET_ICONS.put("Nex", ItemID.NEXLING);
+
+		// DKs
+		PET_ICONS.put("Dagannoth Prime", ItemID.PET_DAGANNOTH_PRIME);
+		PET_ICONS.put("Dagannoth Rex", ItemID.PET_DAGANNOTH_REX);
+		PET_ICONS.put("Dagannoth Supreme", ItemID.PET_DAGANNOTH_SUPREME);
+
+		// Wilderness
+		PET_ICONS.put("Callisto", ItemID.CALLISTO_CUB);
+		PET_ICONS.put("Chaos Elemental", ItemID.PET_CHAOS_ELEMENTAL);
+		PET_ICONS.put("Scorpia", ItemID.SCORPIAS_OFFSPRING);
+		PET_ICONS.put("Venenatis", ItemID.CALLISTO_CUB); // shares cub model
+		PET_ICONS.put("Vet'ion", ItemID.VETION_JR);
+		PET_ICONS.put("Artio", ItemID.CALLISTO_CUB);
+		PET_ICONS.put("Calvar'ion", ItemID.VETION_JR);
+		PET_ICONS.put("Spindel", ItemID.CALLISTO_CUB);
+
+		// Slayer
+		PET_ICONS.put("Abyssal Sire", ItemID.ABYSSAL_ORPHAN);
+		PET_ICONS.put("Cerberus", 13247); // Hellpuppy
+		PET_ICONS.put("Grotesque Guardians", ItemID.NOON);
+		PET_ICONS.put("Kraken", ItemID.PET_KRAKEN);
+		PET_ICONS.put("Thermonuclear Smoke Devil", ItemID.PET_SMOKE_DEVIL);
+		PET_ICONS.put("Alchemical Hydra", ItemID.IKKLE_HYDRA);
+
+		// Other bosses
+		PET_ICONS.put("Araxxor", ItemID.SMOL_HEREDIT); // closest available
+		PET_ICONS.put("Corporeal Beast", ItemID.PET_DARK_CORE);
+		PET_ICONS.put("Giant Mole", ItemID.BABY_MOLE);
+		PET_ICONS.put("Kalphite Queen", ItemID.KALPHITE_PRINCESS);
+		PET_ICONS.put("King Black Dragon", ItemID.PRINCE_BLACK_DRAGON);
+		PET_ICONS.put("Phantom Muspah", ItemID.MUPHIN);
+		PET_ICONS.put("Sarachnis", ItemID.SRARACHA);
+		PET_ICONS.put("Skotos", ItemID.SKOTOS); // Skotizo pet = Skotos
+		PET_ICONS.put("Vorkath", ItemID.VORKI);
+		PET_ICONS.put("Zulrah", ItemID.PET_SNAKELING);
+		PET_ICONS.put("Scurrius", ItemID.SCURRY); // not "The Scurrius"
+
+		// DT2
+		PET_ICONS.put("Duke Sucellus", ItemID.BARON);
+		PET_ICONS.put("The Leviathan", ItemID.LIL_CREATOR);
+		PET_ICONS.put("The Whisperer", ItemID.WISP);
+		PET_ICONS.put("Vardorvis", ItemID.BUTCH);
+		PET_ICONS.put("Duke Sucellus (Awakened)", ItemID.BARON);
+		PET_ICONS.put("The Leviathan (Awakened)", ItemID.LIL_CREATOR);
+		PET_ICONS.put("The Whisperer (Awakened)", ItemID.WISP);
+		PET_ICONS.put("Vardorvis (Awakened)", ItemID.BUTCH);
+
+		// Raids
+		PET_ICONS.put("Chambers of Xeric", ItemID.OLMLET);
+		PET_ICONS.put("Chambers of Xeric (CM)", ItemID.OLMLET);
+		PET_ICONS.put("Theatre of Blood", ItemID.LIL_ZIK);
+		PET_ICONS.put("Theatre of Blood (HM)", ItemID.LIL_ZIK);
+		PET_ICONS.put("Theatre of Blood (Story)", ItemID.LIL_ZIK);
+		PET_ICONS.put("Tombs of Amascut (Entry)", ItemID.TUMEKENS_GUARDIAN);
+		PET_ICONS.put("Tombs of Amascut", ItemID.TUMEKENS_GUARDIAN);
+		PET_ICONS.put("Tombs of Amascut (Expert)", ItemID.TUMEKENS_GUARDIAN);
+
+		// Waves
+		PET_ICONS.put("TzTok-Jad", ItemID.TZREKJAD);
+		PET_ICONS.put("TzKal-Zuk", ItemID.TZREKZUK);
+		PET_ICONS.put("Sol Heredit", ItemID.SMOL_HEREDIT);
+
+		// Minigame bosses
+		PET_ICONS.put("The Nightmare", ItemID.LITTLE_NIGHTMARE);
+		PET_ICONS.put("Phosani's Nightmare", ItemID.LITTLE_NIGHTMARE);
+		PET_ICONS.put("Wintertodt", ItemID.PHOENIX);
+		PET_ICONS.put("Tempoross", ItemID.TINY_TEMPOR);
+		PET_ICONS.put("Zalcano", ItemID.SMOLCANO);
+
+		// Newer
+		PET_ICONS.put("The Scurrius", ItemID.SCURRY);
+		PET_ICONS.put("Gryphon", ItemID.GRYPHON);
+	}
+
 	/**
 	 * All boss names in alphabetical order for the dropdown.
 	 */
@@ -134,6 +221,16 @@ public final class BossKillData
 	public static boolean isKnownBoss(String bossName)
 	{
 		return BOSSES.containsKey(bossName);
+	}
+
+	/**
+	 * Get the pet item ID for a boss (used as the goal card icon).
+	 * Returns 0 if no pet mapping exists.
+	 */
+	public static int getPetItemId(String bossName)
+	{
+		Integer id = PET_ICONS.get(bossName);
+		return id != null ? id : 0;
 	}
 
 	private BossKillData() {}

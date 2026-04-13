@@ -1248,6 +1248,7 @@ class GoalCreationService
 			}
 		}
 
+		int petItemId = com.goaltracker.data.BossKillData.getPetItemId(bossName);
 		Goal goal = Goal.builder()
 			.type(GoalType.BOSS)
 			.name(bossName)
@@ -1255,6 +1256,7 @@ class GoalCreationService
 			.bossName(bossName)
 			.targetValue(targetKills)
 			.currentValue(0)
+			.itemId(petItemId)
 			.build();
 
 		final String goalId = goal.getId();
