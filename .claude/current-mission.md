@@ -1,25 +1,23 @@
-# Mission: Incremental persistence and performance
+# Mission: Boss kill count goals
 Date: 2026-04-12
-Status: complete
+Status: active
 
 ## Goal
-Per-entity persistence, performance optimization, diary requirements,
-selection fixes, bulk quest actions.
+Add boss kill count tracking as a new goal type. Players set a target
+kill count for any boss, and progress updates automatically from
+RuneLite's VarPlayerID kill count values.
+
+## Sub-goals
+- [ ] S1 — BossKillData: boss name → VarPlayerID mapping
+- [ ] S2 — GoalType.BOSS + Goal.bossName field
+- [ ] S3 — BossKillTracker extends AbstractTracker
+- [ ] S4 — addBossGoal API method
+- [ ] S5 — Add Boss type to Add Goal dialog with boss selector + target
+
+## Predictions
+- Completion: All sub-goals achievable
+- Confidence: High — pattern established by skill/quest/CA goals
+- Risks: VarPlayerID coverage (some bosses may not have kill count vars)
+- Estimated cost: N/A
 
 ## Tasks Log
-- Per-entity persistence (goals + tags as individual ConfigManager keys)
-- Schema migration v1 → v2
-- Dirty tracking with compound save suspension
-- Tracker-only save path (saveDirtyGoals)
-- Lightweight selection refresh (no rebuild on click)
-- Live selection state fix (stale wasSelected capture)
-- Shift-click additive selection + deselection
-- Debounced panel rebuild (200ms coalescing, EDT-safe)
-- Performance timing logs
-- GoalCard layout fix (tags below progress)
-- Bulk "Add All Unfinished Quests" with requirements
-- Skip completed goals in requirement seeding
-- Leaf quest promotion after bulk actions
-- Unreleased quest exclusion (The Red Reef)
-- ConcurrentModificationException fix (tracker snapshot)
-- LOGGED_IN game state guard

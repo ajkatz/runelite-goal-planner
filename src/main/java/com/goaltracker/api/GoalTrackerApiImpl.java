@@ -118,6 +118,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { return creationService.addDiaryGoal(areaDisplayName, tier); }
 	@Override public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goaltracker.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
 	@Override public String addCombatAchievementGoal(int caTaskId) { return creationService.addCombatAchievementGoal(caTaskId); }
+	@Override public String addBossGoal(String bossName, int targetKills) { return creationService.addBossGoal(bossName, targetKills); }
 	@Override public String addAccountGoal(String metricName, int target) { return creationService.addAccountGoal(metricName, target); }
 	public String addCustomGoal(String name, String description) { return creationService.addCustomGoal(name, description); }
 

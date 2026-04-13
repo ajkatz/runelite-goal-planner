@@ -9,6 +9,7 @@ public enum GoalType
 	DIARY("Diary", new Color(85, 139, 47)),            // Olive green
 	COLLECTION_LOG("Collection Log", new Color(156, 39, 176)),  // Purple
 	ITEM_GRIND("Item", new Color(255, 193, 7)),                  // Gold
+	BOSS("Boss", new Color(220, 60, 60)),                  // Red (matches TagCategory.BOSS)
 	COMBAT_ACHIEVEMENT("Combat Achievement", new Color(139, 69, 19)),  // Saddle brown
 	ACCOUNT("Account", new Color(100, 180, 220)),       // Light blue/teal
 	CUSTOM("Custom", new Color(158, 158, 158));        // Gray

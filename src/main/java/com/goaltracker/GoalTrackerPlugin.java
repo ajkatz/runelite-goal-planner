@@ -88,6 +88,9 @@ public class GoalTrackerPlugin extends Plugin
 	private com.goaltracker.tracker.AccountTracker accountTracker;
 
 	@Inject
+	private com.goaltracker.tracker.BossKillTracker bossKillTracker;
+
+	@Inject
 	private net.runelite.client.plugins.PluginManager pluginManager;
 
 	@Inject
@@ -384,6 +387,7 @@ public class GoalTrackerPlugin extends Plugin
 			updated |= diaryTracker.checkGoals(goals);
 			updated |= combatAchievementTracker.checkGoals(goals);
 			updated |= accountTracker.checkGoals(goals);
+			updated |= bossKillTracker.checkGoals(goals);
 			flushIfUpdated(updated);
 		});
 	}

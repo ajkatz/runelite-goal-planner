@@ -277,7 +277,7 @@ class GoalDialogFactory
 		panel.add(typeLabel, gbc);
 
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
-		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.ITEM_GRIND, GoalType.ACCOUNT, GoalType.CUSTOM});
+		JComboBox<GoalType> typeCombo = new JComboBox<>(new GoalType[]{GoalType.SKILL, GoalType.BOSS, GoalType.ITEM_GRIND, GoalType.ACCOUNT, GoalType.CUSTOM});
 		typeCombo.setRenderer(new DefaultListCellRenderer()
 		{
 			@Override
@@ -341,9 +341,15 @@ class GoalDialogFactory
 			}
 		});
 
+		// Boss combo
+		String[] bossNames = com.goaltracker.data.BossKillData.getBossNames();
+		JComboBox<String> bossCombo = new JComboBox<>(bossNames);
+		JTextField bossKillsField = new JTextField("1", 15);
+
 		// CardLayout to swap between types
 		JPanel field1Panel = new JPanel(new CardLayout());
 		field1Panel.add(skillCombo, "SKILL");
+		field1Panel.add(bossCombo, "BOSS");
 		field1Panel.add(itemQtyField, "ITEM_GRIND");
 		field1Panel.add(metricCombo, "ACCOUNT");
 		field1Panel.add(nameField, "CUSTOM");
@@ -390,6 +396,7 @@ class GoalDialogFactory
 
 		JPanel field2Panel = new JPanel(new CardLayout());
 		field2Panel.add(skillTargetForm, "SKILL");
+		field2Panel.add(bossKillsField, "BOSS");
 		field2Panel.add(itemHint, "ITEM_GRIND");
 		field2Panel.add(accountTargetField, "ACCOUNT");
 		field2Panel.add(descField, "CUSTOM");
@@ -475,6 +482,10 @@ class GoalDialogFactory
 					label1.setText("Skill:");
 					label2.setText(rel ? "Add XP:" : "Target:");
 					break;
+				case BOSS:
+					label1.setText("Boss:");
+					label2.setText("Target Kills:");
+					break;
 				case ITEM_GRIND:
 					label1.setText(rel ? "Gain qty:" : "Quantity:");
 					label2.setText("");
@@ -536,6 +547,35 @@ class GoalDialogFactory
 			{
 				addSkillGoal(skillCombo, skillTargetForm, preferredSectionId, relative);
 				dialog.dispose();
+			}
+			else if (selectedType == GoalType.BOSS)
+			{
+				String selectedBoss = (String) bossCombo.getSelectedItem();
+				if (selectedBoss == null) return;
+				try
+				{
+					int kills = Integer.parseInt(bossKillsField.getText().trim().replace(",", ""));
+					if (kills <= 0)
+					{
+						JOptionPane.showMessageDialog(dialog, "Kill count must be greater than 0.", "Error", JOptionPane.ERROR_MESSAGE);
+						return;
+					}
+					api.beginCompound("Add boss goal: " + selectedBoss);
+					try
+					{
+						String createdId = api.addBossGoal(selectedBoss, kills);
+						moveToPreferredSection(createdId, preferredSectionId);
+					}
+					finally
+					{
+						api.endCompound();
+					}
+					dialog.dispose();
+				}
+				catch (NumberFormatException ex)
+				{
+					JOptionPane.showMessageDialog(dialog, "Invalid kill count.", "Error", JOptionPane.ERROR_MESSAGE);
+				}
 			}
 			else if (selectedType == GoalType.ITEM_GRIND)
 			{

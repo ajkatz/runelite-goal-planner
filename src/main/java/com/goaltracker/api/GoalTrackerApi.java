@@ -118,6 +118,14 @@ public interface GoalTrackerApi
 	 */
 	String addCombatAchievementGoal(int caTaskId);
 
+	/**
+	 * Add a boss kill count goal. Auto-tracks via VarPlayerID.
+	 *
+	 * @param bossName   display name matching BossKillData
+	 * @param targetKills target kill count
+	 */
+	String addBossGoal(String bossName, int targetKills);
+
 	/** Achievement diary tier; mirrors the internal AchievementDiaryData.Tier. */
 	enum DiaryTier { EASY, MEDIUM, HARD, ELITE }
 

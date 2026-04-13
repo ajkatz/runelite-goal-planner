@@ -32,6 +32,7 @@ public class Goal
 	private String skillName;     // For SKILL goals — matches net.runelite.api.Skill name
 	private String questName;     // For QUEST goals — matches net.runelite.api.Quest name
 	private String accountMetric; // For ACCOUNT goals — matches AccountMetric enum name
+	private String bossName;      // For BOSS goals — matches BossKillData display name
 	private int varbitId;         // For DIARY/COMBAT_ACHIEVEMENT goals
 	private int itemId;           // For ITEM_GRIND goals
 	private int spriteId;         // Optional sprite icon (e.g. CA tier sword); 0 = unset

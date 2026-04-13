@@ -293,6 +293,9 @@ class GoalQueryService
 					catch (IllegalArgumentException ignored) {}
 				}
 				break;
+			case BOSS:
+				if (g.getBossName() != null) v.attributes.put("bossName", g.getBossName());
+				break;
 			case CUSTOM:
 				if (g.getItemId() > 0) v.attributes.put("itemId", g.getItemId());
 				break;

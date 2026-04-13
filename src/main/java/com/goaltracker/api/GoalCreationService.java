@@ -1228,6 +1228,66 @@ class GoalCreationService
 		return goalId;
 	}
 
+	String addBossGoal(String bossName, int targetKills)
+	{
+		log.debug("API.public addBossGoal(boss={}, target={})", bossName, targetKills);
+		if (bossName == null || !com.goaltracker.data.BossKillData.isKnownBoss(bossName))
+		{
+			log.warn("addBossGoal: unknown boss {}", bossName);
+			return null;
+		}
+		if (targetKills < 1) return null;
+
+		// Duplicate guard: same boss name
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (g.getType() == GoalType.BOSS && bossName.equals(g.getBossName()))
+			{
+				log.info("addBossGoal: duplicate of existing goal {} ({})", g.getId(), bossName);
+				return g.getId();
+			}
+		}
+
+		Goal goal = Goal.builder()
+			.type(GoalType.BOSS)
+			.name(bossName)
+			.description(targetKills + " kills")
+			.bossName(bossName)
+			.targetValue(targetKills)
+			.currentValue(0)
+			.build();
+
+		final String goalId = goal.getId();
+		final String displayName = bossName;
+		api.beginCompound("Add boss goal: " + displayName);
+		try
+		{
+			api.executeCommand(new com.goaltracker.command.Command()
+			{
+				@Override public boolean apply()
+				{
+					if (api.findGoal(goalId) != null) return false;
+					api.goalStore.addGoal(goal);
+					return true;
+				}
+				@Override public boolean revert()
+				{
+					api.goalStore.removeGoal(goalId);
+					return true;
+				}
+				@Override public String getDescription() { return "Add boss goal: " + displayName; }
+			});
+			// Auto-tag with BOSS category.
+			api.addTagWithCategory(goalId, bossName, TagCategory.BOSS.name());
+		}
+		finally
+		{
+			api.endCompound();
+		}
+		log.info("addBossGoal created: {} ({} x {})", goalId, bossName, targetKills);
+		return goalId;
+	}
+
 	String addCustomGoal(String name, String description)
 	{
 		log.debug("API.public addCustomGoal(name={}, description={})", name, description);
