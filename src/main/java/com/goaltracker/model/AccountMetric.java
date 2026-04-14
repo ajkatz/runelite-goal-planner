@@ -18,7 +18,9 @@ public enum AccountMetric
 	SLAYER_POINTS("Slayer Points", new Color(0, 160, 160), 0, null, 1, 64000),
 	KUDOS("Museum Kudos", new Color(200, 170, 50), 0, "item:11182", 1, 243),
 	/** Combined Attack + Strength level (e.g. 130 for Warriors Guild entry). */
-	ATT_STR_COMBINED("Att + Str Combined", new Color(180, 50, 50), 0, "item:8850", 2, 198);
+	ATT_STR_COMBINED("Att + Str", new Color(76, 175, 80), 0, "item:8850", 2, 198),
+	/** Kingdom of Miscellania approval rating (0-127, where 127 = 100%). */
+	MISC_APPROVAL("Misc. Approval", new Color(200, 170, 50), 0, null, 1, 127);
 
 	private final String displayName;
 	private final Color color;

@@ -87,6 +87,39 @@ class RelationService
 		});
 	}
 
+	boolean addOrRequirement(String fromGoalId, String toGoalId)
+	{
+		log.debug("API.internal addOrRequirement(from={}, to={})", fromGoalId, toGoalId);
+		if (fromGoalId == null || toGoalId == null) return false;
+		if (fromGoalId.equals(toGoalId)) return false;
+		Goal from = api.findGoal(fromGoalId);
+		Goal to = api.findGoal(toGoalId);
+		if (from == null || to == null) return false;
+		if (from.getOrRequiredGoalIds() != null && from.getOrRequiredGoalIds().contains(toGoalId))
+		{
+			return false;
+		}
+		if (api.goalStore.wouldCreateCycle(fromGoalId, toGoalId)) return false;
+
+		final String fromName = from.getName();
+		final String toName = to.getName();
+		return api.executeCommand(new com.goaltracker.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				return api.goalStore.addOrRequirement(fromGoalId, toGoalId);
+			}
+			@Override public boolean revert()
+			{
+				return api.goalStore.removeOrRequirement(fromGoalId, toGoalId);
+			}
+			@Override public String getDescription()
+			{
+				return "Link (OR): " + fromName + " or-requires " + toName;
+			}
+		});
+	}
+
 	List<String> getRequirements(String goalId)
 	{
 		Goal g = api.findGoal(goalId);

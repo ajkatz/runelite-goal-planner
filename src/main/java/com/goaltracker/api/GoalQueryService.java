@@ -219,7 +219,20 @@ class GoalQueryService
 				v.requiresNames.add(toRelationView(req));
 			}
 		}
+		// OR-prereqs: displayed with "(or)" suffix so the user sees the
+		// difference between AND and OR edges.
+		v.orRequiresNames = new ArrayList<>();
+		if (g.getOrRequiredGoalIds() != null)
+		{
+			for (String reqId : g.getOrRequiredGoalIds())
+			{
+				Goal req = api.findGoal(reqId);
+				if (req == null || req.getName() == null) continue;
+				v.orRequiresNames.add(toRelationView(req));
+			}
+		}
 		v.requiredByNames = new ArrayList<>();
+		v.orRequiredByNames = new ArrayList<>();
 		for (Goal other : api.goalStore.getGoals())
 		{
 			if (other.getId().equals(g.getId())) continue;
@@ -229,6 +242,27 @@ class GoalQueryService
 			{
 				if (isSkillChainEdge(other, g)) continue;
 				v.requiredByNames.add(toRelationView(other));
+			}
+			// OR-edges: the parent shows as "Required by" (it requires
+			// this goal), and the sibling OR-prereqs show as "Also
+			// Completed By" (completing any one of them satisfies the
+			// parent).
+			if (other.getOrRequiredGoalIds() != null
+				&& other.getOrRequiredGoalIds().contains(g.getId())
+				&& other.getName() != null)
+			{
+				// Parent goes into requiredByNames
+				v.requiredByNames.add(toRelationView(other));
+				// Sibling OR-prereqs go into orRequiredByNames
+				for (String siblingId : other.getOrRequiredGoalIds())
+				{
+					if (siblingId.equals(g.getId())) continue;
+					Goal sibling = api.findGoal(siblingId);
+					if (sibling != null && sibling.getName() != null)
+					{
+						v.orRequiredByNames.add(toRelationView(sibling));
+					}
+				}
 			}
 		}
 
@@ -420,10 +454,13 @@ class GoalQueryService
 			for (int i = 0; i < ordered.size(); i++)
 			{
 				Goal g = ordered.get(i);
-				List<String> reqs = g.getRequiredGoalIds();
-				if (reqs == null || reqs.isEmpty()) continue;
+				// Collect both AND and OR edges for topo ordering
+				List<String> allReqs = new ArrayList<>();
+				if (g.getRequiredGoalIds() != null) allReqs.addAll(g.getRequiredGoalIds());
+				if (g.getOrRequiredGoalIds() != null) allReqs.addAll(g.getOrRequiredGoalIds());
+				if (allReqs.isEmpty()) continue;
 				int maxReqPos = -1;
-				for (String reqId : reqs)
+				for (String reqId : allReqs)
 				{
 					if (!goalIds.contains(reqId)) continue;
 					Integer p = pos.get(reqId);
@@ -444,7 +481,39 @@ class GoalQueryService
 				+ "in section {} — graph may contain a cycle", sectionId);
 		}
 
-		for (Goal g : ordered)
+		// Post-sort: group OR-prereqs immediately before their parent.
+		// For each goal with orRequiredGoalIds, extract those prereqs
+		// from wherever they are in the list and re-insert them as a
+		// contiguous block right before the parent.
+		List<Goal> grouped = new ArrayList<>(ordered);
+		for (int i = 0; i < grouped.size(); i++)
+		{
+			Goal parent = grouped.get(i);
+			if (parent.getOrRequiredGoalIds() == null || parent.getOrRequiredGoalIds().isEmpty())
+			{
+				continue;
+			}
+			java.util.Set<String> orIds = new java.util.HashSet<>(parent.getOrRequiredGoalIds());
+			// Collect OR-prereqs that are in this section
+			List<Goal> orGroup = new ArrayList<>();
+			for (int j = grouped.size() - 1; j >= 0; j--)
+			{
+				if (j == i) continue;
+				if (orIds.contains(grouped.get(j).getId()))
+				{
+					orGroup.add(0, grouped.remove(j));
+					if (j < i) i--; // adjust parent index
+				}
+			}
+			if (!orGroup.isEmpty())
+			{
+				// Insert OR-prereqs right before the parent
+				grouped.addAll(i, orGroup);
+				i += orGroup.size(); // skip past the inserted group
+			}
+		}
+
+		for (Goal g : grouped)
 		{
 			out.add(toGoalView(g));
 		}

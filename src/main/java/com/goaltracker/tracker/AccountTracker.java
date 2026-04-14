@@ -78,6 +78,8 @@ public class AccountTracker extends AbstractTracker
 			case ATT_STR_COMBINED:
 				return client.getRealSkillLevel(Skill.ATTACK)
 					+ client.getRealSkillLevel(Skill.STRENGTH);
+			case MISC_APPROVAL:
+				return client.getVarbitValue(VarbitID.MISC_APPROVAL);
 			default:
 				return -1;
 		}

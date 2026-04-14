@@ -1006,12 +1006,20 @@ public class GoalStore
 		saveGoalOrderIfNotSuspended();
 	}
 
-	/** Register a goal's outgoing edges in the reverse dependentIndex. */
+	/** Register a goal's outgoing edges (AND + OR) in the reverse dependentIndex. */
 	private void addToDependentIndex(Goal goal)
 	{
 		if (goal.getRequiredGoalIds() != null)
 		{
 			for (String reqId : goal.getRequiredGoalIds())
+			{
+				dependentIndex.computeIfAbsent(reqId, k -> new java.util.HashSet<>())
+					.add(goal.getId());
+			}
+		}
+		if (goal.getOrRequiredGoalIds() != null)
+		{
+			for (String reqId : goal.getOrRequiredGoalIds())
 			{
 				dependentIndex.computeIfAbsent(reqId, k -> new java.util.HashSet<>())
 					.add(goal.getId());
@@ -1066,19 +1074,36 @@ public class GoalStore
 			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().remove(goalId))
 			{
 				edgeScrubbed.add(g);
-				// Also clean reverse index
+				java.util.Set<String> deps = dependentIndex.get(goalId);
+				if (deps != null) deps.remove(g.getId());
+			}
+			// Also scrub OR-edges
+			if (g.getOrRequiredGoalIds() != null && g.getOrRequiredGoalIds().remove(goalId))
+			{
+				if (!edgeScrubbed.contains(g)) edgeScrubbed.add(g);
 				java.util.Set<String> deps = dependentIndex.get(goalId);
 				if (deps != null) deps.remove(g.getId());
 			}
 		}
-		// Remove outgoing edges from the dependentIndex.
+		// Remove outgoing AND + OR edges from the dependentIndex.
 		Goal removed = findGoalById(goalId);
-		if (removed != null && removed.getRequiredGoalIds() != null)
+		if (removed != null)
 		{
-			for (String reqId : removed.getRequiredGoalIds())
+			if (removed.getRequiredGoalIds() != null)
 			{
-				java.util.Set<String> deps = dependentIndex.get(reqId);
-				if (deps != null) deps.remove(goalId);
+				for (String reqId : removed.getRequiredGoalIds())
+				{
+					java.util.Set<String> deps = dependentIndex.get(reqId);
+					if (deps != null) deps.remove(goalId);
+				}
+			}
+			if (removed.getOrRequiredGoalIds() != null)
+			{
+				for (String reqId : removed.getOrRequiredGoalIds())
+				{
+					java.util.Set<String> deps = dependentIndex.get(reqId);
+					if (deps != null) deps.remove(goalId);
+				}
 			}
 		}
 		dependentIndex.remove(goalId);
@@ -1142,8 +1167,50 @@ public class GoalStore
 	}
 
 	/**
+	 * Add an OR-edge: {@code fromGoalId} has {@code toGoalId} as an
+	 * alternative prerequisite. ANY OR-prereq completing (combined with
+	 * ALL AND-prereqs being met) satisfies the requirement.
+	 */
+	public boolean addOrRequirement(String fromGoalId, String toGoalId)
+	{
+		if (fromGoalId == null || toGoalId == null) return false;
+		if (fromGoalId.equals(toGoalId)) return false;
+		Goal from = findGoalById(fromGoalId);
+		Goal to = findGoalById(toGoalId);
+		if (from == null || to == null) return false;
+		if (from.getOrRequiredGoalIds() == null)
+		{
+			from.setOrRequiredGoalIds(new ArrayList<>());
+		}
+		if (from.getOrRequiredGoalIds().contains(toGoalId)) return false;
+		if (wouldCreateCycle(fromGoalId, toGoalId)) return false;
+		from.getOrRequiredGoalIds().add(toGoalId);
+		dependentIndex.computeIfAbsent(toGoalId, k -> new java.util.HashSet<>()).add(fromGoalId);
+		saveGoalIfNotSuspended(from);
+		return true;
+	}
+
+	/**
+	 * Remove the OR-edge {@code fromGoalId → toGoalId}.
+	 */
+	public boolean removeOrRequirement(String fromGoalId, String toGoalId)
+	{
+		if (fromGoalId == null || toGoalId == null) return false;
+		Goal from = findGoalById(fromGoalId);
+		if (from == null || from.getOrRequiredGoalIds() == null) return false;
+		boolean removed = from.getOrRequiredGoalIds().remove(toGoalId);
+		if (removed)
+		{
+			java.util.Set<String> deps = dependentIndex.get(toGoalId);
+			if (deps != null) deps.remove(fromGoalId);
+			saveGoalIfNotSuspended(from);
+		}
+		return removed;
+	}
+
+	/**
 	 * @return IDs of goals that require the given goal (incoming edges).
-	 *   O(1) via the reverse dependentIndex.
+	 *   O(1) via the reverse dependentIndex. Includes both AND and OR edges.
 	 */
 	public List<String> getDependents(String goalId)
 	{
@@ -1175,9 +1242,16 @@ public class GoalStore
 			if (!visited.add(cur)) continue;
 			if (cur.equals(fromGoalId)) return true;
 			Goal g = findGoalById(cur);
-			if (g != null && g.getRequiredGoalIds() != null)
+			if (g != null)
 			{
-				for (String next : g.getRequiredGoalIds()) stack.push(next);
+				if (g.getRequiredGoalIds() != null)
+				{
+					for (String next : g.getRequiredGoalIds()) stack.push(next);
+				}
+				if (g.getOrRequiredGoalIds() != null)
+				{
+					for (String next : g.getOrRequiredGoalIds()) stack.push(next);
+				}
 			}
 		}
 		return false;

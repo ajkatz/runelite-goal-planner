@@ -478,6 +478,54 @@ class DiaryCompletionIntegrationTest
 	}
 
 	// ================================================================
+	// Fremennik Hard: GWD bosses with skill/unlock prereqs
+	// ================================================================
+
+	@Test
+	@DisplayName("Fremennik Elite seeds GWD bosses with skill prereqs via addBossGoal")
+	void fremennikEliteSeedsGwdBosses()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Fremennik", AchievementDiaryData.Tier.ELITE,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Fremennik", GoalTrackerApi.DiaryTier.ELITE, resolved);
+
+		// All 4 GWD bosses should be seeded as BOSS goals
+		List<Goal> bossGoals = goalsOfType(GoalType.BOSS);
+		java.util.Set<String> bossNames = bossGoals.stream()
+			.map(Goal::getBossName).collect(java.util.stream.Collectors.toSet());
+		assertTrue(bossNames.contains("Kree'arra"), "Kree'arra should be seeded");
+		assertTrue(bossNames.contains("General Graardor"), "Graardor should be seeded");
+		assertTrue(bossNames.contains("Commander Zilyana"), "Zilyana should be seeded");
+		assertTrue(bossNames.contains("K'ril Tsutsaroth"), "K'ril should be seeded");
+
+		// Each boss should be a requirement of the diary goal
+		Goal diaryGoal = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.DIARY)
+			.findFirst().orElse(null);
+		assertNotNull(diaryGoal);
+		for (Goal boss : bossGoals)
+		{
+			assertTrue(diaryGoal.getRequiredGoalIds().contains(boss.getId()),
+				boss.getBossName() + " should be a requirement of the diary");
+		}
+
+		// Kree'arra should have Mith Grapple as a requirement
+		Goal kreearra = bossGoals.stream()
+			.filter(g -> "Kree'arra".equals(g.getBossName()))
+			.findFirst().orElse(null);
+		assertNotNull(kreearra);
+		boolean hasMithGrapple = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == GoalType.CUSTOM
+				&& "Mith Grapple".equals(g.getName())
+				&& kreearra.getRequiredGoalIds().contains(g.getId()));
+		assertTrue(hasMithGrapple, "Kree'arra should require Mith Grapple");
+	}
+
+	// ================================================================
 	// Falador Medium: Crystal Key item + Mith Grapple unlock with skills
 	// ================================================================
 
@@ -556,6 +604,136 @@ class DiaryCompletionIntegrationTest
 			+ " remain: " + store.getGoals().stream()
 				.map(g -> g.getName() + " (" + g.getType() + ")")
 				.collect(Collectors.joining(", ")));
+	}
+
+	// ================================================================
+	// Falador Hard: Warriors Guild OR-prereqs
+	// ================================================================
+
+	@Test
+	@DisplayName("Falador Hard seeds Warriors Guild with 3 OR-prereqs")
+	void faladorHardSeedsWarriorsGuildOrPrereqs()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.HARD, resolved);
+
+		// Warriors Guild Entry unlock should exist
+		Goal wgUnlock = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.CUSTOM
+				&& "Warriors Guild Entry".equals(g.getName()))
+			.findFirst().orElse(null);
+		assertNotNull(wgUnlock, "Warriors Guild Entry unlock should be seeded");
+
+		// It should have OR-prereqs, not AND-prereqs for the alternatives
+		assertTrue(wgUnlock.getOrRequiredGoalIds().size() >= 3,
+			"should have 3 OR-prereqs (combined, 99att, 99str), got "
+			+ wgUnlock.getOrRequiredGoalIds().size());
+	}
+
+	@Test
+	@DisplayName("Warriors Guild auto-completes when combined Att+Str reaches 130")
+	void warriorsGuildCompletesOnCombined130()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.HARD, resolved);
+
+		Goal wgUnlock = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.CUSTOM
+				&& "Warriors Guild Entry".equals(g.getName()))
+			.findFirst().orElse(null);
+		assertNotNull(wgUnlock);
+		assertFalse(wgUnlock.isComplete());
+
+		// Simulate: Attack 65 + Strength 65 = 130
+		MockGameState state = new MockGameState()
+			.skillXp(Skill.ATTACK, Experience.getXpForLevel(65))
+			.skillXp(Skill.STRENGTH, Experience.getXpForLevel(65));
+
+		Client client = MockClientFactory.createClient(state);
+		new com.goaltracker.tracker.AccountTracker(client, api).checkGoals(store.getGoals());
+
+		// The ATT_STR_COMBINED account goal should now be at 130
+		Goal combinedGoal = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.ACCOUNT
+				&& "ATT_STR_COMBINED".equals(g.getAccountMetric()))
+			.findFirst().orElse(null);
+		assertNotNull(combinedGoal, "ATT_STR_COMBINED goal should exist");
+		assertEquals(130, combinedGoal.getCurrentValue());
+		assertTrue(combinedGoal.isComplete());
+
+		// The Warriors Guild unlock should auto-complete via OR-prereq
+		assertTrue(wgUnlock.isComplete(),
+			"Warriors Guild should auto-complete when any OR-prereq completes");
+	}
+
+	@Test
+	@DisplayName("Warriors Guild auto-completes when 99 Attack alone is reached")
+	void warriorsGuildCompletesOn99Attack()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.HARD, resolved);
+
+		Goal wgUnlock = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.CUSTOM
+				&& "Warriors Guild Entry".equals(g.getName()))
+			.findFirst().orElse(null);
+		assertNotNull(wgUnlock);
+
+		// Simulate: 99 Attack (Strength stays at 1)
+		MockGameState state = new MockGameState()
+			.skillXp(Skill.ATTACK, Experience.getXpForLevel(99));
+		new com.goaltracker.tracker.SkillTracker(
+			MockClientFactory.createClient(state), api).checkGoals(store.getGoals());
+
+		// The Attack 99 skill goal should complete
+		Goal attack99 = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.SKILL
+				&& "ATTACK".equals(g.getSkillName())
+				&& g.getTargetValue() == Experience.getXpForLevel(99))
+			.findFirst().orElse(null);
+		assertNotNull(attack99, "Attack 99 goal should exist");
+		assertTrue(attack99.isComplete());
+
+		// Warriors Guild unlock should auto-complete via OR-prereq
+		assertTrue(wgUnlock.isComplete(),
+			"Warriors Guild should auto-complete when 99 Attack OR-prereq completes");
+	}
+
+	@Test
+	@DisplayName("Falador Hard undo removes Warriors Guild OR-prereqs")
+	void faladorHardUndoRemovesOrPrereqs()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED);
+
+		api.addDiaryGoalWithPrereqs(
+			"Falador", GoalTrackerApi.DiaryTier.HARD, resolved);
+
+		int goalsAfterAdd = store.getGoals().size();
+		assertTrue(goalsAfterAdd > 5);
+
+		assertTrue(api.undo());
+
+		assertEquals(0, store.getGoals().size(),
+			"all goals including OR-prereqs should be removed, but "
+			+ store.getGoals().size() + " remain");
 	}
 
 	@Test

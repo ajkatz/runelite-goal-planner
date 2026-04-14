@@ -69,11 +69,15 @@ public class GoalView
 	 *  the "Requires:" line. Implicit skill-chain edges (same skill,
 	 *  different level) are excluded — those are internal bookkeeping. */
 	public List<RelationView> requiresNames;
-	/** Goals that require this one (incoming edges), resolved at
-	 *  queryAllGoals time. Empty list if none. Used by the card hover
-	 *  tooltip to show the "Required by:" line. Implicit skill-chain
-	 *  edges are excluded. */
+	/** OR-prerequisite edges (any one completing satisfies the link).
+	 *  Empty if no OR-prereqs. Used by the card tooltip. */
+	public List<RelationView> orRequiresNames;
+	/** Goals that require this one via AND-edges (incoming), resolved at
+	 *  queryAllGoals time. Used by the card hover tooltip. */
 	public List<RelationView> requiredByNames;
+	/** Goals that or-require this one (incoming OR-edges). Shows as
+	 *  "Or-required by:" in the tooltip. */
+	public List<RelationView> orRequiredByNames;
 
 	/**
 	 * Lightweight DTO for a single relation edge, carrying enough metadata

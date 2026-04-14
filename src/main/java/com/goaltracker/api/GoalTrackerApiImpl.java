@@ -196,6 +196,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 
 	@Override public boolean addRequirement(String fromGoalId, String toGoalId) { return relationService.addRequirement(fromGoalId, toGoalId); }
 	@Override public boolean removeRequirement(String fromGoalId, String toGoalId) { return relationService.removeRequirement(fromGoalId, toGoalId); }
+	public boolean addOrRequirement(String fromGoalId, String toGoalId) { return relationService.addOrRequirement(fromGoalId, toGoalId); }
 	@Override public java.util.List<String> getRequirements(String goalId) { return relationService.getRequirements(goalId); }
 	@Override public java.util.List<String> getDependents(String goalId) { return relationService.getDependents(goalId); }
 	@Override public FindOrCreateResult findOrCreateRequirement(Goal template, String preferredSectionId) { return relationService.findOrCreateRequirement(template, preferredSectionId); }

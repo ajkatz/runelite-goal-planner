@@ -21,33 +21,75 @@ public final class DiaryRequirementResolver
 {
 	private static final int QUEST_SPRITE_ID = 899;
 
-	/** A resolved unlock with its unmet quest, skill, and account prereqs. */
+	/** A resolved goal (boss or account) with its own prereq templates
+	 *  (e.g. quest prereqs for an account metric like MISC_APPROVAL). */
+	public static class ResolvedBossReq
+	{
+		public final Goal bossTemplate;
+		/** Prereq templates (quests, skills) to link to this goal. */
+		public final List<Goal> skillTemplates;
+
+		public ResolvedBossReq(Goal bossTemplate, List<Goal> skillTemplates,
+			List<ResolvedUnlock> unlockTemplates)
+		{
+			this.bossTemplate = bossTemplate;
+			this.skillTemplates = skillTemplates;
+		}
+	}
+
+	/** A single alternative path within an unlock (OR-group member). */
+	public static class ResolvedAlternative
+	{
+		public final String label;
+		public final List<Goal> skillTemplates;
+		public final List<Goal> accountTemplates;
+
+		public ResolvedAlternative(String label, List<Goal> skillTemplates,
+			List<Goal> accountTemplates)
+		{
+			this.label = label;
+			this.skillTemplates = skillTemplates;
+			this.accountTemplates = accountTemplates;
+		}
+	}
+
+	/** A resolved unlock with its unmet quest, skill, account prereqs, and alternatives. */
 	public static class ResolvedUnlock
 	{
 		public final String name;
 		public final List<Goal> questTemplates;
 		public final List<Goal> skillTemplates;
 		public final List<Goal> accountTemplates;
+		/** OR-alternatives. Empty = standard AND-prereqs only. */
+		public final List<ResolvedAlternative> alternatives;
 		public final int itemId;
 
 		public ResolvedUnlock(String name, List<Goal> questTemplates, int itemId)
 		{
-			this(name, questTemplates, List.of(), List.of(), itemId);
+			this(name, questTemplates, List.of(), List.of(), List.of(), itemId);
 		}
 
 		public ResolvedUnlock(String name, List<Goal> questTemplates,
 			List<Goal> skillTemplates, int itemId)
 		{
-			this(name, questTemplates, skillTemplates, List.of(), itemId);
+			this(name, questTemplates, skillTemplates, List.of(), List.of(), itemId);
 		}
 
 		public ResolvedUnlock(String name, List<Goal> questTemplates,
 			List<Goal> skillTemplates, List<Goal> accountTemplates, int itemId)
 		{
+			this(name, questTemplates, skillTemplates, accountTemplates, List.of(), itemId);
+		}
+
+		public ResolvedUnlock(String name, List<Goal> questTemplates,
+			List<Goal> skillTemplates, List<Goal> accountTemplates,
+			List<ResolvedAlternative> alternatives, int itemId)
+		{
 			this.name = name;
 			this.questTemplates = questTemplates;
 			this.skillTemplates = skillTemplates;
 			this.accountTemplates = accountTemplates;
+			this.alternatives = alternatives;
 			this.itemId = itemId;
 		}
 	}
@@ -57,21 +99,29 @@ public final class DiaryRequirementResolver
 	{
 		public final List<Goal> templates;
 		public final List<ResolvedUnlock> unlocks;
+		public final List<ResolvedBossReq> bossReqs;
 		public final int skippedSkills;
 		public final int skippedQuests;
 
 		public Resolved(List<Goal> templates, List<ResolvedUnlock> unlocks,
 			int skippedSkills, int skippedQuests)
 		{
+			this(templates, unlocks, List.of(), skippedSkills, skippedQuests);
+		}
+
+		public Resolved(List<Goal> templates, List<ResolvedUnlock> unlocks,
+			List<ResolvedBossReq> bossReqs, int skippedSkills, int skippedQuests)
+		{
 			this.templates = templates;
 			this.unlocks = unlocks;
+			this.bossReqs = bossReqs;
 			this.skippedSkills = skippedSkills;
 			this.skippedQuests = skippedQuests;
 		}
 
 		public boolean isEmpty()
 		{
-			return templates.isEmpty() && unlocks.isEmpty();
+			return templates.isEmpty() && unlocks.isEmpty() && bossReqs.isEmpty();
 		}
 	}
 
@@ -161,18 +211,50 @@ public final class DiaryRequirementResolver
 				.build());
 		}
 
+		// Prepare boss req list early so account reqs can add to it too.
+		List<ResolvedBossReq> resolvedBossReqs = new ArrayList<>();
+
 		// Account metric requirements (e.g. combined Att+Str 130).
 		for (DiaryRequirements.AccountReq accountReq : reqs.accountReqs)
 		{
-			templates.add(Goal.builder()
+			Goal accountTemplate = Goal.builder()
 				.type(GoalType.ACCOUNT)
 				.name(accountReq.metricName)
 				.accountMetric(accountReq.metricName)
 				.targetValue(accountReq.target)
-				.build());
+				.build();
+
+			if (accountReq.prereqQuests.isEmpty())
+			{
+				templates.add(accountTemplate);
+			}
+			else
+			{
+				// Account req with quest prereqs — treat like a boss req
+				List<Goal> questTemplates = new ArrayList<>();
+				for (Quest prereq : accountReq.prereqQuests)
+				{
+					QuestState state;
+					try { state = questStateLookup.apply(prereq); }
+					catch (Exception e) { state = null; }
+					if (state == QuestState.FINISHED) continue;
+					questTemplates.add(Goal.builder()
+						.type(GoalType.QUEST)
+						.name(prereq.getName())
+						.description("Quest")
+						.questName(prereq.name())
+						.targetValue(1)
+						.spriteId(QUEST_SPRITE_ID)
+						.build());
+				}
+				// Use ResolvedBossReq to carry the account goal + quest prereqs
+				resolvedBossReqs.add(new ResolvedBossReq(
+					accountTemplate, questTemplates, List.of()));
+			}
 		}
 
-		// Boss kills: create BOSS goal templates for unmet kill requirements.
+		// Boss kills: all go as plain templates. Boss-specific prereqs
+		// (skills, unlocks) are auto-seeded by addBossGoal via BossKillData.
 		for (DiaryRequirements.BossReq bossReq : reqs.bossKills)
 		{
 			templates.add(Goal.builder()
@@ -259,15 +341,44 @@ public final class DiaryRequirementResolver
 					.targetValue(accountReq.target)
 					.build());
 			}
+			// Alternatives: each is an OR-option. If any alternatives exist,
+			// the unlock is not met until at least one alternative is satisfied.
+			List<ResolvedAlternative> resolvedAlternatives = new ArrayList<>();
+			for (DiaryRequirements.Alternative alt : unlock.alternatives)
+			{
+				List<Goal> altSkills = new ArrayList<>();
+				for (DiaryRequirements.SkillReq sr : alt.skills)
+				{
+					int targetXp = Experience.getXpForLevel(sr.level);
+					altSkills.add(Goal.builder()
+						.type(GoalType.SKILL)
+						.name(sr.skill.getName() + " - Level " + sr.level)
+						.skillName(sr.skill.name())
+						.targetValue(targetXp)
+						.build());
+				}
+				List<Goal> altAccounts = new ArrayList<>();
+				for (DiaryRequirements.AccountReq ar : alt.accounts)
+				{
+					altAccounts.add(Goal.builder()
+						.type(GoalType.ACCOUNT)
+						.name(ar.metricName)
+						.accountMetric(ar.metricName)
+						.targetValue(ar.target)
+						.build());
+				}
+				resolvedAlternatives.add(new ResolvedAlternative(alt.label, altSkills, altAccounts));
+				allMet = false; // alternatives always need seeding
+			}
 			if (!allMet)
 			{
 				resolvedUnlocks.add(new ResolvedUnlock(
 					unlock.name, unlockQuestTemplates, unlockSkillTemplates,
-					unlockAccountTemplates, unlock.itemId));
+					unlockAccountTemplates, resolvedAlternatives, unlock.itemId));
 			}
 		}
 
-		return new Resolved(templates, resolvedUnlocks, skippedSkills, skippedQuests);
+		return new Resolved(templates, resolvedUnlocks, resolvedBossReqs, skippedSkills, skippedQuests);
 	}
 
 	private DiaryRequirementResolver() {}

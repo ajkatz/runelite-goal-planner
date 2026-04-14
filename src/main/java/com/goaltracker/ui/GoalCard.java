@@ -735,10 +735,15 @@ public class GoalCard extends JPanel
 
 		java.util.List<GoalView.RelationView> requires = view.requiresNames != null
 			? view.requiresNames : java.util.Collections.emptyList();
+		java.util.List<GoalView.RelationView> orRequires = view.orRequiresNames != null
+			? view.orRequiresNames : java.util.Collections.emptyList();
 		java.util.List<GoalView.RelationView> requiredBy = view.requiredByNames != null
 			? view.requiredByNames : java.util.Collections.emptyList();
+		java.util.List<GoalView.RelationView> orRequiredBy = view.orRequiredByNames != null
+			? view.orRequiredByNames : java.util.Collections.emptyList();
 
-		boolean hasRelations = !requires.isEmpty() || !requiredBy.isEmpty();
+		boolean hasRelations = !requires.isEmpty() || !orRequires.isEmpty()
+			|| !requiredBy.isEmpty() || !orRequiredBy.isEmpty();
 		if ((base == null || base.isEmpty()) && !hasRelations) return null;
 
 		StringBuilder sb = new StringBuilder("<html>");
@@ -775,9 +780,21 @@ public class GoalCard extends JPanel
 		}
 
 		boolean first = true;
-		if (!reqRequired.isEmpty())
+		if (!reqRequired.isEmpty() || !orRequires.isEmpty())
 		{
-			sb.append("<b>Requires:</b> ").append(formatRelations(reqRequired, skillIconManager));
+			sb.append("<b>Requires:</b> ");
+			if (!reqRequired.isEmpty())
+			{
+				sb.append(formatRelations(reqRequired, skillIconManager));
+			}
+			if (!reqRequired.isEmpty() && !orRequires.isEmpty())
+			{
+				sb.append(", ");
+			}
+			if (!orRequires.isEmpty())
+			{
+				sb.append("(").append(formatRelationsOr(orRequires, skillIconManager)).append(")");
+			}
 			first = false;
 		}
 		if (!reqRecommended.isEmpty())
@@ -796,6 +813,12 @@ public class GoalCard extends JPanel
 		{
 			if (!first) sb.append("<br>");
 			sb.append("<b>Recommended by:</b> ").append(formatRelations(byRecommended, skillIconManager));
+			first = false;
+		}
+		if (!orRequiredBy.isEmpty())
+		{
+			if (!first) sb.append("<br>");
+			sb.append("<b>Also Completed By:</b> ").append(formatRelations(orRequiredBy, skillIconManager));
 		}
 		sb.append("</html>");
 		return sb.toString();
@@ -804,15 +827,31 @@ public class GoalCard extends JPanel
 	/**
 	 * Format a list of relation views for tooltip display. Skill relations
 	 * render compactly as "SkillName Level"; non-skill relations use the
-	 * goal name.
+	 * goal name. Items separated by ", ".
 	 */
 	private static String formatRelations(java.util.List<GoalView.RelationView> relations,
 										  SkillIconManager skillIconManager)
 	{
+		return formatRelationsWithSeparator(relations, skillIconManager, ", ");
+	}
+
+	/**
+	 * Format OR-relations with " OR " separator for inline display
+	 * inside parentheses (e.g., "(Attack 99 OR Strength 99)").
+	 */
+	private static String formatRelationsOr(java.util.List<GoalView.RelationView> relations,
+											SkillIconManager skillIconManager)
+	{
+		return formatRelationsWithSeparator(relations, skillIconManager, " OR ");
+	}
+
+	private static String formatRelationsWithSeparator(java.util.List<GoalView.RelationView> relations,
+													   SkillIconManager skillIconManager, String separator)
+	{
 		StringBuilder sb = new StringBuilder();
 		for (int i = 0; i < relations.size(); i++)
 		{
-			if (i > 0) sb.append(", ");
+			if (i > 0) sb.append(separator);
 			GoalView.RelationView rv = relations.get(i);
 			if (rv.skillName != null)
 			{

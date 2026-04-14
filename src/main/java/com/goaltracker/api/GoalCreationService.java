@@ -528,12 +528,24 @@ class GoalCreationService
 	private static final class SeedEntry
 	{
 		final String parentGoalId;
-		final Quest parentQuest;
+		final Quest parentQuest;   // null for non-quest parents (diary, unlock)
+		final String tagLabel;     // tag to apply to seeded goals
 		final Goal template;
+
 		SeedEntry(String parentGoalId, Quest parentQuest, Goal template)
 		{
 			this.parentGoalId = parentGoalId;
 			this.parentQuest = parentQuest;
+			this.tagLabel = parentQuest != null
+				? com.goaltracker.data.QuestRequirements.displayName(parentQuest) : null;
+			this.template = template;
+		}
+
+		SeedEntry(String parentGoalId, String tagLabel, Goal template)
+		{
+			this.parentGoalId = parentGoalId;
+			this.parentQuest = null;
+			this.tagLabel = tagLabel;
 			this.template = template;
 		}
 	}
@@ -557,9 +569,36 @@ class GoalCreationService
 	 * <p>Caller must already be inside a {@code beginCompound}/
 	 * {@code endCompound} block.
 	 */
+	/** Quest-rooted overload for backward compatibility. */
 	private void seedPrereqsInto(
 		String rootGoalId,
 		Quest rootQuest,
+		java.util.List<Goal> rootTemplates,
+		java.util.Set<Quest> visited,
+		java.util.Set<String> preExistingGoalIds,
+		java.util.List<String> gestureGoalIds)
+	{
+		seedPrereqsInto(rootGoalId, rootQuest,
+			com.goaltracker.data.QuestRequirements.displayName(rootQuest),
+			rootTemplates, visited, preExistingGoalIds, gestureGoalIds);
+	}
+
+	/**
+	 * Generalized prereq seeding with 3-queue priority BFS.
+	 * Works for both quest prereqs and diary prereqs.
+	 *
+	 * @param rootGoalId   the parent goal to link prereqs to
+	 * @param rootQuest    the quest (null for diary/unlock parents)
+	 * @param rootTagLabel tag to apply to seeded goals
+	 * @param rootTemplates templates to seed
+	 * @param visited      cycle guard for recursive quest resolution
+	 * @param preExistingGoalIds goal IDs that existed before this gesture
+	 * @param gestureGoalIds accumulator for all created goal IDs
+	 */
+	private void seedPrereqsInto(
+		String rootGoalId,
+		Quest rootQuest,
+		String rootTagLabel,
 		java.util.List<Goal> rootTemplates,
 		java.util.Set<Quest> visited,
 		java.util.Set<String> preExistingGoalIds,
@@ -587,7 +626,7 @@ class GoalCreationService
 		for (Goal t : sortedTemplates)
 		{
 			if (t == null) continue;
-			SeedEntry entry = new SeedEntry(rootGoalId, rootQuest, t);
+			SeedEntry entry = new SeedEntry(rootGoalId, rootTagLabel, t);
 			if (t.isOptional())
 			{
 				optionalPriority.add(entry);
@@ -620,7 +659,7 @@ class GoalCreationService
 			}
 
 			Goal template = entry.template;
-			final String parentTagLabel = com.goaltracker.data.QuestRequirements.displayName(entry.parentQuest);
+			final String parentTagLabel = entry.tagLabel;
 			Goal parentGoal = api.findGoal(entry.parentGoalId);
 			String sectionId = parentGoal == null ? null : parentGoal.getSectionId();
 
@@ -681,6 +720,24 @@ class GoalCreationService
 				{
 					log.warn("seedPrereqsInto: addAccountGoal returned null for {} {}",
 						template.getAccountMetric(), template.getTargetValue());
+					continue;
+				}
+			}
+			else if (template.getType() == GoalType.BOSS && template.getBossName() != null)
+			{
+				seedGoalId = addBossGoal(template.getBossName(), template.getTargetValue());
+				if (seedGoalId == null)
+				{
+					log.warn("seedPrereqsInto: addBossGoal returned null for {}", template.getBossName());
+					continue;
+				}
+			}
+			else if (template.getType() == GoalType.ITEM_GRIND && template.getItemId() > 0)
+			{
+				seedGoalId = addItemGoal(template.getItemId(), template.getTargetValue());
+				if (seedGoalId == null)
+				{
+					log.warn("seedPrereqsInto: addItemGoal returned null for itemId={}", template.getItemId());
 					continue;
 				}
 			}
@@ -907,107 +964,88 @@ class GoalCreationService
 				tagLabel = areaDisplayName;
 			}
 
-			// Sort skill templates lowest-level-first so the card list shows
-			// easiest goals at the top (do first) and hardest at the bottom.
-			java.util.List<Goal> sortedTemplates = new java.util.ArrayList<>(prereqTemplates);
-			sortedTemplates.sort((a, b) -> {
-				boolean aSkill = a != null && a.getType() == GoalType.SKILL;
-				boolean bSkill = b != null && b.getType() == GoalType.SKILL;
-				if (aSkill && bSkill) return Integer.compare(a.getTargetValue(), b.getTargetValue());
-				return 0;
-			});
-
 			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
 			gestureGoalIds.add(diaryGoalId);
 
-			for (Goal template : sortedTemplates)
+			// Use the same BFS priority queue as quest prereq seeding.
+			java.util.Set<Quest> visited = new java.util.HashSet<>();
+			java.util.Set<String> preExisting = new java.util.HashSet<>();
+			for (Goal g : api.goalStore.getGoals()) preExisting.add(g.getId());
+			seedPrereqsInto(diaryGoalId, null, tagLabel,
+				prereqTemplates, visited, preExisting, gestureGoalIds);
+
+			// Goals with their own prereq trees (boss goals with skill reqs,
+			// account goals with quest prereqs). Boss prereqs are now auto-
+			// seeded by addBossGoal via BossKillData.getPrereqs().
+			for (com.goaltracker.data.DiaryRequirementResolver.ResolvedBossReq entry : resolved.bossReqs)
 			{
-				if (template == null) continue;
-				String seedGoalId;
-
-				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+				Goal bt = entry.bossTemplate;
+				String goalId;
+				if (bt.getType() == GoalType.BOSS && bt.getBossName() != null)
 				{
-					// Add the quest and recursively seed its own prereq tree.
-					try
-					{
-						Quest quest = Quest.valueOf(template.getQuestName());
-						seedGoalId = addQuestGoal(quest);
-						if (seedGoalId == null) continue;
-
-						// Seed this quest's own requirements recursively.
-						com.goaltracker.data.QuestRequirementResolver.Resolved questResolved =
-							api.resolveQuestRequirements(quest);
-						if (questResolved != null && !questResolved.isEmpty())
-						{
-							java.util.Set<Quest> visited = new java.util.HashSet<>();
-							visited.add(quest);
-							java.util.Set<String> preExisting = new java.util.HashSet<>();
-							for (Goal g : api.goalStore.getGoals())
-								preExisting.add(g.getId());
-							seedPrereqsInto(seedGoalId, quest, questResolved.templates,
-								visited, preExisting, gestureGoalIds);
-						}
-					}
-					catch (IllegalArgumentException e)
-					{
-						log.warn("addDiaryGoalWithPrereqs: unknown quest {}", template.getQuestName());
-						continue;
-					}
+					// addBossGoal auto-seeds skill/unlock prereqs from BossKillData
+					goalId = addBossGoal(bt.getBossName(), bt.getTargetValue());
 				}
-				else if (template.getType() == GoalType.SKILL && template.getSkillName() != null)
+				else if (bt.getType() == GoalType.ACCOUNT && bt.getAccountMetric() != null)
 				{
-					seedGoalId = addSkillGoal(
-						Skill.valueOf(template.getSkillName()),
-						template.getTargetValue());
-					if (seedGoalId == null) continue;
-				}
-				else if (template.getType() == GoalType.BOSS && template.getBossName() != null)
-				{
-					seedGoalId = addBossGoal(template.getBossName(), template.getTargetValue());
-					if (seedGoalId == null) continue;
-				}
-				else if (template.getType() == GoalType.ITEM_GRIND && template.getItemId() > 0)
-				{
-					seedGoalId = addItemGoal(template.getItemId(), template.getTargetValue());
-					if (seedGoalId == null) continue;
-				}
-				else if (template.getType() == GoalType.ACCOUNT && template.getAccountMetric() != null)
-				{
-					seedGoalId = addAccountGoal(template.getAccountMetric(), template.getTargetValue());
-					if (seedGoalId == null) continue;
-				}
-				else if (template.getType() == GoalType.CUSTOM)
-				{
-					// Unlock milestones (e.g. "Fairy Rings Unlocked").
-					seedGoalId = addCustomGoal(template.getName(), template.getDescription());
-					if (seedGoalId == null) continue;
+					goalId = addAccountGoal(bt.getAccountMetric(), bt.getTargetValue());
 				}
 				else
 				{
 					continue;
 				}
-
-				// Skip completed goals — already done.
-				Goal seedGoal = api.findGoal(seedGoalId);
-				if (seedGoal != null && seedGoal.isComplete())
-				{
-					continue;
-				}
-
-				gestureGoalIds.add(seedGoalId);
-				boolean linked = api.addRequirement(diaryGoalId, seedGoalId);
-				if (!linked)
-				{
-					log.warn("addDiaryGoalWithPrereqs: failed to link diary {} -> prereq {} ({})",
-						diaryGoalId, seedGoalId, template.getName());
-				}
+				if (goalId == null) continue;
+				gestureGoalIds.add(goalId);
+				api.addRequirement(diaryGoalId, goalId);
 				try
 				{
-					api.addTagWithCategory(seedGoalId, tagLabel, TagCategory.QUEST.name());
+					api.addTagWithCategory(goalId, tagLabel, TagCategory.QUEST.name());
 				}
 				catch (Exception e)
 				{
-					log.warn("addDiaryGoalWithPrereqs: failed to tag {}: {}", seedGoalId, e.getMessage());
+					log.warn("addDiaryGoalWithPrereqs: failed to tag: {}", e.getMessage());
+				}
+
+				// Seed any quest prereqs on the goal (e.g. Throne of Miscellania
+				// for MISC_APPROVAL account metric)
+				String entryTagLabel = bt.getBossName() != null ? bt.getBossName() : bt.getName();
+				if (entryTagLabel != null && entryTagLabel.length() > 30)
+					entryTagLabel = entryTagLabel.substring(0, 30);
+				for (Goal prereqTemplate : entry.skillTemplates)
+				{
+					if (prereqTemplate.getType() == GoalType.QUEST && prereqTemplate.getQuestName() != null)
+					{
+						try
+						{
+							Quest quest = Quest.valueOf(prereqTemplate.getQuestName());
+							String questGoalId = addQuestGoal(quest);
+							if (questGoalId == null) continue;
+							gestureGoalIds.add(questGoalId);
+							api.addRequirement(goalId, questGoalId);
+							try
+							{
+								api.addTagWithCategory(questGoalId, entryTagLabel, TagCategory.QUEST.name());
+							}
+							catch (Exception ex)
+							{
+								log.warn("addDiaryGoalWithPrereqs: failed to tag quest prereq: {}", ex.getMessage());
+							}
+							// Recursively seed quest's own prereqs
+							com.goaltracker.data.QuestRequirementResolver.Resolved qr =
+								api.resolveQuestRequirements(quest);
+							if (qr != null && !qr.isEmpty())
+							{
+								java.util.Set<Quest> qVisited = new java.util.HashSet<>();
+								qVisited.add(quest);
+								seedPrereqsInto(questGoalId, quest, qr.templates,
+									qVisited, preExisting, gestureGoalIds);
+							}
+						}
+						catch (IllegalArgumentException e)
+						{
+							log.warn("addDiaryGoalWithPrereqs: unknown quest {}", prereqTemplate.getQuestName());
+						}
+					}
 				}
 			}
 
@@ -1119,6 +1157,55 @@ class GoalCreationService
 					catch (Exception e)
 					{
 						log.warn("addDiaryGoalWithPrereqs: failed to tag unlock account: {}", e.getMessage());
+					}
+				}
+
+				// Seed alternatives as OR-prereqs on the unlock goal.
+				// Tag each with the unlock name (e.g. "Warriors Guild Entry").
+				String unlockTagLabel = unlock.name;
+				if (unlockTagLabel != null && unlockTagLabel.length() > 30)
+				{
+					unlockTagLabel = unlockTagLabel.substring(0, 30);
+				}
+				for (com.goaltracker.data.DiaryRequirementResolver.ResolvedAlternative alt : unlock.alternatives)
+				{
+					for (Goal skillTemplate : alt.skillTemplates)
+					{
+						if (skillTemplate.getType() != GoalType.SKILL || skillTemplate.getSkillName() == null)
+							continue;
+						String skillGoalId = addSkillGoal(
+							Skill.valueOf(skillTemplate.getSkillName()),
+							skillTemplate.getTargetValue());
+						if (skillGoalId == null) continue;
+						gestureGoalIds.add(skillGoalId);
+						api.addOrRequirement(unlockGoalId, skillGoalId);
+						try
+						{
+							api.addTagWithCategory(skillGoalId, unlockTagLabel, TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addDiaryGoalWithPrereqs: failed to tag alt skill: {}", e.getMessage());
+						}
+					}
+					for (Goal accountTemplate : alt.accountTemplates)
+					{
+						if (accountTemplate.getType() != GoalType.ACCOUNT || accountTemplate.getAccountMetric() == null)
+							continue;
+						String accountGoalId = addAccountGoal(
+							accountTemplate.getAccountMetric(),
+							accountTemplate.getTargetValue());
+						if (accountGoalId == null) continue;
+						gestureGoalIds.add(accountGoalId);
+						api.addOrRequirement(unlockGoalId, accountGoalId);
+						try
+						{
+							api.addTagWithCategory(accountGoalId, unlockTagLabel, TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addDiaryGoalWithPrereqs: failed to tag alt account: {}", e.getMessage());
+						}
 					}
 				}
 			}
@@ -1273,6 +1360,12 @@ class GoalCreationService
 		{
 			goalName = clampedTarget + " CA (" + AccountMetric.caTierLabel(clampedTarget) + ")";
 		}
+		else if (metric == AccountMetric.MISC_APPROVAL)
+		{
+			// 127 = 100% approval. Display as percentage.
+			int pct = Math.round(clampedTarget * 100f / 127f);
+			goalName = pct + "% " + metric.getDisplayName();
+		}
 		else
 		{
 			goalName = clampedTarget + " " + metric.getDisplayName();
@@ -1368,6 +1461,67 @@ class GoalCreationService
 			});
 			// Auto-tag with BOSS category.
 			api.addTagWithCategory(goalId, bossName, TagCategory.BOSS.name());
+
+			// Auto-seed boss prereqs (e.g. 70 Ranged + Mith Grapple for Kree'arra).
+			com.goaltracker.data.BossKillData.BossPrereqs prereqs =
+				com.goaltracker.data.BossKillData.getPrereqs(bossName);
+			if (prereqs != null)
+			{
+				// Skill prereqs
+				for (com.goaltracker.data.BossKillData.SkillReq sr : prereqs.skills)
+				{
+					String skillGoalId = addSkillGoal(sr.skill,
+						net.runelite.api.Experience.getXpForLevel(sr.level));
+					if (skillGoalId == null) continue;
+					api.addRequirement(goalId, skillGoalId);
+					try
+					{
+						api.addTagWithCategory(skillGoalId, bossName, TagCategory.QUEST.name());
+					}
+					catch (Exception e)
+					{
+						log.warn("addBossGoal: failed to tag skill prereq: {}", e.getMessage());
+					}
+				}
+				// Unlock prereqs (e.g. Mith Grapple)
+				for (com.goaltracker.data.BossKillData.UnlockRef unlock : prereqs.unlocks)
+				{
+					String unlockId = addCustomGoal(unlock.name, "Unlock");
+					if (unlockId == null) continue;
+					Goal unlockGoal = api.findGoal(unlockId);
+					if (unlockGoal != null && unlock.itemId > 0)
+					{
+						unlockGoal.setItemId(unlock.itemId);
+					}
+					api.addRequirement(goalId, unlockId);
+					try
+					{
+						api.addTagWithCategory(unlockId, bossName, TagCategory.QUEST.name());
+					}
+					catch (Exception e)
+					{
+						log.warn("addBossGoal: failed to tag unlock prereq: {}", e.getMessage());
+					}
+					// Unlock's optional skill prereqs
+					for (com.goaltracker.data.BossKillData.SkillReq usr : unlock.optionalSkills)
+					{
+						String usId = addSkillGoal(usr.skill,
+							net.runelite.api.Experience.getXpForLevel(usr.level));
+						if (usId == null) continue;
+						Goal sg = api.findGoal(usId);
+						if (sg != null) sg.setOptional(true);
+						api.addRequirement(unlockId, usId);
+						try
+						{
+							api.addTagWithCategory(usId, unlock.name, TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addBossGoal: failed to tag unlock skill: {}", e.getMessage());
+						}
+					}
+				}
+			}
 		}
 		finally
 		{

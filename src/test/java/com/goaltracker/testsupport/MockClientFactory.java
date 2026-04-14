@@ -1,6 +1,7 @@
 package com.goaltracker.testsupport;
 
 import net.runelite.api.Client;
+import net.runelite.api.Experience;
 import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
 import net.runelite.api.Item;
@@ -57,10 +58,13 @@ public final class MockClientFactory
 			when(client.getVarbitValue(entry.getKey())).thenReturn(entry.getValue());
 		}
 
-		// Skill XP
+		// Skill XP and derived levels
 		for (Map.Entry<Skill, Integer> entry : state.getSkillXp().entrySet())
 		{
 			when(client.getSkillExperience(entry.getKey())).thenReturn(entry.getValue());
+			// Derive level from XP for getRealSkillLevel (used by ATT_STR_COMBINED etc.)
+			int level = Experience.getLevelForXp(entry.getValue());
+			when(client.getRealSkillLevel(entry.getKey())).thenReturn(level);
 		}
 
 		// Account scalars

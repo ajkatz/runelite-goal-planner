@@ -74,6 +74,13 @@ public class Goal
 	@Builder.Default
 	private List<String> requiredGoalIds = new ArrayList<>();
 
+	/** OR-prerequisite edges: ANY one of these completing (combined with ALL
+	 *  AND-prereqs in requiredGoalIds being met) satisfies this goal's
+	 *  requirement. Empty = no OR-prereqs. Used by unlock goals like
+	 *  Warriors Guild Entry (99 Attack OR 99 Strength OR 130 combined). */
+	@Builder.Default
+	private List<String> orRequiredGoalIds = new ArrayList<>();
+
 	/** True when this goal was created by the find-or-create requirement
 	 *  flow as a seed (user didn't manually add it). Default false. */
 	@Builder.Default

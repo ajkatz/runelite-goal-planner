@@ -1,10 +1,13 @@
 package com.goaltracker.data;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import net.runelite.api.ItemID;
+import net.runelite.api.Skill;
 import net.runelite.api.gameval.VarPlayerID;
 
 /**
@@ -227,6 +230,82 @@ public final class BossKillData
 		COLLECTION_LOG_ALIASES.put("Vardorvis", java.util.List.of("Vardorvis", "Vardorvis (Awake)"));
 		COLLECTION_LOG_ALIASES.put("The Fight Caves", java.util.List.of("TzTok-Jad"));
 		COLLECTION_LOG_ALIASES.put("The Inferno", java.util.List.of("TzKal-Zuk"));
+	}
+
+	// ============================================================
+	// Boss prerequisites — skill/unlock requirements to fight a boss.
+	// Applied automatically by addBossGoal regardless of call site.
+	// ============================================================
+
+	/** Prerequisites to fight a specific boss. */
+	public static final class BossPrereqs
+	{
+		public final List<SkillReq> skills;
+		public final List<UnlockRef> unlocks;
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks)
+		{
+			this.skills = Collections.unmodifiableList(skills);
+			this.unlocks = Collections.unmodifiableList(unlocks);
+		}
+
+		public BossPrereqs(List<SkillReq> skills)
+		{
+			this(skills, Collections.emptyList());
+		}
+	}
+
+	/** A skill requirement for a boss. */
+	public static final class SkillReq
+	{
+		public final Skill skill;
+		public final int level;
+
+		public SkillReq(Skill skill, int level)
+		{
+			this.skill = skill;
+			this.level = level;
+		}
+	}
+
+	/** Reference to an unlock (by name + item icon). */
+	public static final class UnlockRef
+	{
+		public final String name;
+		public final int itemId;
+		public final List<SkillReq> optionalSkills;
+
+		public UnlockRef(String name, int itemId, List<SkillReq> optionalSkills)
+		{
+			this.name = name;
+			this.itemId = itemId;
+			this.optionalSkills = Collections.unmodifiableList(optionalSkills);
+		}
+	}
+
+	private static final Map<String, BossPrereqs> BOSS_PREREQS = new HashMap<>();
+
+	static
+	{
+		// GWD bosses
+		BOSS_PREREQS.put("Kree'arra", new BossPrereqs(
+			List.of(new SkillReq(Skill.RANGED, 70)),
+			List.of(new UnlockRef("Mith Grapple", ItemID.MITH_GRAPPLE,
+				List.of(new SkillReq(Skill.FLETCHING, 59), new SkillReq(Skill.SMITHING, 59))))));
+		BOSS_PREREQS.put("General Graardor", new BossPrereqs(
+			List.of(new SkillReq(Skill.STRENGTH, 70))));
+		BOSS_PREREQS.put("Commander Zilyana", new BossPrereqs(
+			List.of(new SkillReq(Skill.AGILITY, 70))));
+		BOSS_PREREQS.put("K'ril Tsutsaroth", new BossPrereqs(
+			List.of(new SkillReq(Skill.HITPOINTS, 70))));
+	}
+
+	/**
+	 * Get prerequisites for a boss. Returns null if no prereqs defined.
+	 */
+	public static BossPrereqs getPrereqs(String bossName)
+	{
+		return BOSS_PREREQS.get(bossName);
 	}
 
 	/**

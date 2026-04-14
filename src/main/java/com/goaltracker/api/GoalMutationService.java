@@ -295,6 +295,8 @@ class GoalMutationService
 			g.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
 			log.info("API.internal recordGoalProgress: goal complete {} ({})",
 				g.getId(), g.getName());
+			// Check if this goal is an OR-prereq of any parent unlock
+			checkOrPrereqCompletion(goalId);
 		}
 		else if (!meetsTarget && wasComplete)
 		{
@@ -306,6 +308,62 @@ class GoalMutationService
 		// Mark this goal as dirty for the next saveDirtyGoals() call.
 		api.goalStore.markGoalDirty(goalId);
 		return true;
+	}
+
+	/**
+	 * When an OR-prereq completes, check if any parent goal should
+	 * auto-complete. A parent with OR-prereqs completes when ANY
+	 * OR-prereq is done AND ALL AND-prereqs are done.
+	 */
+	private void checkOrPrereqCompletion(String completedGoalId)
+	{
+		List<String> parentIds = api.goalStore.getDependents(completedGoalId);
+		for (String parentId : parentIds)
+		{
+			Goal parent = api.findGoal(parentId);
+			if (parent == null || parent.isComplete()) continue;
+			if (parent.getOrRequiredGoalIds() == null
+				|| !parent.getOrRequiredGoalIds().contains(completedGoalId))
+			{
+				continue; // this parent uses AND-edge, not OR
+			}
+
+			// Check: any OR-prereq complete?
+			boolean anyOrMet = false;
+			for (String orId : parent.getOrRequiredGoalIds())
+			{
+				Goal orGoal = api.findGoal(orId);
+				if (orGoal != null && orGoal.isComplete())
+				{
+					anyOrMet = true;
+					break;
+				}
+			}
+			if (!anyOrMet) continue;
+
+			// Check: all AND-prereqs complete?
+			boolean allAndMet = true;
+			if (parent.getRequiredGoalIds() != null)
+			{
+				for (String andId : parent.getRequiredGoalIds())
+				{
+					Goal andGoal = api.findGoal(andId);
+					if (andGoal != null && !andGoal.isComplete())
+					{
+						allAndMet = false;
+						break;
+					}
+				}
+			}
+			if (!allAndMet) continue;
+
+			// Auto-complete the parent
+			parent.setCurrentValue(parent.getTargetValue() > 0 ? parent.getTargetValue() : 1);
+			parent.setCompletedAt(System.currentTimeMillis());
+			parent.setStatus(com.goaltracker.model.GoalStatus.COMPLETE);
+			api.goalStore.markGoalDirty(parentId);
+			log.info("OR-prereq auto-completed parent: {} ({})", parentId, parent.getName());
+		}
 	}
 
 	boolean isGoalOverridden(String goalId)

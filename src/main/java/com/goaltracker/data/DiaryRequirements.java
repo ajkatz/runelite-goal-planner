@@ -44,31 +44,45 @@ public final class DiaryRequirements
 		public final List<Quest> prereqQuests;
 		public final List<SkillReq> prereqSkills;
 		public final List<AccountReq> prereqAccounts;
+		/** Alternative paths (OR-group). Empty = no alternatives. */
+		public final List<Alternative> alternatives;
 		/** Item ID for the icon (e.g. fairy ring POH item). 0 = no icon. */
 		public final int itemId;
 
 		public Unlock(String name, List<Quest> prereqQuests, int itemId)
 		{
-			this(name, prereqQuests, Collections.emptyList(), Collections.emptyList(), itemId);
+			this(name, prereqQuests, Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList(), itemId);
 		}
 
 		public Unlock(String name, List<Quest> prereqQuests, List<SkillReq> prereqSkills, int itemId)
 		{
-			this(name, prereqQuests, prereqSkills, Collections.emptyList(), itemId);
+			this(name, prereqQuests, prereqSkills, Collections.emptyList(),
+				Collections.emptyList(), itemId);
 		}
 
 		public Unlock(String name, List<Quest> prereqQuests, List<SkillReq> prereqSkills,
 			List<AccountReq> prereqAccounts, int itemId)
 		{
+			this(name, prereqQuests, prereqSkills, prereqAccounts,
+				Collections.emptyList(), itemId);
+		}
+
+		public Unlock(String name, List<Quest> prereqQuests, List<SkillReq> prereqSkills,
+			List<AccountReq> prereqAccounts, List<Alternative> alternatives, int itemId)
+		{
 			this.name = name;
 			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
 			this.prereqSkills = Collections.unmodifiableList(prereqSkills);
 			this.prereqAccounts = Collections.unmodifiableList(prereqAccounts);
+			this.alternatives = Collections.unmodifiableList(alternatives);
 			this.itemId = itemId;
 		}
 	}
 
-	/** A boss kill requirement (e.g. 1 Kalphite Queen kill for Desert Hard). */
+	/** A boss kill requirement (e.g. 1 Kalphite Queen kill for Desert Hard).
+	 *  Boss-specific prereqs (skills, unlocks) are defined in
+	 *  {@link BossKillData#getPrereqs} and auto-seeded by addBossGoal. */
 	public static final class BossReq
 	{
 		public final String bossName;
@@ -86,11 +100,18 @@ public final class DiaryRequirements
 	{
 		public final String metricName; // AccountMetric enum name
 		public final int target;
+		public final List<Quest> prereqQuests;
 
 		public AccountReq(String metricName, int target)
 		{
+			this(metricName, target, Collections.emptyList());
+		}
+
+		public AccountReq(String metricName, int target, List<Quest> prereqQuests)
+		{
 			this.metricName = metricName;
 			this.target = target;
+			this.prereqQuests = Collections.unmodifiableList(prereqQuests);
 		}
 	}
 
@@ -167,12 +188,38 @@ public final class DiaryRequirements
 		List.of(Quest.FAIRYTALE_I__GROWING_PAINS, Quest.LOST_CITY),
 		772); // ItemID.DRAMEN_STAFF
 
-	/** Warriors Guild entry: requires combined Attack + Strength >= 130. */
+	/**
+	 * An alternative path for an unlock. Multiple alternatives form an
+	 * OR-group: ANY one being satisfied unlocks the goal.
+	 */
+	public static final class Alternative
+	{
+		public final String label;
+		public final List<SkillReq> skills;
+		public final List<AccountReq> accounts;
+
+		public Alternative(String label, List<SkillReq> skills, List<AccountReq> accounts)
+		{
+			this.label = label;
+			this.skills = Collections.unmodifiableList(skills);
+			this.accounts = Collections.unmodifiableList(accounts);
+		}
+	}
+
+	/** Warriors Guild entry: 130 combined Att+Str OR 99 Attack OR 99 Strength. */
 	public static final Unlock WARRIORS_GUILD = new Unlock(
 		"Warriors Guild Entry",
-		List.of(), // no quest prereqs
-		List.of(), // no skill prereqs
-		List.of(new AccountReq("ATT_STR_COMBINED", 130)),
+		List.of(), // no shared quest prereqs
+		List.of(), // no shared skill prereqs
+		List.of(), // no shared account prereqs
+		List.of(
+			new Alternative("Att+Str Combined >= 130",
+				List.of(), List.of(new AccountReq("ATT_STR_COMBINED", 130))),
+			new Alternative("99 Attack",
+				List.of(new SkillReq(Skill.ATTACK, 99)), List.of()),
+			new Alternative("99 Strength",
+				List.of(new SkillReq(Skill.STRENGTH, 99)), List.of())
+		),
 		ItemID.STEEL_DEFENDER);
 
 	/** Mith grapple: requires 59 Fletching + 59 Smithing to craft. */
@@ -474,7 +521,10 @@ public final class DiaryRequirements
 				new SkillReq(Skill.HUNTER, 11),
 				new SkillReq(Skill.THIEVING, 5)),
 			List.of(
-				Quest.THE_FREMENNIK_TRIALS));
+				Quest.THE_FREMENNIK_TRIALS,
+				Quest.THE_GIANT_DWARF,
+				Quest.DEATH_PLATEAU,
+				Quest.TROLL_STRONGHOLD));
 
 		put("Fremennik", AchievementDiaryData.Tier.MEDIUM,
 			List.of(
@@ -514,7 +564,14 @@ public final class DiaryRequirements
 				Quest.EADGARS_RUSE,
 				Quest.LUNAR_DIPLOMACY,
 				Quest.THRONE_OF_MISCELLANIA,
-				Quest.THE_FREMENNIK_ISLES));
+				Quest.THE_FREMENNIK_ISLES,
+				Quest.THE_GIANT_DWARF),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("MISC_APPROVAL", 127,
+					List.of(Quest.THRONE_OF_MISCELLANIA))));
 
 		put("Fremennik", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -525,7 +582,19 @@ public final class DiaryRequirements
 				new SkillReq(Skill.HITPOINTS, 70),
 				new SkillReq(Skill.RANGED, 70),
 				new SkillReq(Skill.STRENGTH, 70)),
-			List.of());
+			List.of(
+				Quest.TROLL_STRONGHOLD,
+				Quest.THE_FREMENNIK_ISLES,
+				Quest.LUNAR_DIPLOMACY),
+			List.of(), // no unlocks
+			List.of(
+				new BossReq("Kree'arra", 1),
+				new BossReq("General Graardor", 1),
+				new BossReq("Commander Zilyana", 1),
+				new BossReq("K'ril Tsutsaroth", 1),
+				new BossReq("Dagannoth Prime", 1),
+				new BossReq("Dagannoth Rex", 1),
+				new BossReq("Dagannoth Supreme", 1)));
 	}
 
 	// ============================================================
