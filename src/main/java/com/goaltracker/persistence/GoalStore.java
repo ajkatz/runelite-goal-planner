@@ -128,6 +128,11 @@ public class GoalStore
 		tagsMigrated |= dedupeTagsByLabelCategory();
 
 		ensureBuiltInSections();
+		// Build sectionIndex before orphan migration so it can check
+		// which sections exist. Previously sectionIndex was empty here,
+		// causing all user-section goals to be treated as orphaned.
+		sectionIndex.clear();
+		for (Section s : sections) sectionIndex.put(s.getId(), s);
 		migrateOrphanedGoals();
 		normalizeOrder();
 

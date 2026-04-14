@@ -1,21 +1,21 @@
-# Mission: Debug lag spike on skill XP gain
+# Mission: Fix goal section assignment not persisting across restarts
 Date: 2026-04-14
 Status: active
 
 ## Goal
-Investigate and fix lag spike that occurs when gaining Strength XP
-with a 20 Strength goal active. Likely an inefficiency in the tracker
-or save path triggered by VarbitChanged/StatChanged events.
+Goals moved to user-defined sections (e.g. "Active Goals") revert to
+"Incomplete" on restart. The section assignment isn't persisting or
+is being overwritten during load/reconciliation.
 
 ## Sub-goals
-- [ ] S1 — Add timing logs to identify the bottleneck
+- [ ] S1 — Identify where sectionId is lost (save, load, or reconcile)
 - [ ] S2 — Fix the root cause
 
 ## Predictions
 - Completion: Both sub-goals achievable
-- Confidence: High — similar performance issues fixed before (debounced rebuilds, batched saves)
-- Risks: Could be a new code path introduced during diary/OR-edge work
-- Estimated tokens: ~40K-80K (medium)
+- Confidence: High — likely a reconcile or load ordering issue
+- Risks: Could be a subtle interaction between reconcileCompletedSection and section assignment
+- Estimated tokens: ~30K-60K (small)
 - Estimated cost: included in subscription
 
 ## Tasks Log
