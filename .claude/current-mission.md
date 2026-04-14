@@ -1,6 +1,6 @@
 # Mission: Fix goal section assignment not persisting across restarts
 Date: 2026-04-14
-Status: active
+Status: complete
 
 ## Goal
 Goals moved to user-defined sections (e.g. "Active Goals") revert to
