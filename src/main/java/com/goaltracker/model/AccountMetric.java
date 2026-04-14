@@ -18,9 +18,13 @@ public enum AccountMetric
 	SLAYER_POINTS("Slayer Points", new Color(0, 160, 160), 0, null, 1, 64000),
 	KUDOS("Museum Kudos", new Color(200, 170, 50), 0, "item:11182", 1, 243),
 	/** Combined Attack + Strength level (e.g. 130 for Warriors Guild entry). */
-	ATT_STR_COMBINED("Att + Str", new Color(76, 175, 80), 0, "item:8850", 2, 198),
+	ATT_STR_COMBINED("Att + Str", new Color(46, 125, 50), 0, "item:8850", 2, 198),
 	/** Kingdom of Miscellania approval rating (0-127, where 127 = 100%). */
-	MISC_APPROVAL("Misc. Approval", new Color(200, 170, 50), 0, null, 1, 127);
+	MISC_APPROVAL("Misc. Approval", new Color(200, 170, 50), 0, null, 1, 127),
+	/** Tears of Guthix personal best (max tears collected in a single game). */
+	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 300),
+	/** Chompy bird kill count. */
+	CHOMPY_KILLS("Chompy Kills", new Color(139, 69, 19), 0, "item:" + net.runelite.api.ItemID.RAW_CHOMPY, 1, 4000);
 
 	private final String displayName;
 	private final Color color;

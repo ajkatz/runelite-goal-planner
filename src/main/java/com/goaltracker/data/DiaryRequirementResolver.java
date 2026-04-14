@@ -43,13 +43,21 @@ public final class DiaryRequirementResolver
 		public final String label;
 		public final List<Goal> skillTemplates;
 		public final List<Goal> accountTemplates;
+		public final List<Goal> bossTemplates;
 
 		public ResolvedAlternative(String label, List<Goal> skillTemplates,
 			List<Goal> accountTemplates)
 		{
+			this(label, skillTemplates, accountTemplates, List.of());
+		}
+
+		public ResolvedAlternative(String label, List<Goal> skillTemplates,
+			List<Goal> accountTemplates, List<Goal> bossTemplates)
+		{
 			this.label = label;
 			this.skillTemplates = skillTemplates;
 			this.accountTemplates = accountTemplates;
+			this.bossTemplates = bossTemplates;
 		}
 	}
 
@@ -367,7 +375,19 @@ public final class DiaryRequirementResolver
 						.targetValue(ar.target)
 						.build());
 				}
-				resolvedAlternatives.add(new ResolvedAlternative(alt.label, altSkills, altAccounts));
+				List<Goal> altBosses = new ArrayList<>();
+				for (DiaryRequirements.BossReq br : alt.bosses)
+				{
+					altBosses.add(Goal.builder()
+						.type(GoalType.BOSS)
+						.name(br.bossName)
+						.description(br.killCount + " kills")
+						.bossName(br.bossName)
+						.targetValue(br.killCount)
+						.itemId(BossKillData.getPetItemId(br.bossName))
+						.build());
+				}
+				resolvedAlternatives.add(new ResolvedAlternative(alt.label, altSkills, altAccounts, altBosses));
 				allMet = false; // alternatives always need seeding
 			}
 			if (!allMet)

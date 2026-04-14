@@ -3,30 +3,30 @@ Date: 2026-04-13
 Status: active
 
 ## Goal
-Add wiki-sourced skill and quest requirements for the remaining 10
-diary areas (Desert, Falador, Fremennik, Kandarin, Karamja, Kourend,
-Lumbridge, Morytania, Varrock, Western, Wilderness). Ardougne is
-already done. Follow the established pattern: higher tiers only list
-NEW requirements beyond lower tiers.
+Manually verify and correct diary requirements for the remaining 7
+areas: Kandarin, Karamja, Kourend & Kebos, Lumbridge & Draynor,
+Morytania, Varrock, Western Provinces, Wilderness. Data is entered
+but needs in-game testing for accuracy.
 
 ## Sub-goals
-- [ ] S1 — Desert (Easy/Medium/Hard/Elite)
-- [ ] S2 — Falador (Easy/Medium/Hard/Elite)
-- [ ] S3 — Fremennik (Easy/Medium/Hard/Elite)
-- [ ] S4 — Kandarin (Easy/Medium/Hard/Elite)
-- [ ] S5 — Karamja (Easy/Medium/Hard/Elite)
-- [ ] S6 — Kourend & Kebos (Easy/Medium/Hard/Elite)
-- [ ] S7 — Lumbridge & Draynor (Easy/Medium/Hard/Elite)
-- [ ] S8 — Morytania (Easy/Medium/Hard/Elite)
-- [ ] S9 — Varrock (Easy/Medium/Hard/Elite)
-- [ ] S10 — Western Provinces (Easy/Medium/Hard/Elite)
-- [ ] S11 — Wilderness (Easy/Medium/Hard/Elite)
+- [x] S1 — Desert (verified)
+- [x] S2 — Falador (verified)
+- [x] S3 — Fremennik (verified)
+- [x] S4 — Ardougne (verified)
+- [ ] S5 — Kandarin
+- [ ] S6 — Karamja
+- [ ] S7 — Kourend & Kebos
+- [ ] S8 — Lumbridge & Draynor
+- [ ] S9 — Morytania
+- [ ] S10 — Varrock
+- [ ] S11 — Western Provinces
+- [ ] S12 — Wilderness
 
 ## Predictions
-- Completion: All 10 areas achievable, may need batching
-- Confidence: High (accuracy), Medium (all in one session)
-- Risks: Wiki transcription errors, Quest enum name mismatches, context pressure
-- Estimated tokens: ~200K-400K (large, bulk data entry with wiki lookups)
+- Completion: All 7 areas if corrections are light, 4-5 if heavy
+- Confidence: Medium
+- Risks: Wiki transcription errors, missing boss/item/unlock reqs
+- Estimated tokens: ~200K-500K (large)
 - Estimated cost: included in subscription
 
 ## Tasks Log

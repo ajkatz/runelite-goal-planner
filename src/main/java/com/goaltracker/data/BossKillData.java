@@ -242,16 +242,24 @@ public final class BossKillData
 	{
 		public final List<SkillReq> skills;
 		public final List<UnlockRef> unlocks;
+		public final List<net.runelite.api.Quest> quests;
 
 		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks)
 		{
-			this.skills = Collections.unmodifiableList(skills);
-			this.unlocks = Collections.unmodifiableList(unlocks);
+			this(skills, unlocks, Collections.emptyList());
 		}
 
 		public BossPrereqs(List<SkillReq> skills)
 		{
-			this(skills, Collections.emptyList());
+			this(skills, Collections.emptyList(), Collections.emptyList());
+		}
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
+			List<net.runelite.api.Quest> quests)
+		{
+			this.skills = Collections.unmodifiableList(skills);
+			this.unlocks = Collections.unmodifiableList(unlocks);
+			this.quests = Collections.unmodifiableList(quests);
 		}
 	}
 
@@ -287,6 +295,14 @@ public final class BossKillData
 
 	static
 	{
+		// Zulrah
+		BOSS_PREREQS.put("Zulrah", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.REGICIDE)));
+
+		// Thermonuclear smoke devil
+		BOSS_PREREQS.put("Thermy", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 93))));
+
 		// GWD bosses
 		BOSS_PREREQS.put("Kree'arra", new BossPrereqs(
 			List.of(new SkillReq(Skill.RANGED, 70)),

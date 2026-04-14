@@ -80,6 +80,10 @@ public class AccountTracker extends AbstractTracker
 					+ client.getRealSkillLevel(Skill.STRENGTH);
 			case MISC_APPROVAL:
 				return client.getVarbitValue(VarbitID.MISC_APPROVAL);
+			case TOG_MAX_TEARS:
+				return client.getVarbitValue(VarbitID.TOG_MAX_TEARS_COLLECTED);
+			case CHOMPY_KILLS:
+				return client.getVarpValue(VarPlayerID.CHOMPYBIRD);
 			default:
 				return -1;
 		}

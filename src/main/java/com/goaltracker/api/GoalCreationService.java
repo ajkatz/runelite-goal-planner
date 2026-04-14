@@ -1008,7 +1008,12 @@ class GoalCreationService
 
 				// Seed any quest prereqs on the goal (e.g. Throne of Miscellania
 				// for MISC_APPROVAL account metric)
-				String entryTagLabel = bt.getBossName() != null ? bt.getBossName() : bt.getName();
+				// Use boss name or the created goal's display name for tagging
+				// (not the raw template name which may be an enum like "TOG_MAX_TEARS")
+				Goal createdGoal = api.findGoal(goalId);
+				String entryTagLabel = bt.getBossName() != null
+					? bt.getBossName()
+					: (createdGoal != null ? createdGoal.getName() : bt.getName());
 				if (entryTagLabel != null && entryTagLabel.length() > 30)
 					entryTagLabel = entryTagLabel.substring(0, 30);
 				for (Goal prereqTemplate : entry.skillTemplates)
@@ -1052,7 +1057,7 @@ class GoalCreationService
 			// Unlocks: create CUSTOM goal → link quest prereqs to it → link to diary.
 			for (com.goaltracker.data.DiaryRequirementResolver.ResolvedUnlock unlock : resolved.unlocks)
 			{
-				String unlockGoalId = addCustomGoal(unlock.name, "Unlock");
+				String unlockGoalId = addCustomGoal(unlock.name, "Requirement");
 				if (unlockGoalId == null) continue;
 				// Set item icon on the unlock goal.
 				if (unlock.itemId > 0)
@@ -1205,6 +1210,25 @@ class GoalCreationService
 						catch (Exception e)
 						{
 							log.warn("addDiaryGoalWithPrereqs: failed to tag alt account: {}", e.getMessage());
+						}
+					}
+					for (Goal bossTemplate : alt.bossTemplates)
+					{
+						if (bossTemplate.getType() != GoalType.BOSS || bossTemplate.getBossName() == null)
+							continue;
+						String bossGoalId = addBossGoal(
+							bossTemplate.getBossName(),
+							bossTemplate.getTargetValue());
+						if (bossGoalId == null) continue;
+						gestureGoalIds.add(bossGoalId);
+						api.addOrRequirement(unlockGoalId, bossGoalId);
+						try
+						{
+							api.addTagWithCategory(bossGoalId, unlockTagLabel, TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addDiaryGoalWithPrereqs: failed to tag alt boss: {}", e.getMessage());
 						}
 					}
 				}
@@ -1486,7 +1510,7 @@ class GoalCreationService
 				// Unlock prereqs (e.g. Mith Grapple)
 				for (com.goaltracker.data.BossKillData.UnlockRef unlock : prereqs.unlocks)
 				{
-					String unlockId = addCustomGoal(unlock.name, "Unlock");
+					String unlockId = addCustomGoal(unlock.name, "Requirement");
 					if (unlockId == null) continue;
 					Goal unlockGoal = api.findGoal(unlockId);
 					if (unlockGoal != null && unlock.itemId > 0)
@@ -1519,6 +1543,21 @@ class GoalCreationService
 						{
 							log.warn("addBossGoal: failed to tag unlock skill: {}", e.getMessage());
 						}
+					}
+				}
+				// Quest prereqs (e.g. Regicide for Zulrah)
+				for (net.runelite.api.Quest quest : prereqs.quests)
+				{
+					String questGoalId = addQuestGoal(quest);
+					if (questGoalId == null) continue;
+					api.addRequirement(goalId, questGoalId);
+					try
+					{
+						api.addTagWithCategory(questGoalId, bossName, TagCategory.QUEST.name());
+					}
+					catch (Exception e)
+					{
+						log.warn("addBossGoal: failed to tag quest prereq: {}", e.getMessage());
 					}
 				}
 			}

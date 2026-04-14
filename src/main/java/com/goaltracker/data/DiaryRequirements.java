@@ -197,12 +197,20 @@ public final class DiaryRequirements
 		public final String label;
 		public final List<SkillReq> skills;
 		public final List<AccountReq> accounts;
+		public final List<BossReq> bosses;
 
 		public Alternative(String label, List<SkillReq> skills, List<AccountReq> accounts)
+		{
+			this(label, skills, accounts, Collections.emptyList());
+		}
+
+		public Alternative(String label, List<SkillReq> skills, List<AccountReq> accounts,
+			List<BossReq> bosses)
 		{
 			this.label = label;
 			this.skills = Collections.unmodifiableList(skills);
 			this.accounts = Collections.unmodifiableList(accounts);
+			this.bosses = Collections.unmodifiableList(bosses);
 		}
 	}
 
@@ -660,7 +668,11 @@ public final class DiaryRequirements
 				new SkillReq(Skill.FISHING, 76)),
 			List.of(
 				Quest.FAMILY_CREST,
-				Quest.LUNAR_DIPLOMACY));
+				Quest.LUNAR_DIPLOMACY),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(
+				new ItemReq(ItemID.CHEWED_BONES, "Chewed Bones", 1)));
 	}
 
 	// ============================================================
@@ -703,14 +715,18 @@ public final class DiaryRequirements
 				new SkillReq(Skill.RUNECRAFT, 44),
 				new SkillReq(Skill.RANGED, 42)),
 			List.of(
-				Quest.LEGENDS_QUEST));
+				Quest.LEGENDS_QUEST),
+			List.of(MITH_GRAPPLE));
 
 		put("Karamja", AchievementDiaryData.Tier.ELITE,
 			List.of(
 				new SkillReq(Skill.RUNECRAFT, 91),
 				new SkillReq(Skill.HERBLORE, 87),
 				new SkillReq(Skill.FARMING, 72)),
-			List.of());
+			List.of(),
+			List.of(), // no unlocks
+			List.of(
+				new BossReq("TzTok-Jad", 1)));
 	}
 
 	// ============================================================
@@ -763,7 +779,8 @@ public final class DiaryRequirements
 				new SkillReq(Skill.DEFENCE, 40),
 				new SkillReq(Skill.HERBLORE, 31)),
 			List.of(
-				Quest.DREAM_MENTOR));
+				Quest.DREAM_MENTOR,
+				Quest.THE_FORSAKEN_TOWER));
 
 		put("Kourend & Kebos", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -774,8 +791,13 @@ public final class DiaryRequirements
 				new SkillReq(Skill.COOKING, 84),
 				new SkillReq(Skill.FISHING, 82),
 				new SkillReq(Skill.RUNECRAFT, 77),
-				new SkillReq(Skill.FLETCHING, 40)),
-			List.of());
+				new SkillReq(Skill.FLETCHING, 40),
+				new SkillReq(Skill.MINING, 38)),
+			List.of(),
+			List.of(), // no unlocks
+			List.of(
+				new BossReq("CoX", 1),
+				new BossReq("Skotizo", 1)));
 	}
 
 	// ============================================================
@@ -811,7 +833,11 @@ public final class DiaryRequirements
 			List.of(
 				Quest.ANIMAL_MAGNETISM,
 				Quest.LOST_CITY),
-			List.of(FAIRY_RINGS));
+			List.of(FAIRY_RINGS),
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("COMBAT_LEVEL", 70)));
 
 		put("Lumbridge & Draynor", AchievementDiaryData.Tier.HARD,
 			List.of(
@@ -829,8 +855,14 @@ public final class DiaryRequirements
 				new SkillReq(Skill.AGILITY, 46)),
 			List.of(
 				Quest.ANOTHER_SLICE_OF_HAM,
-				Quest.RECIPE_FOR_DISASTER,
-				Quest.TEARS_OF_GUTHIX));
+				Quest.RECIPE_FOR_DISASTER__CULINAROMANCER,
+				Quest.TEARS_OF_GUTHIX),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("TOG_MAX_TEARS", 100,
+					List.of(Quest.TEARS_OF_GUTHIX))));
 
 		put("Lumbridge & Draynor", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -841,7 +873,13 @@ public final class DiaryRequirements
 				new SkillReq(Skill.AGILITY, 70),
 				new SkillReq(Skill.RANGED, 70),
 				new SkillReq(Skill.STRENGTH, 70)),
-			List.of());
+			List.of(
+				Quest.DEATH_TO_THE_DORGESHUUN),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("QUEST_POINTS", 333)));
 	}
 
 	// ============================================================
@@ -896,7 +934,8 @@ public final class DiaryRequirements
 				new SkillReq(Skill.WOODCUTTING, 50)),
 			List.of(
 				Quest.DESERT_TREASURE_I,
-				Quest.THE_GREAT_BRAIN_ROBBERY));
+				Quest.THE_GREAT_BRAIN_ROBBERY,
+				Quest.KINGS_RANSOM));
 
 		put("Morytania", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -908,7 +947,8 @@ public final class DiaryRequirements
 				new SkillReq(Skill.STRENGTH, 76)),
 			List.of(
 				Quest.LUNAR_DIPLOMACY,
-				Quest.SHADES_OF_MORTTON));
+				Quest.SHADES_OF_MORTTON,
+				Quest.IN_AID_OF_THE_MYREQUE));
 	}
 
 	// ============================================================
@@ -926,7 +966,12 @@ public final class DiaryRequirements
 				new SkillReq(Skill.CRAFTING, 8),
 				new SkillReq(Skill.THIEVING, 5)),
 			List.of(
-				Quest.RUNE_MYSTERIES));
+				Quest.RUNE_MYSTERIES),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("KUDOS", 50)));
 
 		put("Varrock", AchievementDiaryData.Tier.MEDIUM,
 			List.of(
@@ -942,7 +987,13 @@ public final class DiaryRequirements
 				Quest.GARDEN_OF_TRANQUILLITY,
 				Quest.GERTRUDES_CAT,
 				Quest.THE_DIG_SITE,
-				Quest.TREE_GNOME_VILLAGE));
+				Quest.TREE_GNOME_VILLAGE),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("COMBAT_LEVEL", 40),
+				new AccountReq("QUEST_POINTS", 32)));
 
 		put("Varrock", AchievementDiaryData.Tier.HARD,
 			List.of(
@@ -958,7 +1009,13 @@ public final class DiaryRequirements
 				new SkillReq(Skill.RANGED, 40),
 				new SkillReq(Skill.SMITHING, 20)),
 			List.of(
-				Quest.DESERT_TREASURE_I));
+				Quest.DESERT_TREASURE_I),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(
+				new ItemReq(ItemID.SKULL_SCEPTRE_I, "Skull Sceptre (i)", 1)),
+			List.of(
+				new AccountReq("KUDOS", 153)));
 
 		put("Varrock", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -972,7 +1029,8 @@ public final class DiaryRequirements
 				new SkillReq(Skill.MINING, 60),
 				new SkillReq(Skill.DEFENCE, 40)),
 			List.of(
-				Quest.DREAM_MENTOR));
+				Quest.DREAM_MENTOR,
+				Quest.THE_TOURIST_TRAP));
 	}
 
 	// ============================================================
@@ -987,7 +1045,12 @@ public final class DiaryRequirements
 				new SkillReq(Skill.HUNTER, 9)),
 			List.of(
 				Quest.BIG_CHOMPY_BIRD_HUNTING,
-				Quest.RUNE_MYSTERIES));
+				Quest.RUNE_MYSTERIES),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("COMBAT_LEVEL", 40)));
 
 		put("Western Provinces", AchievementDiaryData.Tier.MEDIUM,
 			List.of(
@@ -1007,7 +1070,15 @@ public final class DiaryRequirements
 				Quest.THE_EYES_OF_GLOUPHRIE,
 				Quest.THE_GRAND_TREE,
 				Quest.TREE_GNOME_VILLAGE,
-				Quest.MONKEY_MADNESS_I));
+				Quest.MONKEY_MADNESS_I,
+				Quest.ONE_SMALL_FAVOUR),
+			List.of(), // no unlocks
+			List.of(), // no boss kills
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("COMBAT_LEVEL", 70),
+				new AccountReq("CHOMPY_KILLS", 125,
+					List.of(Quest.BIG_CHOMPY_BIRD_HUNTING))));
 
 		put("Western Provinces", AchievementDiaryData.Tier.HARD,
 			List.of(
@@ -1028,17 +1099,34 @@ public final class DiaryRequirements
 			List.of(
 				Quest.ROVING_ELVES,
 				Quest.SWAN_SONG,
-				Quest.REGICIDE));
+				Quest.REGICIDE,
+				Quest.RECIPE_FOR_DISASTER__KING_AWOWOGEI,
+				Quest.MOURNINGS_END_PART_I),
+			List.of(), // no unlocks
+			List.of(
+				new BossReq("Zulrah", 1)),
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("COMBAT_LEVEL", 100),
+				new AccountReq("CHOMPY_KILLS", 300,
+					List.of(Quest.BIG_CHOMPY_BIRD_HUNTING))));
 
 		put("Western Provinces", AchievementDiaryData.Tier.ELITE,
 			List.of(
-				new SkillReq(Skill.SLAYER, 93),
 				new SkillReq(Skill.AGILITY, 85),
 				new SkillReq(Skill.FLETCHING, 85),
 				new SkillReq(Skill.THIEVING, 85),
 				new SkillReq(Skill.FARMING, 75)),
 			List.of(
-				Quest.UNDERGROUND_PASS));
+				Quest.UNDERGROUND_PASS,
+				Quest.MOURNINGS_END_PART_I),
+			List.of(), // no unlocks
+			List.of(
+				new BossReq("Thermy", 1)),
+			List.of(), // no item reqs
+			List.of(
+				new AccountReq("CHOMPY_KILLS", 1000,
+					List.of(Quest.BIG_CHOMPY_BIRD_HUNTING))));
 	}
 
 	// ============================================================
@@ -1049,9 +1137,23 @@ public final class DiaryRequirements
 	{
 		put("Wilderness", AchievementDiaryData.Tier.EASY,
 			List.of(
-				new SkillReq(Skill.MAGIC, 21)),
+				new SkillReq(Skill.MAGIC, 21),
+				new SkillReq(Skill.AGILITY, 15),
+				new SkillReq(Skill.MINING, 15)),
 			List.of(
 				Quest.ENTER_THE_ABYSS));
+
+		// Wilderness GWD entry: 60 Agility OR 60 Strength
+		Unlock DEEP_WILDY_GATE = new Unlock(
+			"Wilderness GWD Entry",
+			List.of(), List.of(), List.of(),
+			List.of(
+				new Alternative("60 Agility",
+					List.of(new SkillReq(Skill.AGILITY, 60)), List.of()),
+				new Alternative("60 Strength",
+					List.of(new SkillReq(Skill.STRENGTH, 60)), List.of())
+			),
+			ItemID.ECUMENICAL_KEY);
 
 		put("Wilderness", AchievementDiaryData.Tier.MEDIUM,
 			List.of(
@@ -1060,7 +1162,12 @@ public final class DiaryRequirements
 				new SkillReq(Skill.MINING, 55),
 				new SkillReq(Skill.AGILITY, 52),
 				new SkillReq(Skill.SLAYER, 50)),
-			List.of());
+			List.of(
+				Quest.BETWEEN_A_ROCK),
+			List.of(DEEP_WILDY_GATE),
+			List.of(), // no boss kills
+			List.of(
+				new ItemReq(ItemID.MUDDY_KEY, "Muddy Key", 1)));
 
 		put("Wilderness", AchievementDiaryData.Tier.HARD,
 			List.of(
@@ -1073,7 +1180,42 @@ public final class DiaryRequirements
 				new SkillReq(Skill.HERBLORE, 25)),
 			List.of(
 				Quest.DEATH_PLATEAU,
-				Quest.MAGE_ARENA_I));
+				Quest.MAGE_ARENA_I),
+			List.of(DEEP_WILDY_GATE),
+			List.of(
+				new BossReq("Chaos Elemental", 1),
+				new BossReq("Chaos Fanatic", 1),
+				new BossReq("Crazy Archaeologist", 1),
+				new BossReq("Scorpia", 1)));
+
+		// Wilderness boss pairs: player needs 1 kill from each pair
+		Unlock BEAR_PAIR = new Unlock(
+			"Bear Boss Kill",
+			List.of(), List.of(), List.of(),
+			List.of(
+				new Alternative("Artio", List.of(), List.of(),
+					List.of(new BossReq("Artio", 1))),
+				new Alternative("Callisto", List.of(), List.of(),
+					List.of(new BossReq("Callisto", 1)))
+			), ItemID.CALLISTO_CUB);
+		Unlock SPIDER_PAIR = new Unlock(
+			"Spider Boss Kill",
+			List.of(), List.of(), List.of(),
+			List.of(
+				new Alternative("Spindel", List.of(), List.of(),
+					List.of(new BossReq("Spindel", 1))),
+				new Alternative("Venenatis", List.of(), List.of(),
+					List.of(new BossReq("Venenatis", 1)))
+			), ItemID.VENENATIS_SPIDERLING);
+		Unlock SKELETON_PAIR = new Unlock(
+			"Skeleton Boss Kill",
+			List.of(), List.of(), List.of(),
+			List.of(
+				new Alternative("Calvar'ion", List.of(), List.of(),
+					List.of(new BossReq("Calvar'ion", 1))),
+				new Alternative("Vet'ion", List.of(), List.of(),
+					List.of(new BossReq("Vet'ion", 1)))
+			), ItemID.VETION_JR);
 
 		put("Wilderness", AchievementDiaryData.Tier.ELITE,
 			List.of(
@@ -1084,9 +1226,11 @@ public final class DiaryRequirements
 				new SkillReq(Skill.MINING, 85),
 				new SkillReq(Skill.THIEVING, 84),
 				new SkillReq(Skill.WOODCUTTING, 75),
-				new SkillReq(Skill.FIREMAKING, 75)),
+				new SkillReq(Skill.FIREMAKING, 75),
+				new SkillReq(Skill.SLAYER, 83)),
 			List.of(
-				Quest.DESERT_TREASURE_I));
+				Quest.DESERT_TREASURE_I),
+			List.of(DEEP_WILDY_GATE, BEAR_PAIR, SPIDER_PAIR, SKELETON_PAIR));
 	}
 
 	private DiaryRequirements() {}

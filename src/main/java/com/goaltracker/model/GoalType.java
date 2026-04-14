@@ -4,9 +4,9 @@ import java.awt.Color;
 
 public enum GoalType
 {
-	SKILL("Skill", new Color(76, 175, 80)),           // Green
+	SKILL("Skill", new Color(46, 125, 50)),            // Dark green
 	QUEST("Quest", new Color(66, 133, 244)),           // Blue
-	DIARY("Diary", new Color(85, 139, 47)),            // Olive green
+	DIARY("Diary", new Color(120, 190, 90)),           // Light green
 	COLLECTION_LOG("Collection Log", new Color(156, 39, 176)),  // Purple
 	ITEM_GRIND("Item", new Color(255, 193, 7)),                  // Gold
 	BOSS("Boss", new Color(30, 30, 30)),                    // Near-black
