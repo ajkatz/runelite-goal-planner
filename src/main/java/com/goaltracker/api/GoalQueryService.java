@@ -29,6 +29,18 @@ class GoalQueryService
 		this.api = api;
 	}
 
+	/**
+	 * Get a fresh GoalView for a single goal by ID. O(1) goal lookup
+	 * + O(relations) view construction. Used for incremental card updates.
+	 */
+	GoalView queryGoalView(String goalId)
+	{
+		if (goalId == null) return null;
+		Goal g = api.goalStore.findGoalById(goalId);
+		if (g == null) return null;
+		return toGoalView(g);
+	}
+
 	List<GoalView> queryAllGoals()
 	{
 		log.debug("API.public queryAllGoals()");

@@ -127,6 +127,7 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	// =====================================================================
 
 	@Override public List<GoalView> queryAllGoals() { return queryService.queryAllGoals(); }
+	public GoalView queryGoalView(String goalId) { return queryService.queryGoalView(goalId); }
 	@Override public List<GoalView> searchGoals(String query) { return queryService.searchGoals(query); }
 	@Override public List<SectionView> queryAllSections() { return queryService.queryAllSections(); }
 	@Override public java.util.List<GoalView> queryGoalsTopologicallySorted(String sectionId) { return queryService.queryGoalsTopologicallySorted(sectionId); }
@@ -225,6 +226,12 @@ public class GoalTrackerApiImpl implements GoalTrackerApi, GoalTrackerInternalAp
 	void fireIfNotInCompound()
 	{
 		if (!commandHistory.isInCompound()) onGoalsChanged.run();
+	}
+
+	/** Fire the UI refresh callback (goes through the debounce timer). */
+	public void fireGoalsChanged()
+	{
+		onGoalsChanged.run();
 	}
 
 	@Override public boolean canUndo() { return commandHistory.canUndo(); }

@@ -1278,7 +1278,6 @@ public class GoalTrackerPlugin extends Plugin
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		java.util.List<Goal> goals = goalStore.getGoals();
 		boolean updated = skillTracker.checkGoals(goals);
-		// Account metrics (combat level, total level) are derived from stats.
 		updated |= accountTracker.checkGoals(goals);
 		flushIfUpdated(updated);
 	}
@@ -1411,9 +1410,21 @@ public class GoalTrackerPlugin extends Plugin
 	{
 		if (updated)
 		{
-			goalStore.reconcileCompletedSection();
+			boolean sectionChanged = goalStore.reconcileCompletedSection();
+			// Snapshot dirty IDs before save clears them
+			java.util.Set<String> dirtyIds = goalStore.getDirtyGoalIds();
 			goalStore.saveDirtyGoals();
-			javax.swing.SwingUtilities.invokeLater(() -> panel.rebuild());
+
+			if (sectionChanged)
+			{
+				// Goals moved between sections — need full rebuild
+				goalTrackerApi.fireGoalsChanged();
+			}
+			else
+			{
+				// O(dirty) incremental card update — no full rebuild
+				javax.swing.SwingUtilities.invokeLater(() -> panel.refreshProgress(dirtyIds));
+			}
 		}
 	}
 

@@ -783,6 +783,12 @@ public class GoalStore
 		dirtyGoalIds.add(goalId);
 	}
 
+	/** Snapshot of currently dirty goal IDs (before saveDirtyGoals clears them). */
+	public java.util.Set<String> getDirtyGoalIds()
+	{
+		return new java.util.HashSet<>(dirtyGoalIds);
+	}
+
 	/**
 	 * Save only goals that were marked dirty (by recordGoalProgress).
 	 * Much cheaper than saveNow() when only a few goals changed.

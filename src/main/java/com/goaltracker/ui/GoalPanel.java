@@ -287,6 +287,34 @@ public class GoalPanel extends PluginPanel
 	 * rebuilding the entire panel. O(cards) repaint vs O(goals * sections)
 	 * full rebuild.
 	 */
+	/**
+	 * Incrementally update progress on specific cards without a full rebuild.
+	 * O(dirtyIds) — looks up each card in the map and refreshes its view.
+	 * Falls back to full rebuild if a card isn't found (goal was added/removed).
+	 */
+	public void refreshProgress(java.util.Set<String> dirtyGoalIds)
+	{
+		if (dirtyGoalIds == null || dirtyGoalIds.isEmpty()) return;
+		for (String goalId : dirtyGoalIds)
+		{
+			GoalCard card = cardMap.get(goalId);
+			if (card == null)
+			{
+				// Card not in map — goal was added/removed, need full rebuild
+				rebuild();
+				return;
+			}
+			com.goaltracker.api.GoalView view = api.queryGoalView(goalId);
+			if (view == null)
+			{
+				// Goal was removed — need full rebuild
+				rebuild();
+				return;
+			}
+			card.update(view);
+		}
+	}
+
 	public void refreshSelection()
 	{
 		java.util.Set<String> selected = api.getSelectedGoalIds();
