@@ -237,12 +237,22 @@ public final class BossKillData
 	// Applied automatically by addBossGoal regardless of call site.
 	// ============================================================
 
-	/** Prerequisites to fight a specific boss. */
+	/**
+	 * Prerequisites to fight a specific boss. Mirrors the shape of
+	 * {@link DiaryRequirements.Reqs} so boss gating has parity with
+	 * diary-tier gating (skills, quests, unlocks, item reqs, account
+	 * metrics, boss-kill prereqs, and OR-alternatives).
+	 */
 	public static final class BossPrereqs
 	{
 		public final List<SkillReq> skills;
 		public final List<UnlockRef> unlocks;
 		public final List<net.runelite.api.Quest> quests;
+		public final List<ItemReq> itemReqs;
+		public final List<AccountReq> accountReqs;
+		public final List<BossReq> bossKills;
+		/** OR-groups: if non-empty, ANY one satisfied unlocks the boss. */
+		public final List<Alternative> alternatives;
 
 		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks)
 		{
@@ -257,9 +267,47 @@ public final class BossKillData
 		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
 			List<net.runelite.api.Quest> quests)
 		{
+			this(skills, unlocks, quests,
+				Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList(), Collections.emptyList());
+		}
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
+			List<net.runelite.api.Quest> quests, List<BossReq> bossKills)
+		{
+			this(skills, unlocks, quests, bossKills,
+				Collections.emptyList(), Collections.emptyList(),
+				Collections.emptyList());
+		}
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
+			List<net.runelite.api.Quest> quests, List<BossReq> bossKills,
+			List<ItemReq> itemReqs)
+		{
+			this(skills, unlocks, quests, bossKills, itemReqs,
+				Collections.emptyList(), Collections.emptyList());
+		}
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
+			List<net.runelite.api.Quest> quests, List<BossReq> bossKills,
+			List<ItemReq> itemReqs, List<AccountReq> accountReqs)
+		{
+			this(skills, unlocks, quests, bossKills, itemReqs, accountReqs,
+				Collections.emptyList());
+		}
+
+		public BossPrereqs(List<SkillReq> skills, List<UnlockRef> unlocks,
+			List<net.runelite.api.Quest> quests, List<BossReq> bossKills,
+			List<ItemReq> itemReqs, List<AccountReq> accountReqs,
+			List<Alternative> alternatives)
+		{
 			this.skills = Collections.unmodifiableList(skills);
 			this.unlocks = Collections.unmodifiableList(unlocks);
 			this.quests = Collections.unmodifiableList(quests);
+			this.bossKills = Collections.unmodifiableList(bossKills);
+			this.itemReqs = Collections.unmodifiableList(itemReqs);
+			this.accountReqs = Collections.unmodifiableList(accountReqs);
+			this.alternatives = Collections.unmodifiableList(alternatives);
 		}
 	}
 
@@ -291,19 +339,90 @@ public final class BossKillData
 		}
 	}
 
+	/** An item requirement (e.g. specific gear/key/scroll to enter fight). */
+	public static final class ItemReq
+	{
+		public final int itemId;
+		public final String displayName;
+		public final int quantity;
+
+		public ItemReq(int itemId, String displayName, int quantity)
+		{
+			this.itemId = itemId;
+			this.displayName = displayName;
+			this.quantity = quantity;
+		}
+	}
+
+	/** An account metric requirement (e.g. combat level threshold). */
+	public static final class AccountReq
+	{
+		public final String metricName; // AccountMetric enum name
+		public final int target;
+
+		public AccountReq(String metricName, int target)
+		{
+			this.metricName = metricName;
+			this.target = target;
+		}
+	}
+
+	/** A boss-kill prerequisite (e.g. base DT2 kill before awakened). */
+	public static final class BossReq
+	{
+		public final String bossName;
+		public final int killCount;
+
+		public BossReq(String bossName, int killCount)
+		{
+			this.bossName = bossName;
+			this.killCount = killCount;
+		}
+	}
+
+	/**
+	 * An alternative path within a boss prereq set. Multiple alternatives
+	 * form an OR-group: ANY one being satisfied unlocks the boss.
+	 */
+	public static final class Alternative
+	{
+		public final String label;
+		public final List<SkillReq> skills;
+		public final List<AccountReq> accounts;
+		public final List<BossReq> bosses;
+		public final List<net.runelite.api.Quest> quests;
+
+		public Alternative(String label, List<SkillReq> skills,
+			List<AccountReq> accounts)
+		{
+			this(label, skills, accounts, Collections.emptyList(), Collections.emptyList());
+		}
+
+		public Alternative(String label, List<SkillReq> skills,
+			List<AccountReq> accounts, List<BossReq> bosses)
+		{
+			this(label, skills, accounts, bosses, Collections.emptyList());
+		}
+
+		public Alternative(String label, List<SkillReq> skills,
+			List<AccountReq> accounts, List<BossReq> bosses,
+			List<net.runelite.api.Quest> quests)
+		{
+			this.label = label;
+			this.skills = Collections.unmodifiableList(skills);
+			this.accounts = Collections.unmodifiableList(accounts);
+			this.bosses = Collections.unmodifiableList(bosses);
+			this.quests = Collections.unmodifiableList(quests);
+		}
+	}
+
 	private static final Map<String, BossPrereqs> BOSS_PREREQS = new HashMap<>();
 
 	static
 	{
-		// Zulrah
-		BOSS_PREREQS.put("Zulrah", new BossPrereqs(List.of(), List.of(),
-			List.of(net.runelite.api.Quest.REGICIDE)));
-
-		// Thermonuclear smoke devil
-		BOSS_PREREQS.put("Thermy", new BossPrereqs(
-			List.of(new SkillReq(Skill.SLAYER, 93))));
-
-		// GWD bosses
+		// ====================================================
+		// GWD
+		// ====================================================
 		BOSS_PREREQS.put("Kree'arra", new BossPrereqs(
 			List.of(new SkillReq(Skill.RANGED, 70)),
 			List.of(new UnlockRef("Mith Grapple", ItemID.MITH_GRAPPLE,
@@ -314,6 +433,189 @@ public final class BossKillData
 			List.of(new SkillReq(Skill.AGILITY, 70))));
 		BOSS_PREREQS.put("K'ril Tsutsaroth", new BossPrereqs(
 			List.of(new SkillReq(Skill.HITPOINTS, 70))));
+		// Nex: The Frozen Door requires at least 1 kill in each GWD room
+		// (the 4 Frozen key pieces drop from any kill in their respective
+		// room; 1 KC per boss gates the attempt).
+		BOSS_PREREQS.put("Nex", new BossPrereqs(
+			List.of(), List.of(), List.of(),
+			List.of(
+				new BossReq("Kree'arra", 1),
+				new BossReq("General Graardor", 1),
+				new BossReq("Commander Zilyana", 1),
+				new BossReq("K'ril Tsutsaroth", 1))));
+
+		// ====================================================
+		// Slayer bosses (slayer-level gated)
+		// ====================================================
+		BOSS_PREREQS.put("Abyssal Sire", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 85)),
+			List.of(),
+			List.of(net.runelite.api.Quest.ENTER_THE_ABYSS)));
+		BOSS_PREREQS.put("Cerberus", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 91))));
+		BOSS_PREREQS.put("Kraken", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 87))));
+		BOSS_PREREQS.put("Grotesque Guardians", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 75)),
+			List.of(),
+			List.of(),
+			List.of(),
+			List.of(new ItemReq(ItemID.BRITTLE_KEY, "Brittle key", 1))));
+		BOSS_PREREQS.put("Alchemical Hydra", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 95))));
+		BOSS_PREREQS.put("Araxxor", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 92))));
+		BOSS_PREREQS.put("Thermy", new BossPrereqs(
+			List.of(new SkillReq(Skill.SLAYER, 93))));
+
+		// ====================================================
+		// Classic / other bosses (quest and item gated)
+		// ====================================================
+		BOSS_PREREQS.put("Zulrah", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.REGICIDE)));
+		BOSS_PREREQS.put("Vorkath", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DRAGON_SLAYER_II)));
+		BOSS_PREREQS.put("Phantom Muspah", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.SECRETS_OF_THE_NORTH)));
+		BOSS_PREREQS.put("Deranged Arch.", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.BONE_VOYAGE)));
+		BOSS_PREREQS.put("Skotizo", new BossPrereqs(
+			List.of(), List.of(), List.of(), List.of(),
+			List.of(new ItemReq(ItemID.DARK_TOTEM, "Dark totem", 1))));
+		BOSS_PREREQS.put("Obor", new BossPrereqs(
+			List.of(), List.of(), List.of(), List.of(),
+			List.of(new ItemReq(ItemID.GIANT_KEY, "Giant key", 1))));
+		BOSS_PREREQS.put("Bryophyta", new BossPrereqs(
+			List.of(), List.of(), List.of(), List.of(),
+			List.of(new ItemReq(ItemID.BRYOPHYTAS_ESSENCE, "Bryophyta's essence", 1))));
+		BOSS_PREREQS.put("Hespori", new BossPrereqs(
+			List.of(new SkillReq(Skill.FARMING, 65)),
+			List.of(), List.of(), List.of(),
+			List.of(new ItemReq(ItemID.HESPORI_SEED, "Hespori seed", 1))));
+
+		// ====================================================
+		// Desert Treasure II base bosses
+		// ====================================================
+		BOSS_PREREQS.put("Duke Sucellus", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE)));
+		BOSS_PREREQS.put("The Leviathan", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE)));
+		BOSS_PREREQS.put("The Whisperer", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE)));
+		BOSS_PREREQS.put("Vardorvis", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE)));
+
+		// ====================================================
+		// DT2 awakened variants (base kill + Awakener's orb)
+		// ====================================================
+		BOSS_PREREQS.put("Duke (Awake)", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE),
+			List.of(new BossReq("Duke Sucellus", 1)),
+			List.of(new ItemReq(ItemID.AWAKENERS_ORB, "Awakener's orb", 1))));
+		BOSS_PREREQS.put("Leviathan (Awake)", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE),
+			List.of(new BossReq("The Leviathan", 1)),
+			List.of(new ItemReq(ItemID.AWAKENERS_ORB, "Awakener's orb", 1))));
+		BOSS_PREREQS.put("Whisperer (Awake)", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE),
+			List.of(new BossReq("The Whisperer", 1)),
+			List.of(new ItemReq(ItemID.AWAKENERS_ORB, "Awakener's orb", 1))));
+		BOSS_PREREQS.put("Vardorvis (Awake)", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE),
+			List.of(new BossReq("Vardorvis", 1)),
+			List.of(new ItemReq(ItemID.AWAKENERS_ORB, "Awakener's orb", 1))));
+
+		// ====================================================
+		// Skilling / minigame bosses
+		// ====================================================
+		BOSS_PREREQS.put("Tempoross", new BossPrereqs(
+			List.of(new SkillReq(Skill.FISHING, 35))));
+		BOSS_PREREQS.put("Wintertodt", new BossPrereqs(
+			List.of(new SkillReq(Skill.FIREMAKING, 50))));
+		BOSS_PREREQS.put("GotR", new BossPrereqs(
+			List.of(new SkillReq(Skill.RUNECRAFT, 27))));
+		BOSS_PREREQS.put("Zalcano", new BossPrereqs(
+			List.of(
+				new SkillReq(Skill.MINING, 70),
+				new SkillReq(Skill.SMITHING, 70),
+				new SkillReq(Skill.RUNECRAFT, 70)),
+			List.of(),
+			List.of(net.runelite.api.Quest.SONG_OF_THE_ELVES)));
+
+		// ====================================================
+		// Nightmare — Morytania access via Priest in Peril.
+		// ====================================================
+		BOSS_PREREQS.put("The Nightmare", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PRIEST_IN_PERIL)));
+		BOSS_PREREQS.put("Phosani's Nightmare", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PRIEST_IN_PERIL),
+			List.of(new BossReq("The Nightmare", 1))));
+
+		// ====================================================
+		// Waves — Inferno requires completing the Fight Caves first
+		// (TzTok-Jad kill, which grants the Fire cape entry ticket).
+		// ====================================================
+		BOSS_PREREQS.put("TzKal-Zuk", new BossPrereqs(
+			List.of(), List.of(), List.of(),
+			List.of(new BossReq("TzTok-Jad", 1))));
+
+		// ====================================================
+		// Raids
+		// ====================================================
+		// CoX Challenge Mode: requires a completed CoX raid to start.
+		BOSS_PREREQS.put("CoX (CM)", new BossPrereqs(
+			List.of(), List.of(), List.of(),
+			List.of(new BossReq("CoX", 1))));
+		// Theatre of Blood: A Taste of Hope for Ver Sinhaza access.
+		BOSS_PREREQS.put("ToB", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.A_TASTE_OF_HOPE)));
+		BOSS_PREREQS.put("ToB (Story)", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.A_TASTE_OF_HOPE)));
+		// ToB Hard Mode: requires a completed standard ToB.
+		BOSS_PREREQS.put("ToB (HM)", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.A_TASTE_OF_HOPE),
+			List.of(new BossReq("ToB", 1))));
+		// Tombs of Amascut: Beneath Cursed Sands for access to Het's Oasis.
+		BOSS_PREREQS.put("ToA", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.BENEATH_CURSED_SANDS)));
+		BOSS_PREREQS.put("ToA (Entry)", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.BENEATH_CURSED_SANDS)));
+		BOSS_PREREQS.put("ToA (Expert)", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.BENEATH_CURSED_SANDS)));
+
+		// ====================================================
+		// Varlamore content (quest-gated)
+		// ====================================================
+		BOSS_PREREQS.put("Amoxliatl", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.THE_HEART_OF_DARKNESS)));
+		BOSS_PREREQS.put("Yama", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.A_KINGDOM_DIVIDED)));
+
+		// ====================================================
+		// Bosses intentionally left without prereqs (getPrereqs
+		// returns null = "no hard requirement to fight this boss"):
+		// - Wilderness: Artio, Callisto, Calvar'ion, Chaos Elemental,
+		//   Chaos Fanatic, Crazy Archaeologist, Scorpia, Spindel,
+		//   Venenatis, Vet'ion (wilderness boss access has no gate
+		//   beyond entering the wilderness)
+		// - Low-barrier: Giant Mole, Kalphite Queen, King Black Dragon,
+		//   Mimic, Sarachnis (no gating skill/quest/item)
+		// - Dagannoth Kings: Waterbirth Island reachable via fairy ring
+		//   (AJR), Lunar teleport, or Jarvald's ferry — no single hard
+		//   gate
+		// - Newest content with no hard prereq: Hueycoatl, Royal Titans,
+		//   Scurrius, Sol Heredit
+		// - Waves/Raids with no quest: TzTok-Jad, CoX
+		// - Corporeal Beast requires Summer's End quest, but that
+		//   enum value is not exposed in net.runelite.api.Quest
+		//   (follow-up: wrap as a custom Unlock when Quest enum adds it).
+		// ====================================================
 	}
 
 	/**

@@ -1491,23 +1491,79 @@ class GoalCreationService
 				com.goaltracker.data.BossKillData.getPrereqs(bossName);
 			if (prereqs != null)
 			{
-				// Skill prereqs
+				// Gesture-level accumulators for the priority-queue BFS.
+				// Mirrors addDiaryGoalWithPrereqs / addQuestGoalWithPrereqs so
+				// boss prereqs render with the same ordering (optional →
+				// skills/item/account → quests) and quests chain their own
+				// prereqs transitively.
+				java.util.Set<net.runelite.api.Quest> bossVisited = new java.util.HashSet<>();
+				java.util.Set<String> bossPreExistingGoalIds = new java.util.HashSet<>();
+				for (Goal g : api.goalStore.getGoals()) bossPreExistingGoalIds.add(g.getId());
+				java.util.List<String> bossGestureGoalIds = new java.util.ArrayList<>();
+				bossGestureGoalIds.add(goalId);
+
+				// Build templates for every direct prereq type EXCEPT
+				// UnlockRef (which has a unique CUSTOM + optional-skill
+				// subtree shape and stays in its own loop below).
+				java.util.List<Goal> templates = new java.util.ArrayList<>();
+
 				for (com.goaltracker.data.BossKillData.SkillReq sr : prereqs.skills)
 				{
-					String skillGoalId = addSkillGoal(sr.skill,
-						net.runelite.api.Experience.getXpForLevel(sr.level));
-					if (skillGoalId == null) continue;
-					api.addRequirement(goalId, skillGoalId);
-					try
-					{
-						api.addTagWithCategory(skillGoalId, bossName, TagCategory.QUEST.name());
-					}
-					catch (Exception e)
-					{
-						log.warn("addBossGoal: failed to tag skill prereq: {}", e.getMessage());
-					}
+					templates.add(Goal.builder()
+						.type(GoalType.SKILL)
+						.name(sr.skill.getName() + " - Level " + sr.level)
+						.skillName(sr.skill.name())
+						.targetValue(net.runelite.api.Experience.getXpForLevel(sr.level))
+						.build());
 				}
-				// Unlock prereqs (e.g. Mith Grapple)
+				for (net.runelite.api.Quest q : prereqs.quests)
+				{
+					templates.add(Goal.builder()
+						.type(GoalType.QUEST)
+						.name(q.getName())
+						.description("Quest")
+						.questName(q.name())
+						.targetValue(1)
+						.spriteId(GoalTrackerApiImpl.QUEST_SPRITE_ID)
+						.build());
+				}
+				for (com.goaltracker.data.BossKillData.ItemReq ir : prereqs.itemReqs)
+				{
+					templates.add(Goal.builder()
+						.type(GoalType.ITEM_GRIND)
+						.name(ir.displayName)
+						.itemId(ir.itemId)
+						.targetValue(ir.quantity)
+						.build());
+				}
+				for (com.goaltracker.data.BossKillData.AccountReq ar : prereqs.accountReqs)
+				{
+					templates.add(Goal.builder()
+						.type(GoalType.ACCOUNT)
+						.name(ar.metricName)
+						.accountMetric(ar.metricName)
+						.targetValue(ar.target)
+						.build());
+				}
+				for (com.goaltracker.data.BossKillData.BossReq br : prereqs.bossKills)
+				{
+					templates.add(Goal.builder()
+						.type(GoalType.BOSS)
+						.name(br.bossName)
+						.description(br.killCount + " kills")
+						.bossName(br.bossName)
+						.targetValue(br.killCount)
+						.itemId(com.goaltracker.data.BossKillData.getPetItemId(br.bossName))
+						.build());
+				}
+
+				// Priority-queue BFS: orders optional → skill/item/account →
+				// quest, and transitively chains each quest's own prereqs.
+				seedPrereqsInto(goalId, null, bossName, templates,
+					bossVisited, bossPreExistingGoalIds, bossGestureGoalIds);
+
+				// Unlock prereqs (e.g. Mith Grapple) — CUSTOM goals with an
+				// optional skill subtree; unique shape, not templated.
 				for (com.goaltracker.data.BossKillData.UnlockRef unlock : prereqs.unlocks)
 				{
 					String unlockId = addCustomGoal(unlock.name, "Requirement");
@@ -1545,21 +1601,11 @@ class GoalCreationService
 						}
 					}
 				}
-				// Quest prereqs (e.g. Regicide for Zulrah)
-				for (net.runelite.api.Quest quest : prereqs.quests)
-				{
-					String questGoalId = addQuestGoal(quest);
-					if (questGoalId == null) continue;
-					api.addRequirement(goalId, questGoalId);
-					try
-					{
-						api.addTagWithCategory(questGoalId, bossName, TagCategory.QUEST.name());
-					}
-					catch (Exception e)
-					{
-						log.warn("addBossGoal: failed to tag quest prereq: {}", e.getMessage());
-					}
-				}
+				// NOTE: prereqs.alternatives (OR-groups) are declared but not
+				// auto-seeded here. The goal graph is AND-linked; representing
+				// alternatives requires UI work analogous to
+				// DiaryRequirementResolver's ResolvedAlternative path. Data may
+				// carry alternatives for future consumers; currently unused.
 			}
 		}
 		finally

@@ -1190,13 +1190,24 @@ public class GoalTrackerPlugin extends Plugin
 										"1"
 									);
 									if (input == null) return;
+									int kills;
 									try
 									{
-										int kills = Integer.parseInt(input.trim().replace(",", ""));
-										if (kills <= 0) return;
-										goalTrackerApi.addBossGoal(bossName, kills);
+										kills = Integer.parseInt(input.trim().replace(",", ""));
 									}
-									catch (NumberFormatException ignored) {}
+									catch (NumberFormatException ex)
+									{
+										return;
+									}
+									if (kills <= 0) return;
+									// Hop to the client thread: addBossGoal's
+									// prereq seeding calls Quest.getState(client)
+									// and client.getRealSkillLevel, which throw
+									// if invoked off the client thread. The EDT
+									// would swallow that exception silently.
+									final int finalKills = kills;
+									clientThread.invokeLater(() ->
+										goalTrackerApi.addBossGoal(bossName, finalKills));
 								});
 							});
 					}
