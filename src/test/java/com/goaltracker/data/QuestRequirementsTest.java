@@ -375,5 +375,115 @@ class QuestRequirementsTest
 
 			assertEquals(3, out.templates.size());
 		}
+
+		@Test
+		@DisplayName("recommended combat already met → template NOT emitted (regression: pre-completed cards)")
+		void recommendedCombatAlreadyMet()
+		{
+			// DS2 recommends 100 Combat. Player is at 110 — recommendation
+			// should be pre-filtered out, not seeded as a pre-completed
+			// card. Mark all skills/quests as met so only the QP template
+			// is expected (no combat recommendation).
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+			java.util.function.IntSupplier combat110 = () -> 110;
+
+			QuestRequirementResolver.Resolved out =
+				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II,
+					maxed, allFinished, combat110);
+
+			// Only the QP template; the recommended combat should be absent.
+			assertEquals(1, out.templates.size());
+			assertEquals("QUEST_POINTS", out.templates.get(0).getAccountMetric());
+			assertTrue(out.templates.stream()
+				.noneMatch(g -> "COMBAT_LEVEL".equals(g.getAccountMetric())
+					&& g.isOptional()),
+				"optional recommended combat template should not be emitted when already met");
+		}
+
+		@Test
+		@DisplayName("recommended combat not yet met → template IS emitted")
+		void recommendedCombatNotMet()
+		{
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+			java.util.function.IntSupplier combat80 = () -> 80;
+
+			QuestRequirementResolver.Resolved out =
+				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II,
+					maxed, allFinished, combat80);
+
+			// QP template + recommended combat template (player is below 100).
+			assertEquals(2, out.templates.size());
+			Goal combatT = out.templates.stream()
+				.filter(g -> "COMBAT_LEVEL".equals(g.getAccountMetric()))
+				.findFirst().orElseThrow();
+			assertTrue(combatT.isOptional(), "recommendation is always optional");
+			assertEquals(100, combatT.getTargetValue());
+		}
+
+		@Test
+		@DisplayName("recommended combat exactly at threshold (equal) → template NOT emitted")
+		void recommendedCombatExactlyAtThreshold()
+		{
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+			java.util.function.IntSupplier combat100 = () -> 100;
+
+			QuestRequirementResolver.Resolved out =
+				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II,
+					maxed, allFinished, combat100);
+
+			// QP template only — 100 >= 100 means recommendation is met.
+			assertTrue(out.templates.stream()
+				.noneMatch(g -> "COMBAT_LEVEL".equals(g.getAccountMetric())
+					&& g.isOptional()),
+				"recommendation met at exact threshold should not be emitted");
+		}
+
+		@Test
+		@DisplayName("hard combat req takes precedence even when player exceeds it")
+		void hardCombatReqAlwaysEmitted()
+		{
+			// Dream Mentor has a HARD 85 combat req (not recommended).
+			// Hard reqs always emit — the bug fix only affects the
+			// RECOMMENDED path.
+			Map<Quest, QuestState> states = new EnumMap<>(Quest.class);
+			states.put(Quest.LUNAR_DIPLOMACY, QuestState.FINISHED);
+			states.put(Quest.EADGARS_RUSE, QuestState.FINISHED);
+			Function<Quest, QuestState> quests = q -> states.getOrDefault(q, QuestState.NOT_STARTED);
+			java.util.function.IntSupplier combat126 = () -> 126;
+
+			QuestRequirementResolver.Resolved out =
+				QuestRequirementResolver.resolve(Quest.DREAM_MENTOR,
+					NO_SKILLS, quests, combat126);
+
+			// Hard combat template still present despite player being at 126.
+			assertEquals(1, out.templates.size());
+			Goal hard = out.templates.get(0);
+			assertEquals("COMBAT_LEVEL", hard.getAccountMetric());
+			assertEquals(85, hard.getTargetValue());
+			assertFalse(hard.isOptional(), "hard req is never optional");
+		}
+
+		@Test
+		@DisplayName("backwards-compat 3-arg overload defaults combat to 3 (fresh account)")
+		void threeArgOverloadDefaultsToFreshAccountCombat()
+		{
+			// Using the 3-arg overload (no combat supplier) should still
+			// emit the recommended combat template for any quest whose
+			// recommendation is > 3. Ensures existing callers don't break.
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+
+			QuestRequirementResolver.Resolved out =
+				QuestRequirementResolver.resolve(Quest.DRAGON_SLAYER_II,
+					maxed, allFinished);
+
+			// Default combat 3 is below DS2's recommended 100, so template emits.
+			assertTrue(out.templates.stream()
+				.anyMatch(g -> "COMBAT_LEVEL".equals(g.getAccountMetric())
+					&& g.isOptional()));
+		}
 	}
 }

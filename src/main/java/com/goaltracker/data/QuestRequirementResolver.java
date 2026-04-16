@@ -5,6 +5,7 @@ import com.goaltracker.model.GoalType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import java.util.function.ToIntFunction;
 import net.runelite.api.Client;
 import net.runelite.api.Experience;
@@ -103,7 +104,27 @@ public final class QuestRequirementResolver
 				{
 					return null;
 				}
+			},
+			() ->
+			{
+				net.runelite.api.Player p = client.getLocalPlayer();
+				return p != null ? p.getCombatLevel() : 0;
 			});
+	}
+
+	/**
+	 * Backwards-compatible 3-arg overload for tests that don't care
+	 * about the recommended-combat-level filter. Defaults the combat
+	 * level to 3 (fresh account) — matches the semantic "no boosts,
+	 * lowest plausible value". New tests that want to exercise the
+	 * recommended-combat pre-filter should use the 4-arg overload.
+	 */
+	public static Resolved resolve(
+		Quest quest,
+		ToIntFunction<Skill> skillLevelLookup,
+		Function<Quest, QuestState> questStateLookup)
+	{
+		return resolve(quest, skillLevelLookup, questStateLookup, () -> 3);
 	}
 
 	/**
@@ -115,11 +136,16 @@ public final class QuestRequirementResolver
 	 *                          unboosted level
 	 * @param questStateLookup  maps a prereq {@link Quest} to the player's
 	 *                          current {@link QuestState}; may return null
+	 * @param combatLevelLookup supplies the player's current combat level;
+	 *                          used to pre-filter recommended-combat-level
+	 *                          templates so already-met recommendations
+	 *                          don't seed as pre-completed cards
 	 */
 	public static Resolved resolve(
 		Quest quest,
 		ToIntFunction<Skill> skillLevelLookup,
-		Function<Quest, QuestState> questStateLookup)
+		Function<Quest, QuestState> questStateLookup,
+		IntSupplier combatLevelLookup)
 	{
 		QuestRequirements.Reqs reqs = QuestRequirements.lookup(quest);
 		if (reqs == null)
@@ -209,11 +235,16 @@ public final class QuestRequirementResolver
 
 		// Recommended combat level (wiki suggestion) — seeded as optional.
 		// Only added when there's no hard combat level requirement (which
-		// takes precedence and is already added above as non-optional).
+		// takes precedence and is already added above as non-optional),
+		// AND the player's current combat level is below the recommendation.
+		// Pre-filtering here (rather than relying on isComplete after
+		// creation) prevents the "already-met recommendation ships as a
+		// pre-completed card" bug — a freshly-created ACCOUNT goal has
+		// currentValue=0 so the post-creation isComplete check misses.
 		if (reqs.combatLevel == 0)
 		{
 			int recommended = QuestRequirements.recommendedCombatLevel(quest);
-			if (recommended > 0)
+			if (recommended > 0 && combatLevelLookup.getAsInt() < recommended)
 			{
 				templates.add(Goal.builder()
 					.type(GoalType.ACCOUNT)
