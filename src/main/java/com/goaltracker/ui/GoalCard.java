@@ -722,7 +722,9 @@ public class GoalCard extends JPanel
 	{
 		if (isComplete())
 		{
-			return "\u2713";
+			// Completion is signaled by the goal_icon.png in the EAST slot;
+			// skip the text checkmark so we don't render two markers.
+			return "";
 		}
 		String type = view.type == null ? "CUSTOM" : view.type;
 		if ("CUSTOM".equals(type))
@@ -730,7 +732,7 @@ public class GoalCard extends JPanel
 			return "";
 		}
 		// Combat achievements, quests, and diaries are binary; no progress shown
-		// until complete (handled above via the check mark).
+		// until complete (handled above — empty status, goal_icon.png marks done).
 		if ("COMBAT_ACHIEVEMENT".equals(type) || "QUEST".equals(type) || "DIARY".equals(type))
 		{
 			return "";

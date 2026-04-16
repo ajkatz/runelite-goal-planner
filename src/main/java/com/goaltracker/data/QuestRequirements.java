@@ -1488,11 +1488,12 @@ public final class QuestRequirements
 			List.of(new SkillReq(Skill.WOODCUTTING, 15)),
 			List.of(Quest.CHILDREN_OF_THE_SUN),
 			0, 0);
-		// Shadows of Custodia: Slayer 54, Fishing 45, Hunter 36.
+		// Shadows of Custodia: Slayer 54, Fishing 45, Construction 41, Hunter 36.
 		put(Quest.SHADOWS_OF_CUSTODIA,
 			List.of(
 				new SkillReq(Skill.SLAYER, 54),
 				new SkillReq(Skill.FISHING, 45),
+				new SkillReq(Skill.CONSTRUCTION, 41),
 				new SkillReq(Skill.HUNTER, 36)),
 			List.of(Quest.CHILDREN_OF_THE_SUN),
 			0, 0);

@@ -396,6 +396,10 @@ class GoalContextMenuBuilder
 		// Relations. "Requires..." and "Required by..." enter a
 		// click-mode where the user clicks another goal to link. The Remove
 		// submenus below are direct pick-to-remove lists of the current edges.
+		// Hidden for completed goals: completed items are reference history,
+		// not active tracking — editing their prerequisite graph adds noise
+		// with no behavioral payoff.
+		if (!goal.isComplete())
 		{
 			JMenuItem addRequirement = new JMenuItem("Requires\u2026");
 			addRequirement.setToolTipText(
