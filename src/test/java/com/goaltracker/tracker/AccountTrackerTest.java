@@ -5,6 +5,7 @@ import com.goaltracker.model.Goal;
 import com.goaltracker.model.GoalType;
 import com.goaltracker.testsupport.MockGameState;
 import com.goaltracker.testsupport.TrackerTestHarness;
+import net.runelite.api.gameval.VarPlayerID;
 import net.runelite.api.gameval.VarbitID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -163,6 +164,48 @@ class AccountTrackerTest
 
 			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
 			assertEquals(153, goal.getCurrentValue());
+		}
+	}
+
+	@Nested
+	@DisplayName("League Points")
+	class LeaguePointTests
+	{
+		@Test
+		@DisplayName("reads lifetime league points from VarPlayer (on seasonal world)")
+		void readsLeaguePoints()
+		{
+			MockGameState state = new MockGameState()
+				.seasonal(true)
+				.varp(VarPlayerID.LEAGUE_POINTS_COMPLETED, 42000);
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.LEAGUE_POINTS, 50000);
+			h.store().addGoal(goal);
+
+			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
+			assertEquals(42000, goal.getCurrentValue());
+		}
+	}
+
+	@Nested
+	@DisplayName("Leagues Tasks")
+	class LeagueTaskTests
+	{
+		@Test
+		@DisplayName("reads total tasks completed from varbit (on seasonal world)")
+		void readsLeagueTasks()
+		{
+			MockGameState state = new MockGameState()
+				.seasonal(true)
+				.varbit(VarbitID.LEAGUE_TOTAL_TASKS_COMPLETED, 250);
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.LEAGUE_TASKS, 500);
+			h.store().addGoal(goal);
+
+			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
+			assertEquals(250, goal.getCurrentValue());
 		}
 	}
 

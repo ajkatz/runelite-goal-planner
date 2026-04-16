@@ -28,10 +28,12 @@ import net.runelite.api.GameState;
 import net.runelite.api.InventoryID;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
+import net.runelite.api.events.GameStateChanged;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
+import net.runelite.api.events.WorldChanged;
 import net.runelite.api.widgets.WidgetID;
 import net.runelite.api.widgets.WidgetInfo;
 import net.runelite.client.callback.ClientThread;
@@ -393,6 +395,93 @@ public class GoalTrackerPlugin extends Plugin
 			updated |= bossKillTracker.checkGoals(goals);
 			flushIfUpdated(updated);
 		});
+	}
+
+	/**
+	 * Last profile we applied to the store. Used to detect transitions so
+	 * we only call {@link com.goaltracker.persistence.GoalStore#setProfile(String)}
+	 * when the current world actually changes scope.
+	 */
+	private String lastAppliedProfile = com.goaltracker.persistence.GoalStore.PROFILE_MAIN;
+
+	/**
+	 * Whether we've performed the deferred legacy migration yet. We can't
+	 * migrate at startUp because we don't know the profile until the user
+	 * logs in — migrating early could strand leagues users' legacy goals
+	 * in the main profile. Fires exactly once on first profile detection.
+	 */
+	private boolean legacyMigrationDone = false;
+
+	/**
+	 * Derive the current profile from client state. Leagues iff the world is
+	 * SEASONAL or the LEAGUE_ACCOUNT varbit is set; otherwise main.
+	 */
+	private String detectProfile()
+	{
+		java.util.Set<net.runelite.api.WorldType> wt = client.getWorldType();
+		boolean seasonal = wt != null && wt.contains(net.runelite.api.WorldType.SEASONAL);
+		int leagueAccount = client.getVarbitValue(net.runelite.api.gameval.VarbitID.LEAGUE_ACCOUNT);
+		return (seasonal || leagueAccount != 0)
+			? com.goaltracker.persistence.GoalStore.PROFILE_LEAGUES
+			: com.goaltracker.persistence.GoalStore.PROFILE_MAIN;
+	}
+
+	/**
+	 * Apply the current profile if it differs from the last applied one.
+	 * Triggers a GoalStore reload from the new namespace and rebuilds the
+	 * panel so the sidebar reflects the correct goal set for this world.
+	 */
+	private void checkProfile()
+	{
+		String now = detectProfile();
+
+		// Run legacy migration exactly once, after we've confirmed which
+		// profile the user is actually on. This handles the edge case where
+		// a pre-profile user upgrades while logged into a leagues account —
+		// their legacy data lands in the leagues profile, not stranded in main.
+		if (!legacyMigrationDone)
+		{
+			legacyMigrationDone = true;
+			// Put the store on the detected profile first, then migrate. The
+			// store's setProfile() is a no-op if we're already on that profile
+			// (the default is main, so we only call setProfile for leagues).
+			if (!now.equals(goalStore.getActiveProfile()))
+			{
+				goalStore.setProfile(now);
+				lastAppliedProfile = now;
+			}
+			if (goalStore.migrateLegacyIntoActiveProfile() && panel != null)
+			{
+				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+			}
+			return;
+		}
+
+		if (now.equals(lastAppliedProfile)) return;
+		log.info("Profile change: {} → {}", lastAppliedProfile, now);
+		goalStore.setProfile(now);
+		lastAppliedProfile = now;
+		if (panel != null)
+		{
+			javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+		}
+	}
+
+	@Subscribe
+	public void onGameStateChanged(GameStateChanged event)
+	{
+		// Login complete → world type is populated; re-derive profile.
+		if (event.getGameState() == GameState.LOGGED_IN)
+		{
+			checkProfile();
+		}
+	}
+
+	@Subscribe
+	public void onWorldChanged(WorldChanged event)
+	{
+		// World hop may cross between main and leagues.
+		checkProfile();
 	}
 
 	/**

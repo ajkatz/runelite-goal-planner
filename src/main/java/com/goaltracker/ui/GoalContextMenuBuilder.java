@@ -183,6 +183,37 @@ class GoalContextMenuBuilder
 			});
 			addGoalMenu.add(addBelow);
 
+			// Leagues shortcut — direct-create both goal types at the tier/area
+			// milestones without opening the dialog. Lands just below the
+			// right-clicked card so the user can rapidly stack related leagues
+			// goals next to each other.
+			addGoalMenu.addSeparator();
+			JMenu leaguesMenu = new JMenu("Leagues Goal");
+
+			JMenu pointsMenu = new JMenu("League Points");
+			for (int i = 0; i < com.goaltracker.model.AccountMetric.LEAGUE_TIER_NAMES.length; i++)
+			{
+				final int target = com.goaltracker.model.AccountMetric.LEAGUE_TIER_VALUES[i];
+				JMenuItem item = new JMenuItem(com.goaltracker.model.AccountMetric.LEAGUE_TIER_NAMES[i]);
+				item.addActionListener(e -> createLeaguesShortcut(
+					com.goaltracker.model.AccountMetric.LEAGUE_POINTS, target, secId, posInSection + 1));
+				pointsMenu.add(item);
+			}
+			leaguesMenu.add(pointsMenu);
+
+			JMenu tasksMenu = new JMenu("Leagues Tasks");
+			for (int i = 0; i < com.goaltracker.model.AccountMetric.LEAGUE_AREA_NAMES.length; i++)
+			{
+				final int target = com.goaltracker.model.AccountMetric.LEAGUE_AREA_VALUES[i];
+				JMenuItem item = new JMenuItem(com.goaltracker.model.AccountMetric.LEAGUE_AREA_NAMES[i]);
+				item.addActionListener(e -> createLeaguesShortcut(
+					com.goaltracker.model.AccountMetric.LEAGUE_TASKS, target, secId, posInSection + 1));
+				tasksMenu.add(item);
+			}
+			leaguesMenu.add(tasksMenu);
+
+			addGoalMenu.add(leaguesMenu);
+
 			menu.add(addGoalMenu);
 		}
 
@@ -453,6 +484,29 @@ class GoalContextMenuBuilder
 		menu.add(remove);
 
 		return menu;
+	}
+
+	/**
+	 * Direct-create an account goal from the Leagues shortcut submenu and
+	 * drop it into the given section at the given slot. Wrapped in a
+	 * compound so undo treats it as one step.
+	 */
+	private void createLeaguesShortcut(com.goaltracker.model.AccountMetric metric,
+									   int target, String sectionId, int positionInSection)
+	{
+		api.beginCompound("Add " + metric.getDisplayName() + " (" + target + ")");
+		try
+		{
+			String createdId = api.addAccountGoal(metric.name(), target);
+			if (createdId != null && sectionId != null)
+			{
+				api.positionGoalInSection(createdId, sectionId, positionInSection);
+			}
+		}
+		finally
+		{
+			api.endCompound();
+		}
 	}
 
 	/**

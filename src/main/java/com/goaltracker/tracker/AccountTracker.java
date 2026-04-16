@@ -58,6 +58,19 @@ public class AccountTracker extends AbstractTracker
 
 	private int readMetric(AccountMetric metric)
 	{
+		// Leagues-specific metrics only have meaningful values on leagues accounts.
+		// On main worlds the varbits return 0, which would otherwise overwrite
+		// prior leagues progress. Return -1 (skip) so the tracker leaves the
+		// stored value alone. The profile-scoped store also keeps these goals
+		// out of the main profile, so this is a belt-and-suspenders check.
+		if (metric.isLeagues())
+		{
+			int leagueAccount = client.getVarbitValue(VarbitID.LEAGUE_ACCOUNT);
+			boolean seasonal = client.getWorldType() != null
+				&& client.getWorldType().contains(net.runelite.api.WorldType.SEASONAL);
+			if (leagueAccount == 0 && !seasonal) return -1;
+		}
+
 		switch (metric)
 		{
 			case QUEST_POINTS:
@@ -84,6 +97,12 @@ public class AccountTracker extends AbstractTracker
 				return client.getVarbitValue(VarbitID.TOG_MAX_TEARS_COLLECTED);
 			case CHOMPY_KILLS:
 				return client.getVarpValue(VarPlayerID.CHOMPYBIRD);
+			case LEAGUE_POINTS:
+				// Lifetime league points earned from task completion. Spending
+				// currency (LEAGUE_POINTS_CURRENCY = 2613) does not reduce this.
+				return client.getVarpValue(VarPlayerID.LEAGUE_POINTS_COMPLETED);
+			case LEAGUE_TASKS:
+				return client.getVarbitValue(VarbitID.LEAGUE_TOTAL_TASKS_COMPLETED);
 			default:
 				return -1;
 		}

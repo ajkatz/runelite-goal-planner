@@ -45,6 +45,7 @@ public final class MockGameState
 
 	private int totalLevel = 0;
 	private int combatLevel = 3; // OSRS starting combat level
+	private boolean seasonal = false; // true = WorldType.SEASONAL (leagues world)
 
 	// -----------------------------------------------------------------
 	// Item stack record
@@ -243,6 +244,17 @@ public final class MockGameState
 		return varp(VarPlayerID.QP, qp);
 	}
 
+	/**
+	 * Mark this state as on a SEASONAL (leagues) world. Default is main.
+	 * Used by the tracker's world-scope guard to decide which goals to
+	 * track (leagues metrics on seasonal, everything else on main).
+	 */
+	public MockGameState seasonal(boolean seasonal)
+	{
+		this.seasonal = seasonal;
+		return this;
+	}
+
 	// -----------------------------------------------------------------
 	// Copy (for before/after scenarios)
 	// -----------------------------------------------------------------
@@ -264,6 +276,7 @@ public final class MockGameState
 		}
 		clone.totalLevel = this.totalLevel;
 		clone.combatLevel = this.combatLevel;
+		clone.seasonal = this.seasonal;
 		return clone;
 	}
 
@@ -278,4 +291,5 @@ public final class MockGameState
 	Map<InventoryID, List<MockItem>> getItemContainers() { return itemContainers; }
 	int getTotalLevel() { return totalLevel; }
 	int getCombatLevel() { return combatLevel; }
+	boolean isSeasonal() { return seasonal; }
 }

@@ -24,7 +24,24 @@ public enum AccountMetric
 	/** Tears of Guthix personal best (max tears collected in a single game). */
 	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 300),
 	/** Chompy bird kill count. */
-	CHOMPY_KILLS("Chompy Kills", new Color(139, 69, 19), 0, "item:" + net.runelite.api.ItemID.RAW_CHOMPY, 1, 4000);
+	CHOMPY_KILLS("Chompy Kills", new Color(139, 69, 19), 0, "item:" + net.runelite.api.ItemID.RAW_CHOMPY, 1, 4000),
+	/**
+	 * League Points — lifetime points earned during the active OSRS Leagues
+	 * event (VarPlayer LEAGUE_POINTS_COMPLETED). Only increments; spending
+	 * currency does not affect this counter. Reads 0 outside a leagues world.
+	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS — the orange quest-tab sprite
+	 * used for the leagues pane (orange counterpart to the green diary /
+	 * red minigames tab icons).
+	 */
+	LEAGUE_POINTS("League Points", new Color(255, 152, 0), 1713, null, 1, 500000),
+	/**
+	 * Total Leagues tasks completed across all difficulty tiers
+	 * (Varbit LEAGUE_TOTAL_TASKS_COMPLETED). Reads 0 outside a leagues world.
+	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS — the orange quest-tab sprite
+	 * used for the leagues pane (orange counterpart to the green diary /
+	 * red minigames tab icons).
+	 */
+	LEAGUE_TASKS("Leagues Tasks", new Color(255, 152, 0), 1713, null, 1, 1500);
 
 	private final String displayName;
 	private final Color color;
@@ -49,6 +66,18 @@ public enum AccountMetric
 	public Color getColor() { return color; }
 	public int getMinTarget() { return minTarget; }
 	public int getMaxTarget() { return maxTarget; }
+
+	/**
+	 * Whether this metric is scoped to the OSRS Leagues short-lived event.
+	 * Goals with leagues-scoped metrics are tracked only on SEASONAL worlds;
+	 * all other metrics are tracked only on non-seasonal (main) worlds. This
+	 * prevents cross-contamination where a leagues account's boosted state
+	 * auto-completes main-account goals (and vice versa).
+	 */
+	public boolean isLeagues()
+	{
+		return this == LEAGUE_POINTS || this == LEAGUE_TASKS;
+	}
 
 	/** RuneLite sprite ID for the goal card icon, or 0 if no sprite. */
 	public int getSpriteId() { return spriteId; }
@@ -126,5 +155,33 @@ public enum AccountMetric
 	/** CA tier shortcut values matching CA_TIER_NAMES. */
 	public static final int[] CA_TIER_VALUES = {
 		41, 161, 416, 1064, 1904, 2630
+	};
+
+	/**
+	 * Leagues reward-shop tier thresholds (points required to unlock each
+	 * trophy/tier). Useful as quick-pick goal targets in the create dialog.
+	 * Tier 1 is omitted because it starts at 0 points.
+	 */
+	public static final String[] LEAGUE_TIER_NAMES = {
+		"Tier 2 (600)", "Tier 3 (1,200)", "Tier 4 (2,600)",
+		"Tier 5 (5,200)", "Tier 6 (8,500)", "Tier 7 (16,500)",
+		"Tier 8 (28,000)"
+	};
+	/** League tier shortcut values matching LEAGUE_TIER_NAMES. */
+	public static final int[] LEAGUE_TIER_VALUES = {
+		600, 1200, 2600, 5200, 8500, 16500, 28000
+	};
+
+	/**
+	 * Leagues area-unlock milestones — tasks required to unlock each
+	 * additional region (1st area is free). Used as quick-pick targets
+	 * for LEAGUE_TASKS goals.
+	 */
+	public static final String[] LEAGUE_AREA_NAMES = {
+		"Area 2 (80)", "Area 3 (200)", "Area 4 (300)", "Area 5 (450)"
+	};
+	/** League area milestone values matching LEAGUE_AREA_NAMES. */
+	public static final int[] LEAGUE_AREA_VALUES = {
+		80, 200, 300, 450
 	};
 }

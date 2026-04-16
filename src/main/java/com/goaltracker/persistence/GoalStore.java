@@ -63,6 +63,29 @@ public class GoalStore
 	/** Per-category color overrides. Key = TagCategory.name(), value = packed 0xRRGGBB. */
 	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
 
+	/**
+	 * Active profile ("main" or "leagues"). All config keys are prefixed with
+	 * this so the two sets are fully separate on disk. Defaults to main;
+	 * {@link #setProfile(String)} switches and reloads in-memory state.
+	 */
+	public static final String PROFILE_MAIN = "main";
+	public static final String PROFILE_LEAGUES = "leagues";
+	private String activeProfile = PROFILE_MAIN;
+
+	/** Prefix a config key with the active profile namespace. */
+	private String profileKey(String key) { return activeProfile + "." + key; }
+
+	/** Read a config value from the active profile's namespace. */
+	private String getCfg(String key) { return configManager.getConfiguration(CONFIG_GROUP, profileKey(key)); }
+
+	/** Write a config value to the active profile's namespace. */
+	private void setCfg(String key, String value) { configManager.setConfiguration(CONFIG_GROUP, profileKey(key), value); }
+
+	/** Delete a config value from the active profile's namespace. */
+	private void unsetCfg(String key) { configManager.unsetConfiguration(CONFIG_GROUP, profileKey(key)); }
+
+	public String getActiveProfile() { return activeProfile; }
+
 	/** When true, granular saves are deferred. Call resumeSave() to persist. */
 	private boolean saveSuspended = false;
 	/** Granular dirty tracking for suspend/resume. */
@@ -90,7 +113,14 @@ public class GoalStore
 
 	public void load()
 	{
-		String schema = configManager.getConfiguration(CONFIG_GROUP, SCHEMA_KEY);
+		// Legacy migration is deferred — it runs on the first call to
+		// {@link #migrateLegacyIntoActiveProfile()} after the plugin has
+		// detected the initial profile from client state. This way, a
+		// user upgrading from pre-profile code while logged into a leagues
+		// account ends up with their legacy goals in the leagues profile
+		// rather than stranded in main.
+
+		String schema = getCfg(SCHEMA_KEY);
 		if (SCHEMA_VERSION.equals(schema))
 		{
 			loadV2();
@@ -162,7 +192,7 @@ public class GoalStore
 	private void loadV1()
 	{
 		// Goals
-		String goalsJson = configManager.getConfiguration(CONFIG_GROUP, GOALS_KEY);
+		String goalsJson = getCfg(GOALS_KEY);
 		if (goalsJson != null && !goalsJson.isEmpty())
 		{
 			try
@@ -183,7 +213,7 @@ public class GoalStore
 		}
 
 		// Tags (monolithic)
-		String tagsJson = configManager.getConfiguration(CONFIG_GROUP, TAGS_KEY);
+		String tagsJson = getCfg(TAGS_KEY);
 		if (tagsJson != null && !tagsJson.isEmpty())
 		{
 			try
@@ -210,14 +240,14 @@ public class GoalStore
 	private void loadV2()
 	{
 		// Goals: read order list, then each goal individually
-		String orderJson = configManager.getConfiguration(CONFIG_GROUP, GOAL_ORDER_KEY);
+		String orderJson = getCfg(GOAL_ORDER_KEY);
 		List<String> goalIds = orderJson != null
 			? GSON.fromJson(orderJson, STRING_LIST_TYPE)
 			: new ArrayList<>();
 		goals = new ArrayList<>();
 		for (String id : goalIds)
 		{
-			String goalJson = configManager.getConfiguration(CONFIG_GROUP, GOAL_PREFIX + id);
+			String goalJson = getCfg(GOAL_PREFIX + id);
 			if (goalJson != null)
 			{
 				try
@@ -234,14 +264,14 @@ public class GoalStore
 		log.info("Loaded {} goals (v2)", goals.size());
 
 		// Tags: read ID list, then each tag individually
-		String tagIdsJson = configManager.getConfiguration(CONFIG_GROUP, TAG_IDS_KEY);
+		String tagIdsJson = getCfg(TAG_IDS_KEY);
 		List<String> tagIdList = tagIdsJson != null
 			? GSON.fromJson(tagIdsJson, STRING_LIST_TYPE)
 			: new ArrayList<>();
 		tags = new ArrayList<>();
 		for (String id : tagIdList)
 		{
-			String tagJson = configManager.getConfiguration(CONFIG_GROUP, TAG_PREFIX + id);
+			String tagJson = getCfg(TAG_PREFIX + id);
 			if (tagJson != null)
 			{
 				try
@@ -265,7 +295,7 @@ public class GoalStore
 	private void loadSectionsAndCategoryColors()
 	{
 		// Sections
-		String sectionsJson = configManager.getConfiguration(CONFIG_GROUP, SECTIONS_KEY);
+		String sectionsJson = getCfg(SECTIONS_KEY);
 		if (sectionsJson != null && !sectionsJson.isEmpty())
 		{
 			try
@@ -285,7 +315,7 @@ public class GoalStore
 		}
 
 		// Category colors
-		String categoryColorsJson = configManager.getConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY);
+		String categoryColorsJson = getCfg(CATEGORY_COLORS_KEY);
 		if (categoryColorsJson != null && !categoryColorsJson.isEmpty())
 		{
 			try
@@ -305,6 +335,159 @@ public class GoalStore
 		}
 	}
 
+	/**
+	 * Switch the active profile. Saves pending state for the current profile
+	 * (per-entity saves are already eager, so this is mostly clearing memory),
+	 * then reloads from the new profile's namespace. Call on world-hop
+	 * transitions between main ↔ leagues.
+	 */
+	public void setProfile(String newProfile)
+	{
+		if (newProfile == null || newProfile.equals(activeProfile)) return;
+		log.info("Switching profile: {} → {}", activeProfile, newProfile);
+		// Clear in-memory state so load() starts fresh for the new profile.
+		goals.clear();
+		sections.clear();
+		tags.clear();
+		categoryColors.clear();
+		goalIndex.clear();
+		sectionIndex.clear();
+		tagIndex.clear();
+		dependentIndex.clear();
+		dirtyGoalIds.clear();
+		dirtyTagIds.clear();
+		goalOrderDirty = false;
+		tagIdsDirty = false;
+		sectionsDirty = false;
+		categoryColorsDirty = false;
+		activeProfile = newProfile;
+		load();
+	}
+
+	/** True once legacy migration has been attempted — guards against repeated scans. */
+	private boolean legacyMigrationAttempted = false;
+
+	/**
+	 * One-shot migration of legacy unscoped keys into whatever profile is
+	 * currently active. Before profile-scoped storage existed, goals were
+	 * stored at {@code goaltracker.g.<uuid>} etc. This moves them to
+	 * {@code goaltracker.<activeProfile>.g.<uuid>} then reloads so in-memory
+	 * state reflects the newly-scoped keys.
+	 *
+	 * <p>Call AFTER the plugin has detected the initial profile from client
+	 * state (world type / league account varbit) — otherwise legacy data
+	 * could end up in the wrong profile (e.g. stuck in main for a user
+	 * upgrading while logged into leagues).
+	 *
+	 * <p>No-op if the current profile already has a schema (migration done)
+	 * or if no legacy data exists (fresh install).
+	 *
+	 * @return true if migration moved data
+	 */
+	public boolean migrateLegacyIntoActiveProfile()
+	{
+		if (legacyMigrationAttempted) return false;
+		legacyMigrationAttempted = true;
+
+		String activeSchema = getCfg(SCHEMA_KEY);
+		if (activeSchema != null) return false; // this profile already has data
+		String legacySchema = configManager.getConfiguration(CONFIG_GROUP, SCHEMA_KEY);
+		String legacyV1Goals = configManager.getConfiguration(CONFIG_GROUP, GOALS_KEY);
+		if (legacySchema == null && legacyV1Goals == null) return false; // fresh install
+
+		log.info("Migrating legacy unscoped storage → {} profile", activeProfile);
+
+		// Copy well-known keys if they exist. Keys we copy:
+		//   schema, goal_order, tag_ids, sections, categoryColors  (scalar v2 keys)
+		//   goals, tags                                            (v1 monoliths)
+		// Per-entity keys (g.*, t.*) are enumerated via the existing goal/tag lists.
+		copyLegacyKey(SCHEMA_KEY);
+		copyLegacyKey(GOAL_ORDER_KEY);
+		copyLegacyKey(TAG_IDS_KEY);
+		copyLegacyKey(SECTIONS_KEY);
+		copyLegacyKey(CATEGORY_COLORS_KEY);
+		copyLegacyKey(GOALS_KEY);
+		copyLegacyKey(TAGS_KEY);
+
+		// Per-entity goal/tag keys: walk the legacy goal_order and tag_ids
+		// lists to find them.
+		String legacyOrder = configManager.getConfiguration(CONFIG_GROUP, GOAL_ORDER_KEY);
+		if (legacyOrder != null)
+		{
+			try
+			{
+				List<String> ids = GSON.fromJson(legacyOrder, STRING_LIST_TYPE);
+				if (ids != null)
+				{
+					for (String id : ids) copyLegacyKey(GOAL_PREFIX + id);
+				}
+			}
+			catch (Exception e) { log.warn("legacy goal order parse failed", e); }
+		}
+		String legacyTagIds = configManager.getConfiguration(CONFIG_GROUP, TAG_IDS_KEY);
+		if (legacyTagIds != null)
+		{
+			try
+			{
+				List<String> ids = GSON.fromJson(legacyTagIds, STRING_LIST_TYPE);
+				if (ids != null)
+				{
+					for (String id : ids) copyLegacyKey(TAG_PREFIX + id);
+				}
+			}
+			catch (Exception e) { log.warn("legacy tag ids parse failed", e); }
+		}
+
+		// Delete the legacy keys after copy so future loads go straight to
+		// the scoped path. Leaving them would cause stale re-migration attempts.
+		deleteLegacyKey(SCHEMA_KEY);
+		deleteLegacyKey(GOAL_ORDER_KEY);
+		deleteLegacyKey(TAG_IDS_KEY);
+		deleteLegacyKey(SECTIONS_KEY);
+		deleteLegacyKey(CATEGORY_COLORS_KEY);
+		deleteLegacyKey(GOALS_KEY);
+		deleteLegacyKey(TAGS_KEY);
+		if (legacyOrder != null)
+		{
+			try
+			{
+				List<String> ids = GSON.fromJson(legacyOrder, STRING_LIST_TYPE);
+				if (ids != null) for (String id : ids) deleteLegacyKey(GOAL_PREFIX + id);
+			}
+			catch (Exception ignored) {}
+		}
+		if (legacyTagIds != null)
+		{
+			try
+			{
+				List<String> ids = GSON.fromJson(legacyTagIds, STRING_LIST_TYPE);
+				if (ids != null) for (String id : ids) deleteLegacyKey(TAG_PREFIX + id);
+			}
+			catch (Exception ignored) {}
+		}
+
+		log.info("Legacy unscoped migration → {} profile complete", activeProfile);
+
+		// Reload from the now-scoped keys so in-memory state reflects the
+		// migrated data (the previous load() call into the empty profile
+		// returned nothing). Clear first to avoid stacking.
+		goals.clear(); sections.clear(); tags.clear(); categoryColors.clear();
+		goalIndex.clear(); sectionIndex.clear(); tagIndex.clear(); dependentIndex.clear();
+		load();
+		return true;
+	}
+
+	private void copyLegacyKey(String key)
+	{
+		String value = configManager.getConfiguration(CONFIG_GROUP, key);
+		if (value != null) setCfg(key, value);
+	}
+
+	private void deleteLegacyKey(String key)
+	{
+		configManager.unsetConfiguration(CONFIG_GROUP, key);
+	}
+
 	/** Migrate from V1 monolithic to V2 per-entity persistence. */
 	private void migrateToV2()
 	{
@@ -319,10 +502,10 @@ public class GoalStore
 		saveSections();
 		saveCategoryColors();
 		// Mark as migrated
-		configManager.setConfiguration(CONFIG_GROUP, SCHEMA_KEY, SCHEMA_VERSION);
+		setCfg(SCHEMA_KEY, SCHEMA_VERSION);
 		// Delete old monolithic keys
-		configManager.unsetConfiguration(CONFIG_GROUP, GOALS_KEY);
-		configManager.unsetConfiguration(CONFIG_GROUP, TAGS_KEY);
+		unsetCfg(GOALS_KEY);
+		unsetCfg(TAGS_KEY);
 		log.info("Migration complete: {} goals, {} tags", goals.size(), tags.size());
 	}
 
@@ -664,46 +847,46 @@ public class GoalStore
 
 	private void saveGoal(Goal g)
 	{
-		configManager.setConfiguration(CONFIG_GROUP, GOAL_PREFIX + g.getId(), GSON.toJson(g));
+		setCfg(GOAL_PREFIX + g.getId(), GSON.toJson(g));
 	}
 
 	private void deleteGoalKey(String id)
 	{
-		configManager.unsetConfiguration(CONFIG_GROUP, GOAL_PREFIX + id);
+		unsetCfg(GOAL_PREFIX + id);
 	}
 
 	private void saveGoalOrder()
 	{
 		List<String> ids = new ArrayList<>();
 		for (Goal g : goals) ids.add(g.getId());
-		configManager.setConfiguration(CONFIG_GROUP, GOAL_ORDER_KEY, GSON.toJson(ids));
+		setCfg(GOAL_ORDER_KEY, GSON.toJson(ids));
 	}
 
 	private void saveTag(Tag t)
 	{
-		configManager.setConfiguration(CONFIG_GROUP, TAG_PREFIX + t.getId(), GSON.toJson(t));
+		setCfg(TAG_PREFIX + t.getId(), GSON.toJson(t));
 	}
 
 	private void deleteTagKey(String id)
 	{
-		configManager.unsetConfiguration(CONFIG_GROUP, TAG_PREFIX + id);
+		unsetCfg(TAG_PREFIX + id);
 	}
 
 	private void saveTagIds()
 	{
 		List<String> ids = new ArrayList<>();
 		for (Tag t : tags) ids.add(t.getId());
-		configManager.setConfiguration(CONFIG_GROUP, TAG_IDS_KEY, GSON.toJson(ids));
+		setCfg(TAG_IDS_KEY, GSON.toJson(ids));
 	}
 
 	private void saveSections()
 	{
-		configManager.setConfiguration(CONFIG_GROUP, SECTIONS_KEY, GSON.toJson(sections));
+		setCfg(SECTIONS_KEY, GSON.toJson(sections));
 	}
 
 	private void saveCategoryColors()
 	{
-		configManager.setConfiguration(CONFIG_GROUP, CATEGORY_COLORS_KEY, GSON.toJson(categoryColors));
+		setCfg(CATEGORY_COLORS_KEY, GSON.toJson(categoryColors));
 	}
 
 	// -----------------------------------------------------------------

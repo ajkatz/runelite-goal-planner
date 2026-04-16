@@ -10,7 +10,9 @@ import net.runelite.api.Player;
 import net.runelite.api.Quest;
 import net.runelite.api.QuestState;
 import net.runelite.api.Skill;
+import net.runelite.api.WorldType;
 
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -72,6 +74,12 @@ public final class MockClientFactory
 		Player localPlayer = mock(Player.class);
 		when(localPlayer.getCombatLevel()).thenReturn(state.getCombatLevel());
 		when(client.getLocalPlayer()).thenReturn(localPlayer);
+
+		// World type — empty set means main (non-seasonal). Trackers read
+		// this to decide whether to track leagues goals or main goals.
+		when(client.getWorldType()).thenReturn(state.isSeasonal()
+			? EnumSet.of(WorldType.SEASONAL)
+			: EnumSet.noneOf(WorldType.class));
 
 		// Quest states via runScript/getIntStack
 		stubQuestStates(client, state);

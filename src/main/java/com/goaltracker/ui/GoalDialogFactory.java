@@ -426,6 +426,37 @@ class GoalDialogFactory
 			}
 		});
 
+		// League tier dropdown — quick-pick point targets for LEAGUE_POINTS.
+		String[] leagueTierOptions = new String[com.goaltracker.model.AccountMetric.LEAGUE_TIER_NAMES.length + 1];
+		leagueTierOptions[0] = "-- Select tier --";
+		System.arraycopy(com.goaltracker.model.AccountMetric.LEAGUE_TIER_NAMES, 0, leagueTierOptions, 1,
+			com.goaltracker.model.AccountMetric.LEAGUE_TIER_NAMES.length);
+		JComboBox<String> leagueTierCombo = new JComboBox<>(leagueTierOptions);
+		leagueTierCombo.addActionListener(e -> {
+			int idx = leagueTierCombo.getSelectedIndex();
+			if (idx > 0)
+			{
+				accountTargetField.setText(
+					String.valueOf(com.goaltracker.model.AccountMetric.LEAGUE_TIER_VALUES[idx - 1]));
+			}
+		});
+
+		// League area milestone dropdown — quick-pick task-count targets
+		// for LEAGUE_TASKS (area-unlock thresholds: 80 / 200 / 300 / 450).
+		String[] leagueAreaOptions = new String[com.goaltracker.model.AccountMetric.LEAGUE_AREA_NAMES.length + 1];
+		leagueAreaOptions[0] = "-- Select area --";
+		System.arraycopy(com.goaltracker.model.AccountMetric.LEAGUE_AREA_NAMES, 0, leagueAreaOptions, 1,
+			com.goaltracker.model.AccountMetric.LEAGUE_AREA_NAMES.length);
+		JComboBox<String> leagueAreaCombo = new JComboBox<>(leagueAreaOptions);
+		leagueAreaCombo.addActionListener(e -> {
+			int idx = leagueAreaCombo.getSelectedIndex();
+			if (idx > 0)
+			{
+				accountTargetField.setText(
+					String.valueOf(com.goaltracker.model.AccountMetric.LEAGUE_AREA_VALUES[idx - 1]));
+			}
+		});
+
 		// Max button — fills target with the metric's max value
 		javax.swing.JButton maxButton = new javax.swing.JButton("Max");
 		maxButton.addActionListener(e -> {
@@ -440,8 +471,12 @@ class GoalDialogFactory
 		JPanel shortcutRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));
 		shortcutRow.setOpaque(false);
 		shortcutRow.add(caTierCombo);
+		shortcutRow.add(leagueTierCombo);
+		shortcutRow.add(leagueAreaCombo);
 		shortcutRow.add(maxButton);
 		caTierCombo.setVisible(false);
+		leagueTierCombo.setVisible(false);
+		leagueAreaCombo.setVisible(false);
 		shortcutRow.setVisible(false);
 		gbc.gridx = 1; gbc.fill = GridBagConstraints.HORIZONTAL; gbc.weightx = 1;
 		panel.add(shortcutRow, gbc);
@@ -495,7 +530,11 @@ class GoalDialogFactory
 						com.goaltracker.model.AccountMetric m =
 							(com.goaltracker.model.AccountMetric) metricCombo.getSelectedItem();
 						boolean isCa = m == com.goaltracker.model.AccountMetric.CA_POINTS;
+						boolean isLeaguePoints = m == com.goaltracker.model.AccountMetric.LEAGUE_POINTS;
+						boolean isLeagueTasks = m == com.goaltracker.model.AccountMetric.LEAGUE_TASKS;
 						caTierCombo.setVisible(isCa);
+						leagueTierCombo.setVisible(isLeaguePoints);
+						leagueAreaCombo.setVisible(isLeagueTasks);
 						shortcutLabel.setVisible(true);
 						shortcutRow.setVisible(true);
 					}

@@ -12,6 +12,11 @@ import net.runelite.api.Client;
  * goals by type and status, reads the current value from the game
  * client, and records progress via the API. Subclasses implement only
  * the value-extraction logic.
+ *
+ * <p>Leagues/main goal isolation is handled at the persistence layer
+ * via profile-scoped storage, not here — when on a leagues world, only
+ * leagues-profile goals are loaded into memory, so this tracker only
+ * ever sees the goals relevant to the current world.
  */
 public abstract class AbstractTracker
 {
@@ -53,10 +58,24 @@ public abstract class AbstractTracker
 
 		// Snapshot to avoid ConcurrentModificationException if the list
 		// is modified by a compound transaction on another thread.
+		//
+		// We intentionally do NOT skip goals with status=COMPLETE here:
+		// completion is a derived property of (currentValue vs targetValue),
+		// and api.recordGoalProgress handles both directions — it will flip
+		// a complete goal back to ACTIVE when the current value drops below
+		// target. Skipping completed goals would freeze the wrong status
+		// after a profile switch, manual edit, or any event that causes the
+		// backing varbit/xp/kill-count to differ from what completed it.
+		//
+		// ItemTracker overrides this method to keep ITEM_GRIND terminal on
+		// complete (intentional, documented in its javadoc).
 		List<Goal> snapshot = new java.util.ArrayList<>(goals);
 		for (Goal goal : snapshot)
 		{
-			if (goal.getType() != targetType() || goal.getStatus() != GoalStatus.ACTIVE)
+			if (goal.getType() != targetType()) continue;
+			// Skip goals that are explicitly archived/dismissed rather than
+			// merely complete. If future statuses are added, be explicit.
+			if (goal.getStatus() != GoalStatus.ACTIVE && goal.getStatus() != GoalStatus.COMPLETE)
 			{
 				continue;
 			}
