@@ -25,10 +25,10 @@ import java.util.List;
  * here so there's one place that defines the category list, the
  * dropdown-vs-freeform switch, and the SKILLING-is-locked-to-existing rule.
  *
- * <p>Extracted 2026-04-08 to stop the drift between the two dialogs. An
- * earlier mission had the SKILLING filter applied in only one of them, which
- * silently blocked skill tag attachment on single goals while allowing it
- * in bulk — the kind of bug this class exists to prevent.
+ * <p>Extracted to stop drift between the two dialogs. An earlier
+ * version had the SKILLING filter applied in only one of them, which
+ * silently blocked skill tag attachment on single goals while allowing
+ * it in bulk — the kind of bug this class exists to prevent.
  *
  * <p>The dialog is strictly a picker: it collects a (category, label) pair
  * from the user and returns it. It does NOT mutate any goals — callers

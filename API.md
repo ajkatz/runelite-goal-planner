@@ -1,5 +1,11 @@
 # Goal Tracker Plugin API
 
+> ⚠️ **Experimental v0.1.0** — The public API may change in breaking ways
+> before a stable 1.0 tag. Method signatures, DTO shapes, and return
+> semantics are not yet committed. Pin a specific plugin version if you
+> ship a consumer against this API, and expect to update across our
+> minor-version bumps.
+
 The Goal Tracker plugin exposes a public API so other RuneLite plugins can
 read and mutate goals programmatically. This document is for developers of
 consumer plugins.
@@ -45,6 +51,12 @@ public class MyConsumerPlugin extends Plugin
 
         // Add a combat achievement goal by wiki task id
         goalTracker.addCombatAchievementGoal(0); // Noxious Foe
+
+        // Add a boss kill-count goal (100 Zulrah kills)
+        goalTracker.addBossGoal("Zulrah", 100);
+
+        // Add an account-metric goal (200 Quest Points)
+        goalTracker.addAccountGoal("QUEST_POINTS", 200);
     }
 }
 ```
@@ -144,6 +156,24 @@ String addQuestGoal(Quest quest);
 Add a quest goal. Auto-tracks completion via `Quest.getState(client)` polled on
 the game tick (~15-second intervals).
 
+### `addQuestGoalWithPrereqs(Quest, List<Goal>)`
+
+```java
+String addQuestGoalWithPrereqs(Quest quest, List<com.goaltracker.model.Goal> prereqTemplates);
+```
+
+Add a quest goal along with a batch of prerequisite-goal templates, all
+under a single undo entry. For each template, an existing goal that
+structurally satisfies it is reused (same skill at or above the target
+level, same quest name, etc.); otherwise a new auto-seeded goal is
+created and linked as a requirement.
+
+Templates should already be filtered against live player state —
+typically produced by `QuestRequirementResolver.resolve(quest, client)`
+(an internal helper; see ARCHITECTURE.md). Consumer plugins that don't
+have access to the internal resolver can pass an empty list, equivalent
+to `addQuestGoal(quest)`.
+
 ### `addDiaryGoal(String, DiaryTier)`
 
 ```java
@@ -159,6 +189,19 @@ Add an achievement diary goal by area display name and tier.
 Auto-tracks completion via the per-area-per-tier completion varbits where
 exposed in `runelite-api` (Karamja Easy/Medium/Hard are not exposed and stay
 manual-completion).
+
+### `addDiaryGoalWithPrereqs(String, DiaryTier, Resolved)`
+
+```java
+String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier,
+    com.goaltracker.data.DiaryRequirementResolver.Resolved resolved);
+```
+
+Add a diary goal with all unmet skill/quest/account/item requirements,
+plus OR-group alternatives on unlocks, seeded as prerequisite goals
+under a single undo entry. The `Resolved` input is produced by
+`DiaryRequirementResolver.resolve(area, tier, client)` (internal
+helper; external consumers generally use the plain `addDiaryGoal`).
 
 ### `addCombatAchievementGoal(int)`
 
@@ -182,6 +225,46 @@ To find wiki task ids, query the OSRS Wiki bucket API:
 https://oldschool.runescape.wiki/api.php?action=bucket&format=json&query=bucket('combat_achievement').select('id','name').where('name','Noxious Foe').limit(1).run()
 ```
 
+### `addBossGoal(String, int)`
+
+```java
+String addBossGoal(String bossName, int targetKills);
+```
+
+Add a boss kill-count goal. Auto-tracks via the boss's
+`VarPlayerID.TOTAL_X_KILLS` counter. If the boss has declared prereqs
+in `BossKillData.BOSS_PREREQS` (e.g. Dragon Slayer II for Vorkath,
+Song of the Elves for The Gauntlet), the prereq chain is seeded
+transitively — quest prereqs chain their own prereqs, boss-kill
+prereqs recursively invoke `addBossGoal`, OR-alternatives are linked
+via OR-edges. See ARCHITECTURE.md §Requirement resolvers.
+
+- `bossName` — display name as registered in `BossKillData.BOSSES`.
+  Use `BossKillData.getBossNames()` (internal) to enumerate the
+  89 supported entries as of v0.1.0. Case-sensitive.
+- `targetKills` — target count (must be &gt; 0).
+
+Returns `null` if the boss name is not registered.
+
+### `addAccountGoal(String, int)`
+
+```java
+String addAccountGoal(String metricName, int target);
+```
+
+Add an account-wide metric goal. Auto-tracks via `AccountTracker`.
+
+- `metricName` — one of the `AccountMetric` enum names. Supported
+  values in v0.1.0: `QUEST_POINTS`, `COMBAT_LEVEL`, `TOTAL_LEVEL`,
+  `CA_POINTS`, `SLAYER_POINTS`, `KUDOS`, `ATT_STR_COMBINED`,
+  `MISC_APPROVAL`, `TOG_MAX_TEARS`, `CHOMPY_KILLS`, `COLOSSEUM_GLORY`,
+  `DOM_DEEPEST_LEVEL`, `LEAGUE_POINTS`, `LEAGUE_TASKS`.
+- `target` — the target value (e.g. 200 for 200 QP, 126 for max
+  combat).
+
+Returns `null` if the metric name doesn't match an enum value, or the
+target is non-positive.
+
 ### `addCustomGoal(String, String)`
 
 ```java
@@ -191,6 +274,16 @@ String addCustomGoal(String name, String description);
 Create a custom goal with a freeform name and description. Idempotent — duplicate
 names return the existing goal's id. Custom goals start incomplete and can be
 toggled via `markGoalComplete` / `markGoalIncomplete`.
+
+### `editCustomGoal(String, String, String)`
+
+```java
+boolean editCustomGoal(String goalId, String newName, String newDescription);
+```
+
+Edit a `CUSTOM` goal's name and/or description. Either argument may be
+`null` to leave that field unchanged. Returns false on type mismatch
+(non-CUSTOM goals) or when the goal doesn't exist.
 
 ## Read API
 
@@ -215,6 +308,8 @@ completed or incomplete.
 | `DIARY` | `area` (String), `tier` (String — EASY/MEDIUM/HARD/ELITE), `varbitId` (Integer), `tooltip` (String, optional) |
 | `ITEM_GRIND` | `itemId` (Integer) |
 | `COMBAT_ACHIEVEMENT` | `caTaskId` (Integer), `tier` (String), `monster` (String), `tooltip` (String, optional) |
+| `BOSS` | `bossName` (String), `varpId` (Integer) |
+| `ACCOUNT` | `accountMetric` (String — AccountMetric enum name) |
 | `CUSTOM` | *(no extras)* |
 
 Display fields on every `GoalView`:
@@ -315,10 +410,10 @@ plugin's own UI to dogfood the canonical mutation surface, but external
 consumer plugins cannot reach them through the standard `@PluginDependency`
 injection path.
 
-Existing internal methods (Phase 1): `moveGoal`, `removeAllGoals`,
+Existing internal methods: `moveGoal`, `removeAllGoals`,
 `setSectionCollapsed`, `toggleSectionCollapsed`.
 
-### User-defined section CRUD (Phase 2)
+### User-defined section CRUD
 
 #### `createSection(String)`
 
@@ -373,7 +468,7 @@ Move a goal to a different section, appended at the end of the destination
 section. If the goal is COMPLETE, the move is rejected unless the destination
 is the Completed section (reconcile would pull it back otherwise).
 
-### Tracker write path (Phase 4)
+### Tracker write path
 
 #### `recordGoalProgress(String, int)`
 
@@ -381,10 +476,11 @@ is the Completed section (reconcile would pull it back otherwise).
 boolean recordGoalProgress(String goalId, int newValue);
 ```
 
-Record a new progress value for a goal from a tracker loop. Used by the five
-bundled trackers (`SkillTracker`, `QuestTracker`, `DiaryTracker`,
-`CombatAchievementTracker`, `ItemTracker`) to route all per-tick goal mutations
-through the API.
+Record a new progress value for a goal from a tracker loop. Used by the
+eight bundled trackers (`SkillTracker`, `QuestTracker`, `DiaryTracker`,
+`CombatAchievementTracker`, `ItemTracker`, `BossKillTracker`,
+`AccountTracker`, plus the `AbstractTracker` base) to route all
+per-tick goal mutations through the API.
 
 Semantics:
 - If `newValue` equals the goal's current value, no-op (returns false).
@@ -398,14 +494,28 @@ Semantics:
 **Does NOT save, reconcile, or fire `onGoalsChanged`.** Trackers run in
 batches on each game tick; the plugin's `GameTick` handler performs a single
 `goalStore.save() + reconcileCompletedSection() + panel.rebuild()` once at
-the end of each tick if anything updated. Firing the callback per goal would
-defeat the over-querying cleanup from Mission 10.
+the end of each tick if anything updated. Firing the callback per goal
+would spam rebuilds.
 
 ## Versioning and stability
 
-The API is currently in v1. The interface is intentionally minimal and will
-remain backward-compatible across plugin updates wherever possible. Methods may
-be added; existing method signatures and return semantics will not change.
+The API is currently **v0.1.0 (experimental)**. Until we cut a stable 1.0
+tag, existing method signatures and return semantics may change in
+breaking ways between releases. Additions will keep backwards
+compatibility where feasible, but breaking changes (renamed methods,
+changed return types, removed methods) are possible during the 0.x
+series.
+
+What's planned for 1.0:
+- Locking down the current method set and DTOs (no more removals).
+- Stable metric names on `AccountMetric` (the enum is not guaranteed
+  stable at 0.1.0 — new metrics may land; renames are possible).
+- Stable boss names in `BossKillData` (new bosses may be added; names
+  should not churn).
+- A `queryAllTags()` public accessor (currently internal only).
+
+Pin a specific plugin version when building consumer plugins against
+this API during the 0.x series.
 
 ## Alternatives considered
 

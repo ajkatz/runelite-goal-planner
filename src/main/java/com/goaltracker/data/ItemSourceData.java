@@ -3999,7 +3999,7 @@ public final class ItemSourceData
 		// the SKILLING Slayer tag to any item in that set. This makes the
 		// SKILLING Slayer tag the single source of truth for slayer items
 		// and eliminates the gray-text duplicate that motivated the
-		// dedupe bandaid in mission 27.
+		// earlier dedupe bandaid.
 
 		// Tormented Demons
 		source(29580, "Tormented Demons", TagCategory.OTHER);  // Tormented synapse

@@ -7,9 +7,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * Pure-function tests for the relative goal target math (Mission 23).
- * These cover the resolution from "gain X" → absolute target without
- * touching Swing or the RuneLite client.
+ * Pure-function tests for the relative goal target math. Cover the
+ * resolution from "gain X" → absolute target without touching Swing
+ * or the RuneLite client.
  */
 class RelativeTargetResolverTest
 {

@@ -293,7 +293,7 @@ class GoalStoreTest
 	void loadMigratesOrphanedGoals()
 	{
 		Goal orphan = Goal.builder().type(GoalType.CUSTOM).name("Orphan").build();
-		// Explicitly clear the sectionId to simulate pre-Mission-11 data
+		// Explicitly clear the sectionId to simulate legacy data without sections
 		orphan.setSectionId(null);
 		store.getGoals().add(orphan);
 		store.save();
@@ -329,7 +329,6 @@ class GoalStoreTest
 
 	// ====================================================================
 	// Relations — cycle detection, addRequirement, removeRequirement
-	// (Mission 30)
 	// ====================================================================
 
 	/** Helper: create and store a minimal custom goal with the given name, return it. */

@@ -409,7 +409,7 @@ class BossKillDataTest
 	}
 
 	@Nested
-	@DisplayName("Missing-boss expansion (mission 2026-04-14)")
+	@DisplayName("Missing-boss expansion")
 	class MissingBossExpansionTests
 	{
 		@Test

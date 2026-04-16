@@ -1,16 +1,44 @@
 # Goal Tracker — Roadmap
 
-Captured 2026-04-08. Not committed to an order; items get promoted to
-missions as appetite allows. See the mission summaries in the
-`claude-config` repo for completed work.
+Planned future work. Not committed to an order; items are picked up
+as appetite allows. See [CHANGELOG.md](CHANGELOG.md) for work that has
+shipped in v0.1.0.
+
+> ⚠️ **Experimental v0.1.0** — Persistence format and the public API
+> may change in breaking ways before a stable 1.0 tag. Items below
+> may become higher-priority if a breaking change is staged.
+
+## Priority follow-ups (known bugs / obvious gaps)
+
+### Collection-log multi-variant right-click submenu
+Some collection-log entries map to multiple trackable bosses
+(Callisto/Artio, Vet'ion/Calvar'ion, Venenatis/Spindel, Dagannoth
+Prime/Rex/Supreme, maybe others). The right-click handler currently
+picks one variant or offers no menu at all. Should offer a submenu so
+the user can target a specific variant directly from the col log.
+`COLLECTION_LOG_ALIASES` already encodes the variant mapping; the
+handler just needs to consume it.
+
+### Alternative OR-group UI rendering
+`BossKillData.BossPrereqs.alternatives` and the diary equivalent now
+seed OR-edges correctly, but the card list doesn't visually distinguish
+OR-children from AND-children. "Also Completed By" shows in a tooltip,
+but a clearer in-list grouping (nested subheader, dividing line, or
+visual chevron) would make the semantics obvious at a glance.
+
+### Corp Beast quest gate
+Corporeal Beast requires "Summer's End" quest, but that enum value is
+not exposed in `net.runelite.api.Quest` yet. Wrap as a custom Unlock
+when the upstream API adds it, or ship a workaround (maybe an item
+requirement on the Spirit shield from the quest).
 
 ## Quality-of-life
 
 ### Remove deletion / "remove all" confirmations
-Now that undo/redo covers every user mutation (mission 26), the
-two-step confirm dialogs on destructive actions are belt-and-suspenders.
-Ctrl+Z is a faster, lower-friction recovery path. Expected to pair with
-a settings page so users who want the confirmations can opt back in.
+With undo/redo covering every user mutation, two-step confirm dialogs
+on destructive actions are belt-and-suspenders. Ctrl+Z is a faster,
+lower-friction recovery path. Expected to pair with a settings page so
+users who want the confirmations can opt back in.
 
 ### "Move to" for single selection
 The bulk context menu already has "Move to Section". The single-item
@@ -18,30 +46,10 @@ menu should too — it's currently only accessible by dragging, which is
 fiddly for cards off-screen.
 
 ### Settings page
-General settings for defaults and toggles. Replaces the current "remove
-all" dropdown button (those options move into Settings as "danger zone"
-entries). Houses the opt-in toggles for the deletion confirmations above.
-
-## New goal types
-
-### Boss kill count goals
-Track kills on a per-boss basis via the in-game kill count counter or
-chat parsing. Distinct from ITEM_GRIND because drops aren't the target —
-the count itself is. Likely shares the Skill goal's relative/absolute
-mode pattern (reach X kills / gain X more kills).
-
-### Account-wide goals
-Meta-goals that aggregate across the account rather than tracking a
-single skill or item:
-- **Total level**
-- **Total collection log unlocks**
-- **Combat log levels** (total Combat Achievement points across tiers)
-- **Prayers you don't have** (progress toward unlocking the remaining
-  prayers in the prayer book)
-- **Kudos** (Varrock Museum)
-- **Kingdom of Miscellania** approval / favor
-Each likely needs its own tracker class hooking the right varbits or
-chat/UI events. Tracker-per-type pattern already established.
+General settings for defaults and toggles. Replaces the current
+"remove all" dropdown button (those options move into Settings as
+"danger zone" entries). Houses the opt-in toggles for the deletion
+confirmations above.
 
 ## Goal state machine improvements
 
@@ -64,8 +72,8 @@ classifying the metrics we track. Two independent axes:
   - Fastest kill time per boss / encounter
   - Probably "minimum X achieved" style goals in general
 - **Non-monotonic** (numbers that can fluctuate): require the
-  persistent/non-persistent distinction below to be meaningful as goals.
-  Examples:
+  persistent/non-persistent distinction below to be meaningful as
+  goals. Examples:
   - Currency (GP), slayer points, item counts
   - Miscellania approval (has ceiling + decay)
 
@@ -88,86 +96,82 @@ goal expressing the tracking semantics:
 - `NON_MONOTONIC_NON_PERSISTENT` — can fluctuate, terminal once hit
   ("earn 100M GP ever")
 
-A single `ACTIVITY_COUNTER` or numeric goal type can handle most
-monotonic-up cases with varying identity fields (kill count per boss,
-cast count per spell, etc.).
-
-**Ambiguous cases:**
-- **Currency** is interpreted as *current balance* by default
-  (non-monotonic), but "earn 100M GP lifetime" would be monotonic if we
-  tracked lifetime earned. The goal EXPRESSION determines the category,
-  not the metric itself.
-- **Quest points** is a *derived* metric (sum over completed quests).
-  Could be a view over the quest goal subset rather than a first-class
-  goal type.
-
-### Absorption for auto-seeded same-skill goals
-When the wiki-based auto-create flow lands, multiple chains may each
-auto-seed their own same-skill prerequisites (e.g. both the HFTD chain
-and a separate quest chain seed their own "35 Agility"). If those
-seeded goals end up sitting adjacent to each other in the local-repair
-sort output, the lower-target one should be absorbed into the higher.
-
-Rule (revised 2026-04-08 after switching to local-repair sort):
-> After `queryGoalsTopologicallySorted` returns, scan adjacent pairs.
-> For each pair where BOTH are `autoSeeded=true`, BOTH are the same
-> goal type (SKILL or ITEM_GRIND), and BOTH have the same identity
-> (skillName or itemId), delete the lower-target goal and rewire its
-> inbound edges to the higher-target one.
-
-No "topological tier" check needed — the original design was tied to
-Kahn's tier-based sort, but the sort is now stable local-repair so
-tiers don't exist as a concept. Positional adjacency is the only test.
-
-Not needed yet in practice: the UI's "Requires…" picker only links
-to existing goals, so there's no path today that creates `autoSeeded=true`
-goals. Revisit when the wiki auto-create flow is built.
-
 ### Persistent goals
 Item / achievement goals that *re-open* if the underlying state drops
-below the threshold — opposite of mission 25's terminal-once-complete
-rule. Use case: "keep 1000 sharks banked"; if you eat below 1000, the
-goal should flip back to incomplete so you notice. Likely a per-goal
-flag (not per-section, not global) so users can mix persistent and
-terminal goals in the same section.
+below the threshold. Use case: "keep 1000 sharks banked"; if you eat
+below 1000, the goal should flip back to incomplete so you notice.
+Likely a per-goal flag so users can mix persistent and terminal goals
+in the same section.
 
-Interaction with undo: reopening should fire as a tracker-driven
-mutation (bypasses undo stack), same as the existing close path.
+### Absorption for auto-seeded same-skill goals
+When multiple prereq chains seed same-skill goals at different targets
+(e.g. a boss chain seeds 70 Ranged and a separate quest chain seeds 80
+Ranged), adjacent `autoSeeded=true` same-skill goals should be merged:
+delete the lower-target goal and rewire its inbound edges to the
+higher-target one.
 
-### Optional goals
-Goals the user explicitly marks as "nice to have, not required for
-section completion". Affects section progress calculation (denominators
-ignore optional items). Probably a per-goal flag in the model, rendered
-as a visual distinction on the card (muted color, badge, or italics).
+Not needed yet in practice — the current prereq chains mostly converge
+at the root level. Revisit when user-authored goal bundles (below)
+land and multiple independent chains can exist.
+
+## New goal types
+
+### Monotonic-down metrics
+Fastest boss kill time, shortest run duration, etc. Requires the
+tracking-semantics taxonomy above to land first so the comparison
+direction is model-level, not per-call-site.
+
+### Persistent bank/inventory threshold goals
+Pair with the persistent-goals flag: "keep 50 prayer potions banked",
+"have at least 1M coins for repairs". Shares the ITEM_GRIND reader
+but uses the persistent semantics.
+
+### Remaining account metrics
+- Total collection log unlocks
+- Prayers you don't have (progress toward unlocking the remaining
+  prayerbook entries)
+- Fremennik favor, Elven Clans favor, etc.
+- Bounty Hunter rank
+- Season / league rank if applicable
+
+Each likely needs its own case branch in `AccountTracker.readMetric`.
 
 ## Related goals & templates
 
-### Quest requirements
-Quests have minimum skill requirements. Adding a quest goal should
-optionally auto-create the required skill goals too, linked to the
-quest so completing the quest clears them.
-
-### Achievement diary requirements
-Same pattern, but diaries have task-level requirements that are much
-harder to model than quest-level ones. Probably a phase 2 after quest
-requirements ships, if it ships at all.
-
 ### User-defined related-goal templates
-Generalization of the above: let users create, save, and share named
-goal bundles ("Inferno prep", "Max GWD loot", etc.). Creates multiple
-goals at once with predefined targets and tags. Subsumes the earlier
-"goal import/export" idea — the templating infrastructure IS the
-sharing infrastructure.
+Let users create, save, and share named goal bundles ("Inferno prep",
+"Max GWD loot", etc.). Creates multiple goals at once with predefined
+targets and tags. Subsumes the "goal import/export" idea — the
+templating infrastructure IS the sharing infrastructure.
 
 **Order for this cluster:** build the "add N goals atomically" infra
 first (extending `beginCompound`/`endCompound` to cover multi-create
-flows cleanly), then quest requirements as the first consumer, then
-the templating UI once the infra is proven by a real use case.
+flows cleanly), then use it to power both built-in bundles and
+user-authored ones.
+
+### Optional goals (partial)
+`Goal.optional` flag exists and is set by prereq seeders for
+recommended skills / recommended combat. Not yet honored in section
+progress calculation denominators — optional goals should not count
+against "6 of 8 complete" totals. Needs a small pass through the
+panel's progress-indicator code.
 
 ## Release
 
-### Prepare for Plugin Hub submission
-Milestone 5 from the original scope (2026-04-04). Not yet started.
-Likely its own mission once the roadmap above has matured — review
-process usually surfaces its own work (naming, deps, license, perf,
-security, screenshots, description).
+### Plugin Hub submission
+All of: screenshots, a README suitable for the hub listing, a license,
+a CHANGELOG, and a PR to `runelite/plugin-hub` with the manifest
+entry. Docs are now in place as of v0.1.0; this is the next
+user-visible step.
+
+### Stable 1.0 API tag
+Before cutting 1.0, commit to:
+- Final `AccountMetric` enum values (no more renames)
+- Final `BossKillData.BOSSES` naming (new entries OK, renames not OK)
+- Public `queryAllTags()` method
+- Persistence-format version field + migration dispatch
+- Any additional internal APIs promoted to public (probably
+  `resolveQuestRequirements`, `resolveDiaryRequirements`)
+
+Cutting 1.0 is a deliberate break: once tagged, method removal is a
+major-version bump (2.0).

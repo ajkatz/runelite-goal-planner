@@ -10,7 +10,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * Unit tests for {@link CommandHistory}. Mission 26.
+ * Unit tests for {@link CommandHistory}.
  *
  * <p>Uses a tiny stub Command that pushes/pops to a shared list so we can
  * verify exactly which commands ran (and in which direction) without

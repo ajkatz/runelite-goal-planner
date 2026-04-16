@@ -36,8 +36,7 @@ import static org.mockito.Mockito.*;
  *   <li>The internal API: section CRUD, color overrides, selection,
  *       recordGoalProgress, moveGoalToSection</li>
  *   <li>onGoalsChanged callback firing semantics (only on actual change)</li>
- *   <li>Validation rules (built-ins immutable, no-op detection, type gates
- *       that survived Mission 17)</li>
+ *   <li>Validation rules (built-ins immutable, no-op detection, type gates)</li>
  * </ul>
  *
  * <p>Uses a real GoalStore against an InMemoryConfigManager. ItemManager and
@@ -101,11 +100,11 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("auto-links lower targets as prerequisites of higher targets (mission 30)")
+		@DisplayName("auto-links lower targets as prerequisites of higher targets")
 		void autoLinksSameSkillChain()
 		{
-			// Mission 30: the old implicit chain sort has been replaced with
-			// explicit auto-link on add. Adding 99 Prayer then 96 Prayer
+			// The old implicit chain sort has been replaced with explicit
+			// auto-link on add. Adding 99 Prayer then 96 Prayer
 			// should create an edge "99 requires 96" (96 is a prerequisite)
 			// so that queryGoalsTopologicallySorted puts 96 visually above 99.
 			// The flat priority order in store.getGoals() stays at insertion
@@ -220,7 +219,7 @@ class GoalTrackerApiImplTest
 	}
 
 	@Test
-	@DisplayName("markGoalComplete works on ITEM_GRIND goals (Mission 17)")
+	@DisplayName("markGoalComplete works on ITEM_GRIND goals")
 	void markItemGoalComplete()
 	{
 		Goal item = Goal.builder().type(GoalType.ITEM_GRIND).name("Cannonballs")
@@ -386,7 +385,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("setSectionColor works on built-in sections (Mission 13)")
+		@DisplayName("setSectionColor works on built-in sections")
 		void setSectionColorBuiltIn()
 		{
 			String id = store.getIncompleteSection().getId();
@@ -405,10 +404,10 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("setTagColor recolors a non-skill tag entity (Mission 19)")
+		@DisplayName("setTagColor recolors a non-skill tag entity")
 		void setTagColor()
 		{
-			// Mission 20: setTagColor on a non-OTHER tag delegates to setCategoryColor.
+			// setTagColor on a non-OTHER tag delegates to setCategoryColor.
 			// The BOSS tag's color now reflects the BOSS category color.
 			String goalId = api.addCustomGoal("Custom", "");
 			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
@@ -423,7 +422,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("setTagColor on an OTHER tag uses per-tag override (Mission 20)")
+		@DisplayName("setTagColor on an OTHER tag uses per-tag override")
 		void setTagColorOnOtherTag()
 		{
 			String goalId = api.addCustomGoal("Custom", "");
@@ -438,7 +437,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("setTagColor on a SKILLING tag delegates to the SKILLING category color (Mission 20)")
+		@DisplayName("setTagColor on a SKILLING tag delegates to the SKILLING category color")
 		void setTagColorOnSkillingDelegatesToCategory()
 		{
 			String goalId = api.addCustomGoal("Custom", "");
@@ -453,7 +452,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Internal API: selection (Mission 15)
+	// Internal API: selection
 	// ====================================================================
 
 	@Nested
@@ -567,7 +566,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Internal API: recordGoalProgress (Mission 14 + Mission 17 fix)
+	// Internal API: recordGoalProgress
 	// ====================================================================
 
 	@Nested
@@ -633,7 +632,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Mission 19: changeTarget regenerates display strings
+	// changeTarget regenerates display strings
 	// ====================================================================
 
 	@Nested
@@ -675,7 +674,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Mission 19: addTagWithCategory (legacy panel direct-mutation removal)
+	// addTagWithCategory (legacy panel direct-mutation removal)
 	// ====================================================================
 
 	@Nested
@@ -738,7 +737,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Mission 19: Tag entity CRUD
+	// Tag entity CRUD
 	// ====================================================================
 
 	@Nested
@@ -783,7 +782,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("recolorTag on a BOSS tag delegates to the BOSS category color (Mission 20)")
+		@DisplayName("recolorTag on a BOSS tag delegates to the BOSS category color")
 		void recolorNonSkillSystemTag()
 		{
 			com.goaltracker.model.Tag bossTag = store.findOrCreateSystemTag("Zulrah",
@@ -794,7 +793,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("recolorTag on a SKILLING tag delegates to the SKILLING category color (Mission 20)")
+		@DisplayName("recolorTag on a SKILLING tag delegates to the SKILLING category color")
 		void recolorSkillingTagDelegatesToCategory()
 		{
 			com.goaltracker.model.Tag slayer = store.findOrCreateSystemTag("Slayer",
@@ -804,7 +803,7 @@ class GoalTrackerApiImplTest
 		}
 
 		@Test
-		@DisplayName("recolorTag on an OTHER tag uses per-tag override (Mission 20)")
+		@DisplayName("recolorTag on an OTHER tag uses per-tag override")
 		void recolorOtherTagPerInstance()
 		{
 			com.goaltracker.model.Tag pet = store.findOrCreateSystemTag("Pet",
@@ -936,7 +935,7 @@ class GoalTrackerApiImplTest
 		}
 
 		// =====================================================================
-		// Mission 21: icon tags
+		// Icon tags
 		// =====================================================================
 
 		@Test
@@ -1044,7 +1043,7 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
-	@DisplayName("Bulk multi-selection actions (Mission 24)")
+	@DisplayName("Bulk multi-selection actions")
 	class BulkActions
 	{
 		private Goal addCustomWithDefaults(String name, String... defaultTagIds)
@@ -1192,7 +1191,7 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
-	@DisplayName("positionGoalInSection (Mission 25)")
+	@DisplayName("positionGoalInSection")
 	class PositionGoalInSection
 	{
 		@Test
@@ -1289,7 +1288,7 @@ class GoalTrackerApiImplTest
 	}
 
 	@Nested
-	@DisplayName("Undo / Redo (Mission 26)")
+	@DisplayName("Undo / Redo")
 	class UndoRedo
 	{
 		@Test
@@ -1904,7 +1903,7 @@ class GoalTrackerApiImplTest
 	}
 
 	// ====================================================================
-	// Mission 30 — queryGoalsTopologicallySorted
+	// queryGoalsTopologicallySorted
 	// ====================================================================
 
 	@Nested

@@ -25,15 +25,14 @@ import static org.mockito.Mockito.*;
 /**
  * Tests for {@link ItemTracker}, the inventory+bank quantity tracker.
  *
- * <p>Covers the Mission 17 fix: the bank-null guard was rewritten to allow
- * pre-bank-visit growth-only updates instead of an all-or-nothing block.
- * Pre-bank-visit, only growth past the persisted value is allowed (so a
- * partial inventory snapshot can't wipe a persisted higher value). After
- * the first bank visit, full bank+inventory counts apply normally.
+ * <p>Covers the bank-null guard: pre-bank-visit, only growth past the
+ * persisted value is allowed (so a partial inventory snapshot can't
+ * wipe a persisted higher value). After the first bank visit, full
+ * bank+inventory counts apply normally.
  *
  * <p>Uses a real GoalStore + GoalTrackerApiImpl + ItemTracker against
- * Mockito-mocked Client / ItemContainer. The api is the canonical mutation
- * surface (Mission 14: trackers go through recordGoalProgress).
+ * Mockito-mocked Client / ItemContainer. The api is the canonical
+ * mutation surface — trackers go through recordGoalProgress.
  */
 class ItemTrackerTest
 {
@@ -133,7 +132,7 @@ class ItemTrackerTest
 	}
 
 	@Test
-	@DisplayName("Mission 25: completed item goals are sticky and do not revert on drop")
+	@DisplayName("completed item goals are sticky and do not revert on drop")
 	void completedItemGoalIsSticky()
 	{
 		Goal g = makeItemGoal(CANNONBALL_ID, 200);
@@ -256,7 +255,7 @@ class ItemTrackerTest
 	}
 
 	// ====================================================================
-	// Mission 23: comprehensive container counting
+	// Comprehensive container counting
 	// ====================================================================
 
 	private void stubContainer(InventoryID id, Item... items)

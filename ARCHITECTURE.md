@@ -19,7 +19,7 @@ If you're looking for an overview of features, see [README.md](README.md).
               ▼                   ▼                       ▼
        ┌────────────┐   ┌──────────────────┐   ┌──────────────────┐
        │   Panel    │   │     Trackers     │   │  Right-click     │
-       │ (Swing UI) │   │  (5 subclasses)  │   │  MenuEntry inject │
+       │ (Swing UI) │   │  (8 subclasses)  │   │  MenuEntry inject │
        └─────┬──────┘   └────────┬─────────┘   └────────┬─────────┘
              │                   │                      │
              │                   ▼                      │
@@ -45,10 +45,10 @@ If you're looking for an overview of features, see [README.md](README.md).
 
 **The single most important rule:** every mutation goes through
 `GoalTrackerApiImpl`. The panel calls it, the trackers call it, the right-
-click handlers call it. As of Mission 19 there are zero direct
-`goalStore.X()` mutations from the UI layer. Two bridge methods on the
-internal API exist specifically to support panel patterns that needed
-more than the public API offered:
+click handlers call it. There are zero direct `goalStore.X()` mutations
+from the UI layer. Two bridge methods on the internal API exist
+specifically to support panel patterns that needed more than the
+public API offered:
 
 - `addTagWithCategory(goalId, label, categoryName)` — the public `addTag`
   forces every external-API tag to `OTHER`; the panel's Add Tag dialog
@@ -62,9 +62,20 @@ more than the public API offered:
 `GoalTrackerApi` (the public interface) is bound via
 `Plugin.configure(Binder)` so external consumer plugins can `@Inject` it
 after declaring `@PluginDependency(GoalTrackerPlugin.class)`. It's deliberately
-limited to read methods (`queryAllGoals`, `queryAllSections`) and the create
-methods (`addSkillGoal`, `addCustomGoal`, `addItemGoal`, `addQuestGoal`,
-`addDiaryGoal`, `addCombatAchievementGoal`).
+limited to:
+- Read: `queryAllGoals`, `queryAllSections`
+- Create: `addSkillGoal`, `addSkillGoalForLevel`, `addItemGoal`,
+  `addQuestGoal`, `addDiaryGoal`, `addCombatAchievementGoal`,
+  `addBossGoal`, `addAccountGoal`, `addCustomGoal`
+- Prereq-chain create: `addQuestGoalWithPrereqs`,
+  `addDiaryGoalWithPrereqs`
+- Light mutate: `changeTarget`, `editCustomGoal`, `markGoalComplete`,
+  `markGoalIncomplete`, `addTag`, `removeTag`, `restoreDefaultTags`,
+  `removeGoal`
+
+Relation edges (`addRequirement`, `addOrRequirement`), requirement
+resolvers, section CRUD, color overrides, and tracker write paths live
+on `GoalTrackerInternalApi` — not exposed to external plugins.
 
 `GoalTrackerInternalApi` is a separate interface implemented by the SAME
 concrete class (`GoalTrackerApiImpl`). It is **not bound** in the Guice
@@ -81,19 +92,27 @@ destructive / layout-coupled / batch-internal operations off-limits.
 `Goal` is the persisted entity. Lombok `@Data @Builder`. Important fields:
 
 - `id` — UUID, stable across renames/moves
-- `type` — SKILL / QUEST / DIARY / COMBAT_ACHIEVEMENT / ITEM_GRIND / CUSTOM
-- `status` — ACTIVE / COMPLETE / BLOCKED / PAUSED. **Decorative** since
-  Mission 11. The canonical completion check is `completedAt > 0`, not
-  `status == COMPLETE`. New code should never read or write `status` for
+- `type` — SKILL / QUEST / DIARY / COMBAT_ACHIEVEMENT / ITEM_GRIND / BOSS / ACCOUNT / CUSTOM
+- `status` — ACTIVE / COMPLETE / BLOCKED / PAUSED. **Decorative.** The
+  canonical completion check is `completedAt > 0`, not `status ==
+  COMPLETE`. New code should never read or write `status` for
   completion logic.
 - `currentValue` / `targetValue` — progress
 - `completedAt` — long timestamp (millis). 0 means not complete.
 - `sectionId` — UUID of the owning section. `null` is migrated to Incomplete on load.
 - `priority` — list-position int, reindexed by GoalStore on every reorder
 - `customColorRgb` — packed 0xRRGGBB user override; -1 means "use type default"
-- `tags` / `defaultTags` — embedded `ItemTag` lists. defaultTags is the auto-
-  generated snapshot from creation; tags is the live list (may include user
-  additions). Restore Defaults copies defaultTags back to tags.
+- `tagIds` / `defaultTagIds` — references to tag entities (see Tags section).
+  defaultTagIds is the auto-generated snapshot from creation; tagIds is the
+  live list. Restore Defaults copies defaultTagIds back to tagIds.
+- `requiredGoalIds` — AND-edge prereqs: all must complete before this goal
+  is considered satisfiable.
+- `orRequiredGoalIds` — OR-edge prereqs: ANY one satisfying unlocks this
+  goal (in addition to the AND-list). Used for "99 Attack OR 99 Strength
+  OR 130 Att+Str combined" style gates.
+- `bossName` / `questName` / `skillName` / `accountMetric` / `itemId` —
+  type-specific discriminator fields; the tracker for each type reads
+  the relevant one to know what live state to map to this goal.
 
 `Section` mirrors the same shape: id, name, order int, collapsed bool,
 builtInKind enum (INCOMPLETE / COMPLETED / null for user), colorRgb override.
@@ -105,8 +124,10 @@ sections fill the 1..N band above them.
 
 ## GoalStore (the persistence layer)
 
-`GoalStore` is the only thing that touches `ConfigManager`. Two configuration
-keys: `goaltracker.goals` and `goaltracker.sections`. Both are JSON arrays.
+`GoalStore` is the only thing that touches `ConfigManager`. Three
+configuration keys: `goaltracker.goals`, `goaltracker.sections`, and
+`goaltracker.tags` (tags are a first-class entity — see Tags section
+below). All three are JSON arrays.
 
 Key methods worth knowing:
 
@@ -141,7 +162,9 @@ preserve grouping.
 
 ## Trackers (the read-from-game path)
 
-Five trackers, each `@Singleton @Inject`. Common shape:
+Eight trackers, each `@Singleton @Inject`. Seven type-specific
+subclasses extend **`AbstractTracker`** which owns the
+`checkGoals(List<Goal>) -> boolean` template. Common shape:
 
 ```java
 public boolean checkGoals(List<Goal> goals) {
@@ -157,10 +180,21 @@ public boolean checkGoals(List<Goal> goals) {
 Each tracker is wired to a different RuneLite event:
 
 - **SkillTracker** → `onStatChanged` (also on GameTick as a fallback)
-- **QuestTracker, DiaryTracker, CombatAchievementTracker** → `onGameTick`
+- **QuestTracker, DiaryTracker, CombatAchievementTracker, BossKillTracker, AccountTracker** → `onGameTick`
 - **ItemTracker** → `onItemContainerChanged` (sums every persistent storage container exposed by RuneLite)
 
-The tracker batch contract (Mission 14):
+**BossKillTracker** reads `VarPlayerID.TOTAL_X_KILLS` / per-level
+completion counters via `BossKillData.getVarpId(bossName)`. 89 bosses
+and activities mapped as of v0.1.0.
+
+**AccountTracker** reads account-wide metrics via a switch over the
+`AccountMetric` enum: quest points, combat level, total level, CA
+points, slayer points, museum kudos, combined Att+Str, Misc approval,
+Tears of Guthix PB, Chompy kills, Colosseum Glory, DoM Deepest Level,
+League Points, League Tasks. Adding a new metric requires a case
+branch here plus an enum entry on `AccountMetric`.
+
+The tracker batch contract:
 
 > `recordGoalProgress` is **silent** — it does NOT save, reconcile, or fire
 > the panel-rebuild callback. Trackers iterate over their goals, and the
@@ -180,7 +214,7 @@ prevents this: pre-bank-visit, only updates that strictly increase the
 persisted value are applied. After the first bank visit, the flag flips
 permanently and full counts apply.
 
-**ItemTracker counts across multiple containers (Mission 23):** the sum
+**ItemTracker counts across multiple containers:** the sum
 covers `INVENTORY`, `BANK`, `EQUIPMENT`, `SEED_VAULT`, `GROUP_STORAGE`, and
 `KINGDOM_OF_MISCELLANIA`. Each is only summed when its `ItemContainer` is
 non-null — RuneLite only populates one when the player has interacted with
@@ -192,14 +226,14 @@ would double-count items the player is about to bank. `countItem` is
 public so the create-goal UI can snapshot a baseline for relative item
 goals.
 
-**Relative goal targets (Mission 23):** the Add Goal dialog has a Mode
-toggle ("Reach X" / "Gain X more") for SKILL and ITEM_GRIND goals.
-Relative input is resolved at creation time — the math runs in the UI via
-`RelativeTargetResolver` (a pure helper) and the resulting absolute target
-hits the existing `addSkillGoal` / item-search flows unchanged. Once
-stored, a relative goal is indistinguishable from an absolute one with
-the same target. No new API surface, no new fields on Goal. CUSTOM and
-skill level-deltas are deferred to a future mission.
+**Relative goal targets:** the Add Goal dialog has a Mode toggle
+("Reach X" / "Gain X more") for SKILL and ITEM_GRIND goals. Relative
+input is resolved at creation time — the math runs in the UI via
+`RelativeTargetResolver` (a pure helper) and the resulting absolute
+target hits the existing `addSkillGoal` / item-search flows unchanged.
+Once stored, a relative goal is indistinguishable from an absolute
+one with the same target. No new API surface, no new fields on Goal.
+CUSTOM and skill level-deltas are deferred.
 
 **ItemTracker also does NOT filter on `status != ACTIVE`** unlike the other
 4 trackers. Item quantities can decrease (drop, sell, use as material) so a
@@ -209,7 +243,85 @@ drops below target. Other trackers can skip COMPLETE goals because their
 underlying state never decreases (once 99 attack, always 99 attack; once
 quest done, always quest done).
 
-## Undo / Redo (Mission 26)
+## Requirement resolvers and prereq seeding
+
+Quest, diary, and boss goals can all seed a prereq tree on creation
+(the "Add Goal with Requirements" right-click path). Three data tables
+drive it:
+
+- **`QuestRequirements`** — per-quest skill/quest prereqs, QP, hard
+  combat level, kudos, recommended skills, recommended combat level.
+- **`DiaryRequirements`** — per (area, tier) skill/quest/unlock reqs,
+  bossKills, itemReqs, accountReqs, `Alternative` OR-groups.
+- **`BossKillData`** — per-boss `BossPrereqs` with the same shape as
+  `DiaryRequirements.Reqs`: skills, unlocks, quests, bossKills,
+  itemReqs, accountReqs, and `Alternative` OR-groups.
+
+Two resolvers convert data tables into `Goal` templates, pre-filtering
+against live player state:
+
+- **`QuestRequirementResolver.resolve(Quest, Client)`** — emits
+  templates for every unmet skill / unfinished quest prereq, plus
+  ACCOUNT templates for QP / hard combat / kudos, plus optional
+  templates for recommended combat level (pre-filtered against the
+  player's current combat level to avoid emitting already-met
+  recommendations).
+- **`DiaryRequirementResolver.resolve(area, tier, Client)`** — same
+  shape, returns `Resolved` with templates + `ResolvedUnlock` list
+  (each carrying its own quest/skill/account prereqs + OR-alternatives).
+
+**Pre-filter, not post-filter.** Every recommendation / requirement
+is filtered against live player state in the resolver *before*
+emission, not after the seeder creates the goal. This is because
+freshly-created ACCOUNT goals have `currentValue=0` until the next
+`AccountTracker` tick — so the post-creation `isComplete` check misses
+already-met account requirements.
+
+### `seedPrereqsInto` — the priority-queue BFS
+
+`GoalCreationService.seedPrereqsInto` is the central engine that
+consumes resolver templates and creates goals linked to a root. Used
+by `addDiaryGoalWithPrereqs`, `addQuestGoalWithPrereqs`, and
+`addBossGoal`. Three-queue priority BFS:
+
+1. **Optional queue** (recommendations, combat-level pills) — drain first
+2. **High-priority queue** (SKILL / ACCOUNT / ITEM / BOSS templates)
+3. **Low-priority queue** (QUEST templates) — drain last
+
+When a QUEST template is dequeued, its own prereqs are resolved via
+`QuestRequirementResolver.resolve` and pushed onto the appropriate
+queues with the quest as parent. This produces a card-list ordering
+where leaf skills surface at the top of the card list and the deep
+quest chain reads top-down.
+
+Cycle guard: every quest processed goes into a `visited` set before
+we resolve its prereqs. Resolving a quest that's already in `visited`
+is a no-op.
+
+### OR-groups (alternatives)
+
+`DiaryRequirements.Alternative` and `BossKillData.Alternative` describe
+"any one of these paths satisfies the gate" — e.g. Warriors Guild entry
+is "130 Att+Str combined OR 99 Attack OR 99 Strength". The seeder wires
+these via `api.addOrRequirement(parentId, childId)` (a separate edge
+list from the AND-required list).
+
+`GoalMutationService.checkOrPrereqCompletion` applies the semantics:
+the parent auto-completes when **ANY one** OR-child is complete AND
+**all** AND-children are complete. The UI renders OR-children under
+an "Also Completed By" heading in the parent's card tooltip.
+
+**Tracker-thread-affinity rule.** Menu `onClick` handlers that end up
+calling resolvers MUST run on the RuneLite client thread (not the
+Swing EDT), because `Quest.getState(client)` and
+`client.getRealSkillLevel` assert the client thread. Paths that open
+an input dialog via `SwingUtilities.invokeLater` must hop back to
+`clientThread.invokeLater` before calling `addBossGoal` / etc.
+Violating this causes the resolver calls to throw `IllegalStateException`
+which the EDT swallows — the feature appears to do nothing with no
+error visible.
+
+## Undo / Redo
 
 User-driven mutations are routed through a Command pattern so they can be
 undone and redone. Tracker-driven mutations (skill XP, quest tick, item
@@ -256,13 +368,13 @@ Tracker-driven mutations are NOT undoable by design. Undoing "I gained
 real game state, and there's no obvious "redo" semantic. Only actions
 the user explicitly performed go on the stack.
 
-Currently undoable (Mission 26 phase 1):
+Currently undoable:
 - addCustomGoal, removeGoal, changeTarget, setGoalColor
 - markGoalComplete, markGoalIncomplete
 - addTag, removeTag, restoreDefaultTags
 - bulkRestoreDefaults, bulkRemoveTagFromGoals
 
-Phase 2 (deferred): section CRUD, tag entity CRUD, reorder commands.
+Deferred: section CRUD, tag entity CRUD, reorder commands.
 
 ## GoalReorderingService (skill chain rules)
 
@@ -331,9 +443,8 @@ because actions can come from both clicks and menus.
 
 ## Tags (first-class entity model)
 
-Mission 19 promoted tags from per-goal embedded values to first-class
-entities. The store has three top-level collections now: `goals`,
-`sections`, `tags`.
+Tags are first-class entities. The store has three top-level
+collections: `goals`, `sections`, `tags`.
 
 `Tag` model: `id` (UUID), `label`, `category` (TagCategory enum), `colorRgb`
 (packed override, -1 = use category default), `system` (boolean).
@@ -362,7 +473,7 @@ on every creation, so deleting it would orphan the lookup). System tags
 in the SKILLING category are fully read-only because they render as skill
 icons — recoloring would break the visual recognition.
 
-**Color rules (Mission 20).** Color responsibility split by category:
+**Color rules.** Color responsibility split by category:
 
 | Category | Color source | Edit path |
 |----------|-------------|-----------|
@@ -382,7 +493,7 @@ it finds the tag entity referenced by the goal, branches on category
 header button. Lists every tag with per-row Rename / Recolor / Delete
 actions; buttons are disabled per the system tag rules above.
 
-### Icons (Mission 21)
+### Icons
 
 Tags can render as either a color OR an icon. The Tag entity carries a
 nullable `iconKey` String:
@@ -421,7 +532,7 @@ key is sourceless and forward-compatible.
 - `resetCategoryColor(categoryName)` — clear category override
 - `deleteTag(tagId)` — fails on system, cascades to all goals' tagIds
 - `addTagWithCategory(goalId, label, categoryName)` — find-or-create + attach reference
-- `setTagIcon(tagId, iconKey)` — set/clear an icon on any tag (Mission 21)
+- `setTagIcon(tagId, iconKey)` — set/clear an icon on any tag
 - `clearTagIcon(tagId)` — equivalent to setTagIcon(tagId, null)
 
 ## Color overrides
@@ -453,25 +564,27 @@ ints and convert to `Color` only at render time.
 
 ```
 src/test/java/com/goaltracker/
-├── api/
-│   └── GoalTrackerApiImplTest.java       # Public + internal API surface
-├── model/
-│   └── GoalTest.java                     # Model invariants
-├── persistence/
-│   └── GoalStoreTest.java                # Load/save/migrate/reconcile/section CRUD
-├── service/
-│   └── GoalReorderingServiceTest.java    # Skill chain ordering
-├── tracker/
-│   └── ItemTrackerTest.java              # Bank-null guard, growth-only, un-complete
-├── testsupport/
-│   └── InMemoryConfigManager.java        # Mockito-backed map fake for ConfigManager
-└── util/
-    └── FormatUtilTest.java               # Number formatting
+├── api/                                  # Public + internal API surface tests
+├── data/                                 # BossKillData, QuestRequirements,
+│                                         #   BossAlternativeSeedingTest
+├── integration/                          # Deep end-to-end flows
+│                                         #   (quest chains, boss prereq seeding,
+│                                         #   diary completion, warriors-guild OR)
+├── model/                                # Model invariants
+├── persistence/                          # Load/save/migrate/reconcile + section CRUD
+├── service/                              # Skill-chain ordering
+├── tracker/                              # All 8 trackers
+├── testsupport/                          # InMemoryConfigManager, MockClientFactory,
+│                                         #   MockGameState, TrackerTestHarness
+├── ui/                                   # Dialog + picker behavior
+└── util/                                 # Number formatting
 ```
 
-92 tests as of Mission 18. Goal: API + Store + ItemTracker covered now;
-secondary trackers (Skill/Quest/Diary/CA), color/selection/bulk specifics,
-and property-based model tests are deferred to follow-up missions.
+399 tests as of v0.1.0. All 8 trackers have smoke tests; transitive
+prereq chaining has integration coverage at Gauntlet → SotE depth;
+OR-alternative seeding is validated via a synthetic `BossPrereqs`
+injected through `BossKillData.swapPrereqsForTest` (package-private
+test hook).
 
 **Testing rules of thumb:**
 
@@ -485,6 +598,10 @@ and property-based model tests are deferred to follow-up missions.
   it indirectly through the API methods that call it.
 - **Test names use `@DisplayName`** so the test runner output reads as
   English. The method name is incidental.
+- **MockClient is thread-agnostic** — it will NOT catch the
+  "Quest.getState called off the client thread" bug. Integration tests
+  pair with an `EDT-hop` check on any path that goes through a menu
+  handler. See [TESTING.md](TESTING.md) for the full fixture playbook.
 
 ## Build / Run
 

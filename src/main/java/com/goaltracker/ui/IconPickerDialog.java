@@ -308,7 +308,7 @@ public class IconPickerDialog extends JDialog
 	 * Discover bundled icon keys by listing /icons/ on the classpath.
 	 * Java's classloader doesn't expose directory listings reliably, so
 	 * this returns an empty list for now — bundled icon support is wired
-	 * but no icons ship in this mission. Future missions can replace this
+	 * but no icons are currently bundled. Future work can replace this
 	 * with a proper resource scanner or a hardcoded manifest.
 	 */
 	private List<String> listBundledIconKeys()
