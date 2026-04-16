@@ -53,7 +53,7 @@ class GoalPlannerApiImplTest
 	void setUp()
 	{
 		ConfigManager configManager = InMemoryConfigManager.create();
-		store = new GoalStore(configManager);
+		store = new GoalStore(configManager, new com.google.gson.Gson());
 		store.load();
 
 		ItemManager itemManager = mock(ItemManager.class);

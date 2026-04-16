@@ -34,8 +34,7 @@ import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
 import net.runelite.api.events.WorldChanged;
-import net.runelite.api.widgets.WidgetID;
-import net.runelite.api.widgets.WidgetInfo;
+import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
@@ -1245,9 +1244,9 @@ public class GoalPlannerPlugin extends Plugin
 
 
 			// Check if this is an inventory, bank, or collection log item
-			boolean isInventory = widgetGroupId == WidgetID.INVENTORY_GROUP_ID;
-			boolean isBank = widgetGroupId == WidgetID.BANK_GROUP_ID;
-			boolean isCollectionLog = widgetGroupId == WidgetID.COLLECTION_LOG_ID;
+			boolean isInventory = widgetGroupId == InterfaceID.INVENTORY;
+			boolean isBank = widgetGroupId == InterfaceID.BANKMAIN;
+			boolean isCollectionLog = widgetGroupId == InterfaceID.COLLECTION;
 
 			if (!isInventory && !isBank && !isCollectionLog)
 			{

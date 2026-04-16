@@ -140,7 +140,7 @@ public final class TrackerTestHarness<T extends AbstractTracker>
 		Client client = MockClientFactory.createClient(state);
 
 		ConfigManager configManager = InMemoryConfigManager.create();
-		GoalStore store = new GoalStore(configManager);
+		GoalStore store = new GoalStore(configManager, new com.google.gson.Gson());
 		store.load();
 
 		ItemManager itemManager = mock(ItemManager.class);

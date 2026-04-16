@@ -15,7 +15,7 @@ import java.util.Map;
  * <p>Typical usage:
  * <pre>
  *   ConfigManager configManager = InMemoryConfigManager.create();
- *   GoalStore store = new GoalStore(configManager);
+ *   GoalStore store = new GoalStore(configManager, new com.google.gson.Gson());
  *   store.load();
  * </pre>
  *

@@ -6,7 +6,6 @@ import com.goalplanner.model.Section;
 import com.goalplanner.model.Tag;
 import com.goalplanner.model.TagCategory;
 import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
 import com.google.gson.reflect.TypeToken;
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.client.config.ConfigManager;
@@ -48,7 +47,12 @@ public class GoalStore
 	private static final String TAG_IDS_KEY = "tag_ids";
 	private static final String TAG_PREFIX = "t.";
 
-	private static final Gson GSON = new GsonBuilder().create();
+	/**
+	 * Injected client Gson. Plugin-hub rejects {@code new Gson()}: all
+	 * plugins must share RuneLite's configured instance (call {@code
+	 * .newBuilder()} on it if custom settings are needed).
+	 */
+	private final Gson gson;
 	private static final Type GOAL_LIST_TYPE = new TypeToken<List<Goal>>(){}.getType();
 	private static final Type SECTION_LIST_TYPE = new TypeToken<List<Section>>(){}.getType();
 	private static final Type TAG_LIST_TYPE = new TypeToken<List<Tag>>(){}.getType();
@@ -106,9 +110,10 @@ public class GoalStore
 	private final java.util.Map<String, java.util.Set<String>> dependentIndex = new java.util.HashMap<>();
 
 	@Inject
-	public GoalStore(ConfigManager configManager)
+	public GoalStore(ConfigManager configManager, Gson gson)
 	{
 		this.configManager = configManager;
+		this.gson = gson;
 	}
 
 	public void load()
@@ -197,7 +202,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<Goal> loaded = GSON.fromJson(goalsJson, GOAL_LIST_TYPE);
+				List<Goal> loaded = gson.fromJson(goalsJson, GOAL_LIST_TYPE);
 				if (loaded != null)
 				{
 					goals = new ArrayList<>(loaded);
@@ -218,7 +223,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<Tag> loaded = GSON.fromJson(tagsJson, TAG_LIST_TYPE);
+				List<Tag> loaded = gson.fromJson(tagsJson, TAG_LIST_TYPE);
 				if (loaded != null)
 				{
 					tags = new ArrayList<>(loaded);
@@ -242,7 +247,7 @@ public class GoalStore
 		// Goals: read order list, then each goal individually
 		String orderJson = getCfg(GOAL_ORDER_KEY);
 		List<String> goalIds = orderJson != null
-			? GSON.fromJson(orderJson, STRING_LIST_TYPE)
+			? gson.fromJson(orderJson, STRING_LIST_TYPE)
 			: new ArrayList<>();
 		goals = new ArrayList<>();
 		for (String id : goalIds)
@@ -252,7 +257,7 @@ public class GoalStore
 			{
 				try
 				{
-					Goal g = GSON.fromJson(goalJson, Goal.class);
+					Goal g = gson.fromJson(goalJson, Goal.class);
 					if (g != null) goals.add(g);
 				}
 				catch (Exception e)
@@ -266,7 +271,7 @@ public class GoalStore
 		// Tags: read ID list, then each tag individually
 		String tagIdsJson = getCfg(TAG_IDS_KEY);
 		List<String> tagIdList = tagIdsJson != null
-			? GSON.fromJson(tagIdsJson, STRING_LIST_TYPE)
+			? gson.fromJson(tagIdsJson, STRING_LIST_TYPE)
 			: new ArrayList<>();
 		tags = new ArrayList<>();
 		for (String id : tagIdList)
@@ -276,7 +281,7 @@ public class GoalStore
 			{
 				try
 				{
-					Tag t = GSON.fromJson(tagJson, Tag.class);
+					Tag t = gson.fromJson(tagJson, Tag.class);
 					if (t != null) tags.add(t);
 				}
 				catch (Exception e)
@@ -300,7 +305,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<Section> loaded = GSON.fromJson(sectionsJson, SECTION_LIST_TYPE);
+				List<Section> loaded = gson.fromJson(sectionsJson, SECTION_LIST_TYPE);
 				if (loaded != null)
 				{
 					sections = new ArrayList<>(loaded);
@@ -320,7 +325,7 @@ public class GoalStore
 		{
 			try
 			{
-				java.util.Map<String, Integer> loaded = GSON.fromJson(categoryColorsJson, CATEGORY_COLOR_MAP_TYPE);
+				java.util.Map<String, Integer> loaded = gson.fromJson(categoryColorsJson, CATEGORY_COLOR_MAP_TYPE);
 				if (loaded != null)
 				{
 					categoryColors = new java.util.HashMap<>(loaded);
@@ -416,7 +421,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<String> ids = GSON.fromJson(legacyOrder, STRING_LIST_TYPE);
+				List<String> ids = gson.fromJson(legacyOrder, STRING_LIST_TYPE);
 				if (ids != null)
 				{
 					for (String id : ids) copyLegacyKey(GOAL_PREFIX + id);
@@ -429,7 +434,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<String> ids = GSON.fromJson(legacyTagIds, STRING_LIST_TYPE);
+				List<String> ids = gson.fromJson(legacyTagIds, STRING_LIST_TYPE);
 				if (ids != null)
 				{
 					for (String id : ids) copyLegacyKey(TAG_PREFIX + id);
@@ -451,7 +456,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<String> ids = GSON.fromJson(legacyOrder, STRING_LIST_TYPE);
+				List<String> ids = gson.fromJson(legacyOrder, STRING_LIST_TYPE);
 				if (ids != null) for (String id : ids) deleteLegacyKey(GOAL_PREFIX + id);
 			}
 			catch (Exception ignored) {}
@@ -460,7 +465,7 @@ public class GoalStore
 		{
 			try
 			{
-				List<String> ids = GSON.fromJson(legacyTagIds, STRING_LIST_TYPE);
+				List<String> ids = gson.fromJson(legacyTagIds, STRING_LIST_TYPE);
 				if (ids != null) for (String id : ids) deleteLegacyKey(TAG_PREFIX + id);
 			}
 			catch (Exception ignored) {}
@@ -847,7 +852,7 @@ public class GoalStore
 
 	private void saveGoal(Goal g)
 	{
-		setCfg(GOAL_PREFIX + g.getId(), GSON.toJson(g));
+		setCfg(GOAL_PREFIX + g.getId(), gson.toJson(g));
 	}
 
 	private void deleteGoalKey(String id)
@@ -859,12 +864,12 @@ public class GoalStore
 	{
 		List<String> ids = new ArrayList<>();
 		for (Goal g : goals) ids.add(g.getId());
-		setCfg(GOAL_ORDER_KEY, GSON.toJson(ids));
+		setCfg(GOAL_ORDER_KEY, gson.toJson(ids));
 	}
 
 	private void saveTag(Tag t)
 	{
-		setCfg(TAG_PREFIX + t.getId(), GSON.toJson(t));
+		setCfg(TAG_PREFIX + t.getId(), gson.toJson(t));
 	}
 
 	private void deleteTagKey(String id)
@@ -876,17 +881,17 @@ public class GoalStore
 	{
 		List<String> ids = new ArrayList<>();
 		for (Tag t : tags) ids.add(t.getId());
-		setCfg(TAG_IDS_KEY, GSON.toJson(ids));
+		setCfg(TAG_IDS_KEY, gson.toJson(ids));
 	}
 
 	private void saveSections()
 	{
-		setCfg(SECTIONS_KEY, GSON.toJson(sections));
+		setCfg(SECTIONS_KEY, gson.toJson(sections));
 	}
 
 	private void saveCategoryColors()
 	{
-		setCfg(CATEGORY_COLORS_KEY, GSON.toJson(categoryColors));
+		setCfg(CATEGORY_COLORS_KEY, gson.toJson(categoryColors));
 	}
 
 	// -----------------------------------------------------------------

@@ -206,7 +206,7 @@ public class GoalReorderingServiceTest
 
 		public TestGoalStore()
 		{
-			super(null); // no ConfigManager needed
+			super(null, new com.google.gson.Gson()); // no ConfigManager needed
 		}
 
 		@Override

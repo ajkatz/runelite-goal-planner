@@ -49,7 +49,7 @@ class BossAlternativeSeedingTest
 	void setUp()
 	{
 		ConfigManager configManager = InMemoryConfigManager.create();
-		store = new GoalStore(configManager);
+		store = new GoalStore(configManager, new com.google.gson.Gson());
 		store.load();
 
 		MockGameState freshState = new MockGameState();

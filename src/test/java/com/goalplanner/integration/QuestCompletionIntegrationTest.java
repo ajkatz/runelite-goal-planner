@@ -45,7 +45,7 @@ class QuestCompletionIntegrationTest
 	void setUp()
 	{
 		ConfigManager configManager = InMemoryConfigManager.create();
-		store = new GoalStore(configManager);
+		store = new GoalStore(configManager, new com.google.gson.Gson());
 		store.load();
 
 		// Fresh account Client for quest prereq resolution

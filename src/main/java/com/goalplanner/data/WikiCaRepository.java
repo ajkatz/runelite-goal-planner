@@ -52,16 +52,17 @@ public class WikiCaRepository
 
 	private final OkHttpClient httpClient;
 	private final ConfigManager configManager;
-	private final Gson gson = new Gson();
+	private final Gson gson;
 
 	/** Keyed by lowercased CA name for case-insensitive lookup. */
 	private volatile Map<String, CaInfo> byName = Collections.emptyMap();
 
 	@Inject
-	public WikiCaRepository(OkHttpClient httpClient, ConfigManager configManager)
+	public WikiCaRepository(OkHttpClient httpClient, ConfigManager configManager, Gson gson)
 	{
 		this.httpClient = httpClient;
 		this.configManager = configManager;
+		this.gson = gson;
 	}
 
 	/**

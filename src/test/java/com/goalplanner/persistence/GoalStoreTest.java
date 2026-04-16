@@ -29,7 +29,7 @@ class GoalStoreTest
 	void setUp()
 	{
 		configManager = InMemoryConfigManager.create();
-		store = new GoalStore(configManager);
+		store = new GoalStore(configManager, new com.google.gson.Gson());
 		store.load();
 	}
 
@@ -280,7 +280,7 @@ class GoalStoreTest
 		store.save();
 
 		// Reload from the same backing config
-		GoalStore reloaded = new GoalStore(configManager);
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
 		reloaded.load();
 
 		assertEquals(2, reloaded.getGoals().size());
@@ -299,7 +299,7 @@ class GoalStoreTest
 		store.save();
 
 		// Load fresh — should migrate the orphan
-		GoalStore reloaded = new GoalStore(configManager);
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
 		reloaded.load();
 		Goal loaded = reloaded.getGoals().stream()
 			.filter(g -> "Orphan".equals(g.getName())).findFirst().orElse(null);
@@ -893,7 +893,7 @@ class GoalStoreTest
 		store.addGoal(a);
 		store.save();
 
-		GoalStore reloaded = new GoalStore(configManager);
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
 		reloaded.load();
 		Goal loaded = reloaded.getGoals().stream()
 			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
@@ -910,7 +910,7 @@ class GoalStoreTest
 		store.addGoal(a);
 		store.save();
 
-		GoalStore reloaded = new GoalStore(configManager);
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
 		reloaded.load();
 		Goal loaded = reloaded.getGoals().stream()
 			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
@@ -933,7 +933,7 @@ class GoalStoreTest
 		store.addGoal(c);
 		store.save();
 
-		GoalStore reloaded = new GoalStore(configManager);
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
 		reloaded.load();
 		Goal la = reloaded.getGoals().stream()
 			.filter(g -> "A".equals(g.getName())).findFirst().orElseThrow();
