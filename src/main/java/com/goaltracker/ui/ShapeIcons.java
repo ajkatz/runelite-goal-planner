@@ -78,6 +78,12 @@ public final class ShapeIcons
 		return new UndoArrow(size, color, false);
 	}
 
+	/** Horizontal three-dot glyph for "more options" / overflow menus. */
+	public static Icon moreDots(int size, Color color)
+	{
+		return new MoreDotsIcon(size, color);
+	}
+
 	private enum Direction { UP, DOWN, RIGHT }
 
 	// ----- color helpers -----
@@ -522,5 +528,53 @@ public final class ShapeIcons
 
 		@Override public int getIconWidth() { return size + 2; }
 		@Override public int getIconHeight() { return size + 2; }
+	}
+
+	/** Three horizontal dots — universal "more options" glyph. */
+	private static final class MoreDotsIcon implements Icon
+	{
+		private final int size;
+		private final Color color;
+
+		MoreDotsIcon(int size, Color color)
+		{
+			this.size = size;
+			this.color = color;
+		}
+
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			try
+			{
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				int dot = Math.max(2, size / 4);
+				int cy = y + size / 2 - dot / 2;
+				int span = size - dot;
+				int cx1 = x;
+				int cx2 = x + span / 2;
+				int cx3 = x + span;
+
+				// Drop shadow
+				g2.setColor(new Color(0, 0, 0, 120));
+				g2.fillOval(cx1 + 1, cy + 1, dot, dot);
+				g2.fillOval(cx2 + 1, cy + 1, dot, dot);
+				g2.fillOval(cx3 + 1, cy + 1, dot, dot);
+
+				// Dots
+				g2.setColor(color);
+				g2.fillOval(cx1, cy, dot, dot);
+				g2.fillOval(cx2, cy, dot, dot);
+				g2.fillOval(cx3, cy, dot, dot);
+			}
+			finally
+			{
+				g2.dispose();
+			}
+		}
+
+		@Override public int getIconWidth() { return size + 1; }
+		@Override public int getIconHeight() { return size + 1; }
 	}
 }

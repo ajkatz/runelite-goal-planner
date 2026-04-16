@@ -41,6 +41,39 @@ public class GoalCard extends JPanel
 	 */
 	private static final int NAME_WIDTH_PX = 130;
 
+	/** Side length for the completion icon rendered on completed cards. */
+	private static final int COMPLETION_ICON_PX = 16;
+
+	/**
+	 * Lazily-loaded completion icon, scaled from the plugin's sidebar icon
+	 * so completed cards show the same visual identity that the plugin
+	 * navigation button uses. Loaded once at first use; null if the
+	 * resource can't be read (in which case completed cards render
+	 * without the right-side icon — no fallback glyph).
+	 */
+	private static volatile ImageIcon completionIcon;
+
+	private static ImageIcon loadCompletionIcon()
+	{
+		ImageIcon cached = completionIcon;
+		if (cached != null) return cached;
+		try (java.io.InputStream in = GoalCard.class.getResourceAsStream("/goal_icon.png"))
+		{
+			if (in == null) return null;
+			java.awt.image.BufferedImage raw = javax.imageio.ImageIO.read(in);
+			if (raw == null) return null;
+			Image scaled = raw.getScaledInstance(
+				COMPLETION_ICON_PX, COMPLETION_ICON_PX, Image.SCALE_SMOOTH);
+			ImageIcon built = new ImageIcon(scaled);
+			completionIcon = built;
+			return built;
+		}
+		catch (java.io.IOException e)
+		{
+			return null;
+		}
+	}
+
 	private GoalView view;
 	private final JLabel nameLabel;
 	private final JLabel statusLabel;
@@ -113,6 +146,21 @@ public class GoalCard extends JPanel
 			arrowPanel.add(upButton);
 			arrowPanel.add(downButton);
 			topRow.add(arrowPanel, BorderLayout.EAST);
+		}
+		else
+		{
+			// Completion marker — render the plugin's sidebar icon
+			// scaled small on the right edge. Signals "done" with the
+			// plugin's own visual identity rather than a generic check.
+			ImageIcon icon = loadCompletionIcon();
+			if (icon != null)
+			{
+				JLabel completionLabel = new JLabel(icon);
+				completionLabel.setHorizontalAlignment(SwingConstants.CENTER);
+				completionLabel.setVerticalAlignment(SwingConstants.CENTER);
+				completionLabel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
+				topRow.add(completionLabel, BorderLayout.EAST);
+			}
 		}
 
 		// Stack: top row + tags below (tags span full card width)

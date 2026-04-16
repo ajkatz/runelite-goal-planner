@@ -26,6 +26,13 @@ import java.util.Map;
 @Slf4j
 public class GoalPanel extends PluginPanel
 {
+	/**
+	 * Discord invite for the plugin's community. Exposed via the header
+	 * Options menu.
+	 * TODO: Fill in before public release — currently a placeholder.
+	 */
+	private static final String DISCORD_URL = "https://discord.gg/REPLACE_ME";
+
 	private final GoalStore goalStore;
 	private final GoalReorderingService reorderingService;
 	private final com.goaltracker.api.GoalTrackerApiImpl api;
@@ -134,34 +141,20 @@ public class GoalPanel extends PluginPanel
 		// + goal and + section buttons removed. Adding is now
 		// contextual via section header / goal card right-click menus.
 
-		// Combined Remove dropdown — opens a small popup with two options
-		// (Remove all goals / Remove all sections), each gated by a
-		// two-step yes/no confirmation.
-		JButton removeButton = new JButton(ShapeIcons.minus(10, new Color(220, 100, 100)));
-		removeButton.setToolTipText("Remove\u2026");
-		removeButton.setMargin(new Insets(3, 6, 3, 6));
-		removeButton.addActionListener(e -> {
+		// Options menu — opens a small popup with plugin-wide actions
+		// (Discord link, and future general options). Single-goal removal
+		// is still available via right-click context menu on each card;
+		// bulk / "remove all" entry points were dropped in v0.1.0 in
+		// favor of relying on right-click + undo/redo for reversibility.
+		JButton optionsButton = new JButton(ShapeIcons.moreDots(10, new Color(180, 180, 220)));
+		optionsButton.setToolTipText("Options\u2026");
+		optionsButton.setMargin(new Insets(3, 6, 3, 6));
+		optionsButton.addActionListener(e -> {
 			JPopupMenu popup = new JPopupMenu();
-
-			// Remove selected goals — gated on at least
-			// one selected goal. Single-step confirm since the user already
-			// curated the selection.
-			java.util.Set<String> selected = api.getSelectedGoalIds();
-			JMenuItem removeSelected = new JMenuItem("Remove selected goals\u2026"
-				+ (selected.isEmpty() ? "" : " (" + selected.size() + ")"));
-			removeSelected.setEnabled(!selected.isEmpty());
-			removeSelected.addActionListener(ev ->
-				api.bulkRemoveGoals(new java.util.LinkedHashSet<>(selected)));
-			popup.add(removeSelected);
-			popup.addSeparator();
-
-			JMenuItem removeAllGoals = new JMenuItem("Remove all goals");
-			removeAllGoals.addActionListener(ev -> api.removeAllGoals());
-			popup.add(removeAllGoals);
-			JMenuItem removeAllSections = new JMenuItem("Remove all sections");
-			removeAllSections.addActionListener(ev -> api.removeAllUserSections());
-			popup.add(removeAllSections);
-			popup.show(removeButton, 0, removeButton.getHeight());
+			JMenuItem joinDiscord = new JMenuItem("Join our Discord");
+			joinDiscord.addActionListener(ev -> openDiscordInvite());
+			popup.add(joinDiscord);
+			popup.show(optionsButton, 0, optionsButton.getHeight());
 		});
 
 		JButton manageTagsButton = new JButton(ShapeIcons.tag(12, new Color(220, 180, 140)));
@@ -183,7 +176,7 @@ public class GoalPanel extends PluginPanel
 		redoButton.setMargin(new Insets(3, 6, 3, 6));
 		redoButton.addActionListener(e -> api.redo());
 
-		headerButtons.add(removeButton);
+		headerButtons.add(optionsButton);
 		headerButtons.add(Box.createHorizontalStrut(6));
 		headerButtons.add(undoButton);
 		headerButtons.add(redoButton);
@@ -707,6 +700,31 @@ public class GoalPanel extends PluginPanel
 	 */
 	private static final Color UNDO_REDO_ENABLED = new Color(180, 180, 220);
 	private static final Color UNDO_REDO_DISABLED = new Color(80, 80, 90);
+
+	/**
+	 * Open the Discord invite in the user's default browser. Falls back to
+	 * a no-op (with a log warning) if Desktop browse isn't supported — on
+	 * a headless system there's nothing useful we can do.
+	 */
+	private void openDiscordInvite()
+	{
+		try
+		{
+			if (java.awt.Desktop.isDesktopSupported()
+				&& java.awt.Desktop.getDesktop().isSupported(java.awt.Desktop.Action.BROWSE))
+			{
+				java.awt.Desktop.getDesktop().browse(java.net.URI.create(DISCORD_URL));
+			}
+			else
+			{
+				log.warn("Desktop browse not supported; cannot open Discord invite");
+			}
+		}
+		catch (Exception ex)
+		{
+			log.warn("Failed to open Discord invite: {}", ex.getMessage());
+		}
+	}
 
 	private void refreshUndoRedoButtons()
 	{
