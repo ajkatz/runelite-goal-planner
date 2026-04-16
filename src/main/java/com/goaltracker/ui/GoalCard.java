@@ -590,11 +590,16 @@ public class GoalCard extends JPanel
 		{
 			case "SKILL":
 				String skillName = (String) view.attributes.get("skillName");
-				line1 = skillName != null ? Skill.valueOf(skillName).getName() : view.name;
+				String skillDisplay = skillName != null ? Skill.valueOf(skillName).getName() : view.name;
 				int currentLevel = Math.max(1, net.runelite.api.Experience.getLevelForXp(
 					Math.max(0, view.currentValue)));
 				int targetLevel = Math.max(1, net.runelite.api.Experience.getLevelForXp(
 					Math.max(0, view.targetValue)));
+				// Prefix target level so the card reads "99 Strength" rather than just
+				// "Strength" — matches the ITEM_GRIND pattern ("200x Cannonballs") and
+				// keeps the completed-state label meaningful once line 2 is replaced
+				// with the completion date.
+				line1 = fitName(targetLevel + " " + skillDisplay);
 				line2 = "Lv " + currentLevel + " / " + targetLevel;
 				break;
 			case "ITEM_GRIND":
