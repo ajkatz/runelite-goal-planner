@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to the OSRS Goal Tracker plugin will be documented
+All notable changes to the OSRS Goal Planner plugin will be documented
 here. Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
@@ -113,7 +113,7 @@ See [API.md](API.md) for the full method catalog.
 - Command-pattern undo/redo with in-memory stacks, bulk-action
   single-step semantics, and ID-stability on add/remove cycles.
 - `GoalStore` persistence via `ConfigManager`: three JSON blobs
-  (`goaltracker.goals` / `.sections` / `.tags`) with load-time
+  (`goalplanner.goals` / `.sections` / `.tags`) with load-time
   migrations for built-in section ordering and orphaned sectionIds.
 - Eight trackers sharing an `AbstractTracker` template.
 - `MockClient` + `MockGameState` + `TrackerTestHarness` test

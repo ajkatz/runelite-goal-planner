@@ -1,4 +1,4 @@
-# OSRS Goal Tracker — RuneLite Plugin
+# OSRS Goal Planner — RuneLite Plugin
 
 > ⚠️ **Experimental v0.1.0** — This is the first public cut. Persistence
 > format and the public Java API may change in breaking ways before a
@@ -33,7 +33,7 @@ API so other plugins can read and create goals programmatically.
 - **Right-click menus** — goal/section context menus built lazily on each show. Tags can be recolored, moved, hidden; goals can be marked complete/incomplete, removed, moved to sections; sections restore their default tags.
 - **In-game integration** — right-click any skill in the Stats tab → Add Goal → enter Level/XP. Right-click any quest, diary row, CA task, boss/activity entry in the collection log, or inventory/bank/CA item → Add Goal as well.
 - **Prereq seeding** — adding a quest/diary/boss goal that has its own requirements offers "Add Goal with Requirements" which recursively seeds the whole AND-linked prereq tree (skills, child quests, item requirements, account metrics, boss-kill prereqs, and OR-alternatives where defined).
-- **Public API** — other RuneLite plugins can declare `@PluginDependency(GoalTrackerPlugin.class)` and inject `GoalTrackerApi` to read goals + sections + tags and create new ones. See [API.md](API.md).
+- **Public API** — other RuneLite plugins can declare `@PluginDependency(GoalPlannerPlugin.class)` and inject `GoalPlannerApi` to read goals + sections + tags and create new ones. See [API.md](API.md).
 - **Local persistence** — every goal, section, color, and tag round-trips through `ConfigManager`. Survives client restarts. Schema migrations for built-in section ordering and boss-goal section reconciliation.
 
 ## Install (development)
@@ -55,10 +55,10 @@ walkthrough.
 Quick map:
 
 ```
-src/main/java/com/goaltracker/
-├── GoalTrackerPlugin.java        # Plugin lifecycle, event handlers, MenuEntry injection
-├── GoalTrackerConfig.java        # RuneLite plugin settings
-├── api/                          # Public + internal API impl (GoalTrackerApi, DTOs, services)
+src/main/java/com/goalplanner/
+├── GoalPlannerPlugin.java        # Plugin lifecycle, event handlers, MenuEntry injection
+├── GoalPlannerConfig.java        # RuneLite plugin settings
+├── api/                          # Public + internal API impl (GoalPlannerApi, DTOs, services)
 ├── command/                      # Undo/redo command pattern (Command, CompositeCommand, CommandHistory)
 ├── data/                         # Quest / diary / CA / boss requirement tables + resolvers
 ├── model/                        # Persisted entities (Goal, Section, ItemTag, enums)

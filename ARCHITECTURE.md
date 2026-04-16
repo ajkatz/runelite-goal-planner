@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes the runelite-goal-tracker plugin's internal layering,
+This document describes the runelite-goal-planner plugin's internal layering,
 the public/internal API split, the data flow on each event type, and the
 invariants that keep things consistent.
 
@@ -11,7 +11,7 @@ If you're looking for an overview of features, see [README.md](README.md).
 
 ```
                  ┌──────────────────────────────────────┐
-                 │           GoalTrackerPlugin          │  RuneLite event handlers,
+                 │           GoalPlannerPlugin          │  RuneLite event handlers,
                  │  (event subscribe + MenuEntryAdded)  │  startUp/shutDown lifecycle
                  └────────────────┬─────────────────────┘
                                   │
@@ -24,7 +24,7 @@ If you're looking for an overview of features, see [README.md](README.md).
              │                   │                      │
              │                   ▼                      │
              │           ┌──────────────────┐           │
-             └──────────▶│  GoalTrackerApi  │◀──────────┘
+             └──────────▶│  GoalPlannerApi  │◀──────────┘
                          │  Impl (canonical │
                          │  mutation API)   │
                          └────────┬─────────┘
@@ -44,7 +44,7 @@ If you're looking for an overview of features, see [README.md](README.md).
 ```
 
 **The single most important rule:** every mutation goes through
-`GoalTrackerApiImpl`. The panel calls it, the trackers call it, the right-
+`GoalPlannerApiImpl`. The panel calls it, the trackers call it, the right-
 click handlers call it. There are zero direct `goalStore.X()` mutations
 from the UI layer. Two bridge methods on the internal API exist
 specifically to support panel patterns that needed more than the
@@ -59,9 +59,9 @@ public API offered:
 
 ## Public vs internal API
 
-`GoalTrackerApi` (the public interface) is bound via
+`GoalPlannerApi` (the public interface) is bound via
 `Plugin.configure(Binder)` so external consumer plugins can `@Inject` it
-after declaring `@PluginDependency(GoalTrackerPlugin.class)`. It's deliberately
+after declaring `@PluginDependency(GoalPlannerPlugin.class)`. It's deliberately
 limited to:
 - Read: `queryAllGoals`, `queryAllSections`
 - Create: `addSkillGoal`, `addSkillGoalForLevel`, `addItemGoal`,
@@ -75,10 +75,10 @@ limited to:
 
 Relation edges (`addRequirement`, `addOrRequirement`), requirement
 resolvers, section CRUD, color overrides, and tracker write paths live
-on `GoalTrackerInternalApi` — not exposed to external plugins.
+on `GoalPlannerInternalApi` — not exposed to external plugins.
 
-`GoalTrackerInternalApi` is a separate interface implemented by the SAME
-concrete class (`GoalTrackerApiImpl`). It is **not bound** in the Guice
+`GoalPlannerInternalApi` is a separate interface implemented by the SAME
+concrete class (`GoalPlannerApiImpl`). It is **not bound** in the Guice
 injector; the plugin and its UI inject the concrete impl class directly.
 Internal-only methods include: `removeGoal`, `markGoalComplete`,
 `markGoalIncomplete`, section CRUD, color overrides, selection, bulk move,
@@ -125,8 +125,8 @@ sections fill the 1..N band above them.
 ## GoalStore (the persistence layer)
 
 `GoalStore` is the only thing that touches `ConfigManager`. Three
-configuration keys: `goaltracker.goals`, `goaltracker.sections`, and
-`goaltracker.tags` (tags are a first-class entity — see Tags section
+configuration keys: `goalplanner.goals`, `goalplanner.sections`, and
+`goalplanner.tags` (tags are a first-class entity — see Tags section
 below). All three are JSON arrays.
 
 Key methods worth knowing:
@@ -203,7 +203,7 @@ The tracker batch contract:
 > SwingUtilities.invokeLater(panel::rebuild)` once at the end if anything
 > updated. Firing per-goal would create N rebuilds per tick.
 
-The handlers in `GoalTrackerPlugin` enforce this contract uniformly. Adding
+The handlers in `GoalPlannerPlugin` enforce this contract uniformly. Adding
 a new event-driven tracker means following the same pattern.
 
 **ItemTracker has special pre-bank-visit logic:** before the user has opened
@@ -330,7 +330,7 @@ they call store primitives directly so they never appear in undo history.
 
 The pieces:
 
-- **`com.goaltracker.command.Command`** — interface with `apply()`,
+- **`com.goalplanner.command.Command`** — interface with `apply()`,
   `revert()`, `getDescription()`. Each command captures the state needed
   to revert itself at construction time (snapshots of "before" values
   plus the action's parameters).
@@ -341,7 +341,7 @@ The pieces:
   trimmed first. Failure-mode: if `revert()` returns false or throws,
   the entry is dropped from history (fail-open) — caller's state is
   left as-is.
-- **`GoalTrackerApiImpl.executeCommand(Command)`** — internal entry
+- **`GoalPlannerApiImpl.executeCommand(Command)`** — internal entry
   point for user-mutation API methods. Runs the command via
   `CommandHistory.execute` and fires `onGoalsChanged` once on success.
   Tracker code paths bypass this and call store primitives directly.
@@ -424,7 +424,7 @@ split groups them by domain.
 
 ## Selection (ephemeral)
 
-Selection is a `LinkedHashSet<String>` on `GoalTrackerApiImpl`. Not
+Selection is a `LinkedHashSet<String>` on `GoalPlannerApiImpl`. Not
 persisted. The DTO carries a `selected` boolean populated from the set in
 `toGoalView` so the render path is uniform.
 
@@ -550,7 +550,7 @@ color as a 40-alpha tint over a dark base. Tag pills use the color directly.
 ## Persistence schema notes
 
 Both blobs are stored as Gson-serialized arrays under
-`goaltracker.goals` and `goaltracker.sections`. Schema is implicit (no
+`goalplanner.goals` and `goalplanner.sections`. Schema is implicit (no
 version field yet) — when fields are added, missing fields deserialize to
 their default values via Gson + `@Builder.Default`. Schema-incompatible
 changes (renames, type changes) need migration logic in `load()`.
@@ -563,7 +563,7 @@ ints and convert to `Color` only at render time.
 ## Test layout
 
 ```
-src/test/java/com/goaltracker/
+src/test/java/com/goalplanner/
 ├── api/                                  # Public + internal API surface tests
 ├── data/                                 # BossKillData, QuestRequirements,
 │                                         #   BossAlternativeSeedingTest

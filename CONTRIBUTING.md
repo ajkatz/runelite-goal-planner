@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for interest in the Goal Tracker plugin. This doc covers the
+Thanks for interest in the Goal Planner plugin. This doc covers the
 day-to-day process for changes against this repo.
 
 ## Quick start

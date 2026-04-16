@@ -7,8 +7,8 @@ This doc covers the fixture pattern, mock-vs-fake rules, and the
 
 ```bash
 ./gradlew test                                         # All tests
-./gradlew test --tests "com.goaltracker.data.*"       # Package
-./gradlew test --tests "com.goaltracker.data.BossKillDataTest"  # Single class
+./gradlew test --tests "com.goalplanner.data.*"       # Package
+./gradlew test --tests "com.goalplanner.data.BossKillDataTest"  # Single class
 ./gradlew test --tests "*OrSeedingTest"               # Glob
 ```
 
@@ -20,7 +20,7 @@ testing framework.
 ## Test layout
 
 ```
-src/test/java/com/goaltracker/
+src/test/java/com/goalplanner/
 ├── api/             # Public + internal API surface
 ├── data/            # BossKillData, QuestRequirements, BossAlternativeSeedingTest
 ├── integration/     # End-to-end flows: quest chains, boss prereq
@@ -187,7 +187,7 @@ miss that class of bug.
    recorded on change, completion stamps `completedAt`.
 4. Add `@DisplayName` to every test.
 
-See [BossKillTrackerTest.java](src/test/java/com/goaltracker/tracker/BossKillTrackerTest.java)
+See [BossKillTrackerTest.java](src/test/java/com/goalplanner/tracker/BossKillTrackerTest.java)
 for the canonical pattern.
 
 ## Adding an API method test
@@ -199,5 +199,5 @@ for the canonical pattern.
 4. If the method triggers prereq seeding, test transitive behavior:
    what gets created, what gets linked, what gets skipped.
 
-See [BossGoalPrereqSeedingTest.java](src/test/java/com/goaltracker/integration/BossGoalPrereqSeedingTest.java)
+See [BossGoalPrereqSeedingTest.java](src/test/java/com/goalplanner/integration/BossGoalPrereqSeedingTest.java)
 for a prereq-chain integration-test example.

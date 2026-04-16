@@ -1,4 +1,4 @@
-# Goal Tracker — Roadmap
+# Goal Planner — Roadmap
 
 Planned future work. Not committed to an order; items are picked up
 as appetite allows. See [CHANGELOG.md](CHANGELOG.md) for work that has

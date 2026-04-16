@@ -14,7 +14,7 @@ repositories {
 }
 
 def runeLiteVersion = 'latest.release'
-def pluginMainClass = 'com.goaltracker.GoalTrackerPluginTest'
+def pluginMainClass = 'com.goalplanner.GoalPlannerPluginTest'
 
 dependencies {
 	compileOnly group: 'net.runelite', name:'client', version: runeLiteVersion
@@ -42,7 +42,7 @@ tasks.named('test', Test) {
 	useJUnitPlatform()
 }
 
-group = 'com.goaltracker'
+group = 'com.goalplanner'
 version = '0.1.0'
 
 tasks.withType(JavaCompile).configureEach {

@@ -1,4 +1,4 @@
-# Goal Tracker Plugin API
+# Goal Planner Plugin API
 
 > ⚠️ **Experimental v0.1.0** — The public API may change in breaking ways
 > before a stable 1.0 tag. Method signatures, DTO shapes, and return
@@ -6,21 +6,21 @@
 > ship a consumer against this API, and expect to update across our
 > minor-version bumps.
 
-The Goal Tracker plugin exposes a public API so other RuneLite plugins can
+The Goal Planner plugin exposes a public API so other RuneLite plugins can
 read and mutate goals programmatically. This document is for developers of
 consumer plugins.
 
-The API is split into a **public** surface (`GoalTrackerApi`) consumed by
+The API is split into a **public** surface (`GoalPlannerApi`) consumed by
 external plugins, and a **plugin-private** internal surface
-(`GoalTrackerInternalApi`) used by the goal tracker plugin's own UI for layout-
+(`GoalPlannerInternalApi`) used by the goal tracker plugin's own UI for layout-
 coupled and destructive operations. External plugins cannot reach the internal
 API through normal Guice injection.
 
 ## Quick start
 
 ```java
-import com.goaltracker.GoalTrackerPlugin;
-import com.goaltracker.api.GoalTrackerApi;
+import com.goalplanner.GoalPlannerPlugin;
+import com.goalplanner.api.GoalPlannerApi;
 import javax.inject.Inject;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
@@ -29,11 +29,11 @@ import net.runelite.client.plugins.PluginDependency;
 import net.runelite.client.plugins.PluginDescriptor;
 
 @PluginDescriptor(name = "My Goal Producer")
-@PluginDependency(GoalTrackerPlugin.class)
+@PluginDependency(GoalPlannerPlugin.class)
 public class MyConsumerPlugin extends Plugin
 {
     @Inject
-    private GoalTrackerApi goalTracker;
+    private GoalPlannerApi goalTracker;
 
     public void onSomeEvent()
     {
@@ -47,7 +47,7 @@ public class MyConsumerPlugin extends Plugin
         goalTracker.addItemGoal(20997, 1);
 
         // Add an Elite achievement diary goal
-        goalTracker.addDiaryGoal("Falador", GoalTrackerApi.DiaryTier.ELITE);
+        goalTracker.addDiaryGoal("Falador", GoalPlannerApi.DiaryTier.ELITE);
 
         // Add a combat achievement goal by wiki task id
         goalTracker.addCombatAchievementGoal(0); // Noxious Foe
@@ -65,21 +65,21 @@ public class MyConsumerPlugin extends Plugin
 
 ### 1. Declare the dependency
 
-Add `@PluginDependency(GoalTrackerPlugin.class)` to your plugin class. RuneLite's
+Add `@PluginDependency(GoalPlannerPlugin.class)` to your plugin class. RuneLite's
 `PluginManager` will:
 
-- Topologically sort plugins so Goal Tracker initializes first
-- Create a child Guice injector for your plugin that can resolve Goal Tracker's
+- Topologically sort plugins so Goal Planner initializes first
+- Create a child Guice injector for your plugin that can resolve Goal Planner's
   bindings
 
 ### 2. Compile-time access to the API interface
 
-Your plugin code needs access to the `com.goaltracker.api.GoalTrackerApi`
+Your plugin code needs access to the `com.goalplanner.api.GoalPlannerApi`
 interface at compile time. Two practical paths:
 
-1. **Maven dependency on the Goal Tracker plugin** — once Goal Tracker is on the
+1. **Maven dependency on the Goal Planner plugin** — once Goal Planner is on the
    plugin hub, declare it as a dependency in your `build.gradle`.
-2. **Copy the interface** — paste `GoalTrackerApi.java` into your project under
+2. **Copy the interface** — paste `GoalPlannerApi.java` into your project under
    the same package name. The interface only references types from
    `runelite-api` (`Skill`, `Quest`) and primitives, so there's no transitive
    dependency. The class identity is preserved at runtime via the shared
@@ -89,7 +89,7 @@ interface at compile time. Two practical paths:
 
 ```java
 @Inject
-private GoalTrackerApi goalTracker;
+private GoalPlannerApi goalTracker;
 ```
 
 The injection happens after `startUp()` is called, so use the API from event
@@ -159,7 +159,7 @@ the game tick (~15-second intervals).
 ### `addQuestGoalWithPrereqs(Quest, List<Goal>)`
 
 ```java
-String addQuestGoalWithPrereqs(Quest quest, List<com.goaltracker.model.Goal> prereqTemplates);
+String addQuestGoalWithPrereqs(Quest quest, List<com.goalplanner.model.Goal> prereqTemplates);
 ```
 
 Add a quest goal along with a batch of prerequisite-goal templates, all
@@ -177,7 +177,7 @@ to `addQuestGoal(quest)`.
 ### `addDiaryGoal(String, DiaryTier)`
 
 ```java
-String addDiaryGoal(String areaDisplayName, GoalTrackerApi.DiaryTier tier);
+String addDiaryGoal(String areaDisplayName, GoalPlannerApi.DiaryTier tier);
 ```
 
 Add an achievement diary goal by area display name and tier.
@@ -194,7 +194,7 @@ manual-completion).
 
 ```java
 String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier,
-    com.goaltracker.data.DiaryRequirementResolver.Resolved resolved);
+    com.goalplanner.data.DiaryRequirementResolver.Resolved resolved);
 ```
 
 Add a diary goal with all unmet skill/quest/account/item requirements,
@@ -404,7 +404,7 @@ user-added tags.
 
 ## Internal API (plugin-private)
 
-The following methods exist on `GoalTrackerInternalApi` and are **not** bound
+The following methods exist on `GoalPlannerInternalApi` and are **not** bound
 publicly via `Plugin.configure(Binder)`. They are used by the goal tracker
 plugin's own UI to dogfood the canonical mutation surface, but external
 consumer plugins cannot reach them through the standard `@PluginDependency`
@@ -522,7 +522,7 @@ this API during the 0.x series.
 The plugin could also expose the API via the RuneLite event bus (`@Subscribe`
 on a public event class). That path was not implemented in v1 because:
 
-1. The typed-service approach (`@Inject GoalTrackerApi`) is the canonical
+1. The typed-service approach (`@Inject GoalPlannerApi`) is the canonical
    RuneLite plugin-to-plugin API pattern (used by `ClueScrollService`,
    `BankTagsPlugin`'s `TagManager`, etc.).
 2. The event bus is one-way and doesn't return a goal id, which makes
