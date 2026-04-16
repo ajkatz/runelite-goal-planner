@@ -134,4 +134,56 @@ class BossGoalPrereqSeedingTest
 		assertTrue(skillNames.contains("SMITHING"));
 		assertTrue(skillNames.contains("RUNECRAFT"));
 	}
+
+	@Test
+	@DisplayName("The Gauntlet seeds SotE chain (deepest elf questline)")
+	void gauntletChainsThroughSotE()
+	{
+		String bossId = api.addBossGoal("The Gauntlet", 100);
+		assertNotNull(bossId);
+
+		Set<String> quests = questNames();
+		assertTrue(quests.contains(Quest.SONG_OF_THE_ELVES.name()),
+			"direct SotE prereq: " + quests);
+		// SotE requires the full elf chain. Sanity-check a few deep
+		// prereqs are seeded (e.g. Regicide, Waterfall Quest).
+		assertTrue(quests.contains(Quest.REGICIDE.name()),
+			"deep prereq Regicide should be seeded: " + quests);
+	}
+
+	@Test
+	@DisplayName("Corrupted Gauntlet seeds SotE chain AND base Gauntlet kill")
+	void corruptedGauntletRequiresStandardKill()
+	{
+		String bossId = api.addBossGoal("Corrupted Gauntlet", 100);
+		assertNotNull(bossId);
+
+		// Should have seeded the standard Gauntlet boss as a prereq.
+		boolean hasGauntletPrereq = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == com.goaltracker.model.GoalType.BOSS
+				&& "The Gauntlet".equals(g.getBossName()));
+		assertTrue(hasGauntletPrereq,
+			"Corrupted Gauntlet should seed 'The Gauntlet' as a boss prereq");
+
+		// And SotE itself is in the quest chain.
+		assertTrue(questNames().contains(Quest.SONG_OF_THE_ELVES.name()));
+	}
+
+	@Test
+	@DisplayName("Demonic Brutus requires Brutus kill AND Defender of Varrock")
+	void demonicBrutusChain()
+	{
+		String bossId = api.addBossGoal("Demonic Brutus", 50);
+		assertNotNull(bossId);
+
+		Set<String> quests = questNames();
+		assertTrue(quests.contains(Quest.DEFENDER_OF_VARROCK.name()),
+			"Defender of Varrock should be seeded: " + quests);
+
+		boolean hasBrutusPrereq = store.getGoals().stream()
+			.anyMatch(g -> g.getType() == com.goaltracker.model.GoalType.BOSS
+				&& "Brutus".equals(g.getBossName()));
+		assertTrue(hasBrutusPrereq,
+			"Demonic Brutus should seed 'Brutus' as a boss prereq");
+	}
 }

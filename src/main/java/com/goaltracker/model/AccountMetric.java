@@ -25,6 +25,11 @@ public enum AccountMetric
 	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 300),
 	/** Chompy bird kill count. */
 	CHOMPY_KILLS("Chompy Kills", new Color(139, 69, 19), 0, "item:" + net.runelite.api.ItemID.RAW_CHOMPY, 1, 4000),
+	/** Fortis Colosseum personal best glory (highest single-run glory). */
+	COLOSSEUM_GLORY("Colosseum Glory", new Color(212, 175, 55), 0,
+		"item:" + net.runelite.api.ItemID.SMOL_HEREDIT, 1, 100000),
+	/** Doom of Mokhaiotl deepest delve level reached (1–8+). */
+	DOM_DEEPEST_LEVEL("DoM Deepest Level", new Color(80, 40, 120), 0, null, 1, 8),
 	/**
 	 * League Points — lifetime points earned during the active OSRS Leagues
 	 * event (VarPlayer LEAGUE_POINTS_COMPLETED). Only increments; spending

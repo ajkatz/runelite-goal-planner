@@ -407,4 +407,115 @@ class BossKillDataTest
 			}
 		}
 	}
+
+	@Nested
+	@DisplayName("Missing-boss expansion (mission 2026-04-14)")
+	class MissingBossExpansionTests
+	{
+		@Test
+		@DisplayName("The Gauntlet and Corrupted Gauntlet require Song of the Elves")
+		void gauntletRequiresSotE()
+		{
+			BossPrereqs gauntlet = BossKillData.getPrereqs("The Gauntlet");
+			assertNotNull(gauntlet);
+			assertTrue(gauntlet.quests.contains(Quest.SONG_OF_THE_ELVES));
+
+			BossPrereqs corrupted = BossKillData.getPrereqs("Corrupted Gauntlet");
+			assertNotNull(corrupted);
+			assertTrue(corrupted.quests.contains(Quest.SONG_OF_THE_ELVES));
+			assertEquals(1, corrupted.bossKills.size(),
+				"Corrupted Gauntlet should require a standard Gauntlet kill");
+			assertEquals("The Gauntlet", corrupted.bossKills.get(0).bossName);
+		}
+
+		@Test
+		@DisplayName("Shellbane Gryphon requires Troubled Tortugans")
+		void gryphonQuest()
+		{
+			BossPrereqs p = BossKillData.getPrereqs("Shellbane Gryphon");
+			assertNotNull(p);
+			assertTrue(p.quests.contains(Quest.TROUBLED_TORTUGANS));
+		}
+
+		@Test
+		@DisplayName("Fortis Colosseum (Waves) requires Children of the Sun")
+		void fortisWavesQuest()
+		{
+			BossPrereqs p = BossKillData.getPrereqs("Fortis Colosseum (Waves)");
+			assertNotNull(p);
+			assertTrue(p.quests.contains(Quest.CHILDREN_OF_THE_SUN));
+		}
+
+		@Test
+		@DisplayName("all three Moons + chest aggregate require Perilous Moons quest")
+		void moonsQuest()
+		{
+			for (String moon : List.of("Blue Moon", "Blood Moon",
+				"Eclipse Moon", "Perilous Moons Chests"))
+			{
+				BossPrereqs p = BossKillData.getPrereqs(moon);
+				assertNotNull(p, moon);
+				assertTrue(p.quests.contains(Quest.PERILOUS_MOONS),
+					moon + " should require PERILOUS_MOONS");
+			}
+		}
+
+		@Test
+		@DisplayName("Demonic Brutus requires a standard Brutus kill AND Defender of Varrock")
+		void demonicBrutusChain()
+		{
+			BossPrereqs brutus = BossKillData.getPrereqs("Brutus");
+			assertNotNull(brutus);
+			assertTrue(brutus.quests.contains(Quest.DEFENDER_OF_VARROCK));
+
+			BossPrereqs demonic = BossKillData.getPrereqs("Demonic Brutus");
+			assertNotNull(demonic);
+			assertTrue(demonic.quests.contains(Quest.DEFENDER_OF_VARROCK));
+			assertEquals(1, demonic.bossKills.size());
+			assertEquals("Brutus", demonic.bossKills.get(0).bossName);
+		}
+
+		@Test
+		@DisplayName("all nine DoM levels are registered with per-level varps")
+		void allDoMLevelsRegistered()
+		{
+			for (String level : List.of(
+				"Doom of Mokhaiotl (L1)", "Doom of Mokhaiotl (L2)",
+				"Doom of Mokhaiotl (L3)", "Doom of Mokhaiotl (L4)",
+				"Doom of Mokhaiotl (L5)", "Doom of Mokhaiotl (L6)",
+				"Doom of Mokhaiotl (L7)", "Doom of Mokhaiotl (L8)",
+				"Doom of Mokhaiotl (L8+)"))
+			{
+				assertTrue(BossKillData.isKnownBoss(level),
+					level + " should be registered in BOSSES");
+				assertTrue(BossKillData.getVarpId(level) > 0,
+					level + " should have a valid varp id");
+			}
+		}
+
+		@Test
+		@DisplayName("Barrows is known but has no hard prereq")
+		void barrowsNoPrereq()
+		{
+			assertTrue(BossKillData.isKnownBoss("Barrows"));
+			assertNull(BossKillData.getPrereqs("Barrows"));
+		}
+
+		@Test
+		@DisplayName("collection-log aliases resolve every variant to a known boss")
+		void colLogAliasesResolve()
+		{
+			for (String aliased : List.of("Perilous Moons", "Fortis Colosseum",
+				"The Gauntlet", "Brutus", "Doom of Mokhaiotl"))
+			{
+				List<String> variants = BossKillData.resolveCollectionLogName(aliased);
+				assertFalse(variants.isEmpty(), aliased + " should resolve to variants");
+				for (String v : variants)
+				{
+					assertTrue(BossKillData.isKnownBoss(v),
+						aliased + " points to unknown boss " + v);
+				}
+			}
+		}
+	}
 }

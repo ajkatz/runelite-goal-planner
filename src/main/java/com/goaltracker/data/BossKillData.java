@@ -58,6 +58,7 @@ public final class BossKillData
 
 		// Other bosses
 		BOSSES.put("Araxxor", VarPlayerID.TOTAL_ARAXXOR_KILLS);
+		BOSSES.put("Barrows", VarPlayerID.TOTAL_BARROWS_CHESTS);
 		BOSSES.put("Bryophyta", VarPlayerID.TOTAL_BRYOPHYTA_KILLS);
 		BOSSES.put("Corporeal Beast", VarPlayerID.TOTAL_CORP_KILLS);
 		BOSSES.put("Deranged Arch.", VarPlayerID.TOTAL_DERANGEDARCHAEOLOGIST_KILLS);
@@ -94,10 +95,11 @@ public final class BossKillData
 		BOSSES.put("ToA", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT);
 		BOSSES.put("ToA (Expert)", VarPlayerID.TOTAL_COMPLETED_TOMBSOFAMASCUT_EXPERT);
 
-		// Waves
+		// Waves / Colosseum
 		BOSSES.put("TzTok-Jad", VarPlayerID.TOTAL_JAD_KILLS);
 		BOSSES.put("TzKal-Zuk", VarPlayerID.TOTAL_ZUK_KILLS);
 		BOSSES.put("Sol Heredit", VarPlayerID.TOTAL_SOL_KILLS);
+		BOSSES.put("Fortis Colosseum (Waves)", VarPlayerID.TOTAL_COLOSSEUM_WAVES_COMPLETED);
 
 		// Minigame bosses
 		BOSSES.put("The Nightmare", VarPlayerID.TOTAL_NIGHTMARE_KILLS);
@@ -105,6 +107,8 @@ public final class BossKillData
 		BOSSES.put("Tempoross", VarPlayerID.TOTAL_TEMPOROSS_KILLS);
 		BOSSES.put("Wintertodt", VarPlayerID.TOTAL_WINTERTODT_KILLS);
 		BOSSES.put("GotR", VarPlayerID.TOTAL_GOTR_KILLS);
+		BOSSES.put("The Gauntlet", VarPlayerID.TOTAL_COMPLETED_GAUNTLET);
+		BOSSES.put("Corrupted Gauntlet", VarPlayerID.TOTAL_COMPLETED_GAUNTLET_HM);
 
 		// Newer bosses
 		BOSSES.put("Amoxliatl", VarPlayerID.TOTAL_AMOXLIATL_KILLS);
@@ -112,6 +116,26 @@ public final class BossKillData
 		BOSSES.put("Royal Titans", VarPlayerID.TOTAL_ROYAL_TITAN_KILLS);
 		BOSSES.put("Yama", VarPlayerID.TOTAL_YAMA_KILLS);
 		BOSSES.put("Scurrius", VarPlayerID.TOTAL_RAT_BOSS_KILLS);
+		BOSSES.put("Brutus", VarPlayerID.TOTAL_COWBOSS_KILLS);
+		BOSSES.put("Demonic Brutus", VarPlayerID.TOTAL_COWBOSS_HARDMODE_KILLS);
+		BOSSES.put("Shellbane Gryphon", VarPlayerID.TOTAL_GRYPHON_BOSS_KILLS);
+
+		// Perilous Moons (per-boss + chest aggregate)
+		BOSSES.put("Blue Moon", VarPlayerID.PMOON_BLUE_KILLS);
+		BOSSES.put("Blood Moon", VarPlayerID.PMOON_BLOOD_KILLS);
+		BOSSES.put("Eclipse Moon", VarPlayerID.PMOON_ECLIPSE_KILLS);
+		BOSSES.put("Perilous Moons Chests", VarPlayerID.TOTAL_PMOON_CHESTS);
+
+		// Doom of Mokhaiotl (per-level completions — delve-style activity)
+		BOSSES.put("Doom of Mokhaiotl (L1)", VarPlayerID.DOM_LEVEL_1_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L2)", VarPlayerID.DOM_LEVEL_2_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L3)", VarPlayerID.DOM_LEVEL_3_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L4)", VarPlayerID.DOM_LEVEL_4_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L5)", VarPlayerID.DOM_LEVEL_5_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L6)", VarPlayerID.DOM_LEVEL_6_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L7)", VarPlayerID.DOM_LEVEL_7_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L8)", VarPlayerID.DOM_LEVEL_8_COMPLETIONS);
+		BOSSES.put("Doom of Mokhaiotl (L8+)", VarPlayerID.DOM_LEVEL_8_PLUS_COMPLETIONS);
 	}
 
 	/** Boss name → pet item ID for the card icon. 0 = no pet icon. */
@@ -188,10 +212,11 @@ public final class BossKillData
 		PET_ICONS.put("ToA", ItemID.TUMEKENS_GUARDIAN);
 		PET_ICONS.put("ToA (Expert)", ItemID.TUMEKENS_GUARDIAN);
 
-		// Waves
+		// Waves / Colosseum
 		PET_ICONS.put("TzTok-Jad", ItemID.TZREKJAD);
 		PET_ICONS.put("TzKal-Zuk", ItemID.TZREKZUK);
 		PET_ICONS.put("Sol Heredit", ItemID.SMOL_HEREDIT);
+		PET_ICONS.put("Fortis Colosseum (Waves)", ItemID.SMOL_HEREDIT);
 
 		// Minigame bosses
 		PET_ICONS.put("The Nightmare", ItemID.LITTLE_NIGHTMARE);
@@ -201,6 +226,8 @@ public final class BossKillData
 		PET_ICONS.put("Zalcano", ItemID.SMOLCANO);
 		PET_ICONS.put("GotR", ItemID.ABYSSAL_PROTECTOR);
 		PET_ICONS.put("Hespori", ItemID.BOTTOMLESS_COMPOST_BUCKET);
+		PET_ICONS.put("The Gauntlet", ItemID.YOUNGLLEF);
+		PET_ICONS.put("Corrupted Gauntlet", ItemID.CORRUPTED_YOUNGLLEF);
 
 		// Newer
 		PET_ICONS.put("Amoxliatl", ItemID.MOXI);
@@ -208,7 +235,18 @@ public final class BossKillData
 		PET_ICONS.put("Royal Titans", ItemID.BRAN);
 		PET_ICONS.put("Yama", ItemID.YAMI);
 		PET_ICONS.put("Scurrius", ItemID.SCURRY);
-		PET_ICONS.put("Gryphon", ItemID.GRYPHON);
+		PET_ICONS.put("Shellbane Gryphon", ItemID.GRYPHON);
+		// Brutus: pet is "Beef" — use the Beef item as icon.
+		PET_ICONS.put("Brutus", ItemID.BEEF);
+		PET_ICONS.put("Demonic Brutus", ItemID.BEEF);
+		// Perilous Moons: no unified pet — use Eclipse Atlatl as a
+		// recognizable Moons icon across all four entries.
+		PET_ICONS.put("Blue Moon", ItemID.ECLIPSE_ATLATL);
+		PET_ICONS.put("Blood Moon", ItemID.ECLIPSE_ATLATL);
+		PET_ICONS.put("Eclipse Moon", ItemID.ECLIPSE_ATLATL);
+		PET_ICONS.put("Perilous Moons Chests", ItemID.ECLIPSE_ATLATL);
+		// Doom of Mokhaiotl's pet is "Dom" — no ItemID constant exposed
+		// in API 1.12.23; leave unmapped until an api bump provides it.
 	}
 
 	/**
@@ -230,6 +268,20 @@ public final class BossKillData
 		COLLECTION_LOG_ALIASES.put("Vardorvis", java.util.List.of("Vardorvis", "Vardorvis (Awake)"));
 		COLLECTION_LOG_ALIASES.put("The Fight Caves", java.util.List.of("TzTok-Jad"));
 		COLLECTION_LOG_ALIASES.put("The Inferno", java.util.List.of("TzKal-Zuk"));
+		COLLECTION_LOG_ALIASES.put("Fortis Colosseum", java.util.List.of(
+			"Sol Heredit", "Fortis Colosseum (Waves)"));
+		COLLECTION_LOG_ALIASES.put("Perilous Moons", java.util.List.of(
+			"Blue Moon", "Blood Moon", "Eclipse Moon", "Perilous Moons Chests"));
+		COLLECTION_LOG_ALIASES.put("The Gauntlet", java.util.List.of(
+			"The Gauntlet", "Corrupted Gauntlet"));
+		COLLECTION_LOG_ALIASES.put("Brutus", java.util.List.of(
+			"Brutus", "Demonic Brutus"));
+		COLLECTION_LOG_ALIASES.put("Doom of Mokhaiotl", java.util.List.of(
+			"Doom of Mokhaiotl (L1)", "Doom of Mokhaiotl (L2)",
+			"Doom of Mokhaiotl (L3)", "Doom of Mokhaiotl (L4)",
+			"Doom of Mokhaiotl (L5)", "Doom of Mokhaiotl (L6)",
+			"Doom of Mokhaiotl (L7)", "Doom of Mokhaiotl (L8)",
+			"Doom of Mokhaiotl (L8+)"));
 	}
 
 	// ============================================================
@@ -596,6 +648,60 @@ public final class BossKillData
 			List.of(net.runelite.api.Quest.THE_HEART_OF_DARKNESS)));
 		BOSS_PREREQS.put("Yama", new BossPrereqs(List.of(), List.of(),
 			List.of(net.runelite.api.Quest.A_KINGDOM_DIVIDED)));
+		BOSS_PREREQS.put("Fortis Colosseum (Waves)", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.CHILDREN_OF_THE_SUN)));
+		BOSS_PREREQS.put("Shellbane Gryphon", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.TROUBLED_TORTUGANS)));
+
+		// ====================================================
+		// Perilous Moons (Varlamore quest + 3 moons + chest aggregate)
+		// ====================================================
+		BOSS_PREREQS.put("Blue Moon", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PERILOUS_MOONS)));
+		BOSS_PREREQS.put("Blood Moon", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PERILOUS_MOONS)));
+		BOSS_PREREQS.put("Eclipse Moon", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PERILOUS_MOONS)));
+		BOSS_PREREQS.put("Perilous Moons Chests", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.PERILOUS_MOONS)));
+
+		// ====================================================
+		// Zemouregal's Fort — Brutus + Demonic Brutus (HM)
+		// Access via Defender of Varrock quest.
+		// ====================================================
+		BOSS_PREREQS.put("Brutus", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DEFENDER_OF_VARROCK)));
+		BOSS_PREREQS.put("Demonic Brutus", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.DEFENDER_OF_VARROCK),
+			List.of(new BossReq("Brutus", 1))));
+
+		// ====================================================
+		// The Gauntlet + Corrupted (via Song of the Elves / Prifddinas)
+		// ====================================================
+		BOSS_PREREQS.put("The Gauntlet", new BossPrereqs(List.of(), List.of(),
+			List.of(net.runelite.api.Quest.SONG_OF_THE_ELVES)));
+		BOSS_PREREQS.put("Corrupted Gauntlet", new BossPrereqs(
+			List.of(), List.of(),
+			List.of(net.runelite.api.Quest.SONG_OF_THE_ELVES),
+			List.of(new BossReq("The Gauntlet", 1))));
+
+		// ====================================================
+		// Doom of Mokhaiotl — delve-style activity gated by
+		// "The Final Dawn" (Varlamore Pt.2 endpoint). Higher levels
+		// self-gate via the delve mechanic (varp authoritative), so
+		// no cross-level BossReq.
+		// ====================================================
+		for (String domLevel : List.of(
+			"Doom of Mokhaiotl (L1)", "Doom of Mokhaiotl (L2)",
+			"Doom of Mokhaiotl (L3)", "Doom of Mokhaiotl (L4)",
+			"Doom of Mokhaiotl (L5)", "Doom of Mokhaiotl (L6)",
+			"Doom of Mokhaiotl (L7)", "Doom of Mokhaiotl (L8)",
+			"Doom of Mokhaiotl (L8+)"))
+		{
+			BOSS_PREREQS.put(domLevel, new BossPrereqs(List.of(), List.of(),
+				List.of(net.runelite.api.Quest.THE_FINAL_DAWN)));
+		}
 
 		// ====================================================
 		// Bosses intentionally left without prereqs (getPrereqs
@@ -605,7 +711,7 @@ public final class BossKillData
 		//   Venenatis, Vet'ion (wilderness boss access has no gate
 		//   beyond entering the wilderness)
 		// - Low-barrier: Giant Mole, Kalphite Queen, King Black Dragon,
-		//   Mimic, Sarachnis (no gating skill/quest/item)
+		//   Mimic, Sarachnis, Barrows (no gating skill/quest/item)
 		// - Dagannoth Kings: Waterbirth Island reachable via fairy ring
 		//   (AJR), Lunar teleport, or Jarvald's ferry — no single hard
 		//   gate

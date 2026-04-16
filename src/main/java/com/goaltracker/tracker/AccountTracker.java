@@ -97,6 +97,10 @@ public class AccountTracker extends AbstractTracker
 				return client.getVarbitValue(VarbitID.TOG_MAX_TEARS_COLLECTED);
 			case CHOMPY_KILLS:
 				return client.getVarpValue(VarPlayerID.CHOMPYBIRD);
+			case COLOSSEUM_GLORY:
+				return client.getVarpValue(VarPlayerID.COLOSSEUM_GLORY);
+			case DOM_DEEPEST_LEVEL:
+				return client.getVarpValue(VarPlayerID.DOM_DEEPEST_LEVEL);
 			case LEAGUE_POINTS:
 				// Lifetime league points earned from task completion. Spending
 				// currency (LEAGUE_POINTS_CURRENCY = 2613) does not reduce this.
