@@ -1601,11 +1601,105 @@ class GoalCreationService
 						}
 					}
 				}
-				// NOTE: prereqs.alternatives (OR-groups) are declared but not
-				// auto-seeded here. The goal graph is AND-linked; representing
-				// alternatives requires UI work analogous to
-				// DiaryRequirementResolver's ResolvedAlternative path. Data may
-				// carry alternatives for future consumers; currently unused.
+				// Seed alternatives (OR-groups) as OR-prereqs on the boss
+				// goal. Each Alternative contributes skill / quest /
+				// account / boss-kill goals, all linked via
+				// addOrRequirement so the boss unlocks when ANY alt is
+				// satisfied (in addition to AND-prereqs above). Mirrors
+				// the diary-unlock alternative path.
+				for (com.goaltracker.data.BossKillData.Alternative alt : prereqs.alternatives)
+				{
+					String altLabel = alt.label;
+					if (altLabel != null && altLabel.length() > 30)
+					{
+						altLabel = altLabel.substring(0, 30);
+					}
+					// Skill alternatives
+					for (com.goaltracker.data.BossKillData.SkillReq sr : alt.skills)
+					{
+						String skillGoalId = addSkillGoal(sr.skill,
+							net.runelite.api.Experience.getXpForLevel(sr.level));
+						if (skillGoalId == null) continue;
+						bossGestureGoalIds.add(skillGoalId);
+						api.addOrRequirement(goalId, skillGoalId);
+						try
+						{
+							api.addTagWithCategory(skillGoalId,
+								altLabel != null ? altLabel : bossName,
+								TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addBossGoal: failed to tag alt skill: {}", e.getMessage());
+						}
+					}
+					// Account metric alternatives
+					for (com.goaltracker.data.BossKillData.AccountReq ar : alt.accounts)
+					{
+						String accountGoalId = addAccountGoal(ar.metricName, ar.target);
+						if (accountGoalId == null) continue;
+						bossGestureGoalIds.add(accountGoalId);
+						api.addOrRequirement(goalId, accountGoalId);
+						try
+						{
+							api.addTagWithCategory(accountGoalId,
+								altLabel != null ? altLabel : bossName,
+								TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addBossGoal: failed to tag alt account: {}", e.getMessage());
+						}
+					}
+					// Boss-kill alternatives
+					for (com.goaltracker.data.BossKillData.BossReq br : alt.bosses)
+					{
+						String altBossId = addBossGoal(br.bossName, br.killCount);
+						if (altBossId == null) continue;
+						bossGestureGoalIds.add(altBossId);
+						api.addOrRequirement(goalId, altBossId);
+						try
+						{
+							api.addTagWithCategory(altBossId,
+								altLabel != null ? altLabel : bossName,
+								TagCategory.BOSS.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addBossGoal: failed to tag alt boss: {}", e.getMessage());
+						}
+					}
+					// Quest alternatives — chain transitively like AND-quests
+					for (net.runelite.api.Quest q : alt.quests)
+					{
+						if (!bossVisited.add(q)) continue;
+						String questGoalId = addQuestGoal(q);
+						if (questGoalId == null) continue;
+						bossGestureGoalIds.add(questGoalId);
+						api.addOrRequirement(goalId, questGoalId);
+						try
+						{
+							api.addTagWithCategory(questGoalId,
+								altLabel != null ? altLabel : bossName,
+								TagCategory.QUEST.name());
+						}
+						catch (Exception e)
+						{
+							log.warn("addBossGoal: failed to tag alt quest: {}", e.getMessage());
+						}
+						// Recursively seed this quest's own requirements
+						// via the AND-edge path (prereq chain inside an
+						// OR-branch is still AND-gated — you need the
+						// quest's own skills to do the quest).
+						com.goaltracker.data.QuestRequirementResolver.Resolved qr =
+							api.resolveQuestRequirements(q);
+						if (qr != null && !qr.isEmpty())
+						{
+							seedPrereqsInto(questGoalId, q, qr.templates,
+								bossVisited, bossPreExistingGoalIds, bossGestureGoalIds);
+						}
+					}
+				}
 			}
 		}
 		finally

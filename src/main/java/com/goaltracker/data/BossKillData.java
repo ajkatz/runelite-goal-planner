@@ -785,4 +785,22 @@ public final class BossKillData
 	}
 
 	private BossKillData() {}
+
+	/**
+	 * Test-only hook: swap the prereqs for a boss and return the previous
+	 * entry so tests can restore after running. Used to validate seeding
+	 * code paths (e.g. Alternative OR-group seeding) without shipping a
+	 * production boss whose prereqs trigger the path.
+	 *
+	 * <p>Do not call from production code. Tests MUST restore the previous
+	 * value in an @AfterEach to avoid cross-test state leakage.
+	 */
+	static BossPrereqs swapPrereqsForTest(String bossName, BossPrereqs prereqs)
+	{
+		if (prereqs == null)
+		{
+			return BOSS_PREREQS.remove(bossName);
+		}
+		return BOSS_PREREQS.put(bossName, prereqs);
+	}
 }
