@@ -11,6 +11,10 @@ grinds. Cards auto-update from game state, support sections + colors +
 tags + multi-select bulk actions + undo/redo, and expose a public Java
 API so other plugins can read and create goals programmatically.
 
+<p align="center">
+  <img src="assets/sidebar-overview.png" alt="Goal Planner sidebar showing Incomplete and Completed sections with skill, quest, and league-points goals" width="280">
+</p>
+
 ## Goal types
 
 | Type                    | Auto-tracked | Notes |
