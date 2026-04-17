@@ -1,0 +1,49 @@
+name: Data correction
+description: Quest, diary, boss prereq, CA task, or account metric is wrong or missing.
+labels: ["data"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template when the plugin has the wrong requirement data for a quest, diary, boss, CA task, etc. — not when the tracking code is broken.
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Which dataset?
+      options:
+        - Quest requirements
+        - Achievement Diary requirements
+        - Boss prerequisites
+        - Combat Achievement task data
+        - Account metric
+        - Item mapping (collection log, drop table, etc.)
+    validations:
+      required: true
+
+  - type: input
+    id: item
+    attributes:
+      label: Item name
+      description: "Specific quest/diary/boss/CA task name (e.g. 'Dragon Slayer II', 'Lumbridge Elite', 'Vorkath', 'Grandmaster CA - The Enduring Chaos')"
+      placeholder: Shadows of Custodia
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: What's wrong?
+      description: Describe the incorrect or missing data. Include wiki link if possible so I can verify.
+      placeholder: |
+        Shadows of Custodia requires Construction 41, but the plugin only seeds Slayer 54, Fishing 45, and Hunter 36.
+        Wiki: https://oldschool.runescape.wiki/w/Shadows_of_Custodia
+    validations:
+      required: true
+
+  - type: textarea
+    id: source
+    attributes:
+      label: Source
+      description: Where are you getting the correct data from? OSRS wiki link, in-game screenshot, official Jagex source, etc.
+      placeholder: https://oldschool.runescape.wiki/w/Shadows_of_Custodia#Requirements

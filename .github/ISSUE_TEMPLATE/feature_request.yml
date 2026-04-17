@@ -1,0 +1,61 @@
+name: Feature request
+description: Suggest a new goal type, UI improvement, API addition, or anything else.
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Check [ROADMAP.md](../blob/main/ROADMAP.md) first - the idea might already be planned. If it is, a thumbs-up on the existing item is the most useful signal.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: Describe the user pain point. What are you trying to do that the plugin makes harder than it needs to be?
+      placeholder: |
+        When I add a bunch of skill goals, I can't tell at a glance which ones are for combat training vs PvM prep. I'd like a way to group related goals visually beyond just tags.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What would the ideal feature look like? Rough UX is fine - doesn't need to be polished.
+      placeholder: |
+        Let me set an icon or emoji on each section header, and let sections be collapsible.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Have you tried working around this? Are there other approaches that might be simpler?
+      placeholder: |
+        I tried using colored tags, but a tag per "group" clutters the card face. Sections feel more natural.
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which area?
+      multiple: true
+      options:
+        - New goal type
+        - New goal type data (specific boss, quest, diary, etc.)
+        - Auto-tracking improvements
+        - UI / UX
+        - Sections / tags / colors
+        - Undo / redo / history
+        - Public Java API
+        - Persistence / import-export
+        - Documentation
+        - Other (note in description)
+
+  - type: checkboxes
+    id: roadmap
+    attributes:
+      label: Roadmap check
+      options:
+        - label: I checked ROADMAP.md and this isn't already listed
+          required: false

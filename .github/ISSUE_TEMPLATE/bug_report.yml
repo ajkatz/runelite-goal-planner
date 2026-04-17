@@ -1,0 +1,81 @@
+name: Bug report
+description: Something's broken - XP isn't tracking, a card won't auto-complete, UI is wrong, etc.
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. To help me fix it quickly, please fill in as much of the form as you can. Screenshots help enormously if the problem is visual.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the bug. What did you do, what did you expect to happen, what actually happened?
+      placeholder: |
+        1. I added a Skill goal for 99 Strength
+        2. My Strength XP went up by 400
+        3. Expected: goal card updates. Actual: still shows old value until I restart RuneLite.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: goal-type
+    attributes:
+      label: Which goal type(s) are affected?
+      description: Leave blank if the bug isn't about a specific goal type.
+      multiple: true
+      options:
+        - Skill
+        - Quest
+        - Achievement Diary
+        - Combat Achievement
+        - Boss Kill
+        - Item / Resource Grind
+        - Account Metric
+        - Custom
+        - Collection Log
+        - Not goal-specific (UI, undo/redo, sections, etc.)
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: Reproduction steps
+      description: Minimum steps someone else could follow to see the same bug. If it happens only once (e.g. on a specific quest completion), say so.
+      placeholder: |
+        1. Enable plugin
+        2. Right-click Vorkath in collection log
+        3. Click "Add Vorkath KC Goal"
+        4. Observe: prereq chain is missing Dragon Slayer II
+      render: markdown
+
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Plugin version
+      description: Check the RuneLite External Plugins tab, or git log if running dev build.
+      placeholder: 0.1.0
+
+  - type: input
+    id: runelite-version
+    attributes:
+      label: RuneLite version
+      description: Help menu -> About RuneLite.
+      placeholder: 1.12.24
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other (note in description)
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant log output
+      description: If RuneLite threw an exception, paste the stack trace. Log file at `~/.runelite/logs/client.log` on Linux/macOS or `%USERPROFILE%\.runelite\logs\client.log` on Windows.
+      render: shell

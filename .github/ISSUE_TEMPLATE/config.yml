@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Roadmap
+    url: https://github.com/ajkatz/runelite-goal-planner/blob/main/ROADMAP.md
+    about: Check planned features before opening a feature request.
+  - name: Changelog
+    url: https://github.com/ajkatz/runelite-goal-planner/blob/main/CHANGELOG.md
+    about: See what's in the latest release.
+  - name: Public API reference
+    url: https://github.com/ajkatz/runelite-goal-planner/blob/main/API.md
+    about: Integrating Goal Planner from another RuneLite plugin.
