@@ -6,6 +6,25 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
+## [0.1.1] — 2026-04-16 (Docs-only)
+
+No code or behavioral changes. Repository and community polish
+following v0.1.0 and the plugin-hub submission.
+
+### Added
+- Discord community server. README + issue-template config link to
+  the public invite.
+- README badges (Discord member count, license, latest release).
+- `.github/` issue templates (bug report, feature request, data
+  correction) and PR template.
+- Screenshots under `assets/` with the sidebar overview inlined in
+  the README as a hero image.
+
+### Changed
+- Repository renamed from `runelite-goal-tracker` to
+  `runelite-goal-planner` on GitHub. Old URL still redirects; the
+  plugin-hub submission manifest now points at the canonical URL.
+
 ## [0.1.0] — 2026-04-16 (Experimental first release)
 
 > ⚠️ Experimental. Persistence format and public API are not stable;
