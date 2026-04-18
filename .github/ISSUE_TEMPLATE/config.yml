@@ -1,5 +1,8 @@
 blank_issues_enabled: true
 contact_links:
+  - name: Discord community
+    url: https://discord.gg/CFQsA3fmh7
+    about: Quick questions, show-and-tell, and feature brainstorming. Real bugs still belong here as issues.
   - name: Roadmap
     url: https://github.com/ajkatz/runelite-goal-planner/blob/main/ROADMAP.md
     about: Check planned features before opening a feature request.

@@ -1,5 +1,9 @@
 # OSRS Goal Planner — RuneLite Plugin
 
+[![Discord](https://img.shields.io/discord/1494572077448040588?label=discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/CFQsA3fmh7)
+[![License](https://img.shields.io/github/license/ajkatz/runelite-goal-planner)](LICENSE)
+[![Release](https://img.shields.io/github/v/release/ajkatz/runelite-goal-planner)](https://github.com/ajkatz/runelite-goal-planner/releases)
+
 > ⚠️ **Experimental v0.1.0** — This is the first public cut. Persistence
 > format and the public Java API may change in breaking ways before a
 > stable 1.0 tag. If you track goals with this today, expect to
