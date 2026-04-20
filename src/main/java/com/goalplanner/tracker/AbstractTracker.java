@@ -59,26 +59,28 @@ public abstract class AbstractTracker
 		// Snapshot to avoid ConcurrentModificationException if the list
 		// is modified by a compound transaction on another thread.
 		//
-		// We intentionally do NOT skip goals with status=COMPLETE here:
-		// completion is a derived property of (currentValue vs targetValue),
-		// and api.recordGoalProgress handles both directions — it will flip
-		// a complete goal back to ACTIVE when the current value drops below
-		// target. Skipping completed goals would freeze the wrong status
-		// after a profile switch, manual edit, or any event that causes the
-		// backing varbit/xp/kill-count to differ from what completed it.
+		// Skip goals that are already COMPLETE. For the types handled by
+		// AbstractTracker subclasses (QUEST, DIARY, COMBAT_ACHIEVEMENT,
+		// BOSS, ACCOUNT, SKILL) the backing varbit/varp/kc/xp is monotonic
+		// in-game — completion never regresses. A tracker read returning a
+		// below-target value for a previously-complete goal therefore
+		// almost always means the backing value hasn't synced yet (pre-
+		// login window, profile switch, brief zero reads). Keeping COMPLETE
+		// goals terminal prevents the original completedAt from being
+		// clobbered by a transient zero read and subsequently overwritten
+		// with System.currentTimeMillis() when the real value arrives.
 		//
-		// ItemTracker overrides this method to keep ITEM_GRIND terminal on
-		// complete (intentional, documented in its javadoc).
+		// Manual un-completion is still supported via the user-facing
+		// markGoalIncomplete path (CUSTOM goals only); for auto-tracked
+		// types the user can re-run tracking by editing the backing goal
+		// state explicitly.
+		//
+		// ItemTracker overrides this method entirely for its own semantics.
 		List<Goal> snapshot = new java.util.ArrayList<>(goals);
 		for (Goal goal : snapshot)
 		{
 			if (goal.getType() != targetType()) continue;
-			// Skip goals that are explicitly archived/dismissed rather than
-			// merely complete. If future statuses are added, be explicit.
-			if (goal.getStatus() != GoalStatus.ACTIVE && goal.getStatus() != GoalStatus.COMPLETE)
-			{
-				continue;
-			}
+			if (goal.getStatus() != GoalStatus.ACTIVE) continue;
 
 			if (!shouldTrack(goal))
 			{

@@ -33,7 +33,6 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
-import net.runelite.api.events.WorldChanged;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -386,9 +385,19 @@ public class GoalPlannerPlugin extends Plugin
 		// Only track when fully logged in — varbits fire during login
 		// before the client is ready, which can hang Quest.getState().
 		if (client.getGameState() != GameState.LOGGED_IN) return;
+		if (isTrackingSuspended()) return;
 
 		clientThread.invokeLater(() ->
 		{
+			// Re-check at task-run time: the GameState may have transitioned
+			// to HOPPING/LOGIN_SCREEN between the subscribe and the next tick,
+			// in which case client varbits/quest state are stale from the
+			// previous session and would falsely complete goals in the new
+			// profile. The tracker-suspension window also needs rechecking
+			// since a profile switch may have happened on this tick.
+			if (client.getGameState() != GameState.LOGGED_IN) return;
+			if (isTrackingSuspended()) return;
+
 			java.util.List<Goal> goals = goalStore.getGoals();
 			boolean updated = questTracker.checkGoals(goals);
 			updated |= diaryTracker.checkGoals(goals);
@@ -413,6 +422,21 @@ public class GoalPlannerPlugin extends Plugin
 	 * in the main profile. Fires exactly once on first profile detection.
 	 */
 	private boolean legacyMigrationDone = false;
+
+	/**
+	 * Epoch-millis deadline after which trackers may resume. Set whenever
+	 * the active profile changes. The window lets client state (skill XP
+	 * cache, quest varbits) fully sync for the new account before any
+	 * tracker reads would apply stale values from the previous account
+	 * to the newly-loaded profile's goals.
+	 */
+	private long trackingSuspendedUntil = 0;
+	private static final long PROFILE_SWITCH_SUSPEND_MS = 5_000;
+
+	private boolean isTrackingSuspended()
+	{
+		return System.currentTimeMillis() < trackingSuspendedUntil;
+	}
 
 	/**
 	 * Derive the current profile from client state. Leagues iff the world is
@@ -451,6 +475,7 @@ public class GoalPlannerPlugin extends Plugin
 			{
 				goalStore.setProfile(now);
 				seedCanonicalSystemTags();
+				trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
 				lastAppliedProfile = now;
 			}
 			if (goalStore.migrateLegacyIntoActiveProfile() && panel != null)
@@ -464,6 +489,7 @@ public class GoalPlannerPlugin extends Plugin
 		log.info("Profile change: {} → {}", lastAppliedProfile, now);
 		goalStore.setProfile(now);
 		seedCanonicalSystemTags();
+		trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
 		lastAppliedProfile = now;
 		if (panel != null)
 		{
@@ -475,17 +501,19 @@ public class GoalPlannerPlugin extends Plugin
 	public void onGameStateChanged(GameStateChanged event)
 	{
 		// Login complete → world type is populated; re-derive profile.
+		// Intentionally NOT subscribing to WorldChanged: that event fires
+		// during HOPPING (before the client disconnects from the old world)
+		// and calling checkProfile at that point would switch the in-memory
+		// goal set to the new profile while client state (quest varbits,
+		// skill XP cache) is still the old account's — any queued tracker
+		// task firing in that window falsely completes new-profile goals
+		// using old-profile state. LOGGED_IN is fired only after the new
+		// world's login fully completes, at which point client.getWorldType()
+		// and the player's character/state reflect the new world.
 		if (event.getGameState() == GameState.LOGGED_IN)
 		{
 			checkProfile();
 		}
-	}
-
-	@Subscribe
-	public void onWorldChanged(WorldChanged event)
-	{
-		// World hop may cross between main and leagues.
-		checkProfile();
 	}
 
 	/**
@@ -1323,6 +1351,13 @@ public class GoalPlannerPlugin extends Plugin
 	public void onStatChanged(StatChanged event)
 	{
 		if (client.getGameState() != GameState.LOGGED_IN) return;
+		// Suspension window after a profile switch: the client's skill XP
+		// cache holds the PREVIOUS account's values until each skill
+		// receives its first StatChanged on the new account. The tracker
+		// iterates all skill goals on any single StatChanged, so unsynced
+		// skills would return stale XP and falsely complete new-profile
+		// goals. Waiting out the window lets all skills sync first.
+		if (isTrackingSuspended()) return;
 		java.util.List<Goal> goals = goalStore.getGoals();
 		boolean updated = skillTracker.checkGoals(goals);
 		updated |= accountTracker.checkGoals(goals);
@@ -1350,6 +1385,7 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			return;
 		}
+		if (isTrackingSuspended()) return;
 
 		flushIfUpdated(itemTracker.checkGoals(goalStore.getGoals()));
 	}
