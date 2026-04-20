@@ -29,9 +29,8 @@ public class GoalPanel extends PluginPanel
 	/**
 	 * Discord invite for the plugin's community. Exposed via the header
 	 * Options menu.
-	 * TODO: Fill in before public release — currently a placeholder.
 	 */
-	private static final String DISCORD_URL = "https://discord.gg/REPLACE_ME";
+	private static final String DISCORD_URL = "https://discord.gg/CFQsA3fmh7";
 
 	private final GoalStore goalStore;
 	private final GoalReorderingService reorderingService;
