@@ -58,6 +58,9 @@ import java.awt.image.BufferedImage;
 )
 public class GoalPlannerPlugin extends Plugin
 {
+	// Enabled under `./gradlew run` (-ea), disabled in production RuneLite.exe.
+	private static final boolean DEV_MODE = GoalPlannerPlugin.class.desiredAssertionStatus();
+
 	@Inject
 	private Client client;
 
@@ -1029,31 +1032,12 @@ public class GoalPlannerPlugin extends Plugin
 						default:     continue;
 					}
 
+					// API auto-resolves and seeds prereqs on the client thread.
 					client.createMenuEntry(1)
 						.setOption("Add Goal: " + tier.getDisplayName())
 						.setTarget(diaryMenuTarget)
 						.setType(MenuAction.RUNELITE)
-						.onClick(e ->
-							goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier));
-
-					// Secondary entry: "Add Goal with Requirements" when data exists
-					if (com.goalplanner.data.DiaryRequirements.hasRequirements(areaDisplayName, tier))
-					{
-						client.createMenuEntry(1)
-							.setOption("Add Goal with Requirements: " + tier.getDisplayName())
-							.setTarget(diaryMenuTarget)
-							.setType(MenuAction.RUNELITE)
-							.onClick(e ->
-							{
-								// Resolve and seed on the client thread — recursive
-								// quest resolution needs Quest.getState(client).
-								com.goalplanner.data.DiaryRequirementResolver.Resolved live =
-									com.goalplanner.data.DiaryRequirementResolver.resolve(
-										areaDisplayName, tier, client);
-								goalTrackerApi.addDiaryGoalWithPrereqs(
-									areaDisplayName, apiTier, live);
-							});
-					}
+						.onClick(e -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier));
 				}
 				break;
 			}
@@ -1061,8 +1045,8 @@ public class GoalPlannerPlugin extends Plugin
 			// Quest list: right-click a row -> add Quest goal
 			boolean isQuestList = widgetGroupId == QUESTLIST_GROUP_ID
 				&& entry.getParam1() == QUESTLIST_LIST_WIDGET;
-			// Bulk quest actions — trigger on any right-click within the quest list pane.
-			if (!bulkQuestMenuAdded && widgetGroupId == QUESTLIST_GROUP_ID)
+			// Bulk quest actions — dev-only testing helpers, trigger on any right-click within the quest list pane.
+			if (DEV_MODE && !bulkQuestMenuAdded && widgetGroupId == QUESTLIST_GROUP_ID)
 			{
 				bulkQuestMenuAdded = true;
 				client.createMenuEntry(1)
@@ -1091,57 +1075,19 @@ public class GoalPlannerPlugin extends Plugin
 					continue;
 				}
 
+				// API auto-resolves and seeds prereqs on the client thread.
 				client.createMenuEntry(1)
 					.setOption("Add Goal")
 					.setTarget(menuTarget)
 					.setType(MenuAction.RUNELITE)
 					.onClick(e ->
 					{
-						// Smoke test: route the existing right-click flow through the
-						// public API to prove it's the canonical entry point. The API
-						// handles validation, duplicate guard, and the UI refresh hook.
 						String createdId = goalTrackerApi.addQuestGoal(quest);
 						if (createdId == null)
 						{
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
 					});
-
-				// Secondary entry: only shown when we have requirement data
-				// AND at least one requirement is unmet after resolving against
-				// live player state. Uses createMenuEntry(1) so it renders
-				// above the plain "Add Goal" entry. Routes through the
-				// internal API so quest-requirement queries have a single
-				// choke point (future caching / pluggable data sources).
-				if (com.goalplanner.data.QuestRequirements.hasRequirements(quest))
-				{
-					com.goalplanner.data.QuestRequirementResolver.Resolved resolved =
-						goalTrackerApi.resolveQuestRequirements(quest);
-					if (!resolved.isEmpty())
-					{
-						client.createMenuEntry(1)
-							.setOption("Add Goal with Requirements")
-							.setTarget(menuTarget)
-							.setType(MenuAction.RUNELITE)
-							.onClick(e ->
-							{
-								// Resolve and seed on the client thread — recursive
-								// quest resolution needs Quest.getState(client).
-								com.goalplanner.data.QuestRequirementResolver.Resolved live =
-									goalTrackerApi.resolveQuestRequirements(quest);
-								if (live.skippedSkills > 0 || live.skippedQuests > 0)
-								{
-									log.info("addQuestGoalWithPrereqs({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
-										quest.getName(), live.skippedSkills, live.skippedQuests);
-								}
-								String createdId = goalTrackerApi.addQuestGoalWithPrereqs(quest, live.templates);
-								if (createdId == null)
-								{
-									log.warn("addQuestGoalWithPrereqs returned null for {}", quest);
-								}
-							});
-					}
-				}
 				break;
 			}
 
@@ -1413,10 +1359,7 @@ public class GoalPlannerPlugin extends Plugin
 	 */
 	private void addAllUnfinishedQuests(boolean f2pOnly)
 	{
-		// Resolve all quest requirements on the client thread, then seed on EDT.
 		java.util.List<net.runelite.api.Quest> toAdd = new java.util.ArrayList<>();
-		java.util.Map<net.runelite.api.Quest, com.goalplanner.data.QuestRequirementResolver.Resolved> resolved =
-			new java.util.LinkedHashMap<>();
 
 		// Quests in the RuneLite enum but not yet released in-game.
 		java.util.Set<net.runelite.api.Quest> UNRELEASED = java.util.EnumSet.of(
@@ -1442,10 +1385,6 @@ public class GoalPlannerPlugin extends Plugin
 				continue;
 			}
 			toAdd.add(quest);
-			if (com.goalplanner.data.QuestRequirements.hasRequirements(quest))
-			{
-				resolved.put(quest, goalTrackerApi.resolveQuestRequirements(quest));
-			}
 		}
 
 		goalTrackerApi.beginCompound(f2pOnly ? "Add all F2P quests" : "Add all quests");
@@ -1454,15 +1393,7 @@ public class GoalPlannerPlugin extends Plugin
 			int added = 0;
 			for (net.runelite.api.Quest quest : toAdd)
 			{
-				com.goalplanner.data.QuestRequirementResolver.Resolved res = resolved.get(quest);
-				if (res != null && !res.isEmpty())
-				{
-					goalTrackerApi.addQuestGoalWithPrereqs(quest, res.templates);
-				}
-				else
-				{
-					goalTrackerApi.addQuestGoal(quest);
-				}
+				goalTrackerApi.addQuestGoal(quest);
 				added++;
 			}
 			// Final pass: promote all zero-dependency quests to the top

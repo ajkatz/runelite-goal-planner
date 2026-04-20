@@ -114,9 +114,12 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public String addSkillGoalForLevel(Skill skill, int level) { return creationService.addSkillGoalForLevel(skill, level); }
 	@Override public String addItemGoal(int itemId, int targetQuantity) { return creationService.addItemGoal(itemId, targetQuantity); }
 	@Override public String addQuestGoal(Quest quest) { return creationService.addQuestGoal(quest); }
-	@Override public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
+	// Not part of the published GoalPlannerApi — the public addQuestGoal / addDiaryGoal
+	// now auto-resolve prereqs internally. Kept public on the impl for tests and
+	// internal callers that want to supply pre-computed templates directly.
+	public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
 	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { return creationService.addDiaryGoal(areaDisplayName, tier); }
-	@Override public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goalplanner.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
+	public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goalplanner.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
 	@Override public String addCombatAchievementGoal(int caTaskId) { return creationService.addCombatAchievementGoal(caTaskId); }
 	@Override public String addBossGoal(String bossName, int targetKills) { return creationService.addBossGoal(bossName, targetKills); }
 	@Override public String addAccountGoal(String metricName, int target) { return creationService.addAccountGoal(metricName, target); }

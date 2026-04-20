@@ -286,12 +286,18 @@ class GoalCreationService
 		return goalId;
 	}
 
-	String addQuestGoal(Quest quest)
+	/**
+	 * Raw single-goal insert: validates, duplicate-checks, builds the Goal,
+	 * auto-tags. Does NOT resolve or seed prerequisites. Internal primitive
+	 * used by {@link #addQuestGoal(Quest)} and the seeding BFS when
+	 * inserting individual child quest goals.
+	 */
+	String insertQuestGoal(Quest quest)
 	{
-		log.debug("API.public addQuestGoal(quest={})", quest);
+		log.debug("API.internal insertQuestGoal(quest={})", quest);
 		if (quest == null)
 		{
-			log.warn("addQuestGoal: quest is null");
+			log.warn("insertQuestGoal: quest is null");
 			return null;
 		}
 		api.clearGoalSelection();
@@ -302,7 +308,7 @@ class GoalCreationService
 		{
 			if (g.getType() == GoalType.QUEST && questName.equals(g.getQuestName()))
 			{
-				log.info("addQuestGoal: duplicate of existing goal {} ({})", g.getId(), questName);
+				log.info("insertQuestGoal: duplicate of existing goal {} ({})", g.getId(), questName);
 				return g.getId();
 			}
 		}
@@ -378,13 +384,45 @@ class GoalCreationService
 		{
 			api.endCompound();
 		}
-		log.info("addQuestGoal created: {} ({})", goalId, quest.getName());
+		log.info("insertQuestGoal created: {} ({})", goalId, quest.getName());
 		return goalId;
+	}
+
+	/**
+	 * Public API entry point: add a quest goal, auto-resolving unmet
+	 * skill/quest prerequisites from live player state and seeding them
+	 * into the goal tree. Merged entry point that replaces the separate
+	 * plain / with-prereqs pair.
+	 */
+	String addQuestGoal(Quest quest)
+	{
+		log.debug("API.public addQuestGoal(quest={})", quest);
+		if (quest == null)
+		{
+			log.warn("addQuestGoal: quest is null");
+			return null;
+		}
+		if (!com.goalplanner.data.QuestRequirements.hasRequirements(quest))
+		{
+			return insertQuestGoal(quest);
+		}
+		com.goalplanner.data.QuestRequirementResolver.Resolved resolved =
+			api.resolveQuestRequirements(quest);
+		if (resolved == null || resolved.isEmpty())
+		{
+			return insertQuestGoal(quest);
+		}
+		if (resolved.skippedSkills > 0 || resolved.skippedQuests > 0)
+		{
+			log.info("addQuestGoal({}): skipped {} already-met skill reqs, {} already-finished quest prereqs",
+				quest.getName(), resolved.skippedSkills, resolved.skippedQuests);
+		}
+		return addQuestGoalWithPrereqs(quest, resolved.templates);
 	}
 
 	String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates)
 	{
-		log.debug("API.public addQuestGoalWithPrereqs(quest={}, prereqs={})",
+		log.debug("API.internal addQuestGoalWithPrereqs(quest={}, prereqs={})",
 			quest, prereqTemplates == null ? 0 : prereqTemplates.size());
 		if (quest == null)
 		{
@@ -398,11 +436,10 @@ class GoalCreationService
 		}
 
 		// Degenerate case — no templates means no compound is needed, just
-		// delegate to the single-goal path. Preserves existing behavior
-		// exactly for callers who hit this branch unexpectedly.
+		// delegate to the primitive single-goal path.
 		if (prereqTemplates.isEmpty())
 		{
-			return addQuestGoal(quest);
+			return insertQuestGoal(quest);
 		}
 
 		// Wrap the whole gesture in a compound so one undo reverses the
@@ -411,10 +448,10 @@ class GoalCreationService
 		api.beginCompound("Add quest with requirements: " + quest.getName());
 		try
 		{
-			String questGoalId = addQuestGoal(quest);
+			String questGoalId = insertQuestGoal(quest);
 			if (questGoalId == null)
 			{
-				log.warn("addQuestGoalWithPrereqs: addQuestGoal returned null for {}", quest);
+				log.warn("addQuestGoalWithPrereqs: insertQuestGoal returned null for {}", quest);
 				return null;
 			}
 
@@ -558,8 +595,8 @@ class GoalCreationService
 	 * where all reachable skill goals are created first, followed
 	 * by quest goals.
 	 *
-	 * <p><b>QUEST templates</b> go through the public
-	 * {@link #addQuestGoal(Quest)} API (canonical sprite, duplicate
+	 * <p><b>QUEST templates</b> go through the primitive
+	 * {@link #insertQuestGoal(Quest)} helper (canonical sprite, duplicate
 	 * guard, future-proof). <b>SKILL templates</b> go through
 	 * {@link #findOrCreateSkillGoalForSeed} which reuses pre-existing
 	 * USER goals (non-{@code autoSeeded}) but always creates a new
@@ -678,7 +715,7 @@ class GoalCreationService
 					log.warn("seedPrereqsInto: unknown Quest enum name '{}'", template.getQuestName());
 					continue;
 				}
-				seedGoalId = addQuestGoal(childQuest);
+				seedGoalId = insertQuestGoal(childQuest);
 				if (seedGoalId == null)
 				{
 					log.warn("seedPrereqsInto: addQuestGoal returned null for {}", childQuest);
@@ -856,12 +893,18 @@ class GoalCreationService
 		return addSkillGoal(skill, targetXp);
 	}
 
-	String addDiaryGoal(String areaDisplayName, GoalPlannerApi.DiaryTier tier)
+	/**
+	 * Raw single-goal insert for diary: validates, duplicate-checks,
+	 * builds the Goal. Does NOT resolve or seed prerequisites. Internal
+	 * primitive used by {@link #addDiaryGoal(String, GoalPlannerApi.DiaryTier)}
+	 * and {@link #addDiaryGoalWithPrereqs}.
+	 */
+	String insertDiaryGoal(String areaDisplayName, GoalPlannerApi.DiaryTier tier)
 	{
-		log.debug("API.public addDiaryGoal(area={}, tier={})", areaDisplayName, tier);
+		log.debug("API.internal insertDiaryGoal(area={}, tier={})", areaDisplayName, tier);
 		if (areaDisplayName == null || areaDisplayName.isEmpty() || tier == null)
 		{
-			log.warn("addDiaryGoal: invalid input area={} tier={}", areaDisplayName, tier);
+			log.warn("insertDiaryGoal: invalid input area={} tier={}", areaDisplayName, tier);
 			return null;
 		}
 
@@ -875,7 +918,7 @@ class GoalCreationService
 				&& areaDisplayName.equalsIgnoreCase(g.getName())
 				&& description.equalsIgnoreCase(g.getDescription()))
 			{
-				log.info("addDiaryGoal: duplicate of existing goal {} ({} {})",
+				log.info("insertDiaryGoal: duplicate of existing goal {} ({} {})",
 					g.getId(), areaDisplayName, internalTier);
 				return g.getId();
 			}
@@ -907,8 +950,36 @@ class GoalCreationService
 			@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
 			@Override public String getDescription() { return "Add diary: " + displayName + " " + tierStr; }
 		});
-		log.info("addDiaryGoal created: {} ({} {})", goalId, areaDisplayName, internalTier);
+		log.info("insertDiaryGoal created: {} ({} {})", goalId, areaDisplayName, internalTier);
 		return goalId;
+	}
+
+	/**
+	 * Public API entry point: add a diary goal, auto-resolving unmet
+	 * skill/quest/unlock prerequisites from live player state and seeding
+	 * them into the goal tree. Merged entry point that replaces the
+	 * separate plain / with-prereqs pair.
+	 */
+	String addDiaryGoal(String areaDisplayName, GoalPlannerApi.DiaryTier tier)
+	{
+		log.debug("API.public addDiaryGoal(area={}, tier={})", areaDisplayName, tier);
+		if (areaDisplayName == null || tier == null)
+		{
+			return insertDiaryGoal(areaDisplayName, tier);
+		}
+		AchievementDiaryData.Tier internalTier = mapDiaryTier(tier);
+		if (!com.goalplanner.data.DiaryRequirements.hasRequirements(areaDisplayName, internalTier))
+		{
+			return insertDiaryGoal(areaDisplayName, tier);
+		}
+		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved =
+			com.goalplanner.data.DiaryRequirementResolver.resolve(
+				areaDisplayName, internalTier, api.client);
+		if (resolved == null || resolved.isEmpty())
+		{
+			return insertDiaryGoal(areaDisplayName, tier);
+		}
+		return addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved);
 	}
 
 	private static AchievementDiaryData.Tier mapDiaryTier(GoalPlannerApi.DiaryTier tier)
@@ -930,14 +1001,14 @@ class GoalCreationService
 	String addDiaryGoalWithPrereqs(String areaDisplayName, GoalPlannerApi.DiaryTier tier,
 		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved)
 	{
-		log.debug("API.public addDiaryGoalWithPrereqs(area={}, tier={}, templates={}, unlocks={})",
+		log.debug("API.internal addDiaryGoalWithPrereqs(area={}, tier={}, templates={}, unlocks={})",
 			areaDisplayName, tier,
 			resolved == null ? 0 : resolved.templates.size(),
 			resolved == null ? 0 : resolved.unlocks.size());
 		if (areaDisplayName == null || tier == null) return null;
 		if (resolved == null || resolved.isEmpty())
 		{
-			return addDiaryGoal(areaDisplayName, tier);
+			return insertDiaryGoal(areaDisplayName, tier);
 		}
 		java.util.List<Goal> prereqTemplates = resolved.templates;
 
@@ -948,10 +1019,10 @@ class GoalCreationService
 		api.beginCompound(compoundDesc);
 		try
 		{
-			String diaryGoalId = addDiaryGoal(areaDisplayName, tier);
+			String diaryGoalId = insertDiaryGoal(areaDisplayName, tier);
 			if (diaryGoalId == null)
 			{
-				log.warn("addDiaryGoalWithPrereqs: addDiaryGoal returned null");
+				log.warn("addDiaryGoalWithPrereqs: insertDiaryGoal returned null");
 				return null;
 			}
 
@@ -1023,7 +1094,7 @@ class GoalCreationService
 						try
 						{
 							Quest quest = Quest.valueOf(prereqTemplate.getQuestName());
-							String questGoalId = addQuestGoal(quest);
+							String questGoalId = insertQuestGoal(quest);
 							if (questGoalId == null) continue;
 							gestureGoalIds.add(questGoalId);
 							api.addRequirement(goalId, questGoalId);
@@ -1088,7 +1159,7 @@ class GoalCreationService
 					try
 					{
 						Quest quest = Quest.valueOf(questTemplate.getQuestName());
-						String questGoalId = addQuestGoal(quest);
+						String questGoalId = insertQuestGoal(quest);
 						if (questGoalId == null) continue;
 						gestureGoalIds.add(questGoalId);
 						api.addRequirement(unlockGoalId, questGoalId);
@@ -1673,7 +1744,7 @@ class GoalCreationService
 					for (net.runelite.api.Quest q : alt.quests)
 					{
 						if (!bossVisited.add(q)) continue;
-						String questGoalId = addQuestGoal(q);
+						String questGoalId = insertQuestGoal(q);
 						if (questGoalId == null) continue;
 						bossGestureGoalIds.add(questGoalId);
 						api.addOrRequirement(goalId, questGoalId);

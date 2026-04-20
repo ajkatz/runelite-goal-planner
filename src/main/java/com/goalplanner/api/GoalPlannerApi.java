@@ -59,41 +59,26 @@ public interface GoalPlannerApi
 	/**
 	 * Add a quest goal. Auto-tracks completion via {@code Quest.getState(client)}.
 	 *
+	 * <p>Unmet skill and quest prerequisites (as defined by
+	 * {@code QuestRequirements}) are automatically resolved against live
+	 * player state and seeded as linked sub-goals under a single undo
+	 * entry. Quests with no requirement data, or with all requirements
+	 * already met, fall through to a plain single-goal insert.
+	 *
 	 * @param quest the quest (must not be null)
 	 * @return the created or existing goal's id, or {@code null} if validation failed
 	 */
 	String addQuestGoal(Quest quest);
 
 	/**
-	 * Add a quest goal along with a batch of prerequisite-goal templates,
-	 * all under a single undo entry.
-	 *
-	 * <p>For each template the API calls the internal
-	 * {@code findOrCreateRequirement} flow: if an existing goal
-	 * structurally satisfies the template (same skill at or above the
-	 * target level, same quest name, etc.) the existing goal is linked
-	 * as a requirement; otherwise a new seed goal is created with
-	 * {@code autoSeeded=true} and linked. The whole gesture — quest
-	 * goal creation + each find-or-create + each requirement edge —
-	 * collapses into one undoable entry.
-	 *
-	 * <p>Templates should already be filtered against live player state
-	 * (see {@code QuestRequirementResolver}); this method does not
-	 * inspect the {@link Client}.
-	 *
-	 * @param quest             the quest to add (must not be null)
-	 * @param prereqTemplates   pre-filtered goal templates to seed as
-	 *                          requirements. Only identity and target
-	 *                          fields are consulted. Empty list is
-	 *                          equivalent to {@link #addQuestGoal(Quest)}.
-	 * @return the created or existing quest goal's id, or {@code null}
-	 *         if validation failed
-	 */
-	String addQuestGoalWithPrereqs(Quest quest, java.util.List<com.goalplanner.model.Goal> prereqTemplates);
-
-	/**
 	 * Add an achievement diary goal by area display name and tier. Auto-tracks
 	 * via the per-area-per-tier completion varbits.
+	 *
+	 * <p>Unmet skill, quest, and unlock prerequisites (as defined by
+	 * {@code DiaryRequirements}) are automatically resolved against live
+	 * player state and seeded as linked sub-goals under a single undo
+	 * entry. Tiers with no requirement data, or with all requirements
+	 * already met, fall through to a plain single-goal insert.
 	 *
 	 * @param areaDisplayName the area name as displayed in-game (e.g. "Ardougne",
 	 *                        "Falador", "Karamja", "Kourend &amp; Kebos", etc.)
@@ -101,13 +86,6 @@ public interface GoalPlannerApi
 	 * @return the created or existing goal's id, or {@code null} if validation failed
 	 */
 	String addDiaryGoal(String areaDisplayName, DiaryTier tier);
-
-	/**
-	 * Add a diary goal with all unmet skill and quest requirements seeded
-	 * as prerequisite goals.
-	 */
-	String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier,
-		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved);
 
 	/**
 	 * Add a combat achievement goal by wiki/in-game task id. Auto-tracks via the
