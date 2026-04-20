@@ -450,6 +450,7 @@ public class GoalPlannerPlugin extends Plugin
 			if (!now.equals(goalStore.getActiveProfile()))
 			{
 				goalStore.setProfile(now);
+				seedCanonicalSystemTags();
 				lastAppliedProfile = now;
 			}
 			if (goalStore.migrateLegacyIntoActiveProfile() && panel != null)
@@ -462,6 +463,7 @@ public class GoalPlannerPlugin extends Plugin
 		if (now.equals(lastAppliedProfile)) return;
 		log.info("Profile change: {} → {}", lastAppliedProfile, now);
 		goalStore.setProfile(now);
+		seedCanonicalSystemTags();
 		lastAppliedProfile = now;
 		if (panel != null)
 		{

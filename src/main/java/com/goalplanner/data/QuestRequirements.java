@@ -1674,12 +1674,14 @@ public final class QuestRequirements
 		XP_REWARDS.put(Quest.RAG_AND_BONE_MAN_I, List.of(Skill.COOKING, Skill.PRAYER));
 		XP_REWARDS.put(Quest.RAG_AND_BONE_MAN_II, List.of(Skill.PRAYER));
 		XP_REWARDS.put(Quest.RATCATCHERS, List.of(Skill.THIEVING));
+		XP_REWARDS.put(Quest.RECRUITMENT_DRIVE, List.of(Skill.PRAYER, Skill.HERBLORE, Skill.AGILITY));
 		XP_REWARDS.put(Quest.ROYAL_TROUBLE, List.of(Skill.AGILITY, Skill.SLAYER, Skill.HITPOINTS));
 		XP_REWARDS.put(Quest.SCORPION_CATCHER, List.of(Skill.STRENGTH));
 		XP_REWARDS.put(Quest.SEA_SLUG, List.of(Skill.FISHING));
 		XP_REWARDS.put(Quest.THE_SLUG_MENACE, List.of(Skill.CRAFTING, Skill.RUNECRAFT, Skill.THIEVING));
 		XP_REWARDS.put(Quest.SHADES_OF_MORTTON, List.of(Skill.HERBLORE, Skill.CRAFTING));
 		XP_REWARDS.put(Quest.SPIRITS_OF_THE_ELID, List.of(Skill.PRAYER, Skill.THIEVING, Skill.MAGIC));
+		XP_REWARDS.put(Quest.TAI_BWO_WANNAI_TRIO, List.of(Skill.COOKING, Skill.FISHING, Skill.ATTACK, Skill.STRENGTH));
 		XP_REWARDS.put(Quest.TEARS_OF_GUTHIX, List.of(Skill.CRAFTING));
 		XP_REWARDS.put(Quest.TOWER_OF_LIFE, List.of(Skill.CONSTRUCTION, Skill.CRAFTING, Skill.THIEVING));
 		XP_REWARDS.put(Quest.TROLL_ROMANCE, List.of(Skill.AGILITY, Skill.STRENGTH));
@@ -1871,6 +1873,7 @@ public final class QuestRequirements
 		QP_REWARDS.put(Quest.SINS_OF_THE_FATHER, 2);
 		QP_REWARDS.put(Quest.SLEEPING_GIANTS, 1);
 		QP_REWARDS.put(Quest.SPIRITS_OF_THE_ELID, 2);
+		QP_REWARDS.put(Quest.TAI_BWO_WANNAI_TRIO, 2);
 		QP_REWARDS.put(Quest.TEARS_OF_GUTHIX, 1);
 		QP_REWARDS.put(Quest.THE_TOURIST_TRAP, 2);
 		QP_REWARDS.put(Quest.THRONE_OF_MISCELLANIA, 1);
