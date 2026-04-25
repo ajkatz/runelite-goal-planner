@@ -331,6 +331,24 @@ class GoalContextMenuBuilder
 			menu.add(qhItem);
 		}
 
+		// Quest Helper link for diaries — Quest Helper exposes per-(area, tier)
+		// diary helpers. Tier comes from the description (e.g. "Medium Achievement
+		// Diary" → MEDIUM); skip the menu item if it can't be parsed.
+		if (goal.getType() == GoalType.DIARY && goal.getName() != null
+			&& !goal.isComplete() && panel.diaryHelperCallback != null
+			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
+		{
+			com.goalplanner.data.AchievementDiaryData.Tier dhTier =
+				com.goalplanner.data.AchievementDiaryData.parseTierFromDescription(goal.getDescription());
+			if (dhTier != null)
+			{
+				JMenuItem dhItem = new JMenuItem("Open in Quest Helper");
+				final String dhTierDisplay = dhTier.getDisplayName();
+				dhItem.addActionListener(e -> panel.diaryHelperCallback.accept(goal.getName(), dhTierDisplay));
+				menu.add(dhItem);
+			}
+		}
+
 		// Tag management — routes through the shared TagPickerDialog so the
 		// single-item and bulk Add Tag flows stay in lockstep (category list,
 		// SKILLING lock, freeform/dropdown switch).

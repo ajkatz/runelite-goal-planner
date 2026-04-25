@@ -151,6 +151,7 @@ public class GoalPlannerPlugin extends Plugin
 			goalTrackerApi, reorderingService, this::openItemSearch);
 		panel.setClient(client);
 		panel.setQuestHelperCallback(this::openQuestInHelper, this::isQuestHelperAvailable);
+		panel.setDiaryHelperCallback(this::openDiaryInHelper);
 
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
@@ -677,15 +678,43 @@ public class GoalPlannerPlugin extends Plugin
 	 */
 	private void openQuestInHelper(String questEnumName)
 	{
+		net.runelite.api.Quest quest;
+		try { quest = net.runelite.api.Quest.valueOf(questEnumName); }
+		catch (IllegalArgumentException e)
+		{
+			log.warn("Unknown quest enum {}", questEnumName);
+			return;
+		}
+		openInQuestHelperByDisplayName(quest.getName());
+	}
+
+	/**
+	 * Attempt to open an achievement diary in the Quest Helper plugin.
+	 * Quest Helper exposes diary helpers in the same {@code QuestHelperQuest}
+	 * enum as quests; the display name format is {@code "<area> <Tier> Diary"}
+	 * (e.g. "Karamja Medium Diary", "Lumbridge & Draynor Hard Diary").
+	 */
+	private void openDiaryInHelper(String areaDisplayName, String tierDisplayName)
+	{
+		if (areaDisplayName == null || tierDisplayName == null) return;
+		openInQuestHelperByDisplayName(areaDisplayName + " " + tierDisplayName + " Diary");
+	}
+
+	/**
+	 * Shared reflection helper: look up a QuestHelperQuest by its display name
+	 * (works for both quest and achievement diary helpers) and invoke
+	 * {@code questManager.startUpQuest(helper, true)} on the running
+	 * QuestHelperPlugin instance. No-op when Quest Helper isn't enabled or
+	 * the display name doesn't match any helper.
+	 */
+	private void openInQuestHelperByDisplayName(String displayName)
+	{
 		for (net.runelite.client.plugins.Plugin plugin : pluginManager.getPlugins())
 		{
 			if (!plugin.getClass().getSimpleName().equals("QuestHelperPlugin")) continue;
 			if (!pluginManager.isPluginEnabled(plugin)) continue;
 			try
 			{
-				net.runelite.api.Quest quest = net.runelite.api.Quest.valueOf(questEnumName);
-				String displayName = quest.getName();
-
 				// QuestHelperQuest.getByName(displayName) → QuestHelper
 				Class<?> qhqClass = Class.forName("com.questhelper.questinfo.QuestHelperQuest",
 					true, plugin.getClass().getClassLoader());
@@ -694,13 +723,13 @@ public class GoalPlannerPlugin extends Plugin
 				if (questHelper == null)
 				{
 					log.warn("Quest Helper has no helper for '{}'", displayName);
-					break;
+					return;
 				}
 
 				// questManager.startUpQuest(questHelper, true)
 				java.lang.reflect.Method getQm = plugin.getClass().getMethod("getQuestManager");
 				Object questManager = getQm.invoke(plugin);
-				if (questManager == null) break;
+				if (questManager == null) return;
 
 				// Find startUpQuest method by scanning — the parameter type
 				// may not match exactly via getMethod due to classloader boundaries.
@@ -713,17 +742,17 @@ public class GoalPlannerPlugin extends Plugin
 						break;
 					}
 				}
-				if (startUp == null) break;
+				if (startUp == null) return;
 				startUp.invoke(questManager, questHelper, true);
 				log.info("Opened {} in Quest Helper", displayName);
 				return;
 			}
 			catch (Exception e)
 			{
-				log.warn("Failed to open quest in Quest Helper: {}", e.getMessage(), e);
+				log.warn("Failed to open '{}' in Quest Helper: {}", displayName, e.getMessage(), e);
 			}
 		}
-		log.info("Quest Helper not available for quest {}", questEnumName);
+		log.info("Quest Helper not available for '{}'", displayName);
 	}
 
 	/** Quest list widget group ID (InterfaceID.QUESTLIST). */

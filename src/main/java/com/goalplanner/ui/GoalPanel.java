@@ -102,6 +102,14 @@ public class GoalPanel extends PluginPanel
 		this.questHelperAvailable = available;
 	}
 
+	/** Callback to open an achievement diary in Quest Helper. Args: (areaName, tierDisplayName). */
+	java.util.function.BiConsumer<String, String> diaryHelperCallback;
+
+	public void setDiaryHelperCallback(java.util.function.BiConsumer<String, String> callback)
+	{
+		this.diaryHelperCallback = callback;
+	}
+
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goalplanner.api.GoalPlannerApiImpl api,
