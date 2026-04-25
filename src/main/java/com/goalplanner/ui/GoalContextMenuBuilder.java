@@ -43,6 +43,43 @@ class GoalContextMenuBuilder
 	}
 
 	/**
+	 * Build the tag-management menu entry. When both Add and Remove apply,
+	 * collapse them into a single "Tag" submenu so the parent menu doesn't
+	 * spend two lines on tagging. When only one applies, return that as a
+	 * flat item ("Add Tag" / "Remove Tag") since a single-child submenu
+	 * would be a hover step for nothing. Returns null when neither applies.
+	 */
+	private static JMenuItem buildTagMenuEntry(
+		boolean canAdd, Runnable addAction,
+		boolean canRemove, Runnable removeAction)
+	{
+		if (canAdd && canRemove)
+		{
+			JMenu submenu = new JMenu("Tag");
+			JMenuItem add = new JMenuItem("Add");
+			add.addActionListener(e -> addAction.run());
+			submenu.add(add);
+			JMenuItem remove = new JMenuItem("Remove");
+			remove.addActionListener(e -> removeAction.run());
+			submenu.add(remove);
+			return submenu;
+		}
+		if (canAdd)
+		{
+			JMenuItem add = new JMenuItem("Add Tag");
+			add.addActionListener(e -> addAction.run());
+			return add;
+		}
+		if (canRemove)
+		{
+			JMenuItem remove = new JMenuItem("Remove Tag");
+			remove.addActionListener(e -> removeAction.run());
+			return remove;
+		}
+		return null;
+	}
+
+	/**
 	 * Attach a right-click popup trigger to a goal card. Delegates to
 	 * {@link #buildSingleItemMenu} or {@link #buildBulkMenu} depending on
 	 * whether the card is part of an active multi-selection.
@@ -331,20 +368,6 @@ class GoalContextMenuBuilder
 		// Tag management — routes through the shared TagPickerDialog so the
 		// single-item and bulk Add Tag flows stay in lockstep (category list,
 		// SKILLING lock, freeform/dropdown switch).
-		JMenuItem addTag = new JMenuItem("Add Tag");
-		addTag.addActionListener(e -> {
-			TagPickerDialog.Result picked = TagPickerDialog.show(panel, "Add Tag", api);
-			if (picked != null)
-			{
-				api.addTagWithCategory(goal.getId(), picked.label, picked.category.name());
-			}
-		});
-		// Completed goals are tag-frozen.
-		if (!goal.isComplete())
-		{
-			menu.add(addTag);
-		}
-
 		// Removable tags: for CUSTOM goals, anything. For everything else, only
 		// user-added tags (not in defaultTagIds). Dereference tag ids
 		// through the store and operate on Tag entities.
@@ -366,29 +389,39 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		if (!removableTags.isEmpty())
-		{
-			JMenuItem removeTag = new JMenuItem("Remove Tag");
-			removeTag.addActionListener(e -> {
-				String[] tagNames = removableTags.stream()
-					.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
-					.toArray(String[]::new);
+		// Completed goals are tag-frozen, so no Add. Remove still allowed
+		// (cleanup of stale tags). When both Add and Remove apply, collapse
+		// them under a single "Tag" submenu to save a menu line.
+		final List<com.goalplanner.model.Tag> finalRemovable = removableTags;
+		Runnable addTagAction = () -> {
+			TagPickerDialog.Result picked = TagPickerDialog.show(panel, "Add Tag", api);
+			if (picked != null)
+			{
+				api.addTagWithCategory(goal.getId(), picked.label, picked.category.name());
+			}
+		};
+		Runnable removeTagAction = () -> {
+			String[] tagNames = finalRemovable.stream()
+				.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
+				.toArray(String[]::new);
 
-				String selected = (String) JOptionPane.showInputDialog(
-					panel, "Select tag to remove:", "Remove Tag",
-					JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
-				);
-				if (selected != null)
+			String selected = (String) JOptionPane.showInputDialog(
+				panel, "Select tag to remove:", "Remove Tag",
+				JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
+			);
+			if (selected != null)
+			{
+				int idx = Arrays.asList(tagNames).indexOf(selected);
+				if (idx >= 0)
 				{
-					int idx = Arrays.asList(tagNames).indexOf(selected);
-					if (idx >= 0)
-					{
-						api.removeTag(goal.getId(), removableTags.get(idx).getLabel());
-					}
+					api.removeTag(goal.getId(), finalRemovable.get(idx).getLabel());
 				}
-			});
-			menu.add(removeTag);
-		}
+			}
+		};
+		JMenuItem tagEntry = buildTagMenuEntry(
+			!goal.isComplete(), addTagAction,
+			!removableTags.isEmpty(), removeTagAction);
+		if (tagEntry != null) menu.add(tagEntry);
 
 		// Relations. "Requires..." and "Required by..." enter a
 		// click-mode where the user clicks another goal to link. The Remove
@@ -590,26 +623,21 @@ class GoalContextMenuBuilder
 			menu.add(moveToSection);
 		}
 
-		// 2. Add Tag
-		JMenuItem addTag = new JMenuItem("Add Tag");
-		addTag.addActionListener(e -> dialogFactory.showBulkAddTagDialog(selectedGoals));
-		menu.add(addTag);
+		// 2. Tag — flat "Add Tag" alone, or a submenu with both Add + Remove
+		// when at least one selected goal has a removable tag.
+		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
+			api.getRemovableTagsForSelection(selectedIds);
+		JMenuItem bulkTagEntry = buildTagMenuEntry(
+			true,
+			() -> dialogFactory.showBulkAddTagDialog(selectedGoals),
+			!removableOpts.isEmpty(),
+			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
+		if (bulkTagEntry != null) menu.add(bulkTagEntry);
 
 		// 3. Change Color
 		JMenuItem changeColor = new JMenuItem("Change Color");
 		changeColor.addActionListener(e -> dialogFactory.showBulkChangeColorDialog(selectedGoals));
 		menu.add(changeColor);
-
-		// Bulk Remove Tag — show only if at least one selected
-		// goal has a removable tag.
-		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
-			api.getRemovableTagsForSelection(selectedIds);
-		if (!removableOpts.isEmpty())
-		{
-			JMenuItem bulkRemoveTag = new JMenuItem("Remove Tag");
-			bulkRemoveTag.addActionListener(e -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
-			menu.add(bulkRemoveTag);
-		}
 
 		// Bulk Restore Defaults — show only if at least one
 		// selected goal is overridden (tag drift OR color override).
