@@ -107,19 +107,21 @@ public final class MockGameState
 
 	/**
 	 * Mark a diary tier as complete by area display name and tier.
-	 * Looks up the VarbitID via {@link AchievementDiaryData}.
+	 * Looks up the tracking spec via {@link AchievementDiaryData} and sets
+	 * the varbit to the required completion value (1 for boolean COMPLETE
+	 * varbits, the tier task count for Karamja count varbits).
 	 *
-	 * @throws IllegalArgumentException if no varbit exists for this diary
+	 * @throws IllegalArgumentException if no tracking varbit exists for this diary
 	 */
 	public MockGameState diaryComplete(String areaDisplayName, AchievementDiaryData.Tier tier)
 	{
-		int varbitId = AchievementDiaryData.completionVarbit(areaDisplayName, tier);
-		if (varbitId == 0)
+		AchievementDiaryData.Tracking tracking = AchievementDiaryData.tracking(areaDisplayName, tier);
+		if (tracking == null)
 		{
 			throw new IllegalArgumentException(
-				"No completion varbit for diary: " + areaDisplayName + " " + tier);
+				"No tracking varbit for diary: " + areaDisplayName + " " + tier);
 		}
-		return varbit(varbitId, 1);
+		return varbit(tracking.varbitId, tracking.requiredValue);
 	}
 
 	// -----------------------------------------------------------------

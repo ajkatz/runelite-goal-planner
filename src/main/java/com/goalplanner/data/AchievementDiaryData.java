@@ -7,13 +7,21 @@ import java.util.Map;
 
 /**
  * Metadata for achievement diaries: widget IDs, sprite icon, and the
- * (area, tier) → completion varbit map used by DiaryTracker.
+ * (area, tier) → completion-tracking lookup used by DiaryTracker.
  *
  * Widget IDs come from {@code InterfaceID.AreaTask} (group 259).
- * Completion varbits are named {@code <AREA>_DIARY_<TIER>_COMPLETE} in
- * {@link VarbitID}. Karamja Easy/Medium/Hard are NOT exposed as completion
- * constants in runelite-api — only Elite is — so those three tiers are
- * left unmapped and tracked manually.
+ *
+ * <p>Two tracking modes:
+ * <ul>
+ *   <li><b>Boolean COMPLETE varbit</b> (most diaries): named
+ *       {@code <AREA>_DIARY_<TIER>_COMPLETE} in {@link VarbitID}; flips
+ *       0→1 when the tier is finished. Goal stores {@code targetValue=1}.</li>
+ *   <li><b>Count varbit + task total</b> (Karamja Easy/Medium/Hard only):
+ *       runelite-api doesn't expose boolean completes for these three tiers,
+ *       only {@code KARAMJA_*_COUNT} task counters. Completion is detected
+ *       by comparing the count against the tier's total task count, stored
+ *       on the goal as {@code targetValue=<taskCount>}.</li>
+ * </ul>
  */
 public final class AchievementDiaryData
 {
@@ -41,11 +49,41 @@ public final class AchievementDiaryData
 	}
 
 	/**
-	 * Map of "<AREA>|<TIER>" (uppercase, pipe-separated) to the completion varbit ID.
-	 * Not every combination is present — Karamja Easy/Medium/Hard are intentionally
-	 * absent because runelite-api doesn't expose them as named constants.
+	 * Tracking spec for one (area, tier): which varbit to read and what
+	 * value indicates completion. {@code requiredValue == 1} for boolean
+	 * COMPLETE varbits; for Karamja Easy/Medium/Hard it's the tier's total
+	 * task count compared against the {@code KARAMJA_*_COUNT} varbit.
+	 */
+	public static final class Tracking
+	{
+		public final int varbitId;
+		public final int requiredValue;
+
+		public Tracking(int varbitId, int requiredValue)
+		{
+			this.varbitId = varbitId;
+			this.requiredValue = requiredValue;
+		}
+	}
+
+	/**
+	 * Map of "<AREA>|<TIER>" (uppercase, pipe-separated) to the boolean
+	 * completion varbit ID. Karamja Easy/Medium/Hard are absent — those
+	 * use {@link #KARAMJA_COUNT_VARBITS} instead.
 	 */
 	private static final Map<String, Integer> COMPLETION_VARBITS = new HashMap<>();
+
+	/**
+	 * Karamja Easy/Medium/Hard: count varbit ID and total task count. The
+	 * tier is complete when {@code varbit value >= taskCount}.
+	 */
+	private static final Map<Tier, Tracking> KARAMJA_COUNT_VARBITS = new HashMap<>();
+	static
+	{
+		KARAMJA_COUNT_VARBITS.put(Tier.EASY,   new Tracking(VarbitID.KARAMJA_EASY_COUNT, 10));
+		KARAMJA_COUNT_VARBITS.put(Tier.MEDIUM, new Tracking(VarbitID.KARAMJA_MED_COUNT,  19));
+		KARAMJA_COUNT_VARBITS.put(Tier.HARD,   new Tracking(VarbitID.KARAMJA_HARD_COUNT, 10));
+	}
 
 	static
 	{
@@ -75,7 +113,7 @@ public final class AchievementDiaryData
 		put("KANDARIN", Tier.ELITE,  VarbitID.KANDARIN_DIARY_ELITE_COMPLETE);
 
 		// Karamja: only Elite has a standard *_DIARY_*_COMPLETE varbit in runelite-api.
-		// Easy/Medium/Hard fall through to manual tracking (goal builds fine, varbit lookup null).
+		// Easy/Medium/Hard are tracked via KARAMJA_COUNT_VARBITS instead.
 		put("KARAMJA", Tier.ELITE, VarbitID.KARAMJA_DIARY_ELITE_COMPLETE);
 
 		put("KOUREND", Tier.EASY,   VarbitID.KOUREND_DIARY_EASY_COMPLETE);
@@ -115,15 +153,34 @@ public final class AchievementDiaryData
 	}
 
 	/**
-	 * Look up the completion varbit for a given area (display name) and tier.
-	 * Returns 0 when no completion varbit is exposed (e.g. Karamja Easy/Medium/Hard).
+	 * Look up the tracking spec (varbit + required value) for a given area
+	 * and tier. Returns null when neither a boolean COMPLETE varbit nor a
+	 * Karamja count varbit is available (in which case the goal is manual).
 	 */
-	public static int completionVarbit(String areaDisplayName, Tier tier)
+	public static Tracking tracking(String areaDisplayName, Tier tier)
 	{
-		if (areaDisplayName == null || tier == null) return 0;
-		String key = normalizeAreaKey(areaDisplayName) + "|" + tier.name();
-		Integer id = COMPLETION_VARBITS.get(key);
-		return id != null ? id : 0;
+		if (areaDisplayName == null || tier == null) return null;
+		String areaKey = normalizeAreaKey(areaDisplayName);
+		Integer boolVarbit = COMPLETION_VARBITS.get(areaKey + "|" + tier.name());
+		if (boolVarbit != null) return new Tracking(boolVarbit, 1);
+		if ("KARAMJA".equals(areaKey)) return KARAMJA_COUNT_VARBITS.get(tier);
+		return null;
+	}
+
+	/**
+	 * Parse the tier out of a diary goal's description (e.g.
+	 * "Medium Achievement Diary" → MEDIUM). Returns null if the description
+	 * doesn't start with a recognized tier word. Used by the load-time
+	 * backfill to recover tier info from existing stored goals.
+	 */
+	public static Tier parseTierFromDescription(String description)
+	{
+		if (description == null) return null;
+		String trimmed = description.trim();
+		int space = trimmed.indexOf(' ');
+		String firstWord = (space < 0 ? trimmed : trimmed.substring(0, space)).toUpperCase();
+		try { return Tier.valueOf(firstWord); }
+		catch (IllegalArgumentException e) { return null; }
 	}
 
 	/**

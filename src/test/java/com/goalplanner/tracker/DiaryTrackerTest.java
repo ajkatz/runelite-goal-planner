@@ -18,12 +18,12 @@ class DiaryTrackerTest
 {
 	private Goal makeDiaryGoal(String area, AchievementDiaryData.Tier tier)
 	{
-		int varbitId = AchievementDiaryData.completionVarbit(area, tier);
+		AchievementDiaryData.Tracking tracking = AchievementDiaryData.tracking(area, tier);
 		return Goal.builder()
 			.type(GoalType.DIARY)
 			.name(area + " " + tier.getDisplayName() + " Diary")
-			.varbitId(varbitId)
-			.targetValue(1)
+			.varbitId(tracking != null ? tracking.varbitId : 0)
+			.targetValue(tracking != null ? tracking.requiredValue : 1)
 			.currentValue(0)
 			.build();
 	}
@@ -87,11 +87,12 @@ class DiaryTrackerTest
 		MockGameState state = new MockGameState();
 		var h = TrackerTestHarness.forDiaries(state);
 
-		// Simulate a Karamja Easy diary goal (no varbit exposed)
+		// Custom diary entry with no tracking varbit available — caller built
+		// the goal without a varbit, so the tracker must leave it manual.
 		Goal goal = Goal.builder()
 			.type(GoalType.DIARY)
-			.name("Karamja Easy Diary")
-			.varbitId(0) // no completion varbit
+			.name("Custom Diary")
+			.varbitId(0)
 			.targetValue(1)
 			.currentValue(0)
 			.build();
@@ -99,6 +100,41 @@ class DiaryTrackerTest
 
 		assertFalse(h.tracker().checkGoals(h.store().getGoals()),
 			"goals with varbitId <= 0 should be skipped");
+	}
+
+	@Test
+	@DisplayName("Karamja Medium completes via count varbit reaching 19")
+	void karamjaMediumCompletesViaCountVarbit()
+	{
+		MockGameState state = new MockGameState()
+			.diaryComplete("Karamja", AchievementDiaryData.Tier.MEDIUM);
+
+		var h = TrackerTestHarness.forDiaries(state);
+		Goal goal = makeDiaryGoal("Karamja", AchievementDiaryData.Tier.MEDIUM);
+		assertEquals(19, goal.getTargetValue(),
+			"Karamja Medium should track against the 19-task count");
+		h.store().addGoal(goal);
+
+		assertTrue(h.tracker().checkGoals(h.store().getGoals()));
+		assertEquals(19, goal.getCurrentValue());
+		assertTrue(goal.isComplete());
+	}
+
+	@Test
+	@DisplayName("Karamja Hard partial progress doesn't complete")
+	void karamjaHardPartialProgress()
+	{
+		// 9 of 10 tasks done — should track progress but not complete
+		MockGameState state = new MockGameState()
+			.varbit(net.runelite.api.gameval.VarbitID.KARAMJA_HARD_COUNT, 9);
+
+		var h = TrackerTestHarness.forDiaries(state);
+		Goal goal = makeDiaryGoal("Karamja", AchievementDiaryData.Tier.HARD);
+		h.store().addGoal(goal);
+
+		h.tracker().checkGoals(h.store().getGoals());
+		assertEquals(9, goal.getCurrentValue());
+		assertFalse(goal.isComplete(), "9/10 tasks should not be complete");
 	}
 
 	@Test

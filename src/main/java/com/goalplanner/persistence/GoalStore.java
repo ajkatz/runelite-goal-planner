@@ -1,7 +1,9 @@
 package com.goalplanner.persistence;
 
+import com.goalplanner.data.AchievementDiaryData;
 import com.goalplanner.model.Goal;
 import com.goalplanner.model.GoalStatus;
+import com.goalplanner.model.GoalType;
 import com.goalplanner.model.Section;
 import com.goalplanner.model.Tag;
 import com.goalplanner.model.TagCategory;
@@ -171,6 +173,12 @@ public class GoalStore
 		migrateOrphanedGoals();
 		normalizeOrder();
 
+		// Backfill diary tracking for goals saved before varbit support existed
+		// (or before Karamja Easy/Med/Hard count tracking was added). Idempotent:
+		// only updates goals whose stored varbitId/targetValue don't match the
+		// current AchievementDiaryData lookup.
+		boolean diariesBackfilled = backfillDiaryTracking();
+
 		// Scrub any relation edges that violate the DAG invariant
 		// or point at missing goals. Forgiving on load — we drop the offending
 		// edges with a log warning rather than failing to load the whole save.
@@ -179,7 +187,7 @@ public class GoalStore
 		// external JSON edits or a bug slipping past the API layer.
 		boolean relationsScrubbed = scrubInvalidRelationEdges();
 
-		if (tagsMigrated || relationsScrubbed)
+		if (tagsMigrated || relationsScrubbed || diariesBackfilled)
 		{
 			// Migration touched tags and/or goal relation edges — persist affected entities.
 			for (Goal g : goals) saveGoal(g);
@@ -844,6 +852,55 @@ public class GoalStore
 			for (Goal g : goals) saveGoal(g);
 			saveGoalOrder();
 		}
+	}
+
+	/**
+	 * Recover diary tracking metadata (varbit ID + target value) for any
+	 * DIARY goal that's missing it. This applies to goals saved before
+	 * the boolean-varbit auto-tracking feature shipped, and to Karamja
+	 * Easy/Medium/Hard goals saved before the count-varbit support was
+	 * added (which previously stored varbitId=0, targetValue=1 and
+	 * therefore never auto-completed).
+	 *
+	 * Idempotent: writes only when the stored values disagree with the
+	 * current {@link AchievementDiaryData} lookup. Skips already-completed
+	 * goals so we don't overwrite a manually-completed entry's targetValue.
+	 *
+	 * @return true if any goal was modified (caller re-persists)
+	 */
+	private boolean backfillDiaryTracking()
+	{
+		boolean anyChanged = false;
+		for (Goal goal : goals)
+		{
+			if (goal.getType() != GoalType.DIARY) continue;
+			if (goal.isComplete()) continue;
+
+			AchievementDiaryData.Tier tier = AchievementDiaryData.parseTierFromDescription(goal.getDescription());
+			if (tier == null) continue;
+
+			AchievementDiaryData.Tracking tracking = AchievementDiaryData.tracking(goal.getName(), tier);
+			if (tracking == null) continue;
+
+			boolean changed = false;
+			if (goal.getVarbitId() != tracking.varbitId)
+			{
+				goal.setVarbitId(tracking.varbitId);
+				changed = true;
+			}
+			if (goal.getTargetValue() != tracking.requiredValue)
+			{
+				goal.setTargetValue(tracking.requiredValue);
+				changed = true;
+			}
+			if (changed)
+			{
+				log.info("Backfilled diary tracking for {} ({}): varbit={}, target={}",
+					goal.getName(), tier, tracking.varbitId, tracking.requiredValue);
+				anyChanged = true;
+			}
+		}
+		return anyChanged;
 	}
 
 	// -----------------------------------------------------------------

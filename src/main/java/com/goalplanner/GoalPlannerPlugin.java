@@ -525,18 +525,20 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		if (areaDisplayName == null || tier == null) return null;
 
-		int varbitId = AchievementDiaryData.completionVarbit(areaDisplayName, tier);
-		if (varbitId == 0)
+		AchievementDiaryData.Tracking tracking = AchievementDiaryData.tracking(areaDisplayName, tier);
+		if (tracking == null)
 		{
 			log.info("Diary goal '{} {}' has no tracking varbit; will be manual-only",
 				areaDisplayName, tier);
 		}
+		int varbitId = tracking != null ? tracking.varbitId : 0;
+		int targetValue = tracking != null ? tracking.requiredValue : 1;
 
 		return Goal.builder()
 			.type(GoalType.DIARY)
 			.name(areaDisplayName)
 			.description(tier.getDisplayName() + " Achievement Diary")
-			.targetValue(1)
+			.targetValue(targetValue)
 			.currentValue(0)
 			.spriteId(AchievementDiaryData.DIARY_SPRITE_ID)
 			.varbitId(varbitId)

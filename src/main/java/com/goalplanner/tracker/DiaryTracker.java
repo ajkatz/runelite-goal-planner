@@ -10,8 +10,10 @@ import javax.inject.Singleton;
 
 /**
  * Tracks achievement diary completion via varbits set by the game when a
- * diary tier is completed. Goals with varbitId &lt;= 0 (e.g. Karamja
- * Easy/Medium/Hard) are skipped and stay manual.
+ * diary tier is completed. Two varbit shapes are supported transparently:
+ * boolean COMPLETE varbits (targetValue=1) and Karamja count varbits
+ * (targetValue=tier task count). Goals with varbitId &lt;= 0 are skipped
+ * and stay manual.
  */
 @Singleton
 public class DiaryTracker extends AbstractTracker
@@ -37,7 +39,6 @@ public class DiaryTracker extends AbstractTracker
 	@Override
 	protected int readCurrentValue(Goal goal)
 	{
-		int varbitValue = client.getVarbitValue(goal.getVarbitId());
-		return varbitValue > 0 ? 1 : 0;
+		return Math.max(0, client.getVarbitValue(goal.getVarbitId()));
 	}
 }
