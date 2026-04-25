@@ -178,6 +178,7 @@ public final class BossKillData
 
 		// Other bosses
 		PET_ICONS.put("Araxxor", ItemID.NID);
+		PET_ICONS.put("Barrows", ItemID.SPADE);
 		PET_ICONS.put("Bryophyta", ItemID.BRYOPHYTAS_ESSENCE);
 		PET_ICONS.put("Deranged Arch.", ItemID.STEEL_RING);
 		PET_ICONS.put("Corporeal Beast", ItemID.PET_DARK_CORE);
@@ -258,6 +259,7 @@ public final class BossKillData
 
 	static
 	{
+		COLLECTION_LOG_ALIASES.put("Barrows Chests", java.util.List.of("Barrows"));
 		COLLECTION_LOG_ALIASES.put("Chambers of Xeric", java.util.List.of("CoX", "CoX (CM)"));
 		COLLECTION_LOG_ALIASES.put("Theatre of Blood", java.util.List.of("ToB", "ToB (HM)", "ToB (Story)"));
 		COLLECTION_LOG_ALIASES.put("Tombs of Amascut", java.util.List.of("ToA (Entry)", "ToA", "ToA (Expert)"));
