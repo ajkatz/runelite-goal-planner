@@ -461,6 +461,8 @@ public class GoalPanel extends PluginPanel
 					view,
 					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true),
 					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false),
+					() -> reorderController.moveGoalTo(goalIdRef, secStart),
+					() -> reorderController.moveGoalTo(goalIdRef, secEnd),
 					skillIconManager,
 					itemManager,
 					spriteManager

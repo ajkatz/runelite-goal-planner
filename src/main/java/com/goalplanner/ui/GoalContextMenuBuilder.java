@@ -119,29 +119,8 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
-		// Reorder options are hidden in the Completed section (read-only ordering)
-		// and gated on section bounds so they don't appear when there's nowhere to
-		// move within the section. Move-to-Top/Bottom now stay inside the section.
-		if (!goal.isComplete())
-		{
-			if (index > sectionStart)
-			{
-				JMenuItem moveFirst = new JMenuItem("Move to Top");
-				moveFirst.addActionListener(e -> {
-					reorderController.moveGoalTo(goal.getId(), sectionStart);
-				});
-				menu.add(moveFirst);
-			}
-
-			if (index < sectionEnd)
-			{
-				JMenuItem moveLast = new JMenuItem("Move to Bottom");
-				moveLast.addActionListener(e -> {
-					reorderController.moveGoalTo(goal.getId(), sectionEnd);
-				});
-				menu.add(moveLast);
-			}
-		}
+		// Move-to-Top / Move-to-Bottom are accessed via right-clicking the
+		// up/down arrow buttons on the card itself (see GoalCard.createArrowButton).
 
 		// Add Goal submenu — Top/Bottom of section, Above/Below
 		// the right-clicked card. Above/Below grayed at section boundaries.

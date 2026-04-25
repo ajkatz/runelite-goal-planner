@@ -85,6 +85,7 @@ public class GoalCard extends JPanel
 	private final ItemManager itemManager;
 
 	public GoalCard(GoalView view, ActionListener onMoveUp, ActionListener onMoveDown,
+					Runnable onMoveToTop, Runnable onMoveToBottom,
 					SkillIconManager skillIconManager, ItemManager itemManager,
 					SpriteManager spriteManager)
 	{
@@ -132,8 +133,8 @@ public class GoalCard extends JPanel
 		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
 
-		upButton = createArrowButton(true, onMoveUp);
-		downButton = createArrowButton(false, onMoveDown);
+		upButton = createArrowButton(true, onMoveUp, onMoveToTop);
+		downButton = createArrowButton(false, onMoveDown, onMoveToBottom);
 
 		topRow.add(leftPanel, BorderLayout.WEST);
 		topRow.add(statusLabel, BorderLayout.CENTER);
@@ -458,7 +459,7 @@ public class GoalCard extends JPanel
 		};
 	}
 
-	private JButton createArrowButton(boolean up, ActionListener action)
+	private JButton createArrowButton(boolean up, ActionListener action, Runnable jumpAction)
 	{
 		final int iconSize = 7;
 		final javax.swing.Icon idle = up
@@ -474,6 +475,9 @@ public class GoalCard extends JPanel
 		btn.setFocusPainted(false);
 		btn.setMargin(new Insets(0, 0, 0, 0));
 		btn.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		btn.setToolTipText(up
+			? "Move up (right-click: move to top)"
+			: "Move down (right-click: move to bottom)");
 		btn.addActionListener(action);
 
 		btn.addMouseListener(new java.awt.event.MouseAdapter()
@@ -482,6 +486,18 @@ public class GoalCard extends JPanel
 			public void mouseEntered(java.awt.event.MouseEvent e) { btn.setIcon(hover); }
 			@Override
 			public void mouseExited(java.awt.event.MouseEvent e) { btn.setIcon(idle); }
+			@Override
+			public void mousePressed(java.awt.event.MouseEvent e)
+			{
+				// Right-click jumps the goal to the section edge. The button's
+				// own ActionListener only fires on left-click (BUTTON1), so this
+				// MousePressed handler doesn't double-trigger with the arrow's
+				// normal one-step move.
+				if (javax.swing.SwingUtilities.isRightMouseButton(e) && jumpAction != null)
+				{
+					jumpAction.run();
+				}
+			}
 		});
 
 		return btn;
@@ -699,6 +715,16 @@ public class GoalCard extends JPanel
 		// Completed goals: replace line 2 with the completion date.
 		if (isComplete())
 		{
+			// BOSS cards normally show just "Barrows" in the title with
+			// "50 kills" in the description. Replacing the description
+			// with the completion date drops the target KC, so prepend
+			// it to the title on completion ("50x Barrows") — matches
+			// the ITEM_GRIND pattern and keeps the target count visible.
+			String type = view.type == null ? "CUSTOM" : view.type;
+			if ("BOSS".equals(type) && view.targetValue > 0)
+			{
+				line1 = fitName(FormatUtil.formatNumber(view.targetValue) + "x " + view.name);
+			}
 			line2 = "Completed " + formatCompletionDate(view.completedAt);
 		}
 
