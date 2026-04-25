@@ -446,8 +446,26 @@ class GoalQueryService
 	private List<GoalView> topoSortSection(List<Goal> sectionGoals, String sectionId)
 	{
 		List<GoalView> out = new ArrayList<>();
-		sectionGoals.sort(java.util.Comparator.comparingInt(Goal::getPriority));
 		if (sectionGoals.isEmpty()) return out;
+
+		// Completed section: most-recently-completed at the top. Skip the topo
+		// machinery — every goal's prereqs are by definition already done, so
+		// DAG ordering carries no information; chronological order is what users
+		// actually want here. Tie-break by priority for stable rendering when
+		// two goals were completed in the same millisecond (e.g. cascading
+		// auto-completion in one VarbitChanged handler).
+		Section section = api.goalStore.findSection(sectionId);
+		if (section != null && section.getBuiltInKind() == Section.BuiltInKind.COMPLETED)
+		{
+			List<Goal> byDate = new ArrayList<>(sectionGoals);
+			byDate.sort(java.util.Comparator
+				.comparingLong(Goal::getCompletedAt).reversed()
+				.thenComparingInt(Goal::getPriority));
+			for (Goal g : byDate) out.add(toGoalView(g));
+			return out;
+		}
+
+		sectionGoals.sort(java.util.Comparator.comparingInt(Goal::getPriority));
 
 		java.util.Set<String> goalIds = new java.util.HashSet<>();
 		for (Goal g : sectionGoals) goalIds.add(g.getId());
