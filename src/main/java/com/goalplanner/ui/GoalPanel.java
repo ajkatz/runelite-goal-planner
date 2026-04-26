@@ -86,6 +86,15 @@ public class GoalPanel extends PluginPanel
 	 *  relation-pick mode is active. Hidden otherwise. */
 	private JPanel relationModeBanner;
 	private JLabel relationModeLabel;
+	/** Id of the goal the user is repositioning via the "Move to…"
+	 *  click-mode picker, or null when not in move mode. The next click on
+	 *  another goal card inserts the source above that target; clicking the
+	 *  in-mode "New Section" row creates a new section and moves there. */
+	String pendingMoveSourceId = null;
+	/** Instruction banner for move-pick mode. Distinct blue background so
+	 *  it can't be confused with the orange relation banner. */
+	private JPanel moveModeBanner;
+	private JLabel moveModeLabel;
 	/** Toolbar undo/redo buttons. Refreshed on every rebuild. */
 	private JButton undoButton;
 	private JButton redoButton;
@@ -235,6 +244,32 @@ public class GoalPanel extends PluginPanel
 		relationModeBanner.add(relationCancelBtn, BorderLayout.EAST);
 		relationModeBanner.setVisible(false);
 
+		// Move-pick mode banner. Distinct blue background so it can't be
+		// confused with the relation banner. Shown when the user picks
+		// "Move to\u2026" from a goal's Customize > Move submenu.
+		moveModeBanner = new JPanel(new BorderLayout());
+		moveModeBanner.setBackground(new Color(0x20, 0x60, 0xB8));
+		moveModeBanner.setBorder(new EmptyBorder(4, 8, 4, 8));
+		moveModeLabel = new JLabel();
+		moveModeLabel.setForeground(Color.WHITE);
+		moveModeLabel.setFont(moveModeLabel.getFont().deriveFont(11f));
+		moveModeBanner.add(moveModeLabel, BorderLayout.CENTER);
+		JButton moveCancelBtn = new JButton("\u2715");
+		moveCancelBtn.setMargin(new Insets(0, 4, 0, 4));
+		moveCancelBtn.setToolTipText("Cancel (ESC)");
+		moveCancelBtn.addActionListener(e -> exitMoveMode());
+		moveModeBanner.add(moveCancelBtn, BorderLayout.EAST);
+		moveModeBanner.setVisible(false);
+
+		// Both mode banners share a vertical stack below the toolbar/search
+		// row. They are mutually exclusive in practice (entering one mode
+		// exits the other), but the layout supports either being shown.
+		JPanel modeBanners = new JPanel();
+		modeBanners.setLayout(new BoxLayout(modeBanners, BoxLayout.Y_AXIS));
+		modeBanners.setOpaque(false);
+		modeBanners.add(relationModeBanner);
+		modeBanners.add(moveModeBanner);
+
 		JPanel headerStack = new JPanel(new BorderLayout());
 		headerStack.setBackground(ColorScheme.DARK_GRAY_COLOR);
 		JPanel headerTop = new JPanel(new BorderLayout());
@@ -242,7 +277,7 @@ public class GoalPanel extends PluginPanel
 		headerTop.add(header, BorderLayout.NORTH);
 		headerTop.add(searchRow, BorderLayout.CENTER);
 		headerStack.add(headerTop, BorderLayout.NORTH);
-		headerStack.add(relationModeBanner, BorderLayout.SOUTH);
+		headerStack.add(modeBanners, BorderLayout.SOUTH);
 
 		// Scrollable goal list
 		goalListPanel = new JPanel();
@@ -258,18 +293,19 @@ public class GoalPanel extends PluginPanel
 		add(headerStack, BorderLayout.NORTH);
 		add(scrollPane, BorderLayout.CENTER);
 
-		// ESC cancels relation-pick mode. Registered on the
+		// ESC cancels whichever pick mode is active. Registered on the
 		// whole panel so the key fires regardless of focus within the
 		// scrollable goal list.
 		javax.swing.KeyStroke escStroke =
 			javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0);
-		getInputMap(WHEN_IN_FOCUSED_WINDOW).put(escStroke, "cancelRelationMode");
-		getActionMap().put("cancelRelationMode", new javax.swing.AbstractAction()
+		getInputMap(WHEN_IN_FOCUSED_WINDOW).put(escStroke, "cancelPickMode");
+		getActionMap().put("cancelPickMode", new javax.swing.AbstractAction()
 		{
 			@Override
 			public void actionPerformed(java.awt.event.ActionEvent e)
 			{
 				if (pendingRelationSourceId != null) exitRelationMode();
+				else if (pendingMoveSourceId != null) exitMoveMode();
 			}
 		});
 
@@ -363,6 +399,33 @@ public class GoalPanel extends PluginPanel
 		// Batch topo-sort all sections in one pass.
 		java.util.Map<String, java.util.List<com.goalplanner.api.GoalView>> allTopoOrders =
 			api.queryAllGoalsTopologicallySorted();
+
+		// "New Section" drop target — only rendered while move-pick mode is
+		// active. Sits above the first section header so the user always sees
+		// it without scrolling. Click prompts for a name, creates the
+		// section, and routes the move through handleMovePickToNewSection.
+		if (pendingMoveSourceId != null)
+		{
+			JLabel newSectionRow = new JLabel("+ New Section");
+			newSectionRow.setForeground(new Color(0x33, 0x99, 0xFF));
+			newSectionRow.setFont(newSectionRow.getFont().deriveFont(Font.BOLD, 12f));
+			newSectionRow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+				javax.swing.BorderFactory.createDashedBorder(new Color(0x33, 0x99, 0xFF), 1.5f, 4f, 2f, true),
+				new EmptyBorder(8, 10, 8, 10)));
+			newSectionRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+			newSectionRow.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+			newSectionRow.addMouseListener(new MouseAdapter()
+			{
+				@Override
+				public void mouseClicked(MouseEvent e)
+				{
+					if (e.getButton() != MouseEvent.BUTTON1) return;
+					handleMovePickToNewSection();
+				}
+			});
+			goalListPanel.add(newSectionRow);
+			goalListPanel.add(Box.createVerticalStrut(6));
+		}
 
 		for (com.goalplanner.api.SectionView section : sectionViews)
 		{
@@ -496,6 +559,13 @@ public class GoalPanel extends PluginPanel
 					card.setBorder(javax.swing.BorderFactory.createLineBorder(
 						new Color(0xFF, 0x99, 0x33), 2));
 				}
+				// Move-pick source — distinct blue border so the user can
+				// tell it apart from a relation pick at a glance.
+				else if (goal.getId().equals(pendingMoveSourceId))
+				{
+					card.setBorder(javax.swing.BorderFactory.createLineBorder(
+						new Color(0x33, 0x99, 0xFF), 2));
+				}
 
 				goalListPanel.add(card);
 				goalListPanel.add(Box.createVerticalStrut(4));
@@ -620,6 +690,97 @@ public class GoalPanel extends PluginPanel
 		}
 	}
 
+	// ------------------------------------------------------------------
+	// Move-pick mode
+	// ------------------------------------------------------------------
+
+	/**
+	 * Enter move-pick mode. The next left-click on any goal card inserts
+	 * {@code sourceGoalId} above the clicked target (in the target's
+	 * section, at the target's position). Clicking the in-mode "+ New
+	 * Section" row instead creates a new section and moves there.
+	 * Exiting another pick mode first keeps the two states mutually
+	 * exclusive.
+	 */
+	void enterMoveMode(String sourceGoalId)
+	{
+		if (pendingRelationSourceId != null) exitRelationMode();
+		pendingMoveSourceId = sourceGoalId;
+		String sourceName = reorderController.goalNameById(sourceGoalId);
+		moveModeLabel.setText("<html>Click a goal to place \"" + sourceName
+			+ "\" above it, or click + New Section &mdash; ESC to cancel</html>");
+		moveModeBanner.setVisible(true);
+		// Rebuild so the blue source-card border + New Section row appear.
+		rebuild();
+	}
+
+	/** Exit move-pick mode without moving. */
+	void exitMoveMode()
+	{
+		if (pendingMoveSourceId == null) return;
+		pendingMoveSourceId = null;
+		moveModeBanner.setVisible(false);
+		// Rebuild so the highlight + New Section row go away.
+		rebuild();
+	}
+
+	/**
+	 * Handle a left-click on a card while move-pick mode is active.
+	 * Clicking the source cancels. Otherwise the source is positioned in
+	 * the target's section at the target's position-within-section, which
+	 * places it directly above the target. Always exits the mode so the
+	 * user isn't stranded.
+	 */
+	private void handleMovePickTarget(String clickedGoalId)
+	{
+		if (pendingMoveSourceId == null) return;
+		if (clickedGoalId.equals(pendingMoveSourceId))
+		{
+			exitMoveMode();
+			return;
+		}
+		com.goalplanner.api.GoalView target = api.queryGoalView(clickedGoalId);
+		if (target == null)
+		{
+			exitMoveMode();
+			return;
+		}
+		// Compute the target's flat-priority position within its section,
+		// matching the convention positionGoalInSection expects.
+		java.util.List<com.goalplanner.api.GoalView> all = api.queryAllGoals();
+		int positionInSection = 0;
+		for (com.goalplanner.api.GoalView v : all)
+		{
+			if (!target.sectionId.equals(v.sectionId)) continue;
+			if (v.id.equals(target.id)) break;
+			if (v.id.equals(pendingMoveSourceId)) continue; // self doesn't count
+			positionInSection++;
+		}
+		String sourceId = pendingMoveSourceId;
+		api.positionGoalInSection(sourceId, target.sectionId, positionInSection);
+		exitMoveMode();
+	}
+
+	/**
+	 * Handle a click on the in-mode "+ New Section" row. Prompts for a
+	 * name, creates the section, and moves the source goal there. Cancels
+	 * the mode regardless of outcome.
+	 */
+	private void handleMovePickToNewSection()
+	{
+		if (pendingMoveSourceId == null) return;
+		String input = JOptionPane.showInputDialog(this, "New section name:", "");
+		if (input != null && !input.trim().isEmpty())
+		{
+			String newId = api.createSection(input.trim());
+			if (newId != null)
+			{
+				api.moveGoalToSection(pendingMoveSourceId, newId);
+			}
+		}
+		exitMoveMode();
+	}
+
 	/**
 	 * Rule 1 enforcement: any action on an unselected card auto-deselects the
 	 * existing multi-selection first. Used by arrow-button moves; the right-
@@ -660,6 +821,11 @@ public class GoalPanel extends PluginPanel
 				if (pendingRelationSourceId != null)
 				{
 					handleRelationPickTarget(goalId);
+					return;
+				}
+				if (pendingMoveSourceId != null)
+				{
+					handleMovePickTarget(goalId);
 					return;
 				}
 				// Check LIVE selection state, not the stale build-time value.

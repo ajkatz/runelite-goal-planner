@@ -97,11 +97,12 @@ class GoalContextMenuBuilder
 			private void maybeShowPopup(MouseEvent e)
 			{
 				if (!e.isPopupTrigger()) return;
-				// Right-click exits relation-pick mode. The
-				// user is clearly navigating away from the relation they
+				// Right-click exits whichever pick mode is active. The
+				// user is clearly navigating away from the action they
 				// started; show the normal context menu of the clicked
 				// card instead of stranding them in mode.
 				if (panel.pendingRelationSourceId != null) panel.exitRelationMode();
+				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
 				// Right-click does NOT touch the current selection. If the
 				// clicked card is part of the existing multi-selection, show
 				// the bulk menu so its actions apply to the whole set.
@@ -527,6 +528,12 @@ class GoalContextMenuBuilder
 					reorderController.moveGoalTo(goal.getId(), sectionEnd));
 				moveMenu.add(moveToBottom);
 			}
+
+			JMenuItem moveToPicker = new JMenuItem("Move to…");
+			moveToPicker.setToolTipText(
+				"Click, then click another goal to place this one above it, or click + New Section.");
+			moveToPicker.addActionListener(e -> panel.enterMoveMode(goal.getId()));
+			moveMenu.add(moveToPicker);
 
 			JMenu moveToSection = new JMenu("Move to Section");
 
