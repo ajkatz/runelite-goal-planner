@@ -472,14 +472,25 @@ public class GoalPlannerPlugin extends Plugin
 			// Put the store on the detected profile first, then migrate. The
 			// store's setProfile() is a no-op if we're already on that profile
 			// (the default is main, so we only call setProfile for leagues).
+			boolean profileSwitched = false;
 			if (!now.equals(goalStore.getActiveProfile()))
 			{
 				goalStore.setProfile(now);
 				seedCanonicalSystemTags();
 				trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
 				lastAppliedProfile = now;
+				profileSwitched = true;
 			}
-			if (goalStore.migrateLegacyIntoActiveProfile() && panel != null)
+			boolean migrated = goalStore.migrateLegacyIntoActiveProfile();
+			// Rebuild on EITHER: a fresh legacy migration that just changed
+			// the goal set, OR a first-time profile switch (e.g. user logs
+			// directly into leagues at startup — startUp() loaded the main
+			// namespace into the panel; the setProfile() above swapped the
+			// store to leagues but the panel still shows main's empty
+			// state). Without this, the panel only refreshes when some
+			// later event (tracker tick, config change) incidentally
+			// triggers a rebuild — the "appears after a little bit" bug.
+			if ((profileSwitched || migrated) && panel != null)
 			{
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
 			}
