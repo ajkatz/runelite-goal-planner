@@ -45,8 +45,10 @@ import java.util.List;
  */
 public final class ColumnMenu
 {
-	private static final int COLUMN_WIDTH = 220;
-	private static final int ROW_HEIGHT = 24;
+	private static final int COLUMN_WIDTH = 160;
+	private static final int ROW_HEIGHT = 22;
+	private static final int SEP_HEIGHT = 5;
+	private static final int COLUMN_PADDING = 8; // 4 top + 4 bottom
 	private static final int MAX_COLUMN_HEIGHT = 480;
 
 	private static final Color BG = ColorScheme.DARK_GRAY_COLOR;
@@ -54,8 +56,11 @@ public final class ColumnMenu
 	private static final Color FG = new Color(0xE0, 0xE0, 0xE0);
 	private static final Color FG_DIM = new Color(0xA0, 0xA0, 0xA0);
 	private static final Color FG_DISABLED = new Color(0x80, 0x80, 0x80);
-	private static final Color SEP = new Color(0x40, 0x40, 0x40);
-	private static final Color BORDER = new Color(0x30, 0x30, 0x30);
+	// Lighter than BG so divider lines are actually visible against the
+	// dark column. Using 0x40 happened to match DARK_GRAY_COLOR ~exactly,
+	// which is why separators looked missing in the prototype.
+	private static final Color SEP = new Color(0x60, 0x60, 0x60);
+	private static final Color BORDER = new Color(0x20, 0x20, 0x20);
 
 	private final JWindow window;
 	private final JPanel root;
@@ -113,32 +118,28 @@ public final class ColumnMenu
 		inner.setBackground(BG);
 		inner.setBorder(new EmptyBorder(4, 0, 4, 0));
 
+		int rowCount = 0;
+		int sepCount = 0;
 		boolean hasBack = stack.size() > 1;
 		if (hasBack)
 		{
 			inner.add(buildBackRow(frame.parentLabel));
-			JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
-			sep.setForeground(SEP);
-			sep.setBackground(SEP);
-			sep.setMaximumSize(new Dimension(COLUMN_WIDTH, 1));
-			sep.setBorder(new EmptyBorder(2, 0, 2, 0));
-			inner.add(sep);
+			rowCount++;
+			inner.add(buildSeparator());
+			sepCount++;
 		}
 
 		for (MenuNode node : frame.items)
 		{
 			if (node.separator)
 			{
-				JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
-				sep.setForeground(SEP);
-				sep.setBackground(SEP);
-				sep.setMaximumSize(new Dimension(COLUMN_WIDTH, 1));
-				sep.setBorder(new EmptyBorder(2, 0, 2, 0));
-				inner.add(sep);
+				inner.add(buildSeparator());
+				sepCount++;
 			}
 			else
 			{
 				inner.add(buildRow(node));
+				rowCount++;
 			}
 		}
 
@@ -149,13 +150,27 @@ public final class ColumnMenu
 		scroll.getViewport().setBackground(BG);
 		scroll.setBackground(BG);
 
-		int rowCount = frame.items.size() + (hasBack ? 2 : 0); // back row + separator
-		int desired = Math.min(rowCount * ROW_HEIGHT + 12, MAX_COLUMN_HEIGHT);
-		scroll.setPreferredSize(new Dimension(COLUMN_WIDTH, desired));
+		// Compute exact height — sum of row heights + separator heights +
+		// padding. Avoids the long empty tail under-content because we no
+		// longer over-estimate via a flat ROW_HEIGHT count.
+		int contentHeight = rowCount * ROW_HEIGHT + sepCount * SEP_HEIGHT + COLUMN_PADDING;
+		int height = Math.min(contentHeight, MAX_COLUMN_HEIGHT);
+		scroll.setPreferredSize(new Dimension(COLUMN_WIDTH, height));
 
 		root.add(scroll, BorderLayout.CENTER);
 		window.pack();
 		repositionIfOffscreen();
+	}
+
+	private JSeparator buildSeparator()
+	{
+		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
+		sep.setForeground(SEP);
+		sep.setBackground(SEP);
+		sep.setPreferredSize(new Dimension(COLUMN_WIDTH, SEP_HEIGHT));
+		sep.setMaximumSize(new Dimension(COLUMN_WIDTH, SEP_HEIGHT));
+		sep.setBorder(new EmptyBorder(2, 0, 2, 0));
+		return sep;
 	}
 
 	private JPanel buildBackRow(String parentLabel)
@@ -163,12 +178,16 @@ public final class ColumnMenu
 		String label = parentLabel != null ? parentLabel : "Back";
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(BG);
-		row.setBorder(new EmptyBorder(4, 10, 4, 10));
+		row.setBorder(new EmptyBorder(2, 10, 2, 10));
+		row.setPreferredSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
 		row.setMaximumSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
 
-		JLabel arrow = new JLabel("←");
+		// "<" matches the ">" submenu indicator — ASCII, font-friendly,
+		// renders consistently on macOS where unicode arrows like ← can
+		// fall back to colored emoji glyphs on default fonts.
+		JLabel arrow = new JLabel("<");
 		arrow.setForeground(FG_DIM);
-		arrow.setFont(arrow.getFont().deriveFont(Font.PLAIN, 12f));
+		arrow.setFont(arrow.getFont().deriveFont(Font.BOLD, 12f));
 		arrow.setBorder(new EmptyBorder(0, 0, 0, 6));
 		row.add(arrow, BorderLayout.WEST);
 
@@ -196,7 +215,8 @@ public final class ColumnMenu
 	{
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(BG);
-		row.setBorder(new EmptyBorder(4, 10, 4, 10));
+		row.setBorder(new EmptyBorder(2, 10, 2, 10));
+		row.setPreferredSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
 		row.setMaximumSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
 
 		JLabel label = new JLabel(node.label);
