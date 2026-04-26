@@ -260,7 +260,10 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		// Optional toggle
+		// Optional toggle — hidden on completed goals; the optional/required
+		// distinction only affects how active goals are weighted/displayed,
+		// so it's noise on completed cards.
+		if (!goal.isComplete())
 		{
 			boolean isOptional = goal.isOptional();
 			JMenuItem optionalItem = new JMenuItem(isOptional ? "Mark Required" : "Mark Optional");
@@ -292,8 +295,10 @@ class GoalContextMenuBuilder
 			menu.add(editDesc);
 		}
 
-		// Change Color is available on ALL goal types — override persists on the
-		// goal model so rebuilds don't clobber it.
+		// Change Color is available on all active goal types — override persists
+		// on the goal model so rebuilds don't clobber it. Hidden on completed
+		// goals to keep the menu lean (re-coloring history is noise).
+		if (!goal.isComplete())
 		{
 			JMenuItem changeGoalColor = new JMenuItem("Change Color");
 			changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
@@ -423,30 +428,39 @@ class GoalContextMenuBuilder
 			!removableTags.isEmpty(), removeTagAction);
 		if (tagEntry != null) menu.add(tagEntry);
 
-		// Relations. "Requires..." and "Required by..." enter a
-		// click-mode where the user clicks another goal to link. The Remove
-		// submenus below are direct pick-to-remove lists of the current edges.
-		// Hidden for completed goals: completed items are reference history,
-		// not active tracking — editing their prerequisite graph adds noise
-		// with no behavioral payoff.
+		// Relations. All requirement-graph editing collapsed under a single
+		// "Relations" parent so the top-level menu stays short. "Requires..."
+		// and "Required by..." enter a click-mode where the user clicks
+		// another goal to link. The Remove children are direct pick-to-remove
+		// lists of the current edges. Hidden for completed goals: completed
+		// items are reference history, not active tracking — editing their
+		// prerequisite graph adds noise with no behavioral payoff.
 		if (!goal.isComplete())
 		{
+			JMenu relationsMenu = new JMenu("Relations");
+
 			JMenuItem addRequirement = new JMenuItem("Requires\u2026");
 			addRequirement.setToolTipText(
 				"Click, then click another goal to mark it as a requirement of this one.");
 			addRequirement.addActionListener(e ->
 				panel.enterRelationMode(goal.getId(), /*sourceRequiresTarget=*/true));
-			menu.add(addRequirement);
+			relationsMenu.add(addRequirement);
 
 			JMenuItem addDependent = new JMenuItem("Required by\u2026");
 			addDependent.setToolTipText(
 				"Click, then click another goal that should require this one.");
 			addDependent.addActionListener(e ->
 				panel.enterRelationMode(goal.getId(), /*sourceRequiresTarget=*/false));
-			menu.add(addDependent);
+			relationsMenu.add(addDependent);
+
+			List<String> currentRequirements = api.getRequirements(goal.getId());
+			List<String> currentDependents = api.getDependents(goal.getId());
+			if (!currentRequirements.isEmpty() || !currentDependents.isEmpty())
+			{
+				relationsMenu.addSeparator();
+			}
 
 			// Remove requirement submenu — only when there's something to remove.
-			List<String> currentRequirements = api.getRequirements(goal.getId());
 			if (!currentRequirements.isEmpty())
 			{
 				JMenu removeReqMenu = new JMenu("Remove Requirement");
@@ -457,11 +471,10 @@ class GoalContextMenuBuilder
 					item.addActionListener(e -> api.removeRequirement(goal.getId(), reqId));
 					removeReqMenu.add(item);
 				}
-				menu.add(removeReqMenu);
+				relationsMenu.add(removeReqMenu);
 			}
 
 			// Remove dependent submenu — only when this goal is depended-on.
-			List<String> currentDependents = api.getDependents(goal.getId());
 			if (!currentDependents.isEmpty())
 			{
 				JMenu removeDepMenu = new JMenu("Remove Dependent");
@@ -472,8 +485,10 @@ class GoalContextMenuBuilder
 					item.addActionListener(e -> api.removeRequirement(depId, goal.getId()));
 					removeDepMenu.add(item);
 				}
-				menu.add(removeDepMenu);
+				relationsMenu.add(removeDepMenu);
 			}
+
+			menu.add(relationsMenu);
 		}
 
 		// Restore Defaults — gated on isGoalOverridden (tag drift
@@ -623,21 +638,37 @@ class GoalContextMenuBuilder
 			menu.add(moveToSection);
 		}
 
-		// 2. Tag — flat "Add Tag" alone, or a submenu with both Add + Remove
-		// when at least one selected goal has a removable tag.
+		// 2. Tag — Add applies only to active goals in the selection (completed
+		// are tag-frozen, matching the single-item menu); Remove still applies
+		// to any tagged goal so users can clean up stale tags on completed cards.
+		List<Goal> tagAddTargets = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) tagAddTargets.add(g);
+		}
 		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
 			api.getRemovableTagsForSelection(selectedIds);
 		JMenuItem bulkTagEntry = buildTagMenuEntry(
-			true,
-			() -> dialogFactory.showBulkAddTagDialog(selectedGoals),
+			!tagAddTargets.isEmpty(),
+			() -> dialogFactory.showBulkAddTagDialog(tagAddTargets),
 			!removableOpts.isEmpty(),
 			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
 		if (bulkTagEntry != null) menu.add(bulkTagEntry);
 
-		// 3. Change Color
-		JMenuItem changeColor = new JMenuItem("Change Color");
-		changeColor.addActionListener(e -> dialogFactory.showBulkChangeColorDialog(selectedGoals));
-		menu.add(changeColor);
+		// 3. Change Color — applies only to active goals in the selection;
+		// completed goals are recolor-frozen (matches single-item menu).
+		// Hidden entirely when every selected goal is completed.
+		List<Goal> recolorTargets = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) recolorTargets.add(g);
+		}
+		if (!recolorTargets.isEmpty())
+		{
+			JMenuItem changeColor = new JMenuItem("Change Color");
+			changeColor.addActionListener(e -> dialogFactory.showBulkChangeColorDialog(recolorTargets));
+			menu.add(changeColor);
+		}
 
 		// Bulk Restore Defaults — show only if at least one
 		// selected goal is overridden (tag drift OR color override).
