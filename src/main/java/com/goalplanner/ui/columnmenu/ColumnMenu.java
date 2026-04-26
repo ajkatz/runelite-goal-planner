@@ -27,18 +27,20 @@ import java.awt.Window;
 import java.awt.event.AWTEventListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 
 /**
  * Click-driven, hover-stable replacement for cascading {@link javax.swing.JPopupMenu}.
  *
- * <p>Renders nested menu trees as side-by-side columns inside a single
- * {@link JWindow}. Drilling into a submenu appends a column to the right
- * rather than spawning a hover-collapsing popup. Clicking a leaf runs its
- * action and dismisses the whole window. Clicking outside dismisses.
+ * <p>Renders the menu tree as a single column inside a non-focusable
+ * {@link JWindow}. Drilling into a submenu replaces the current column
+ * with the submenu's items and adds a "← &lt;parent&gt;" back row at
+ * the top. Hitting that row pops back to the previous level. Clicking
+ * a leaf runs the action and dismisses. Clicking outside dismisses.
  *
- * <p>The window is non-focusable so the host application (RuneLite) keeps
+ * <p>Window is non-focusable so the host application (RuneLite) keeps
  * keyboard input — important for in-game gameplay.
  */
 public final class ColumnMenu
@@ -50,19 +52,34 @@ public final class ColumnMenu
 	private static final Color BG = ColorScheme.DARK_GRAY_COLOR;
 	private static final Color BG_HOVER = brighten(BG, 18);
 	private static final Color FG = new Color(0xE0, 0xE0, 0xE0);
+	private static final Color FG_DIM = new Color(0xA0, 0xA0, 0xA0);
 	private static final Color FG_DISABLED = new Color(0x80, 0x80, 0x80);
 	private static final Color SEP = new Color(0x40, 0x40, 0x40);
 	private static final Color BORDER = new Color(0x30, 0x30, 0x30);
 
 	private final JWindow window;
 	private final JPanel root;
-	private final List<JPanel> columns = new ArrayList<>();
+	private final Deque<Frame> stack = new ArrayDeque<>();
 	private AWTEventListener globalListener;
+
+	/** A drill-down level: which submenu items to render and what to label
+	 *  the back row when navigating up from here. */
+	private static final class Frame
+	{
+		final String parentLabel; // null for root
+		final List<MenuNode> items;
+		Frame(String parentLabel, List<MenuNode> items)
+		{
+			this.parentLabel = parentLabel;
+			this.items = items;
+		}
+	}
 
 	public static void show(Component anchor, int x, int y, List<MenuNode> rootItems)
 	{
 		ColumnMenu m = new ColumnMenu(anchor);
-		m.openColumn(0, rootItems);
+		m.stack.push(new Frame(null, rootItems));
+		m.renderCurrent();
 		m.position(anchor, x, y);
 		m.window.setVisible(true);
 		m.attachGlobalListeners();
@@ -74,41 +91,41 @@ public final class ColumnMenu
 		window = new JWindow(owner);
 		window.setFocusableWindowState(false);
 		window.setAlwaysOnTop(true);
-		root = new JPanel();
-		root.setLayout(new BoxLayout(root, BoxLayout.X_AXIS));
+		root = new JPanel(new BorderLayout());
 		root.setBackground(BG);
 		root.setBorder(BorderFactory.createLineBorder(BORDER, 1));
 		window.setContentPane(root);
 	}
 
 	/**
-	 * Show a column at {@code level}, replacing any columns at or beyond
-	 * that depth. Used for both initial rendering and when the user
-	 * picks a sibling in an upstream column (collapses the trailing
-	 * columns and opens the new one).
+	 * Replace the visible column with the top-of-stack frame's items.
+	 * If we're not at the root, prepend a "← &lt;parentLabel&gt;" row that
+	 * pops back to the prior frame on click.
 	 */
-	private void openColumn(int level, List<MenuNode> items)
+	private void renderCurrent()
 	{
-		while (columns.size() > level)
-		{
-			JPanel removed = columns.remove(columns.size() - 1);
-			root.remove(removed);
-		}
-		JPanel column = buildColumn(items, level);
-		columns.add(column);
-		root.add(column);
-		window.pack();
-		repositionIfOffscreen();
-	}
+		root.removeAll();
+		Frame frame = stack.peek();
+		if (frame == null) return;
 
-	private JPanel buildColumn(List<MenuNode> items, int level)
-	{
 		JPanel inner = new JPanel();
 		inner.setLayout(new BoxLayout(inner, BoxLayout.Y_AXIS));
 		inner.setBackground(BG);
 		inner.setBorder(new EmptyBorder(4, 0, 4, 0));
 
-		for (MenuNode node : items)
+		boolean hasBack = stack.size() > 1;
+		if (hasBack)
+		{
+			inner.add(buildBackRow(frame.parentLabel));
+			JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
+			sep.setForeground(SEP);
+			sep.setBackground(SEP);
+			sep.setMaximumSize(new Dimension(COLUMN_WIDTH, 1));
+			sep.setBorder(new EmptyBorder(2, 0, 2, 0));
+			inner.add(sep);
+		}
+
+		for (MenuNode node : frame.items)
 		{
 			if (node.separator)
 			{
@@ -121,35 +138,61 @@ public final class ColumnMenu
 			}
 			else
 			{
-				inner.add(buildRow(node, level));
+				inner.add(buildRow(node));
 			}
 		}
 
-		// Wrap in a scrollpane so very long lists (Move to Section,
-		// Remove Requirement on a heavy graph) don't overflow the screen.
 		JScrollPane scroll = new JScrollPane(inner);
-		scroll.setBorder(level == 0 ? null
-			: BorderFactory.createMatteBorder(0, 1, 0, 0, BORDER));
+		scroll.setBorder(null);
 		scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
 		scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
 		scroll.getViewport().setBackground(BG);
 		scroll.setBackground(BG);
-		int desiredHeight = Math.min(
-			items.size() * ROW_HEIGHT + 12,
-			MAX_COLUMN_HEIGHT);
-		scroll.setPreferredSize(new Dimension(COLUMN_WIDTH, desiredHeight));
-		scroll.setMaximumSize(new Dimension(COLUMN_WIDTH, MAX_COLUMN_HEIGHT));
 
-		// Wrap-of-wrap so the column itself behaves as a fixed-width box
-		// in the parent X_AXIS layout.
-		JPanel column = new JPanel(new BorderLayout());
-		column.setBackground(BG);
-		column.add(scroll, BorderLayout.CENTER);
-		column.setMaximumSize(new Dimension(COLUMN_WIDTH, MAX_COLUMN_HEIGHT));
-		return column;
+		int rowCount = frame.items.size() + (hasBack ? 2 : 0); // back row + separator
+		int desired = Math.min(rowCount * ROW_HEIGHT + 12, MAX_COLUMN_HEIGHT);
+		scroll.setPreferredSize(new Dimension(COLUMN_WIDTH, desired));
+
+		root.add(scroll, BorderLayout.CENTER);
+		window.pack();
+		repositionIfOffscreen();
 	}
 
-	private JPanel buildRow(MenuNode node, int level)
+	private JPanel buildBackRow(String parentLabel)
+	{
+		String label = parentLabel != null ? parentLabel : "Back";
+		JPanel row = new JPanel(new BorderLayout());
+		row.setBackground(BG);
+		row.setBorder(new EmptyBorder(4, 10, 4, 10));
+		row.setMaximumSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
+
+		JLabel arrow = new JLabel("←");
+		arrow.setForeground(FG_DIM);
+		arrow.setFont(arrow.getFont().deriveFont(Font.PLAIN, 12f));
+		arrow.setBorder(new EmptyBorder(0, 0, 0, 6));
+		row.add(arrow, BorderLayout.WEST);
+
+		JLabel text = new JLabel(label);
+		text.setForeground(FG_DIM);
+		text.setFont(text.getFont().deriveFont(Font.PLAIN, 12f));
+		row.add(text, BorderLayout.CENTER);
+
+		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+		row.addMouseListener(new MouseAdapter()
+		{
+			@Override public void mouseEntered(MouseEvent e) { row.setBackground(BG_HOVER); }
+			@Override public void mouseExited(MouseEvent e) { row.setBackground(BG); }
+			@Override public void mouseClicked(MouseEvent e)
+			{
+				if (e.getButton() != MouseEvent.BUTTON1) return;
+				stack.pop();
+				renderCurrent();
+			}
+		});
+		return row;
+	}
+
+	private JPanel buildRow(MenuNode node)
 	{
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(BG);
@@ -163,9 +206,9 @@ public final class ColumnMenu
 
 		if (node.isSubmenu())
 		{
-			JLabel arrow = new JLabel("▸"); // ▸
-			arrow.setForeground(node.enabled ? FG_DISABLED : SEP);
-			arrow.setFont(arrow.getFont().deriveFont(Font.PLAIN, 10f));
+			JLabel arrow = new JLabel(">");
+			arrow.setForeground(node.enabled ? FG_DIM : SEP);
+			arrow.setFont(arrow.getFont().deriveFont(Font.BOLD, 12f));
 			row.add(arrow, BorderLayout.EAST);
 		}
 
@@ -189,7 +232,8 @@ public final class ColumnMenu
 					}
 					else if (node.isSubmenu())
 					{
-						openColumn(level + 1, node.children);
+						stack.push(new Frame(node.label, node.children));
+						renderCurrent();
 					}
 				}
 			});
@@ -204,10 +248,6 @@ public final class ColumnMenu
 		window.setLocation(screen.x + x, screen.y + y);
 	}
 
-	/**
-	 * Keep the window inside the visible screen bounds. When the
-	 * cumulative columns extend past the right edge, shift left.
-	 */
 	private void repositionIfOffscreen()
 	{
 		Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment()
@@ -260,5 +300,4 @@ public final class ColumnMenu
 			Math.min(255, c.getGreen() + amount),
 			Math.min(255, c.getBlue() + amount));
 	}
-
 }
