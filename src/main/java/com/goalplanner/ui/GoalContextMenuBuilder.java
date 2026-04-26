@@ -126,6 +126,37 @@ class GoalContextMenuBuilder
 	}
 
 	/**
+	 * Compute the intersection of an edge-list reader's results across a
+	 * set of goals. Used by the bulk Relations submenu: a common
+	 * requirement (or dependent) is one every selected goal carries.
+	 * Returns an empty list when {@code goals} is empty so callers can
+	 * gate "show submenu" on emptiness.
+	 *
+	 * <p>Package-private + static so a test can verify the intersection
+	 * rule without standing up a full popup-menu rendering pipeline.
+	 */
+	static List<String> commonEdges(
+		java.util.function.Function<String, List<String>> edgeReader,
+		Iterable<Goal> goals)
+	{
+		List<String> common = null;
+		for (Goal g : goals)
+		{
+			List<String> edges = edgeReader.apply(g.getId());
+			if (common == null)
+			{
+				common = new ArrayList<>(edges);
+			}
+			else
+			{
+				common.retainAll(edges);
+			}
+			if (common.isEmpty()) break;
+		}
+		return common != null ? common : Collections.emptyList();
+	}
+
+	/**
 	 * Builds the normal per-card right-click menu. Called lazily on each
 	 * popup show so the contents reflect current selection / completion / tag
 	 * state without needing to be rebuilt at panel.rebuild() time.
@@ -821,26 +852,8 @@ class GoalContextMenuBuilder
 			// ambiguous: removing a requirement that only some selected
 			// goals carry is better expressed via the single-item menu
 			// on those specific goals.
-			List<String> commonRequirements = null;
-			List<String> commonDependents = null;
-			for (Goal g : relationSources)
-			{
-				List<String> reqs = api.getRequirements(g.getId());
-				List<String> deps = api.getDependents(g.getId());
-				if (commonRequirements == null)
-				{
-					commonRequirements = new ArrayList<>(reqs);
-					commonDependents = new ArrayList<>(deps);
-				}
-				else
-				{
-					commonRequirements.retainAll(reqs);
-					commonDependents.retainAll(deps);
-				}
-				if (commonRequirements.isEmpty() && commonDependents.isEmpty()) break;
-			}
-			if (commonRequirements == null) commonRequirements = Collections.emptyList();
-			if (commonDependents == null) commonDependents = Collections.emptyList();
+			List<String> commonRequirements = commonEdges(api::getRequirements, relationSources);
+			List<String> commonDependents = commonEdges(api::getDependents, relationSources);
 
 			if (!commonRequirements.isEmpty() || !commonDependents.isEmpty())
 			{
