@@ -665,9 +665,93 @@ class GoalContextMenuBuilder
 		menu.add(deselectAll);
 		menu.addSeparator();
 
-		// 1. Move to Section — only if at least one selected goal is non-complete.
-		// Completed goals are pinned to Completed and the API rejects the move,
-		// so showing the option for an all-completed selection would be a no-op.
+		// Mark as Complete — top-level (mirrors single-item menu where
+		// Mark Complete/Incomplete is a primary lifecycle action). Only
+		// when ALL selected are CUSTOM (per locked design).
+		boolean allCustom = !selectedGoals.isEmpty();
+		for (Goal g : selectedGoals)
+		{
+			if (g.getType() != GoalType.CUSTOM) { allCustom = false; break; }
+		}
+		if (allCustom)
+		{
+			JMenuItem markComplete = new JMenuItem("Mark as Complete");
+			markComplete.addActionListener(e -> {
+				api.beginCompound("Mark " + selectedGoals.size() + " complete");
+				try
+				{
+					for (Goal g : selectedGoals) api.markGoalComplete(g.getId());
+				}
+				finally { api.endCompound(); }
+			});
+			menu.add(markComplete);
+		}
+
+		// Customize submenu — collects property-edit actions that apply to
+		// the whole selection (color, tags, restore defaults). Mirrors the
+		// single-item Customize submenu so the menu shape is the same
+		// whether the user has one or many cards selected.
+		JMenu customizeMenu = new JMenu("Customize");
+
+		// Change Color — applies only to active goals in the selection;
+		// completed goals are recolor-frozen (matches single-item menu).
+		List<Goal> recolorTargets = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) recolorTargets.add(g);
+		}
+		if (!recolorTargets.isEmpty())
+		{
+			JMenuItem changeColor = new JMenuItem("Change Color");
+			changeColor.addActionListener(e -> dialogFactory.showBulkChangeColorDialog(recolorTargets));
+			customizeMenu.add(changeColor);
+		}
+
+		// Tag — Add applies only to active goals in the selection (completed
+		// are tag-frozen, matching the single-item menu); Remove still applies
+		// to any tagged goal so users can clean up stale tags on completed cards.
+		List<Goal> tagAddTargets = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) tagAddTargets.add(g);
+		}
+		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
+			api.getRemovableTagsForSelection(selectedIds);
+		JMenuItem bulkTagEntry = buildTagMenuEntry(
+			!tagAddTargets.isEmpty(),
+			() -> dialogFactory.showBulkAddTagDialog(tagAddTargets),
+			!removableOpts.isEmpty(),
+			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
+		if (bulkTagEntry != null) customizeMenu.add(bulkTagEntry);
+
+		// Restore Defaults — show only if at least one selected goal is
+		// overridden (tag drift OR color override).
+		boolean anyOverridden = false;
+		for (String id : selectedIds)
+		{
+			if (api.isGoalOverridden(id)) { anyOverridden = true; break; }
+		}
+		if (anyOverridden)
+		{
+			JMenuItem restoreDefaults = new JMenuItem("Restore Defaults");
+			restoreDefaults.addActionListener(e -> {
+				int changed = api.bulkRestoreDefaults(selectedIds);
+				log.debug("bulkRestoreDefaults changed {} of {} selected goals",
+					changed, selectionSize);
+			});
+			customizeMenu.add(restoreDefaults);
+		}
+
+		if (customizeMenu.getMenuComponentCount() > 0)
+		{
+			menu.add(customizeMenu);
+		}
+
+		// Move submenu — sibling of Customize (mirrors single-item menu).
+		// For now the only bulk relocation is Move to Section ▶; in-section
+		// reordering and click-mode picker don't have well-defined bulk
+		// semantics yet and are deferred. Hidden when no selected goal is
+		// movable (all completed) or no destination section exists.
 		boolean anyMovable = false;
 		for (Goal g : selectedGoals)
 		{
@@ -690,6 +774,8 @@ class GoalContextMenuBuilder
 		}
 		if (anyMovable && !destinations.isEmpty())
 		{
+			JMenu moveMenu = new JMenu("Move");
+
 			JMenu moveToSection = new JMenu("Move to Section");
 			for (com.goalplanner.api.SectionView dest : destinations)
 			{
@@ -701,82 +787,14 @@ class GoalContextMenuBuilder
 				});
 				moveToSection.add(item);
 			}
-			menu.add(moveToSection);
-		}
+			moveMenu.add(moveToSection);
 
-		// 2. Tag — Add applies only to active goals in the selection (completed
-		// are tag-frozen, matching the single-item menu); Remove still applies
-		// to any tagged goal so users can clean up stale tags on completed cards.
-		List<Goal> tagAddTargets = new ArrayList<>();
-		for (Goal g : selectedGoals)
-		{
-			if (!g.isComplete()) tagAddTargets.add(g);
-		}
-		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
-			api.getRemovableTagsForSelection(selectedIds);
-		JMenuItem bulkTagEntry = buildTagMenuEntry(
-			!tagAddTargets.isEmpty(),
-			() -> dialogFactory.showBulkAddTagDialog(tagAddTargets),
-			!removableOpts.isEmpty(),
-			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
-		if (bulkTagEntry != null) menu.add(bulkTagEntry);
-
-		// 3. Change Color — applies only to active goals in the selection;
-		// completed goals are recolor-frozen (matches single-item menu).
-		// Hidden entirely when every selected goal is completed.
-		List<Goal> recolorTargets = new ArrayList<>();
-		for (Goal g : selectedGoals)
-		{
-			if (!g.isComplete()) recolorTargets.add(g);
-		}
-		if (!recolorTargets.isEmpty())
-		{
-			JMenuItem changeColor = new JMenuItem("Change Color");
-			changeColor.addActionListener(e -> dialogFactory.showBulkChangeColorDialog(recolorTargets));
-			menu.add(changeColor);
-		}
-
-		// Bulk Restore Defaults — show only if at least one
-		// selected goal is overridden (tag drift OR color override).
-		boolean anyOverridden = false;
-		for (String id : selectedIds)
-		{
-			if (api.isGoalOverridden(id)) { anyOverridden = true; break; }
-		}
-		if (anyOverridden)
-		{
-			JMenuItem restoreDefaults = new JMenuItem("Restore Defaults");
-			restoreDefaults.addActionListener(e -> {
-				int changed = api.bulkRestoreDefaults(selectedIds);
-				log.debug("bulkRestoreDefaults changed {} of {} selected goals",
-					changed, selectionSize);
-			});
-			menu.add(restoreDefaults);
-		}
-
-		// 4. Mark as Complete — only when ALL selected are CUSTOM (per locked design)
-		boolean allCustom = !selectedGoals.isEmpty();
-		for (Goal g : selectedGoals)
-		{
-			if (g.getType() != GoalType.CUSTOM) { allCustom = false; break; }
-		}
-		if (allCustom)
-		{
-			JMenuItem markComplete = new JMenuItem("Mark as Complete");
-			markComplete.addActionListener(e -> {
-				api.beginCompound("Mark " + selectedGoals.size() + " complete");
-				try
-				{
-					for (Goal g : selectedGoals) api.markGoalComplete(g.getId());
-				}
-				finally { api.endCompound(); }
-			});
-			menu.add(markComplete);
+			menu.add(moveMenu);
 		}
 
 		menu.addSeparator();
 
-		// 5. Remove
+		// Remove
 		JMenuItem removeItem = new JMenuItem("Remove Goals");
 		removeItem.addActionListener(e -> {
 			LinkedHashSet<String> ids = new LinkedHashSet<>();
