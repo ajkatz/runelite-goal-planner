@@ -816,6 +816,79 @@ class GoalContextMenuBuilder
 				panel.enterRelationMode(relationSourceIds, /*sourceRequiresTarget=*/false));
 			relationsMenu.add(requiredBy);
 
+			// Compute intersections — an edge is "common" only if every
+			// selected non-completed goal has it. Anything less would be
+			// ambiguous: removing a requirement that only some selected
+			// goals carry is better expressed via the single-item menu
+			// on those specific goals.
+			List<String> commonRequirements = null;
+			List<String> commonDependents = null;
+			for (Goal g : relationSources)
+			{
+				List<String> reqs = api.getRequirements(g.getId());
+				List<String> deps = api.getDependents(g.getId());
+				if (commonRequirements == null)
+				{
+					commonRequirements = new ArrayList<>(reqs);
+					commonDependents = new ArrayList<>(deps);
+				}
+				else
+				{
+					commonRequirements.retainAll(reqs);
+					commonDependents.retainAll(deps);
+				}
+				if (commonRequirements.isEmpty() && commonDependents.isEmpty()) break;
+			}
+			if (commonRequirements == null) commonRequirements = Collections.emptyList();
+			if (commonDependents == null) commonDependents = Collections.emptyList();
+
+			if (!commonRequirements.isEmpty() || !commonDependents.isEmpty())
+			{
+				relationsMenu.addSeparator();
+			}
+
+			if (!commonRequirements.isEmpty())
+			{
+				JMenu removeReqMenu = new JMenu("Remove Requirement");
+				final List<Goal> finalSources = relationSources;
+				for (String reqId : commonRequirements)
+				{
+					String label = reorderController.goalNameById(reqId);
+					JMenuItem item = new JMenuItem(label);
+					item.addActionListener(e -> {
+						api.beginCompound("Remove requirement from " + finalSources.size() + " goals");
+						try
+						{
+							for (Goal g : finalSources) api.removeRequirement(g.getId(), reqId);
+						}
+						finally { api.endCompound(); }
+					});
+					removeReqMenu.add(item);
+				}
+				relationsMenu.add(removeReqMenu);
+			}
+
+			if (!commonDependents.isEmpty())
+			{
+				JMenu removeDepMenu = new JMenu("Remove Dependent");
+				final List<Goal> finalSources = relationSources;
+				for (String depId : commonDependents)
+				{
+					String label = reorderController.goalNameById(depId);
+					JMenuItem item = new JMenuItem(label);
+					item.addActionListener(e -> {
+						api.beginCompound("Remove dependent from " + finalSources.size() + " goals");
+						try
+						{
+							for (Goal g : finalSources) api.removeRequirement(depId, g.getId());
+						}
+						finally { api.endCompound(); }
+					});
+					removeDepMenu.add(item);
+				}
+				relationsMenu.add(removeDepMenu);
+			}
+
 			customizeMenu.add(relationsMenu);
 		}
 
