@@ -75,13 +75,16 @@ class GoalPlannerApiImplTest
 	class AddSkillGoalTests
 	{
 		@Test
-		@DisplayName("creates a new SKILL goal and fires the callback")
+		@DisplayName("creates a new SKILL goal and fires the callbacks")
 		void createsNewSkillGoal()
 		{
 			String id = api.addSkillGoal(Skill.ATTACK, 13_034_431);
 			assertNotNull(id);
 			assertEquals(1, store.getGoals().size());
-			assertEquals(1, callbackFireCount.get());
+			// Two fires: onGoalsChanged for the new goal, plus
+			// onSelectionChanged from the post-creation selectAfterCreate
+			// rule that promotes the new goal to the active selection.
+			assertEquals(2, callbackFireCount.get());
 
 			Goal g = store.getGoals().get(0);
 			assertEquals(GoalType.SKILL, g.getType());

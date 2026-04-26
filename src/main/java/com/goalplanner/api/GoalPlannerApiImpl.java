@@ -110,19 +110,19 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	// Goal creation delegations
 	// =====================================================================
 
-	@Override public String addSkillGoal(Skill skill, int targetXp) { return creationService.addSkillGoal(skill, targetXp); }
-	@Override public String addSkillGoalForLevel(Skill skill, int level) { return creationService.addSkillGoalForLevel(skill, level); }
-	@Override public String addItemGoal(int itemId, int targetQuantity) { return creationService.addItemGoal(itemId, targetQuantity); }
-	@Override public String addQuestGoal(Quest quest) { return creationService.addQuestGoal(quest); }
+	@Override public String addSkillGoal(Skill skill, int targetXp) { String id = creationService.addSkillGoal(skill, targetXp); selectAfterCreate(id); return id; }
+	@Override public String addSkillGoalForLevel(Skill skill, int level) { String id = creationService.addSkillGoalForLevel(skill, level); selectAfterCreate(id); return id; }
+	@Override public String addItemGoal(int itemId, int targetQuantity) { String id = creationService.addItemGoal(itemId, targetQuantity); selectAfterCreate(id); return id; }
+	@Override public String addQuestGoal(Quest quest) { String id = creationService.addQuestGoal(quest); selectAfterCreate(id); return id; }
 	// Not part of the published GoalPlannerApi — the public addQuestGoal / addDiaryGoal
 	// now auto-resolve prereqs internally. Kept public on the impl for tests and
 	// internal callers that want to supply pre-computed templates directly.
 	public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
-	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { return creationService.addDiaryGoal(areaDisplayName, tier); }
+	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { String id = creationService.addDiaryGoal(areaDisplayName, tier); selectAfterCreate(id); return id; }
 	public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goalplanner.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
-	@Override public String addCombatAchievementGoal(int caTaskId) { return creationService.addCombatAchievementGoal(caTaskId); }
-	@Override public String addBossGoal(String bossName, int targetKills) { return creationService.addBossGoal(bossName, targetKills); }
-	@Override public String addAccountGoal(String metricName, int target) { return creationService.addAccountGoal(metricName, target); }
+	@Override public String addCombatAchievementGoal(int caTaskId) { String id = creationService.addCombatAchievementGoal(caTaskId); selectAfterCreate(id); return id; }
+	@Override public String addBossGoal(String bossName, int targetKills) { String id = creationService.addBossGoal(bossName, targetKills); selectAfterCreate(id); return id; }
+	@Override public String addAccountGoal(String metricName, int target) { String id = creationService.addAccountGoal(metricName, target); selectAfterCreate(id); return id; }
 	public String addCustomGoal(String name, String description) { return creationService.addCustomGoal(name, description); }
 
 	// =====================================================================
@@ -340,6 +340,23 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		if (selectedGoalIds.isEmpty()) return;
 		if (selectedGoalIds.contains(goalId)) return;
 		clearGoalSelection();
+	}
+
+	/**
+	 * Post-creation selection rule: after an addXxxGoal call succeeds,
+	 * the new goal becomes the active selection unless the creation flow
+	 * already arranged for it (e.g. quest gesture-select includes the
+	 * parent goal alongside seeded prerequisite goals). The contains()
+	 * guard preserves those richer selections. Combined with the
+	 * auto-deselect rule, every "add a goal" gesture ends with the new
+	 * goal as part of the active selection — no stale prior selection
+	 * lingers, no need for callers to manage selection by hand.
+	 */
+	private void selectAfterCreate(String newGoalId)
+	{
+		if (newGoalId == null) return;
+		if (selectedGoalIds.contains(newGoalId)) return;
+		replaceGoalSelection(java.util.Collections.singleton(newGoalId));
 	}
 
 	@Override
