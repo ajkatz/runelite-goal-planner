@@ -22,42 +22,55 @@ public final class MenuNode
 	public final List<MenuNode> children;
 	public final boolean separator;
 	public final boolean enabled;
+	public final boolean keepOpen;
 	public final String tooltip;
 
 	private MenuNode(String label, Runnable action, List<MenuNode> children,
-					 boolean separator, boolean enabled, String tooltip)
+					 boolean separator, boolean enabled, boolean keepOpen, String tooltip)
 	{
 		this.label = label;
 		this.action = action;
 		this.children = children == null ? Collections.emptyList() : children;
 		this.separator = separator;
 		this.enabled = enabled;
+		this.keepOpen = keepOpen;
 		this.tooltip = tooltip;
 	}
 
 	public static MenuNode leaf(String label, Runnable action)
 	{
-		return new MenuNode(label, action, null, false, true, null);
+		return new MenuNode(label, action, null, false, true, false, null);
+	}
+
+	/**
+	 * Leaf that runs its action but does NOT dismiss the menu — for
+	 * repeat-friendly actions like Move Up / Move Down / Move to Top /
+	 * Move to Bottom where the user typically clicks several times in a
+	 * row to nudge the selection into place.
+	 */
+	public static MenuNode leafStaysOpen(String label, Runnable action)
+	{
+		return new MenuNode(label, action, null, false, true, true, null);
 	}
 
 	public static MenuNode leafDisabled(String label)
 	{
-		return new MenuNode(label, null, null, false, false, null);
+		return new MenuNode(label, null, null, false, false, false, null);
 	}
 
 	public static MenuNode submenu(String label, List<MenuNode> children)
 	{
-		return new MenuNode(label, null, children, false, true, null);
+		return new MenuNode(label, null, children, false, true, false, null);
 	}
 
 	public static MenuNode separator()
 	{
-		return new MenuNode(null, null, null, true, false, null);
+		return new MenuNode(null, null, null, true, false, false, null);
 	}
 
 	public MenuNode withTooltip(String tip)
 	{
-		return new MenuNode(label, action, children, separator, enabled, tip);
+		return new MenuNode(label, action, children, separator, enabled, keepOpen, tip);
 	}
 
 	public boolean isLeaf() { return !separator && action != null; }

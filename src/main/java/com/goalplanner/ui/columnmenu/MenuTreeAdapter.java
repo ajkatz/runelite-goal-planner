@@ -21,6 +21,11 @@ import java.util.List;
  */
 public final class MenuTreeAdapter
 {
+	/** Client-property key on a JMenuItem that, when set to Boolean.TRUE,
+	 *  causes the adapter to produce a leaf node that doesn't dismiss the
+	 *  menu when clicked. */
+	public static final String KEEP_OPEN_PROPERTY = "columnmenu.keepOpen";
+
 	private MenuTreeAdapter() {}
 
 	public static List<MenuNode> fromPopup(JPopupMenu popup)
@@ -73,7 +78,12 @@ public final class MenuTreeAdapter
 					item, ActionEvent.ACTION_PERFORMED, item.getActionCommand());
 				for (ActionListener l : listeners) l.actionPerformed(ev);
 			};
-			MenuNode leaf = MenuNode.leaf(item.getText(), action);
+			// Items can opt out of dismiss-on-click via this client property —
+			// useful for repeat-friendly actions like Move Up / Move Down.
+			Object keepOpen = item.getClientProperty(KEEP_OPEN_PROPERTY);
+			MenuNode leaf = Boolean.TRUE.equals(keepOpen)
+				? MenuNode.leafStaysOpen(item.getText(), action)
+				: MenuNode.leaf(item.getText(), action);
 			return item.getToolTipText() != null
 				? leaf.withTooltip(item.getToolTipText()) : leaf;
 		}

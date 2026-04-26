@@ -994,26 +994,37 @@ class GoalContextMenuBuilder
 				final int moveSectionStart = sectionStart;
 				final int moveSectionEnd = sectionEnd;
 
+				// Repeat-friendly actions — keep the column-menu popup open
+				// after click so the user can nudge a selection up/down
+				// several rows without reopening the menu each time.
 				JMenuItem moveToTop = new JMenuItem("Move to Top");
 				moveToTop.addActionListener(e ->
 					bulkMoveToTop(selectedGoals, moveSectionId, moveSectionStart));
+				moveToTop.putClientProperty(
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.KEEP_OPEN_PROPERTY, Boolean.TRUE);
 				moveMenu.add(moveToTop);
 
 				JMenuItem moveToBottom = new JMenuItem("Move to Bottom");
 				moveToBottom.addActionListener(e ->
 					bulkMoveToBottom(selectedGoals, moveSectionId,
 						moveSectionStart, moveSectionEnd));
+				moveToBottom.putClientProperty(
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.KEEP_OPEN_PROPERTY, Boolean.TRUE);
 				moveMenu.add(moveToBottom);
 
 				JMenuItem moveUp = new JMenuItem("Move Up");
 				moveUp.addActionListener(e ->
 					bulkMoveUp(selectedGoals, moveSectionId, moveSectionStart));
+				moveUp.putClientProperty(
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.KEEP_OPEN_PROPERTY, Boolean.TRUE);
 				moveMenu.add(moveUp);
 
 				JMenuItem moveDown = new JMenuItem("Move Down");
 				moveDown.addActionListener(e ->
 					bulkMoveDown(selectedGoals, moveSectionId,
 						moveSectionStart, moveSectionEnd));
+				moveDown.putClientProperty(
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.KEEP_OPEN_PROPERTY, Boolean.TRUE);
 				moveMenu.add(moveDown);
 			}
 

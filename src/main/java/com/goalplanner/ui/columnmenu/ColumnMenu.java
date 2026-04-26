@@ -226,9 +226,22 @@ public final class ColumnMenu
 					if (e.getButton() != MouseEvent.BUTTON1) return;
 					if (node.isLeaf())
 					{
-						Runnable action = node.action;
-						close();
-						if (action != null) action.run();
+						if (node.keepOpen)
+						{
+							// Run the action in place; menu stays visible
+							// so the user can click again. The underlying
+							// goal state changes; the menu items don't
+							// re-render in the prototype, so the click
+							// just becomes a no-op once the action no
+							// longer applies.
+							node.action.run();
+						}
+						else
+						{
+							Runnable action = node.action;
+							close();
+							if (action != null) action.run();
+						}
 					}
 					else if (node.isSubmenu())
 					{
