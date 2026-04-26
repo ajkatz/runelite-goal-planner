@@ -128,6 +128,98 @@ class GoalContextMenuBuilderTest
 		}
 	}
 
+	@Nested
+	@DisplayName("planMoveUp (preserves relative order)")
+	class PlanMoveUp
+	{
+		@Test
+		@DisplayName("non-contiguous selection — each shifts up by 1")
+		void nonContiguous()
+		{
+			// section [_,A,_,B,_,C,_], selection {A,B,C} at sectionRel 1,3,5
+			List<Integer> targets = GoalContextMenuBuilder.planMoveUp(
+				Arrays.asList(1, 3, 5), 7);
+			assertEquals(Arrays.asList(0, 2, 4), targets);
+		}
+
+		@Test
+		@DisplayName("selection already at top — clamped, no movement")
+		void allAtTop()
+		{
+			// section [A,B,C,_,_], selection {A,B,C} at 0,1,2
+			List<Integer> targets = GoalContextMenuBuilder.planMoveUp(
+				Arrays.asList(0, 1, 2), 5);
+			assertEquals(Arrays.asList(0, 1, 2), targets);
+		}
+
+		@Test
+		@DisplayName("partial top — leading element clamped, others advance")
+		void partialTopClamp()
+		{
+			// section [A,B,_,_,C], selection {A,B,C} at 0,1,4
+			// A clamps at 0; B clamps at 1; C moves from 4 → 3.
+			List<Integer> targets = GoalContextMenuBuilder.planMoveUp(
+				Arrays.asList(0, 1, 4), 5);
+			assertEquals(Arrays.asList(0, 1, 3), targets);
+		}
+
+		@Test
+		@DisplayName("adjacent block — whole block shifts up by 1")
+		void adjacentBlock()
+		{
+			// section [_,A,B,C,_], selection {A,B,C} at 1,2,3
+			List<Integer> targets = GoalContextMenuBuilder.planMoveUp(
+				Arrays.asList(1, 2, 3), 5);
+			assertEquals(Arrays.asList(0, 1, 2), targets);
+		}
+	}
+
+	@Nested
+	@DisplayName("planMoveDown (preserves relative order)")
+	class PlanMoveDown
+	{
+		@Test
+		@DisplayName("non-contiguous — each shifts down by 1")
+		void nonContiguous()
+		{
+			// section [_,A,_,B,_,C,_], selection {A,B,C} at 1,3,5; size=7
+			List<Integer> targets = GoalContextMenuBuilder.planMoveDown(
+				Arrays.asList(1, 3, 5), 7);
+			assertEquals(Arrays.asList(2, 4, 6), targets);
+		}
+
+		@Test
+		@DisplayName("selection already at bottom — clamped, no movement")
+		void allAtBottom()
+		{
+			// section [_,_,A,B,C], selection {A,B,C} at 2,3,4; size=5
+			List<Integer> targets = GoalContextMenuBuilder.planMoveDown(
+				Arrays.asList(2, 3, 4), 5);
+			assertEquals(Arrays.asList(2, 3, 4), targets);
+		}
+
+		@Test
+		@DisplayName("partial bottom — trailing element clamped, others advance")
+		void partialBottomClamp()
+		{
+			// section [A,_,_,B,C], selection {A,B,C} at 0,3,4; size=5
+			// C clamps at 4; B clamps at 3; A moves from 0 → 1.
+			List<Integer> targets = GoalContextMenuBuilder.planMoveDown(
+				Arrays.asList(0, 3, 4), 5);
+			assertEquals(Arrays.asList(1, 3, 4), targets);
+		}
+
+		@Test
+		@DisplayName("adjacent block — whole block shifts down by 1")
+		void adjacentBlock()
+		{
+			// section [_,A,B,C,_], selection {A,B,C} at 1,2,3; size=5
+			List<Integer> targets = GoalContextMenuBuilder.planMoveDown(
+				Arrays.asList(1, 2, 3), 5);
+			assertEquals(Arrays.asList(2, 3, 4), targets);
+		}
+	}
+
 	private static Goal goal(String id)
 	{
 		Goal g = Goal.builder()

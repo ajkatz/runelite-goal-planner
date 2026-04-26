@@ -929,10 +929,8 @@ class GoalContextMenuBuilder
 		}
 
 		// Move submenu — sibling of Customize (mirrors single-item menu).
-		// For now the only bulk relocation is Move to Section ▶; in-section
-		// reordering and click-mode picker don't have well-defined bulk
-		// semantics yet and are deferred. Hidden when no selected goal is
-		// movable (all completed) or no destination section exists.
+		// Hidden when no selected goal is movable (all completed) or no
+		// destination section exists.
 		boolean anyMovable = false;
 		for (Goal g : selectedGoals)
 		{
@@ -953,22 +951,87 @@ class GoalContextMenuBuilder
 			if (allAlreadyHere) continue;
 			destinations.add(sv);
 		}
-		if (anyMovable && !destinations.isEmpty())
+
+		// In-section bulk reordering — only when every selected goal is in
+		// the same section and non-completed, and there's room to move
+		// (section has more goals than the selection). All four operations
+		// preserve the relative priority order of the selected block.
+		boolean allInOneSection = !selectedGoals.isEmpty();
+		String commonSectionId = selectedGoals.isEmpty() ? null : selectedGoals.get(0).getSectionId();
+		boolean allActive = true;
+		for (Goal g : selectedGoals)
+		{
+			if (!commonSectionId.equals(g.getSectionId())) allInOneSection = false;
+			if (g.isComplete()) allActive = false;
+		}
+		boolean canInSectionMove = allInOneSection && allActive && commonSectionId != null;
+		int sectionStart = -1;
+		int sectionEnd = -1;
+		if (canInSectionMove)
+		{
+			List<Goal> allGoals = goalStore.getGoals();
+			for (int i = 0; i < allGoals.size(); i++)
+			{
+				if (commonSectionId.equals(allGoals.get(i).getSectionId()))
+				{
+					if (sectionStart == -1) sectionStart = i;
+					sectionEnd = i;
+				}
+			}
+			int sectionSize = (sectionStart == -1) ? 0 : (sectionEnd - sectionStart + 1);
+			// "Same goals as the section" → every move is a no-op; hide
+			// the in-section items entirely.
+			if (sectionSize <= selectedGoals.size()) canInSectionMove = false;
+		}
+
+		if (anyMovable && (canInSectionMove || !destinations.isEmpty()))
 		{
 			JMenu moveMenu = new JMenu("Move");
 
-			JMenu moveToSection = new JMenu("Move to Section");
-			for (com.goalplanner.api.SectionView dest : destinations)
+			if (canInSectionMove)
 			{
-				JMenuItem item = new JMenuItem(dest.name);
-				item.addActionListener(e -> {
-					LinkedHashSet<String> ids = new LinkedHashSet<>();
-					for (Goal g : selectedGoals) ids.add(g.getId());
-					api.bulkMoveGoalsToSection(ids, dest.id);
-				});
-				moveToSection.add(item);
+				final String moveSectionId = commonSectionId;
+				final int moveSectionStart = sectionStart;
+				final int moveSectionEnd = sectionEnd;
+
+				JMenuItem moveToTop = new JMenuItem("Move to Top");
+				moveToTop.addActionListener(e ->
+					bulkMoveToTop(selectedGoals, moveSectionId, moveSectionStart));
+				moveMenu.add(moveToTop);
+
+				JMenuItem moveToBottom = new JMenuItem("Move to Bottom");
+				moveToBottom.addActionListener(e ->
+					bulkMoveToBottom(selectedGoals, moveSectionId,
+						moveSectionStart, moveSectionEnd));
+				moveMenu.add(moveToBottom);
+
+				JMenuItem moveUp = new JMenuItem("Move Up");
+				moveUp.addActionListener(e ->
+					bulkMoveUp(selectedGoals, moveSectionId, moveSectionStart));
+				moveMenu.add(moveUp);
+
+				JMenuItem moveDown = new JMenuItem("Move Down");
+				moveDown.addActionListener(e ->
+					bulkMoveDown(selectedGoals, moveSectionId,
+						moveSectionStart, moveSectionEnd));
+				moveMenu.add(moveDown);
 			}
-			moveMenu.add(moveToSection);
+
+			if (!destinations.isEmpty())
+			{
+				JMenu moveToSection = new JMenu("Move to Section");
+				for (com.goalplanner.api.SectionView dest : destinations)
+				{
+					JMenuItem item = new JMenuItem(dest.name);
+					item.addActionListener(e -> {
+						LinkedHashSet<String> ids = new LinkedHashSet<>();
+						for (Goal g : selectedGoals) ids.add(g.getId());
+						api.bulkMoveGoalsToSection(ids, dest.id);
+					});
+					moveToSection.add(item);
+				}
+				moveMenu.add(moveToSection);
+			}
 
 			menu.add(moveMenu);
 		}
@@ -1136,5 +1199,134 @@ class GoalContextMenuBuilder
 				if (e.isPopupTrigger()) menu.show(row, e.getX(), e.getY());
 			}
 		});
+	}
+
+	// --------------------------------------------------------------
+	// Bulk in-section move helpers
+	// --------------------------------------------------------------
+	//
+	// All four operations preserve the relative priority order of the
+	// selected block. The "iteration index as min/max bound" trick
+	// (target = max(currentRel - 1, i) for up; target = min(currentRel
+	// + 1, sectionSize - 1 - i) for down) prevents one move from
+	// displacing another selected goal — when the goal directly above
+	// (or below) is also selected, the bound clamps the move out and
+	// the relative order is preserved.
+
+	/**
+	 * Compute target positions UP-FRONT in section-relative space, then
+	 * apply via positionGoalInSection. We use planned positions rather
+	 * than re-reading goal.getPriority() between calls because earlier
+	 * moves shift other goals' priorities and the math for "what should
+	 * this goal's new position be" is much simpler before any moves.
+	 */
+	static List<Integer> planMoveUp(List<Integer> sectionRelativeAsc, int sectionSize)
+	{
+		List<Integer> targets = new ArrayList<>(sectionRelativeAsc.size());
+		for (int i = 0; i < sectionRelativeAsc.size(); i++)
+		{
+			int currentRel = sectionRelativeAsc.get(i);
+			targets.add(Math.max(currentRel - 1, i));
+		}
+		return targets;
+	}
+
+	static List<Integer> planMoveDown(List<Integer> sectionRelativeAsc, int sectionSize)
+	{
+		// Process desc by reversing the input. Iteration index i maps to
+		// "this many already-processed selecteds are below us in the
+		// final order", so the floor for our target is sectionSize-1-i.
+		List<Integer> reversed = new ArrayList<>(sectionRelativeAsc);
+		Collections.reverse(reversed);
+		List<Integer> targetsDesc = new ArrayList<>(reversed.size());
+		for (int i = 0; i < reversed.size(); i++)
+		{
+			int currentRel = reversed.get(i);
+			targetsDesc.add(Math.min(currentRel + 1, sectionSize - 1 - i));
+		}
+		// Reverse back to ASC alignment.
+		Collections.reverse(targetsDesc);
+		return targetsDesc;
+	}
+
+	private void bulkMoveToTop(List<Goal> selected, String sectionId, int sectionStart)
+	{
+		List<Goal> sorted = new ArrayList<>(selected);
+		sorted.sort(java.util.Comparator.comparingInt(Goal::getPriority));
+		api.beginCompound("Move " + sorted.size() + " to top");
+		try
+		{
+			for (int i = 0; i < sorted.size(); i++)
+			{
+				api.positionGoalInSection(sorted.get(i).getId(), sectionId, i);
+			}
+		}
+		finally { api.endCompound(); }
+	}
+
+	private void bulkMoveToBottom(List<Goal> selected, String sectionId,
+								  int sectionStart, int sectionEnd)
+	{
+		int sectionSize = sectionEnd - sectionStart + 1;
+		List<Goal> sortedDesc = new ArrayList<>(selected);
+		sortedDesc.sort(java.util.Comparator.comparingInt(Goal::getPriority).reversed());
+		api.beginCompound("Move " + sortedDesc.size() + " to bottom");
+		try
+		{
+			for (int i = 0; i < sortedDesc.size(); i++)
+			{
+				api.positionGoalInSection(sortedDesc.get(i).getId(), sectionId,
+					sectionSize - 1 - i);
+			}
+		}
+		finally { api.endCompound(); }
+	}
+
+	private void bulkMoveUp(List<Goal> selected, String sectionId, int sectionStart)
+	{
+		List<Goal> sorted = new ArrayList<>(selected);
+		sorted.sort(java.util.Comparator.comparingInt(Goal::getPriority));
+		List<Integer> currentRels = new ArrayList<>();
+		for (Goal g : sorted) currentRels.add(g.getPriority() - sectionStart);
+		List<Integer> targets = planMoveUp(currentRels, /*sectionSize=*/0);
+		api.beginCompound("Move " + sorted.size() + " up");
+		try
+		{
+			for (int i = 0; i < sorted.size(); i++)
+			{
+				int target = targets.get(i);
+				if (target != currentRels.get(i))
+				{
+					api.positionGoalInSection(sorted.get(i).getId(), sectionId, target);
+				}
+			}
+		}
+		finally { api.endCompound(); }
+	}
+
+	private void bulkMoveDown(List<Goal> selected, String sectionId,
+							  int sectionStart, int sectionEnd)
+	{
+		int sectionSize = sectionEnd - sectionStart + 1;
+		List<Goal> sorted = new ArrayList<>(selected);
+		sorted.sort(java.util.Comparator.comparingInt(Goal::getPriority));
+		List<Integer> currentRels = new ArrayList<>();
+		for (Goal g : sorted) currentRels.add(g.getPriority() - sectionStart);
+		List<Integer> targets = planMoveDown(currentRels, sectionSize);
+		// Process desc so the bottommost goal moves first — it can't be
+		// blocked by a goal-being-moved sitting where it wants to land.
+		api.beginCompound("Move " + sorted.size() + " down");
+		try
+		{
+			for (int i = sorted.size() - 1; i >= 0; i--)
+			{
+				int target = targets.get(i);
+				if (target != currentRels.get(i))
+				{
+					api.positionGoalInSection(sorted.get(i).getId(), sectionId, target);
+				}
+			}
+		}
+		finally { api.endCompound(); }
 	}
 }
