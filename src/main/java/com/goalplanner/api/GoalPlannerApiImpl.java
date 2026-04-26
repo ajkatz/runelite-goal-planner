@@ -140,29 +140,29 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	// Mutation delegations
 	// =====================================================================
 
-	@Override public boolean removeGoal(String goalId) { return mutationService.removeGoal(goalId); }
-	@Override public boolean editCustomGoal(String goalId, String newName, String newDescription) { return mutationService.editCustomGoal(goalId, newName, newDescription); }
-	@Override public boolean markGoalComplete(String goalId) { return mutationService.markGoalComplete(goalId); }
-	@Override public boolean markGoalIncomplete(String goalId) { return mutationService.markGoalIncomplete(goalId); }
-	@Override public boolean changeTarget(String goalId, int newTarget) { return mutationService.changeTarget(goalId, newTarget); }
+	@Override public boolean removeGoal(String goalId) { autoDeselectIfNotMember(goalId); return mutationService.removeGoal(goalId); }
+	@Override public boolean editCustomGoal(String goalId, String newName, String newDescription) { autoDeselectIfNotMember(goalId); return mutationService.editCustomGoal(goalId, newName, newDescription); }
+	@Override public boolean markGoalComplete(String goalId) { autoDeselectIfNotMember(goalId); return mutationService.markGoalComplete(goalId); }
+	@Override public boolean markGoalIncomplete(String goalId) { autoDeselectIfNotMember(goalId); return mutationService.markGoalIncomplete(goalId); }
+	@Override public boolean changeTarget(String goalId, int newTarget) { autoDeselectIfNotMember(goalId); return mutationService.changeTarget(goalId, newTarget); }
 	@Override public boolean recordGoalProgress(String goalId, int newValue) { return mutationService.recordGoalProgress(goalId, newValue); }
 	@Override public boolean isGoalOverridden(String goalId) { return mutationService.isGoalOverridden(goalId); }
 	@Override public int bulkRestoreDefaults(java.util.Set<String> goalIds) { return mutationService.bulkRestoreDefaults(goalIds); }
 	@Override public int bulkRemoveGoals(java.util.Set<String> goalIds) { return mutationService.bulkRemoveGoals(goalIds); }
 	@Override public int bulkMoveGoalsToSection(java.util.Set<String> goalIds, String targetSectionId) { return mutationService.bulkMoveGoalsToSection(goalIds, targetSectionId); }
 	@Override public void removeAllGoals() { mutationService.removeAllGoals(); }
-	@Override public boolean moveGoal(String goalId, int newGlobalIndex) { return mutationService.moveGoal(goalId, newGlobalIndex); }
-	@Override public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection) { return mutationService.positionGoalInSection(goalId, sectionId, positionInSection); }
-	@Override public boolean setGoalOptional(String goalId, boolean optional) { return mutationService.setGoalOptional(goalId, optional); }
+	@Override public boolean moveGoal(String goalId, int newGlobalIndex) { autoDeselectIfNotMember(goalId); return mutationService.moveGoal(goalId, newGlobalIndex); }
+	@Override public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection) { autoDeselectIfNotMember(goalId); return mutationService.positionGoalInSection(goalId, sectionId, positionInSection); }
+	@Override public boolean setGoalOptional(String goalId, boolean optional) { autoDeselectIfNotMember(goalId); return mutationService.setGoalOptional(goalId, optional); }
 
 	// =====================================================================
 	// Tag delegations
 	// =====================================================================
 
-	@Override public boolean addTag(String goalId, String label) { return tagService.addTag(goalId, label); }
-	@Override public boolean removeTag(String goalId, String label) { return tagService.removeTag(goalId, label); }
-	@Override public boolean restoreDefaultTags(String goalId) { return tagService.restoreDefaultTags(goalId); }
-	@Override public boolean addTagWithCategory(String goalId, String label, String categoryName) { return tagService.addTagWithCategory(goalId, label, categoryName); }
+	@Override public boolean addTag(String goalId, String label) { autoDeselectIfNotMember(goalId); return tagService.addTag(goalId, label); }
+	@Override public boolean removeTag(String goalId, String label) { autoDeselectIfNotMember(goalId); return tagService.removeTag(goalId, label); }
+	@Override public boolean restoreDefaultTags(String goalId) { autoDeselectIfNotMember(goalId); return tagService.restoreDefaultTags(goalId); }
+	@Override public boolean addTagWithCategory(String goalId, String label, String categoryName) { autoDeselectIfNotMember(goalId); return tagService.addTagWithCategory(goalId, label, categoryName); }
 	@Override public List<TagView> queryAllTags() { return tagService.queryAllTags(); }
 	@Override public String createUserTag(String label, String categoryName) { return tagService.createUserTag(label, categoryName); }
 	@Override public boolean renameTag(String tagId, String newLabel) { return tagService.renameTag(tagId, newLabel); }
@@ -175,7 +175,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public boolean isCategoryColorOverridden(String categoryName) { return tagService.isCategoryColorOverridden(categoryName); }
 	@Override public boolean setTagIcon(String tagId, String iconKey) { return tagService.setTagIcon(tagId, iconKey); }
 	@Override public boolean clearTagIcon(String tagId) { return tagService.clearTagIcon(tagId); }
-	@Override public boolean setTagColor(String goalId, String tagLabel, int colorRgb) { return tagService.setTagColor(goalId, tagLabel, colorRgb); }
+	@Override public boolean setTagColor(String goalId, String tagLabel, int colorRgb) { autoDeselectIfNotMember(goalId); return tagService.setTagColor(goalId, tagLabel, colorRgb); }
 	@Override public int bulkRemoveTagFromGoals(java.util.Set<String> goalIds, String tagId) { return tagService.bulkRemoveTagFromGoals(goalIds, tagId); }
 	@Override public List<TagRemovalOption> getRemovableTagsForSelection(java.util.Set<String> goalIds) { return tagService.getRemovableTagsForSelection(goalIds); }
 
@@ -187,12 +187,12 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public boolean renameSection(String sectionId, String newName) { return sectionService.renameSection(sectionId, newName); }
 	@Override public boolean deleteSection(String sectionId) { return sectionService.deleteSection(sectionId); }
 	@Override public boolean reorderSection(String sectionId, int newUserIndex) { return sectionService.reorderSection(sectionId, newUserIndex); }
-	@Override public boolean moveGoalToSection(String goalId, String sectionId) { return sectionService.moveGoalToSection(goalId, sectionId); }
+	@Override public boolean moveGoalToSection(String goalId, String sectionId) { autoDeselectIfNotMember(goalId); return sectionService.moveGoalToSection(goalId, sectionId); }
 	@Override public int removeAllUserSections() { return sectionService.removeAllUserSections(); }
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
 	@Override public boolean toggleSectionCollapsed(String sectionId) { return sectionService.toggleSectionCollapsed(sectionId); }
 	@Override public boolean setSectionColor(String sectionId, int colorRgb) { return sectionService.setSectionColor(sectionId, colorRgb); }
-	@Override public boolean setGoalColor(String goalId, int colorRgb) { return sectionService.setGoalColor(goalId, colorRgb); }
+	@Override public boolean setGoalColor(String goalId, int colorRgb) { autoDeselectIfNotMember(goalId); return sectionService.setGoalColor(goalId, colorRgb); }
 
 	// =====================================================================
 	// Relation delegations
@@ -322,6 +322,24 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		selectedGoalIds.clear();
 		if (!commandHistory.isInCompound()) onSelectionChanged.run();
 		return true;
+	}
+
+	/**
+	 * Auto-deselect rule: any single-target mutation on a goal that isn't
+	 * a member of the active multi-selection clears the selection first.
+	 * Keeps the user's "active set" coherent — acting on something outside
+	 * the current selection invalidates the prior selection. Called at the
+	 * top of every public single-target mutation. Skipped for: bulk
+	 * methods (Set<id>), two-id relation methods, recordGoalProgress
+	 * (auto-tracked from game events, not user-initiated), and selection
+	 * methods themselves.
+	 */
+	private void autoDeselectIfNotMember(String goalId)
+	{
+		if (goalId == null) return;
+		if (selectedGoalIds.isEmpty()) return;
+		if (selectedGoalIds.contains(goalId)) return;
+		clearGoalSelection();
 	}
 
 	@Override

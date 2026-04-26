@@ -529,30 +529,15 @@ public class GoalPanel extends PluginPanel
 				// chain is already at the edge of the section.
 				final String goalIdRef = view.id;
 				final String arrowSectionId = section.id;
-				// Arrow actions on a non-selected card auto-deselect the
-				// current multi-selection first — same Rule 1 enforcement
-				// the right-click menu show path applies. Otherwise the
-				// existing selection's blue highlight competes with the
-				// just-moved card and the user can't tell which group is
-				// "active".
+				// Arrow actions go through api.moveGoal, which enforces the
+				// auto-deselect-if-not-member rule at the API layer — no
+				// UI-side wrapping needed.
 				GoalCard card = new GoalCard(
 					view,
-					e -> {
-						clearSelectionIfNotMember(goalIdRef);
-						reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true);
-					},
-					e -> {
-						clearSelectionIfNotMember(goalIdRef);
-						reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false);
-					},
-					() -> {
-						clearSelectionIfNotMember(goalIdRef);
-						reorderController.moveGoalTo(goalIdRef, secStart);
-					},
-					() -> {
-						clearSelectionIfNotMember(goalIdRef);
-						reorderController.moveGoalTo(goalIdRef, secEnd);
-					},
+					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true),
+					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false),
+					() -> reorderController.moveGoalTo(goalIdRef, secStart),
+					() -> reorderController.moveGoalTo(goalIdRef, secEnd),
 					skillIconManager,
 					itemManager,
 					spriteManager
@@ -844,21 +829,6 @@ public class GoalPanel extends PluginPanel
 		}
 		exitMoveMode();
 	}
-
-	/**
-	 * Rule 1 enforcement: any action on an unselected card auto-deselects the
-	 * existing multi-selection first. Used by arrow-button moves; the right-
-	 * click menu show path applies the same rule inline.
-	 */
-	void clearSelectionIfNotMember(String goalId)
-	{
-		java.util.Set<String> sel = api.getSelectedGoalIds();
-		if (!sel.isEmpty() && !sel.contains(goalId))
-		{
-			api.clearGoalSelection();
-		}
-	}
-
 
 	/**
 	 * Attach a left-click MouseListener that routes selection clicks through
