@@ -64,6 +64,7 @@ public final class ColumnMenu
 
 	private final JWindow window;
 	private final JPanel root;
+	private final Window ownerWindow;
 	private final Deque<Frame> stack = new ArrayDeque<>();
 	private AWTEventListener globalListener;
 
@@ -93,6 +94,7 @@ public final class ColumnMenu
 	private ColumnMenu(Component anchor)
 	{
 		Window owner = SwingUtilities.getWindowAncestor(anchor);
+		this.ownerWindow = owner;
 		window = new JWindow(owner);
 		window.setFocusableWindowState(false);
 		window.setAlwaysOnTop(true);
@@ -281,20 +283,27 @@ public final class ColumnMenu
 		window.setLocation(screen.x + x, screen.y + y);
 	}
 
+	/**
+	 * Clamp the popup inside the RuneLite client window so the right
+	 * edge can't float past the client edge (and the bottom edge
+	 * doesn't either). Falls back to the screen's max bounds if the
+	 * anchor wasn't in a window for some reason.
+	 */
 	private void repositionIfOffscreen()
 	{
-		Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment()
-			.getMaximumWindowBounds();
+		Rectangle constraint = ownerWindow != null && ownerWindow.isShowing()
+			? ownerWindow.getBounds()
+			: GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 		Rectangle bounds = window.getBounds();
 		int x = bounds.x;
 		int y = bounds.y;
-		if (bounds.x + bounds.width > screen.x + screen.width)
+		if (bounds.x + bounds.width > constraint.x + constraint.width)
 		{
-			x = Math.max(screen.x, screen.x + screen.width - bounds.width);
+			x = Math.max(constraint.x, constraint.x + constraint.width - bounds.width);
 		}
-		if (bounds.y + bounds.height > screen.y + screen.height)
+		if (bounds.y + bounds.height > constraint.y + constraint.height)
 		{
-			y = Math.max(screen.y, screen.y + screen.height - bounds.height);
+			y = Math.max(constraint.y, constraint.y + constraint.height - bounds.height);
 		}
 		if (x != bounds.x || y != bounds.y) window.setLocation(x, y);
 	}
