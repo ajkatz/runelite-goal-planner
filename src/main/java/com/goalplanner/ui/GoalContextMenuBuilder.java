@@ -504,6 +504,69 @@ class GoalContextMenuBuilder
 			customizeMenu.add(relationsMenu);
 		}
 
+		// Move submenu — collects all relocation actions under one hover.
+		// Move to Top/Bottom reorder within the current section; Move to
+		// Section ▶ lists every other valid section plus a "New Section"
+		// option (so almost every incomplete goal has at least one entry).
+		// Hidden on completed goals — the Completed section is terminal and
+		// reordering completed history adds noise.
+		if (!goal.isComplete())
+		{
+			JMenu moveMenu = new JMenu("Move");
+
+			int sectionSize = sectionEnd - sectionStart + 1;
+			if (sectionSize > 1)
+			{
+				JMenuItem moveToTop = new JMenuItem("Move to Top");
+				moveToTop.addActionListener(e ->
+					reorderController.moveGoalTo(goal.getId(), sectionStart));
+				moveMenu.add(moveToTop);
+
+				JMenuItem moveToBottom = new JMenuItem("Move to Bottom");
+				moveToBottom.addActionListener(e ->
+					reorderController.moveGoalTo(goal.getId(), sectionEnd));
+				moveMenu.add(moveToBottom);
+			}
+
+			JMenu moveToSection = new JMenu("Move to Section");
+
+			List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
+			List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
+			for (com.goalplanner.api.SectionView sv : allSections)
+			{
+				if ("COMPLETED".equals(sv.kind)) continue;
+				if (sv.id.equals(goal.getSectionId())) continue;
+				destinations.add(sv);
+			}
+			for (com.goalplanner.api.SectionView dest : destinations)
+			{
+				JMenuItem item = new JMenuItem(dest.name);
+				item.addActionListener(e -> api.moveGoalToSection(goal.getId(), dest.id));
+				moveToSection.add(item);
+			}
+			if (!destinations.isEmpty())
+			{
+				moveToSection.addSeparator();
+			}
+			JMenuItem newSectionItem = new JMenuItem("Move to New Section…");
+			newSectionItem.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(panel, "New section name:", "");
+				if (input != null && !input.trim().isEmpty())
+				{
+					String newId = api.createSection(input.trim());
+					if (newId != null)
+					{
+						api.moveGoalToSection(goal.getId(), newId);
+					}
+				}
+			});
+			moveToSection.add(newSectionItem);
+
+			moveMenu.add(moveToSection);
+
+			customizeMenu.add(moveMenu);
+		}
+
 		// Restore Defaults — gated on isGoalOverridden (tag drift
 		// OR color override). Routes through the bulk API so the single-item
 		// path resets BOTH tags and color in one shot.
@@ -521,32 +584,6 @@ class GoalContextMenuBuilder
 		if (customizeMenu.getMenuComponentCount() > 0)
 		{
 			menu.add(customizeMenu);
-		}
-
-		// "Move to section →" submenu — only for non-completed goals, only if there
-		// is at least one valid destination section (Incomplete + user sections,
-		// excluding the goal's current section, excluding Completed).
-		if (!goal.isComplete())
-		{
-			List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
-			List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
-			for (com.goalplanner.api.SectionView sv : allSections)
-			{
-				if ("COMPLETED".equals(sv.kind)) continue;
-				if (sv.id.equals(goal.getSectionId())) continue;
-				destinations.add(sv);
-			}
-			if (!destinations.isEmpty())
-			{
-				JMenu moveToSection = new JMenu("Move to Section");
-				for (com.goalplanner.api.SectionView dest : destinations)
-				{
-					JMenuItem item = new JMenuItem(dest.name);
-					item.addActionListener(e -> api.moveGoalToSection(goal.getId(), dest.id));
-					moveToSection.add(item);
-				}
-				menu.add(moveToSection);
-			}
 		}
 
 		JMenuItem remove = new JMenuItem("Remove Goal");
