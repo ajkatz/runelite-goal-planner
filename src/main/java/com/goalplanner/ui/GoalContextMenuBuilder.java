@@ -688,10 +688,71 @@ class GoalContextMenuBuilder
 		}
 
 		// Customize submenu — collects property-edit actions that apply to
-		// the whole selection (color, tags, restore defaults). Mirrors the
-		// single-item Customize submenu so the menu shape is the same
-		// whether the user has one or many cards selected.
+		// the whole selection (optional flag, color, tags, restore defaults).
+		// Mirrors the single-item Customize submenu so the menu shape is the
+		// same whether the user has one or many cards selected.
 		JMenu customizeMenu = new JMenu("Customize");
+
+		// Mark Optional/Required — only applies to non-completed goals
+		// (matches single-item gating). When the selection is uniform
+		// (all required or all optional), show a single flip action;
+		// when mixed, show a submenu so the user can force either state.
+		List<Goal> optionalTargets = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) optionalTargets.add(g);
+		}
+		if (!optionalTargets.isEmpty())
+		{
+			boolean anyOptional = false;
+			boolean anyRequired = false;
+			for (Goal g : optionalTargets)
+			{
+				if (g.isOptional()) anyOptional = true;
+				else anyRequired = true;
+				if (anyOptional && anyRequired) break;
+			}
+			final List<Goal> finalOptionalTargets = optionalTargets;
+			Runnable markAllOptional = () -> {
+				api.beginCompound("Mark " + finalOptionalTargets.size() + " optional");
+				try
+				{
+					for (Goal g : finalOptionalTargets) api.setGoalOptional(g.getId(), true);
+				}
+				finally { api.endCompound(); }
+			};
+			Runnable markAllRequired = () -> {
+				api.beginCompound("Mark " + finalOptionalTargets.size() + " required");
+				try
+				{
+					for (Goal g : finalOptionalTargets) api.setGoalOptional(g.getId(), false);
+				}
+				finally { api.endCompound(); }
+			};
+			if (anyRequired && !anyOptional)
+			{
+				JMenuItem item = new JMenuItem("Mark as Optional");
+				item.addActionListener(e -> markAllOptional.run());
+				customizeMenu.add(item);
+			}
+			else if (anyOptional && !anyRequired)
+			{
+				JMenuItem item = new JMenuItem("Mark as Required");
+				item.addActionListener(e -> markAllRequired.run());
+				customizeMenu.add(item);
+			}
+			else
+			{
+				JMenu optionalSubmenu = new JMenu("Optional");
+				JMenuItem makeOptional = new JMenuItem("Optional");
+				makeOptional.addActionListener(e -> markAllOptional.run());
+				optionalSubmenu.add(makeOptional);
+				JMenuItem makeRequired = new JMenuItem("Required");
+				makeRequired.addActionListener(e -> markAllRequired.run());
+				optionalSubmenu.add(makeRequired);
+				customizeMenu.add(optionalSubmenu);
+			}
+		}
 
 		// Change Color — applies only to active goals in the selection;
 		// completed goals are recolor-frozen (matches single-item menu).
