@@ -103,13 +103,14 @@ class GoalContextMenuBuilder
 				// card instead of stranding them in mode.
 				if (panel.pendingRelationSourceId != null) panel.exitRelationMode();
 				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
-				// Right-click does NOT touch the current selection. If the
-				// clicked card is part of the existing multi-selection, show
-				// the bulk menu so its actions apply to the whole set.
-				// Otherwise show the single-item menu for the clicked card —
-				// its actions only affect that one card, leaving any existing
-				// selection intact so the user can right-click+Select to
-				// build up a multi-select gradually.
+				// Showing the menu doesn't touch the selection. If the
+				// right-clicked card is part of the existing multi-selection,
+				// show the bulk menu so actions apply to the whole set.
+				// Otherwise show the single-item menu — and wrap every
+				// action listener with the auto-deselect rule so invoking
+				// any action on a non-selected card clears the existing
+				// selection first. (The rule fires per-action, not on menu
+				// open, so dismissing the menu without an action is a no-op.)
 				Set<String> sel = api.getSelectedGoalIds();
 				JPopupMenu popup;
 				if (sel.contains(goal.getId()) && sel.size() >= 2)
@@ -119,10 +120,64 @@ class GoalContextMenuBuilder
 				else
 				{
 					popup = buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+					wrapSingleItemActionsWithDeselect(popup, goal.getId());
 				}
 				popup.show(card, e.getX(), e.getY());
 			}
 		});
+	}
+
+	/**
+	 * Wrap every actionable item below the first top-level separator with
+	 * the auto-deselect-on-action rule. Items above the first separator
+	 * (Select toggle, Deselect All) explicitly manage selection and are
+	 * skipped — wrapping them would clear the very selection they're
+	 * editing. Recurses into submenus so Customize/Move/Relations leaves
+	 * are also wrapped.
+	 */
+	private void wrapSingleItemActionsWithDeselect(JPopupMenu popup, String goalId)
+	{
+		boolean pastFirstSeparator = false;
+		for (int i = 0; i < popup.getComponentCount(); i++)
+		{
+			java.awt.Component c = popup.getComponent(i);
+			if (c instanceof JPopupMenu.Separator)
+			{
+				pastFirstSeparator = true;
+				continue;
+			}
+			if (!pastFirstSeparator) continue;
+			wrapMenuComponentWithDeselect(c, goalId);
+		}
+	}
+
+	private void wrapMenuComponentWithDeselect(java.awt.Component c, String goalId)
+	{
+		if (c instanceof JMenu)
+		{
+			JMenu submenu = (JMenu) c;
+			for (java.awt.Component child : submenu.getMenuComponents())
+			{
+				wrapMenuComponentWithDeselect(child, goalId);
+			}
+		}
+		else if (c instanceof JMenuItem)
+		{
+			JMenuItem item = (JMenuItem) c;
+			java.awt.event.ActionListener[] originals = item.getActionListeners();
+			if (originals.length == 0) return;
+			for (java.awt.event.ActionListener l : originals)
+			{
+				item.removeActionListener(l);
+			}
+			item.addActionListener(e -> {
+				panel.clearSelectionIfNotMember(goalId);
+				for (java.awt.event.ActionListener l : originals)
+				{
+					l.actionPerformed(e);
+				}
+			});
+		}
 	}
 
 	/**
