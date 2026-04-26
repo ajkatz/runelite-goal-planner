@@ -103,24 +103,24 @@ class GoalContextMenuBuilder
 				// card instead of stranding them in mode.
 				if (!panel.pendingRelationSourceIds.isEmpty()) panel.exitRelationMode();
 				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
-				// Showing the menu doesn't touch the selection. If the
-				// right-clicked card is part of the existing multi-selection,
-				// show the bulk menu so actions apply to the whole set.
-				// Otherwise show the single-item menu. The auto-deselect
-				// rule (clear selection if action target isn't a member) is
-				// enforced inside GoalPlannerApiImpl, so the single-item
-				// menu doesn't need any UI-side wrapping.
+				// Bulk menu (multi-selection) renders through ColumnMenu —
+				// click-driven, hover-stable side-by-side columns instead
+				// of cascading JPopupMenu submenus. Single-item menu still
+				// uses JPopupMenu for now (prototype phase). The
+				// auto-deselect rule lives at the API layer, so the menu
+				// model rebuild needs no special wrapping either way.
 				Set<String> sel = api.getSelectedGoalIds();
-				JPopupMenu popup;
 				if (sel.contains(goal.getId()) && sel.size() >= 2)
 				{
-					popup = buildBulkMenu(goal.getId());
+					JPopupMenu bulkSource = buildBulkMenu(goal.getId());
+					com.goalplanner.ui.columnmenu.ColumnMenu.show(card, e.getX(), e.getY(),
+						com.goalplanner.ui.columnmenu.MenuTreeAdapter.fromPopup(bulkSource));
 				}
 				else
 				{
-					popup = buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+					JPopupMenu popup = buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+					popup.show(card, e.getX(), e.getY());
 				}
-				popup.show(card, e.getX(), e.getY());
 			}
 		});
 	}
