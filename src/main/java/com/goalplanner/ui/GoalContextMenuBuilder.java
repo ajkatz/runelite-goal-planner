@@ -101,7 +101,7 @@ class GoalContextMenuBuilder
 				// user is clearly navigating away from the action they
 				// started; show the normal context menu of the clicked
 				// card instead of stranding them in mode.
-				if (panel.pendingRelationSourceId != null) panel.exitRelationMode();
+				if (!panel.pendingRelationSourceIds.isEmpty()) panel.exitRelationMode();
 				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
 				// Showing the menu doesn't touch the selection. If the
 				// right-clicked card is part of the existing multi-selection,
@@ -784,6 +784,40 @@ class GoalContextMenuBuilder
 			!removableOpts.isEmpty(),
 			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
 		if (bulkTagEntry != null) customizeMenu.add(bulkTagEntry);
+
+		// Relations — bulk add only. Each selected non-completed goal
+		// gets the same edge to/from the click-mode target. Cycle and
+		// duplicate rejections fail open per source so a partial success
+		// still applies. Bulk relation removal is not yet exposed —
+		// per-goal edges remove via the single-item Relations submenu.
+		List<Goal> relationSources = new ArrayList<>();
+		for (Goal g : selectedGoals)
+		{
+			if (!g.isComplete()) relationSources.add(g);
+		}
+		if (!relationSources.isEmpty())
+		{
+			JMenu relationsMenu = new JMenu("Relations");
+
+			LinkedHashSet<String> relationSourceIds = new LinkedHashSet<>();
+			for (Goal g : relationSources) relationSourceIds.add(g.getId());
+
+			JMenuItem requires = new JMenuItem("Requires…");
+			requires.setToolTipText(
+				"Click, then click another goal to mark as a requirement of every selected goal.");
+			requires.addActionListener(e ->
+				panel.enterRelationMode(relationSourceIds, /*sourceRequiresTarget=*/true));
+			relationsMenu.add(requires);
+
+			JMenuItem requiredBy = new JMenuItem("Required by…");
+			requiredBy.setToolTipText(
+				"Click, then click another goal that should require every selected goal.");
+			requiredBy.addActionListener(e ->
+				panel.enterRelationMode(relationSourceIds, /*sourceRequiresTarget=*/false));
+			relationsMenu.add(requiredBy);
+
+			customizeMenu.add(relationsMenu);
+		}
 
 		// Restore Defaults — show only if at least one selected goal is
 		// overridden (tag drift OR color override).

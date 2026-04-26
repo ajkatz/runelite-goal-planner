@@ -72,15 +72,15 @@ public class GoalPanel extends PluginPanel
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
 	 *  selection. Cleared on rebuilds when the goal no longer exists. */
 	private String selectionAnchorId = null;
-	/** Id of the goal the user initiated a relation-pick from,
-	 *  or null when not in relation-pick mode. Set by the Requires.../Required
-	 *  by... context-menu items; cleared on successful target click, cancel,
-	 *  or ESC. */
-	String pendingRelationSourceId = null;
-	/** Direction flag for relation-pick mode. When true, the next
-	 *  clicked card becomes a REQUIREMENT of {@link #pendingRelationSourceId}
-	 *  (edge source → target). When false, the source becomes a DEPENDENT of
-	 *  the target (edge target → source). */
+	/** Source goal ids the user initiated a relation-pick from. Empty when
+	 *  not in relation-pick mode. The single-goal "Requires…"/"Required
+	 *  by…" path adds one id; the bulk Customize > Relations path adds
+	 *  every selected goal. Cleared on target click, cancel, or ESC. */
+	java.util.Set<String> pendingRelationSourceIds = new java.util.LinkedHashSet<>();
+	/** Direction flag for relation-pick mode. When true, each clicked
+	 *  target becomes a REQUIREMENT of every source (edge source → target).
+	 *  When false, each source becomes a DEPENDENT of the target (edge
+	 *  target → source). */
 	private boolean pendingRelationSourceRequiresTarget = true;
 	/** Instruction banner shown at the top of the panel while
 	 *  relation-pick mode is active. Hidden otherwise. */
@@ -314,7 +314,7 @@ public class GoalPanel extends PluginPanel
 			@Override
 			public void actionPerformed(java.awt.event.ActionEvent e)
 			{
-				if (pendingRelationSourceId != null) exitRelationMode();
+				if (!pendingRelationSourceIds.isEmpty()) exitRelationMode();
 				else if (pendingMoveSourceId != null) exitMoveMode();
 			}
 		});
@@ -573,10 +573,11 @@ public class GoalPanel extends PluginPanel
 				attachSelectionClick(card, view);
 				cardMap.put(goal.getId(), card);
 
-				// Highlight the relation-pick source card with
-				// an orange border so the user can see which goal they're
-				// pairing from while they search for a target.
-				if (goal.getId().equals(pendingRelationSourceId))
+				// Highlight every relation-pick source card with an orange
+				// border so the user can see which goals they're pairing
+				// from while they search for a target. (Bulk relation
+				// picks highlight all members of the selection.)
+				if (pendingRelationSourceIds.contains(goal.getId()))
 				{
 					card.setBorder(javax.swing.BorderFactory.createLineBorder(
 						new Color(0xFF, 0x99, 0x33), 2));
@@ -652,66 +653,96 @@ public class GoalPanel extends PluginPanel
 	 */
 	void enterRelationMode(String sourceGoalId, boolean sourceRequiresTarget)
 	{
-		// Pick modes are about a single source. Any pre-existing multi-
-		// select highlight would compete visually with the orange/blue
-		// source border, so clear the selection on entry.
+		enterRelationMode(java.util.Collections.singleton(sourceGoalId), sourceRequiresTarget);
+	}
+
+	/**
+	 * Bulk variant: every source goal gets the same edge to/from the
+	 * clicked target on completion. Cycle / duplicate rejections fail
+	 * open per source \u2014 others still succeed.
+	 */
+	void enterRelationMode(java.util.Set<String> sourceGoalIds, boolean sourceRequiresTarget)
+	{
+		if (sourceGoalIds == null || sourceGoalIds.isEmpty()) return;
+		// Pick modes are about a single source set. Any pre-existing multi-
+		// select highlight would compete visually with the orange source
+		// border, so clear the selection on entry.
 		api.clearGoalSelection();
-		pendingRelationSourceId = sourceGoalId;
+		pendingRelationSourceIds.clear();
+		pendingRelationSourceIds.addAll(sourceGoalIds);
 		pendingRelationSourceRequiresTarget = sourceRequiresTarget;
-		String sourceName = reorderController.goalNameById(sourceGoalId);
-		String verb = sourceRequiresTarget
-			? "Click a goal to add as a requirement of \"" + sourceName + "\""
-			: "Click a goal that should require \"" + sourceName + "\"";
-		relationModeLabel.setText("<html>" + verb + " &mdash; ESC to cancel</html>");
+		String banner;
+		if (pendingRelationSourceIds.size() == 1)
+		{
+			String sourceName = reorderController.goalNameById(
+				pendingRelationSourceIds.iterator().next());
+			banner = sourceRequiresTarget
+				? "Click a goal to add as a requirement of \"" + sourceName + "\""
+				: "Click a goal that should require \"" + sourceName + "\"";
+		}
+		else
+		{
+			int n = pendingRelationSourceIds.size();
+			banner = sourceRequiresTarget
+				? "Click a goal to add as a requirement of " + n + " selected goals"
+				: "Click a goal that should require " + n + " selected goals";
+		}
+		relationModeLabel.setText("<html>" + banner + " &mdash; ESC to cancel</html>");
 		relationModeBanner.setVisible(true);
-		// Rebuild so the orange source-card border gets applied.
+		// Rebuild so the orange source-card borders get applied.
 		rebuild();
 	}
 
 	/** Exit relation-pick mode without adding an edge. */
 	void exitRelationMode()
 	{
-		if (pendingRelationSourceId == null) return;
-		pendingRelationSourceId = null;
+		if (pendingRelationSourceIds.isEmpty()) return;
+		pendingRelationSourceIds.clear();
 		relationModeBanner.setVisible(false);
-		// Rebuild so the orange source-card border goes away.
+		// Rebuild so the orange source-card borders go away.
 		rebuild();
 	}
 
 	/**
 	 * Handle a left-click on a card while relation-pick mode is active.
-	 * Clicking the source card cancels; any other click attempts to add
-	 * the edge in the pending direction. Cycle / duplicate rejections
-	 * surface as a warning dialog. Always exits the mode (successful or
-	 * not) so the user isn't stranded in a "nothing I click works" state.
+	 * Clicking any source card cancels (the user is signaling stop).
+	 * Otherwise attempt to add the edge for every source in the set;
+	 * cycle / duplicate rejections per-source fail open (skip that one,
+	 * others still succeed). Always exits the mode so the user isn't
+	 * stranded.
 	 */
 	private void handleRelationPickTarget(String clickedGoalId)
 	{
-		if (pendingRelationSourceId == null) return;
-		if (clickedGoalId.equals(pendingRelationSourceId))
+		if (pendingRelationSourceIds.isEmpty()) return;
+		if (pendingRelationSourceIds.contains(clickedGoalId))
 		{
 			exitRelationMode();
 			return;
 		}
-		boolean ok;
-		String fromId;
-		String toId;
-		if (pendingRelationSourceRequiresTarget)
+		java.util.List<String> sources = new java.util.ArrayList<>(pendingRelationSourceIds);
+		boolean requires = pendingRelationSourceRequiresTarget;
+		int attempted = sources.size();
+		int succeeded = 0;
+		api.beginCompound(attempted == 1
+			? "Add relation"
+			: "Add " + attempted + " relations");
+		try
 		{
-			fromId = pendingRelationSourceId;
-			toId = clickedGoalId;
+			for (String sourceId : sources)
+			{
+				String fromId = requires ? sourceId : clickedGoalId;
+				String toId = requires ? clickedGoalId : sourceId;
+				if (api.addRequirement(fromId, toId)) succeeded++;
+			}
 		}
-		else
-		{
-			fromId = clickedGoalId;
-			toId = pendingRelationSourceId;
-		}
-		ok = api.addRequirement(fromId, toId);
+		finally { api.endCompound(); }
 		exitRelationMode();
-		if (!ok)
+		if (succeeded == 0)
 		{
 			JOptionPane.showMessageDialog(this,
-				"Could not add relation \u2014 it may already exist or would create a cycle.",
+				attempted == 1
+					? "Could not add relation \u2014 it may already exist or would create a cycle."
+					: "Could not add any of the " + attempted + " relations \u2014 each may already exist or would create a cycle.",
 				"Add Relation", JOptionPane.WARNING_MESSAGE);
 		}
 	}
@@ -730,7 +761,7 @@ public class GoalPanel extends PluginPanel
 	 */
 	void enterMoveMode(String sourceGoalId)
 	{
-		if (pendingRelationSourceId != null) exitRelationMode();
+		if (!pendingRelationSourceIds.isEmpty()) exitRelationMode();
 		// Same rule as enterRelationMode — pick mode is single-source, so
 		// any existing multi-select highlight is visual noise.
 		api.clearGoalSelection();
@@ -865,7 +896,7 @@ public class GoalPanel extends PluginPanel
 			public void mouseClicked(MouseEvent e)
 			{
 				if (e.getButton() != MouseEvent.BUTTON1) return;
-				if (pendingRelationSourceId != null)
+				if (!pendingRelationSourceIds.isEmpty())
 				{
 					handleRelationPickTarget(goalId);
 					return;
