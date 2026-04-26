@@ -237,7 +237,14 @@ public class GoalPanel extends PluginPanel
 		relationModeLabel.setForeground(Color.WHITE);
 		relationModeLabel.setFont(relationModeLabel.getFont().deriveFont(11f));
 		relationModeBanner.add(relationModeLabel, BorderLayout.CENTER);
-		JButton relationCancelBtn = new JButton("\u2715");
+		// Use ShapeIcons.closeX for the cancel glyph rather than the
+		// literal "\u2715" Unicode character \u2014 the latter renders inconsistently
+		// across platforms (macOS in particular shows it as a colored
+		// emoji on some default fonts).
+		JButton relationCancelBtn = new JButton(ShapeIcons.closeX(10, Color.WHITE));
+		relationCancelBtn.setContentAreaFilled(false);
+		relationCancelBtn.setBorderPainted(false);
+		relationCancelBtn.setFocusPainted(false);
 		relationCancelBtn.setMargin(new Insets(0, 4, 0, 4));
 		relationCancelBtn.setToolTipText("Cancel (ESC)");
 		relationCancelBtn.addActionListener(e -> exitRelationMode());
@@ -254,7 +261,10 @@ public class GoalPanel extends PluginPanel
 		moveModeLabel.setForeground(Color.WHITE);
 		moveModeLabel.setFont(moveModeLabel.getFont().deriveFont(11f));
 		moveModeBanner.add(moveModeLabel, BorderLayout.CENTER);
-		JButton moveCancelBtn = new JButton("\u2715");
+		JButton moveCancelBtn = new JButton(ShapeIcons.closeX(10, Color.WHITE));
+		moveCancelBtn.setContentAreaFilled(false);
+		moveCancelBtn.setBorderPainted(false);
+		moveCancelBtn.setFocusPainted(false);
 		moveCancelBtn.setMargin(new Insets(0, 4, 0, 4));
 		moveCancelBtn.setToolTipText("Cancel (ESC)");
 		moveCancelBtn.addActionListener(e -> exitMoveMode());
