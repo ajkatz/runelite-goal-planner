@@ -462,6 +462,15 @@ public class GoalPanel extends PluginPanel
 			if (sectionCount == 0 && filterActive) continue;
 			final String sectionIdRef = section.id;
 			SectionHeaderRow headerRow = new SectionHeaderRow(section, sectionCount, () -> {
+				// In move-pick mode, the section title row acts as a drop
+				// target for the source goal — particularly useful for
+				// empty sections, where there's no card to click. Falls
+				// through to the normal collapse toggle when not in mode.
+				if (pendingMoveSourceId != null)
+				{
+					handleMovePickToSection(sectionIdRef);
+					return;
+				}
 				api.toggleSectionCollapsed(sectionIdRef);
 				// API callback rebuilds the panel.
 			});
@@ -758,6 +767,36 @@ public class GoalPanel extends PluginPanel
 		}
 		String sourceId = pendingMoveSourceId;
 		api.positionGoalInSection(sourceId, target.sectionId, positionInSection);
+		exitMoveMode();
+	}
+
+	/**
+	 * Handle a click on a section header row while move-pick mode is
+	 * active. Useful for empty sections (no goal cards to click as a
+	 * target). Routes through moveGoalToSection so the placement matches
+	 * the Move-to-Section submenu (appended to end). No-ops on the
+	 * source's current section and on the Completed section.
+	 */
+	private void handleMovePickToSection(String sectionId)
+	{
+		if (pendingMoveSourceId == null) return;
+		com.goalplanner.api.GoalView source = api.queryGoalView(pendingMoveSourceId);
+		if (source == null || sectionId.equals(source.sectionId))
+		{
+			exitMoveMode();
+			return;
+		}
+		// Skip COMPLETED — the menu's "Move to Section" filter excludes it
+		// and we keep the click-mode behavior consistent.
+		for (com.goalplanner.api.SectionView sv : api.queryAllSections())
+		{
+			if (sv.id.equals(sectionId) && "COMPLETED".equals(sv.kind))
+			{
+				exitMoveMode();
+				return;
+			}
+		}
+		api.moveGoalToSection(pendingMoveSourceId, sectionId);
 		exitMoveMode();
 	}
 
