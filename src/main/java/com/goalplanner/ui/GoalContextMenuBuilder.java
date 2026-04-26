@@ -505,32 +505,57 @@ class GoalContextMenuBuilder
 				relationsMenu.addSeparator();
 			}
 
-			// Remove requirement submenu — only when there's something to remove.
+			// Remove Requirements... — opens a checkbox dialog so the user
+			// can drop several edges in one gesture instead of clicking a
+			// submenu item per edge. Submit removes the chosen subset
+			// inside one compound (one undo).
 			if (!currentRequirements.isEmpty())
 			{
-				JMenu removeReqMenu = new JMenu("Remove Requirement");
-				for (String reqId : currentRequirements)
-				{
-					String label = reorderController.goalNameById(reqId);
-					JMenuItem item = new JMenuItem(label);
-					item.addActionListener(e -> api.removeRequirement(goal.getId(), reqId));
-					removeReqMenu.add(item);
-				}
-				relationsMenu.add(removeReqMenu);
+				final List<String> reqsSnapshot = new ArrayList<>(currentRequirements);
+				JMenuItem removeReqs = new JMenuItem("Remove Requirements…");
+				removeReqs.addActionListener(e -> {
+					List<MultiSelectDialog.Item> items = new ArrayList<>();
+					for (String reqId : reqsSnapshot)
+					{
+						items.add(new MultiSelectDialog.Item(
+							reqId, reorderController.goalNameById(reqId)));
+					}
+					List<String> chosen = MultiSelectDialog.show(
+						panel, "Remove Requirements", "Remove", items);
+					if (chosen.isEmpty()) return;
+					api.beginCompound("Remove " + chosen.size() + " requirement(s)");
+					try
+					{
+						for (String reqId : chosen) api.removeRequirement(goal.getId(), reqId);
+					}
+					finally { api.endCompound(); }
+				});
+				relationsMenu.add(removeReqs);
 			}
 
-			// Remove dependent submenu — only when this goal is depended-on.
+			// Remove Dependents... — same multi-pick pattern.
 			if (!currentDependents.isEmpty())
 			{
-				JMenu removeDepMenu = new JMenu("Remove Dependent");
-				for (String depId : currentDependents)
-				{
-					String label = reorderController.goalNameById(depId);
-					JMenuItem item = new JMenuItem(label);
-					item.addActionListener(e -> api.removeRequirement(depId, goal.getId()));
-					removeDepMenu.add(item);
-				}
-				relationsMenu.add(removeDepMenu);
+				final List<String> depsSnapshot = new ArrayList<>(currentDependents);
+				JMenuItem removeDeps = new JMenuItem("Remove Dependents…");
+				removeDeps.addActionListener(e -> {
+					List<MultiSelectDialog.Item> items = new ArrayList<>();
+					for (String depId : depsSnapshot)
+					{
+						items.add(new MultiSelectDialog.Item(
+							depId, reorderController.goalNameById(depId)));
+					}
+					List<String> chosen = MultiSelectDialog.show(
+						panel, "Remove Dependents", "Remove", items);
+					if (chosen.isEmpty()) return;
+					api.beginCompound("Remove " + chosen.size() + " dependent(s)");
+					try
+					{
+						for (String depId : chosen) api.removeRequirement(depId, goal.getId());
+					}
+					finally { api.endCompound(); }
+				});
+				relationsMenu.add(removeDeps);
 			}
 
 			customizeMenu.add(relationsMenu);
@@ -862,44 +887,60 @@ class GoalContextMenuBuilder
 
 			if (!commonRequirements.isEmpty())
 			{
-				JMenu removeReqMenu = new JMenu("Remove Requirement");
 				final List<Goal> finalSources = relationSources;
-				for (String reqId : commonRequirements)
-				{
-					String label = reorderController.goalNameById(reqId);
-					JMenuItem item = new JMenuItem(label);
-					item.addActionListener(e -> {
-						api.beginCompound("Remove requirement from " + finalSources.size() + " goals");
-						try
+				final List<String> commonReqsSnapshot = new ArrayList<>(commonRequirements);
+				JMenuItem removeReqs = new JMenuItem("Remove Requirements…");
+				removeReqs.addActionListener(e -> {
+					List<MultiSelectDialog.Item> items = new ArrayList<>();
+					for (String reqId : commonReqsSnapshot)
+					{
+						items.add(new MultiSelectDialog.Item(
+							reqId, reorderController.goalNameById(reqId)));
+					}
+					List<String> chosen = MultiSelectDialog.show(
+						panel, "Remove Common Requirements", "Remove", items);
+					if (chosen.isEmpty()) return;
+					api.beginCompound("Remove " + chosen.size() + " requirement(s) from "
+						+ finalSources.size() + " goals");
+					try
+					{
+						for (String reqId : chosen)
 						{
 							for (Goal g : finalSources) api.removeRequirement(g.getId(), reqId);
 						}
-						finally { api.endCompound(); }
-					});
-					removeReqMenu.add(item);
-				}
-				relationsMenu.add(removeReqMenu);
+					}
+					finally { api.endCompound(); }
+				});
+				relationsMenu.add(removeReqs);
 			}
 
 			if (!commonDependents.isEmpty())
 			{
-				JMenu removeDepMenu = new JMenu("Remove Dependent");
 				final List<Goal> finalSources = relationSources;
-				for (String depId : commonDependents)
-				{
-					String label = reorderController.goalNameById(depId);
-					JMenuItem item = new JMenuItem(label);
-					item.addActionListener(e -> {
-						api.beginCompound("Remove dependent from " + finalSources.size() + " goals");
-						try
+				final List<String> commonDepsSnapshot = new ArrayList<>(commonDependents);
+				JMenuItem removeDeps = new JMenuItem("Remove Dependents…");
+				removeDeps.addActionListener(e -> {
+					List<MultiSelectDialog.Item> items = new ArrayList<>();
+					for (String depId : commonDepsSnapshot)
+					{
+						items.add(new MultiSelectDialog.Item(
+							depId, reorderController.goalNameById(depId)));
+					}
+					List<String> chosen = MultiSelectDialog.show(
+						panel, "Remove Common Dependents", "Remove", items);
+					if (chosen.isEmpty()) return;
+					api.beginCompound("Remove " + chosen.size() + " dependent(s) from "
+						+ finalSources.size() + " goals");
+					try
+					{
+						for (String depId : chosen)
 						{
 							for (Goal g : finalSources) api.removeRequirement(depId, g.getId());
 						}
-						finally { api.endCompound(); }
-					});
-					removeDepMenu.add(item);
-				}
-				relationsMenu.add(removeDepMenu);
+					}
+					finally { api.endCompound(); }
+				});
+				relationsMenu.add(removeDeps);
 			}
 
 			customizeMenu.add(relationsMenu);
