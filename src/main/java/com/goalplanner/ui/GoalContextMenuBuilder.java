@@ -505,12 +505,32 @@ class GoalContextMenuBuilder
 			customizeMenu.add(relationsMenu);
 		}
 
-		// Move submenu — collects all relocation actions under one hover.
-		// Move to Top/Bottom reorder within the current section; Move to
-		// Section ▶ lists every other valid section plus a "New Section"
-		// option (so almost every incomplete goal has at least one entry).
-		// Hidden on completed goals — the Completed section is terminal and
-		// reordering completed history adds noise.
+		// Restore Defaults — gated on isGoalOverridden (tag drift
+		// OR color override). Routes through the bulk API so the single-item
+		// path resets BOTH tags and color in one shot.
+		if (api.isGoalOverridden(goal.getId()))
+		{
+			JMenuItem restore = new JMenuItem("Restore Defaults");
+			restore.addActionListener(e ->
+				api.bulkRestoreDefaults(Collections.singleton(goal.getId())));
+			customizeMenu.add(restore);
+		}
+
+		// Add the Customize submenu only if it actually has content. On a
+		// completed goal with no removable tags and no overrides, every item
+		// inside is gated off and the submenu would be a dead hover.
+		if (customizeMenu.getMenuComponentCount() > 0)
+		{
+			menu.add(customizeMenu);
+		}
+
+		// Move submenu — sibling of Customize. Collects all relocation actions
+		// under one hover: Move to Top/Bottom reorder within the current
+		// section; Move to… enters click-mode; Move to Section ▶ lists every
+		// other valid section plus a "New Section" option, so almost every
+		// incomplete goal has at least one valid destination. Hidden on
+		// completed goals — Completed is terminal and reordering completed
+		// history adds noise.
 		if (!goal.isComplete())
 		{
 			JMenu moveMenu = new JMenu("Move");
@@ -571,26 +591,7 @@ class GoalContextMenuBuilder
 
 			moveMenu.add(moveToSection);
 
-			customizeMenu.add(moveMenu);
-		}
-
-		// Restore Defaults — gated on isGoalOverridden (tag drift
-		// OR color override). Routes through the bulk API so the single-item
-		// path resets BOTH tags and color in one shot.
-		if (api.isGoalOverridden(goal.getId()))
-		{
-			JMenuItem restore = new JMenuItem("Restore Defaults");
-			restore.addActionListener(e ->
-				api.bulkRestoreDefaults(Collections.singleton(goal.getId())));
-			customizeMenu.add(restore);
-		}
-
-		// Add the Customize submenu only if it actually has content. On a
-		// completed goal with no removable tags and no overrides, every item
-		// inside is gated off and the submenu would be a dead hover.
-		if (customizeMenu.getMenuComponentCount() > 0)
-		{
-			menu.add(customizeMenu);
+			menu.add(moveMenu);
 		}
 
 		JMenuItem remove = new JMenuItem("Remove Goal");
