@@ -529,12 +529,30 @@ public class GoalPanel extends PluginPanel
 				// chain is already at the edge of the section.
 				final String goalIdRef = view.id;
 				final String arrowSectionId = section.id;
+				// Arrow actions on a non-selected card auto-deselect the
+				// current multi-selection first — same Rule 1 enforcement
+				// the right-click menu show path applies. Otherwise the
+				// existing selection's blue highlight competes with the
+				// just-moved card and the user can't tell which group is
+				// "active".
 				GoalCard card = new GoalCard(
 					view,
-					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true),
-					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false),
-					() -> reorderController.moveGoalTo(goalIdRef, secStart),
-					() -> reorderController.moveGoalTo(goalIdRef, secEnd),
+					e -> {
+						clearSelectionIfNotMember(goalIdRef);
+						reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true);
+					},
+					e -> {
+						clearSelectionIfNotMember(goalIdRef);
+						reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false);
+					},
+					() -> {
+						clearSelectionIfNotMember(goalIdRef);
+						reorderController.moveGoalTo(goalIdRef, secStart);
+					},
+					() -> {
+						clearSelectionIfNotMember(goalIdRef);
+						reorderController.moveGoalTo(goalIdRef, secEnd);
+					},
 					skillIconManager,
 					itemManager,
 					spriteManager
@@ -639,6 +657,10 @@ public class GoalPanel extends PluginPanel
 	 */
 	void enterRelationMode(String sourceGoalId, boolean sourceRequiresTarget)
 	{
+		// Pick modes are about a single source. Any pre-existing multi-
+		// select highlight would compete visually with the orange/blue
+		// source border, so clear the selection on entry.
+		api.clearGoalSelection();
 		pendingRelationSourceId = sourceGoalId;
 		pendingRelationSourceRequiresTarget = sourceRequiresTarget;
 		String sourceName = reorderController.goalNameById(sourceGoalId);
@@ -714,6 +736,9 @@ public class GoalPanel extends PluginPanel
 	void enterMoveMode(String sourceGoalId)
 	{
 		if (pendingRelationSourceId != null) exitRelationMode();
+		// Same rule as enterRelationMode — pick mode is single-source, so
+		// any existing multi-select highlight is visual noise.
+		api.clearGoalSelection();
 		pendingMoveSourceId = sourceGoalId;
 		String sourceName = reorderController.goalNameById(sourceGoalId);
 		moveModeLabel.setText("<html>Click a goal to place \"" + sourceName
