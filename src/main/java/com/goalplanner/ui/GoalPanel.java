@@ -764,15 +764,18 @@ public class GoalPanel extends PluginPanel
 			exitMoveMode();
 			return;
 		}
-		// Compute the target's flat-priority position within its section,
-		// matching the convention positionGoalInSection expects.
+		// Compute target's flat-priority position within its section. The
+		// source IS counted (not skipped) because positionGoalInSection's
+		// sectionIndices list also includes the source. Skipping it would
+		// off-by-one when source is above target, making the move a no-op.
+		// With source counted, the move is symmetric: source always ends
+		// up at target's row, and target shifts to make room.
 		java.util.List<com.goalplanner.api.GoalView> all = api.queryAllGoals();
 		int positionInSection = 0;
 		for (com.goalplanner.api.GoalView v : all)
 		{
 			if (!target.sectionId.equals(v.sectionId)) continue;
 			if (v.id.equals(target.id)) break;
-			if (v.id.equals(pendingMoveSourceId)) continue; // self doesn't count
 			positionInSection++;
 		}
 		String sourceId = pendingMoveSourceId;
