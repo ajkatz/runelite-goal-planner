@@ -103,24 +103,20 @@ class GoalContextMenuBuilder
 				// card instead of stranding them in mode.
 				if (!panel.pendingRelationSourceIds.isEmpty()) panel.exitRelationMode();
 				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
-				// Bulk menu (multi-selection) renders through ColumnMenu —
-				// click-driven, hover-stable side-by-side columns instead
-				// of cascading JPopupMenu submenus. Single-item menu still
-				// uses JPopupMenu for now (prototype phase). The
-				// auto-deselect rule lives at the API layer, so the menu
-				// model rebuild needs no special wrapping either way.
+				// Both single-item and bulk menus render through
+				// ColumnMenu now — click-driven, hover-stable single
+				// column with drill-down + back. The build code still
+				// produces JPopupMenu trees; MenuTreeAdapter walks them
+				// into MenuNode trees the ColumnMenu can render. The
+				// auto-deselect rule lives at the API layer, so menu
+				// re-rendering is "build and show" with no per-item
+				// wrapping required.
 				Set<String> sel = api.getSelectedGoalIds();
-				if (sel.contains(goal.getId()) && sel.size() >= 2)
-				{
-					JPopupMenu bulkSource = buildBulkMenu(goal.getId());
-					com.goalplanner.ui.columnmenu.ColumnMenu.show(card, e.getX(), e.getY(),
-						com.goalplanner.ui.columnmenu.MenuTreeAdapter.fromPopup(bulkSource));
-				}
-				else
-				{
-					JPopupMenu popup = buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
-					popup.show(card, e.getX(), e.getY());
-				}
+				JPopupMenu source = sel.contains(goal.getId()) && sel.size() >= 2
+					? buildBulkMenu(goal.getId())
+					: buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+				com.goalplanner.ui.columnmenu.ColumnMenu.show(card, e.getX(), e.getY(),
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.fromPopup(source));
 			}
 		});
 	}
