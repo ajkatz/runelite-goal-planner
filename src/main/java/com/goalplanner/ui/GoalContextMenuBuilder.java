@@ -238,6 +238,40 @@ class GoalContextMenuBuilder
 			menu.addSeparator();
 		}
 
+		// Quest Helper link — surfaced at the top of the per-goal block so it
+		// reads as a navigation/launch action, distinct from the property-edit
+		// items below. Quest goals link by name; diary goals link by (area,
+		// tier) parsed from the description.
+		boolean addedQuestHelper = false;
+		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null
+			&& !goal.isComplete() && panel.questHelperCallback != null
+			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
+		{
+			JMenuItem qhItem = new JMenuItem("Open in Quest Helper");
+			qhItem.addActionListener(e -> panel.questHelperCallback.accept(goal.getQuestName()));
+			menu.add(qhItem);
+			addedQuestHelper = true;
+		}
+		else if (goal.getType() == GoalType.DIARY && goal.getName() != null
+			&& !goal.isComplete() && panel.diaryHelperCallback != null
+			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
+		{
+			com.goalplanner.data.AchievementDiaryData.Tier dhTier =
+				com.goalplanner.data.AchievementDiaryData.parseTierFromDescription(goal.getDescription());
+			if (dhTier != null)
+			{
+				JMenuItem dhItem = new JMenuItem("Open in Quest Helper");
+				final String dhTierDisplay = dhTier.getDisplayName();
+				dhItem.addActionListener(e -> panel.diaryHelperCallback.accept(goal.getName(), dhTierDisplay));
+				menu.add(dhItem);
+				addedQuestHelper = true;
+			}
+		}
+		if (addedQuestHelper)
+		{
+			menu.addSeparator();
+		}
+
 		// Manual completion: CUSTOM and ITEM_GRIND. Skill/quest/diary/CA are
 		// purely game-driven. ITEM_GRIND is terminal once complete:
 		// dropping below the target does NOT auto-revert. The user must
@@ -260,6 +294,14 @@ class GoalContextMenuBuilder
 			}
 		}
 
+		// Customize submenu — groups general property edits (optional flag,
+		// name/description for CUSTOM, color, tags, relations, restore defaults)
+		// under a single hover so the top-level menu stays scannable. Mark
+		// Complete/Incomplete and Change Amount stay top-level: completion is
+		// the primary lifecycle action, and Change Amount is the most-edited
+		// field for skill/item goals.
+		JMenu customizeMenu = new JMenu("Customize");
+
 		// Optional toggle — hidden on completed goals; the optional/required
 		// distinction only affects how active goals are weighted/displayed,
 		// so it's noise on completed cards.
@@ -268,7 +310,7 @@ class GoalContextMenuBuilder
 			boolean isOptional = goal.isOptional();
 			JMenuItem optionalItem = new JMenuItem(isOptional ? "Mark Required" : "Mark Optional");
 			optionalItem.addActionListener(e -> api.setGoalOptional(goal.getId(), !isOptional));
-			menu.add(optionalItem);
+			customizeMenu.add(optionalItem);
 		}
 
 		if (goal.getType() == GoalType.CUSTOM && !goal.isComplete())
@@ -281,7 +323,7 @@ class GoalContextMenuBuilder
 					api.editCustomGoal(goal.getId(), input.trim(), null);
 				}
 			});
-			menu.add(editName);
+			customizeMenu.add(editName);
 
 			JMenuItem editDesc = new JMenuItem("Change Description");
 			editDesc.addActionListener(e -> {
@@ -292,7 +334,7 @@ class GoalContextMenuBuilder
 					api.editCustomGoal(goal.getId(), null, input.trim());
 				}
 			});
-			menu.add(editDesc);
+			customizeMenu.add(editDesc);
 		}
 
 		// Change Color is available on all active goal types — override persists
@@ -302,7 +344,7 @@ class GoalContextMenuBuilder
 		{
 			JMenuItem changeGoalColor = new JMenuItem("Change Color");
 			changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
-			menu.add(changeGoalColor);
+			customizeMenu.add(changeGoalColor);
 		}
 
 		// Skill-specific options
@@ -339,35 +381,6 @@ class GoalContextMenuBuilder
 				}
 			});
 			menu.add(editQty);
-		}
-
-		// Quest Helper link — only shown for incomplete quest goals when
-		// Quest Helper is available.
-		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null
-			&& !goal.isComplete() && panel.questHelperCallback != null
-			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
-		{
-			JMenuItem qhItem = new JMenuItem("Open in Quest Helper");
-			qhItem.addActionListener(e -> panel.questHelperCallback.accept(goal.getQuestName()));
-			menu.add(qhItem);
-		}
-
-		// Quest Helper link for diaries — Quest Helper exposes per-(area, tier)
-		// diary helpers. Tier comes from the description (e.g. "Medium Achievement
-		// Diary" → MEDIUM); skip the menu item if it can't be parsed.
-		if (goal.getType() == GoalType.DIARY && goal.getName() != null
-			&& !goal.isComplete() && panel.diaryHelperCallback != null
-			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
-		{
-			com.goalplanner.data.AchievementDiaryData.Tier dhTier =
-				com.goalplanner.data.AchievementDiaryData.parseTierFromDescription(goal.getDescription());
-			if (dhTier != null)
-			{
-				JMenuItem dhItem = new JMenuItem("Open in Quest Helper");
-				final String dhTierDisplay = dhTier.getDisplayName();
-				dhItem.addActionListener(e -> panel.diaryHelperCallback.accept(goal.getName(), dhTierDisplay));
-				menu.add(dhItem);
-			}
 		}
 
 		// Tag management — routes through the shared TagPickerDialog so the
@@ -426,7 +439,7 @@ class GoalContextMenuBuilder
 		JMenuItem tagEntry = buildTagMenuEntry(
 			!goal.isComplete(), addTagAction,
 			!removableTags.isEmpty(), removeTagAction);
-		if (tagEntry != null) menu.add(tagEntry);
+		if (tagEntry != null) customizeMenu.add(tagEntry);
 
 		// Relations. All requirement-graph editing collapsed under a single
 		// "Relations" parent so the top-level menu stays short. "Requires..."
@@ -488,7 +501,7 @@ class GoalContextMenuBuilder
 				relationsMenu.add(removeDepMenu);
 			}
 
-			menu.add(relationsMenu);
+			customizeMenu.add(relationsMenu);
 		}
 
 		// Restore Defaults — gated on isGoalOverridden (tag drift
@@ -499,7 +512,15 @@ class GoalContextMenuBuilder
 			JMenuItem restore = new JMenuItem("Restore Defaults");
 			restore.addActionListener(e ->
 				api.bulkRestoreDefaults(Collections.singleton(goal.getId())));
-			menu.add(restore);
+			customizeMenu.add(restore);
+		}
+
+		// Add the Customize submenu only if it actually has content. On a
+		// completed goal with no removable tags and no overrides, every item
+		// inside is gated off and the submenu would be a dead hover.
+		if (customizeMenu.getMenuComponentCount() > 0)
+		{
+			menu.add(customizeMenu);
 		}
 
 		// "Move to section →" submenu — only for non-completed goals, only if there
