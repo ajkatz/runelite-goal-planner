@@ -59,7 +59,9 @@ class GoalContextMenuBuilder
 			JMenuItem add = new JMenuItem("Add");
 			add.addActionListener(e -> addAction.run());
 			submenu.add(add);
-			JMenuItem remove = new JMenuItem("Remove");
+			// "Remove…" — ellipsis because the action opens a multi-pick
+			// dialog rather than removing immediately on click.
+			JMenuItem remove = new JMenuItem("Remove…");
 			remove.addActionListener(e -> removeAction.run());
 			submenu.add(remove);
 			return submenu;
@@ -72,7 +74,7 @@ class GoalContextMenuBuilder
 		}
 		if (canRemove)
 		{
-			JMenuItem remove = new JMenuItem("Remove Tag");
+			JMenuItem remove = new JMenuItem("Remove Tags…");
 			remove.addActionListener(e -> removeAction.run());
 			return remove;
 		}
@@ -447,22 +449,22 @@ class GoalContextMenuBuilder
 			}
 		};
 		Runnable removeTagAction = () -> {
-			String[] tagNames = finalRemovable.stream()
-				.map(t -> t.getLabel() + " (" + t.getCategory().getDisplayName() + ")")
-				.toArray(String[]::new);
-
-			String selected = (String) JOptionPane.showInputDialog(
-				panel, "Select tag to remove:", "Remove Tag",
-				JOptionPane.PLAIN_MESSAGE, null, tagNames, tagNames[0]
-			);
-			if (selected != null)
+			List<MultiSelectDialog.Item> items = new ArrayList<>();
+			for (com.goalplanner.model.Tag t : finalRemovable)
 			{
-				int idx = Arrays.asList(tagNames).indexOf(selected);
-				if (idx >= 0)
-				{
-					api.removeTag(goal.getId(), finalRemovable.get(idx).getLabel());
-				}
+				items.add(new MultiSelectDialog.Item(
+					t.getLabel(),
+					t.getLabel() + " (" + t.getCategory().getDisplayName() + ")"));
 			}
+			List<String> chosen = MultiSelectDialog.show(
+				panel, "Remove Tags", "Remove", items);
+			if (chosen.isEmpty()) return;
+			api.beginCompound("Remove " + chosen.size() + " tag(s)");
+			try
+			{
+				for (String label : chosen) api.removeTag(goal.getId(), label);
+			}
+			finally { api.endCompound(); }
 		};
 		JMenuItem tagEntry = buildTagMenuEntry(
 			!goal.isComplete(), addTagAction,

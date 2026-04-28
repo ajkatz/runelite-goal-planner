@@ -123,27 +123,31 @@ class GoalDialogFactory
 	/**
 	 * Bulk Remove Tag dialog. Shows the merged set of removable
 	 * tags across the selection with a count badge ("Slayer (3)") so the user
-	 * knows how many of their selection have it. Picking a tag fires a single
-	 * bulk API call.
+	 * knows how many of their selection have it. Multi-pick + Submit so the
+	 * user can drop several tags from the selection in one gesture.
 	 */
 	void showBulkRemoveTagDialog(Set<String> selectedIds,
 		List<GoalPlannerInternalApi.TagRemovalOption> opts)
 	{
-		String[] labels = new String[opts.size()];
-		for (int i = 0; i < opts.size(); i++)
+		List<MultiSelectDialog.Item> items = new java.util.ArrayList<>();
+		for (GoalPlannerInternalApi.TagRemovalOption o : opts)
 		{
-			GoalPlannerInternalApi.TagRemovalOption o = opts.get(i);
-			labels[i] = o.label + " (" + o.count + ")";
+			items.add(new MultiSelectDialog.Item(
+				o.tagId, o.label + " (" + o.count + ")"));
 		}
-		String picked = (String) JOptionPane.showInputDialog(
-			parentComponent, "Remove which tag from the selection?", "Bulk Remove Tag",
-			JOptionPane.PLAIN_MESSAGE, null, labels, labels[0]);
-		if (picked == null) return;
-		int idx = Arrays.asList(labels).indexOf(picked);
-		if (idx < 0) return;
-		String tagId = opts.get(idx).tagId;
-		int removed = api.bulkRemoveTagFromGoals(selectedIds, tagId);
-		log.debug("bulkRemoveTagFromGoals removed {} from {}", opts.get(idx).label, removed);
+		List<String> chosenTagIds = MultiSelectDialog.show(
+			parentComponent, "Remove Tags from Selection", "Remove", items);
+		if (chosenTagIds.isEmpty()) return;
+		api.beginCompound("Remove " + chosenTagIds.size() + " tag(s) from selection");
+		try
+		{
+			for (String tagId : chosenTagIds)
+			{
+				int removed = api.bulkRemoveTagFromGoals(selectedIds, tagId);
+				log.debug("bulkRemoveTagFromGoals removed tagId={} count={}", tagId, removed);
+			}
+		}
+		finally { api.endCompound(); }
 	}
 
 	void showBulkAddTagDialog(List<Goal> selectedGoals)
