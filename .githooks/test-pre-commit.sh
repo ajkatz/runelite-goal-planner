@@ -106,6 +106,70 @@ else
     passed=$((passed + 1))
 fi
 
+# Test 5: Class.forName should be blocked
+git rm --cached -f src/Sneaky.java > /dev/null 2>&1 || true
+rm -f src/Sneaky.java
+cat > src/Dynamic.java <<'EOF'
+package x;
+public class Dynamic {
+    void load() throws Exception {
+        Class<?> c = Class.forName("foo.Bar");
+    }
+}
+EOF
+git add src/Dynamic.java
+if .githooks/pre-commit > /dev/null 2>&1; then
+    echo "FAIL: Class.forName was NOT blocked"
+    failed=$((failed + 1))
+else
+    echo "PASS: Class.forName correctly blocked"
+    passed=$((passed + 1))
+fi
+
+# Test 6: inline java.lang.reflect.Method (no import statement) should be blocked
+git rm --cached -f src/Dynamic.java > /dev/null 2>&1 || true
+rm -f src/Dynamic.java
+cat > src/Inline.java <<'EOF'
+package x;
+public class Inline {
+    void hack(Object o) throws Exception {
+        for (java.lang.reflect.Method m : o.getClass().getMethods()) {
+            // ...
+        }
+    }
+}
+EOF
+git add src/Inline.java
+if .githooks/pre-commit > /dev/null 2>&1; then
+    echo "FAIL: inline java.lang.reflect.Method was NOT blocked"
+    failed=$((failed + 1))
+else
+    echo "PASS: inline java.lang.reflect.Method correctly blocked"
+    passed=$((passed + 1))
+fi
+
+# Test 7: @SuppressReflection escape hatch should allow the line through
+git rm --cached -f src/Inline.java > /dev/null 2>&1 || true
+rm -f src/Inline.java
+cat > src/Suppressed.java <<'EOF'
+package x;
+public class Suppressed {
+    void interop(Object plugin) throws Exception {
+        // Cross-plugin interop with QH (no published API).
+        Class<?> qh = Class.forName("com.questhelper.X", true, plugin.getClass().getClassLoader()); // @SuppressReflection: cross-plugin interop
+        java.lang.reflect.Method m = qh.getMethod("foo"); // @SuppressReflection: cross-plugin interop
+    }
+}
+EOF
+git add src/Suppressed.java
+if .githooks/pre-commit > /dev/null 2>&1; then
+    echo "PASS: @SuppressReflection lines correctly skipped"
+    passed=$((passed + 1))
+else
+    echo "FAIL: @SuppressReflection lines were NOT honored"
+    failed=$((failed + 1))
+fi
+
 echo
 echo "Hook smoke tests: $passed passed, $failed failed."
 [ "$failed" -eq 0 ]

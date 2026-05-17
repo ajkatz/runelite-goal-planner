@@ -22,12 +22,20 @@ while IFS= read -r file; do
     # reflects what will actually be committed.
     staged_content=$(git show ":$file" 2>/dev/null) || continue
 
-    # Patterns that indicate reflection. The Field|Method|Constructor|
-    # Modifier|InvocationHandler|Proxy alternation excludes Type
+    # Strip out any line that ends with a `// @SuppressReflection: <reason>`
+    # marker — that's the documented escape hatch. Reviewers can search
+    # for these markers to audit the exceptions.
+    scannable=$(printf '%s\n' "$staged_content" | grep -v '// @SuppressReflection:' || true)
+
+    # Patterns that indicate reflection. Matches both `import java.lang.reflect.X`
+    # AND inline fully-qualified `java.lang.reflect.X` references (a sneakier
+    # way to slip reflection past an import-only check). The Field|Method|
+    # Constructor|Modifier|InvocationHandler|Proxy alternation excludes Type
     # (Gson TypeToken's java.lang.reflect.Type is a type marker, not
     # reflection).
-    matches=$(printf '%s\n' "$staged_content" | grep -nE \
-        -e 'import[[:space:]]+java\.lang\.reflect\.(Field|Method|Constructor|Modifier|InvocationHandler|Proxy)' \
+    matches=$(printf '%s\n' "$scannable" | grep -nE \
+        -e '\bjava\.lang\.reflect\.(Field|Method|Constructor|Modifier|InvocationHandler|Proxy)\b' \
+        -e '\bClass\.forName[[:space:]]*\(' \
         -e 'getDeclaredField[[:space:]]*\(' \
         -e 'getDeclaredMethod[[:space:]]*\(' \
         -e 'setAccessible[[:space:]]*\(' \
@@ -45,7 +53,10 @@ if [ -n "$violations" ]; then
     printf '  - Package-private access (when test/caller is in the same package)\n'
     printf '  - Swap-hook pattern for test-only data injection (see\n'
     printf '    claude-config memory: learning_test_swap_hook_pattern)\n'
-    printf '  - Constructor injection for collaborators\n\n'
+    printf '  - Constructor injection for collaborators\n'
+    printf '  - Justified exception: add `// @SuppressReflection: <reason>`\n'
+    printf '    on each offending line (e.g., cross-plugin interop with no\n'
+    printf '    published API)\n\n'
     printf 'Bypass for emergencies: git commit --no-verify\n\n'
     exit 1
 fi
