@@ -14,6 +14,11 @@ import net.runelite.client.config.ConfigManager;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+// java.lang.reflect.Type is the type-marker interface returned by
+// Gson's TypeToken<T>.getType(). NOT runtime reflection. Required
+// because runelite bundles Gson 2.8.5 (no fromJson(String, TypeToken<T>)
+// overload — that was added in Gson 2.10) and the plugin hub rejects
+// new Gson() so we must use the injected 2.8.5 instance.
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.Comparator;

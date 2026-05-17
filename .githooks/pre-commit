@@ -29,10 +29,15 @@ while IFS= read -r file; do
 
     # Patterns that indicate reflection. Matches both `import java.lang.reflect.X`
     # AND inline fully-qualified `java.lang.reflect.X` references (a sneakier
-    # way to slip reflection past an import-only check). The Field|Method|
-    # Constructor|Modifier|InvocationHandler|Proxy alternation excludes Type
-    # (Gson TypeToken's java.lang.reflect.Type is a type marker, not
-    # reflection).
+    # way to slip reflection past an import-only check).
+    #
+    # The Field|Method|Constructor|Modifier|InvocationHandler|Proxy
+    # alternation explicitly excludes `Type`. `java.lang.reflect.Type` is
+    # the type-marker interface returned by Gson's `TypeToken<T>.getType()`
+    # and is required by Gson 2.8.5's `fromJson(String, Type)` API. We can't
+    # avoid it: runelite bundles Gson 2.8.5 (no `fromJson(String, TypeToken<T>)`
+    # overload — that was added in Gson 2.10) and the plugin hub rejects
+    # `new Gson()` so we must use the injected 2.8.5 instance.
     matches=$(printf '%s\n' "$scannable" | grep -nE \
         -e '\bjava\.lang\.reflect\.(Field|Method|Constructor|Modifier|InvocationHandler|Proxy)\b' \
         -e '\bClass\.forName[[:space:]]*\(' \
