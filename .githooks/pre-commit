@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Project-local pre-commit hook: block Java reflection in staged diffs.
+#
+# Runelite plugins disallow reflection. This hook scans the staged
+# version of every .java file being added or modified and blocks the
+# commit if it finds reflection patterns. The Gson TypeToken use of
+# java.lang.reflect.Type is explicitly allowed (it's a type marker,
+# not actual reflection).
+#
+# Enable per-clone: git config core.hooksPath .githooks
+# Bypass for emergencies: git commit --no-verify
+
+set -e
+
+staged_java=$(git diff --cached --name-only --diff-filter=AM -- '*.java')
+[ -z "$staged_java" ] && exit 0
+
+violations=""
+while IFS= read -r file; do
+    [ -z "$file" ] && continue
+    # Read the staged content (not the working tree) so the hook
+    # reflects what will actually be committed.
+    staged_content=$(git show ":$file" 2>/dev/null) || continue
+
+    # Patterns that indicate reflection. The Field|Method|Constructor|
+    # Modifier|InvocationHandler|Proxy alternation excludes Type
+    # (Gson TypeToken's java.lang.reflect.Type is a type marker, not
+    # reflection).
+    matches=$(printf '%s\n' "$staged_content" | grep -nE \
+        -e 'import[[:space:]]+java\.lang\.reflect\.(Field|Method|Constructor|Modifier|InvocationHandler|Proxy)' \
+        -e 'getDeclaredField[[:space:]]*\(' \
+        -e 'getDeclaredMethod[[:space:]]*\(' \
+        -e 'setAccessible[[:space:]]*\(' \
+        || true)
+
+    if [ -n "$matches" ]; then
+        violations+="$file:"$'\n'"$matches"$'\n\n'
+    fi
+done <<< "$staged_java"
+
+if [ -n "$violations" ]; then
+    printf '\n\033[31m✗ pre-commit: Java reflection is not allowed in runelite plugins.\033[0m\n\n'
+    printf '%s' "$violations"
+    printf 'Alternatives:\n'
+    printf '  - Package-private access (when test/caller is in the same package)\n'
+    printf '  - Swap-hook pattern for test-only data injection (see\n'
+    printf '    claude-config memory: learning_test_swap_hook_pattern)\n'
+    printf '  - Constructor injection for collaborators\n\n'
+    printf 'Bypass for emergencies: git commit --no-verify\n\n'
+    exit 1
+fi
+
+exit 0
