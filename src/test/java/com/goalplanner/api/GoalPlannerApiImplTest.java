@@ -842,8 +842,7 @@ class GoalPlannerApiImplTest
 
 			// 2. Stub the wiki repo so addCombatAchievementGoal succeeds. Use
 			//    a real CaInfo struct because the impl reads multiple fields.
-			com.goalplanner.data.WikiCaRepository wikiMock =
-				(com.goalplanner.data.WikiCaRepository) getWikiRepoFromApi();
+			com.goalplanner.data.WikiCaRepository wikiMock = api.wikiCaRepository;
 			com.goalplanner.data.WikiCaRepository.CaInfo info =
 				new com.goalplanner.data.WikiCaRepository.CaInfo();
 			info.id = 42;
@@ -890,8 +889,7 @@ class GoalPlannerApiImplTest
 			final int blue = 0x3498DB;
 			assertTrue(api.setCategoryColor("BOSS", red));
 
-			com.goalplanner.data.WikiCaRepository wikiMock =
-				(com.goalplanner.data.WikiCaRepository) getWikiRepoFromApi();
+			com.goalplanner.data.WikiCaRepository wikiMock = api.wikiCaRepository;
 			com.goalplanner.data.WikiCaRepository.CaInfo info =
 				new com.goalplanner.data.WikiCaRepository.CaInfo();
 			info.id = 42;
@@ -999,14 +997,6 @@ class GoalPlannerApiImplTest
 				.filter(gv -> gv.id.equals(goalId)).findFirst().orElseThrow();
 			com.goalplanner.api.TagView tv = view.defaultTags.get(0);
 			assertEquals("VORKATH", tv.iconKey);
-		}
-
-		/** Reflective lookup for the WikiCaRepository mock the test setUp wired into the API impl. */
-		private com.goalplanner.data.WikiCaRepository getWikiRepoFromApi() throws Exception
-		{
-			java.lang.reflect.Field f = GoalPlannerApiImpl.class.getDeclaredField("wikiCaRepository");
-			f.setAccessible(true);
-			return (com.goalplanner.data.WikiCaRepository) f.get(api);
 		}
 
 		@Test
