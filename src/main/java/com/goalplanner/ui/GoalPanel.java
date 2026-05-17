@@ -99,26 +99,6 @@ public class GoalPanel extends PluginPanel
 	private JButton undoButton;
 	private JButton redoButton;
 
-	/** Callback to open a quest in Quest Helper. */
-	java.util.function.Consumer<String> questHelperCallback;
-	/** Checks whether Quest Helper is currently available. */
-	java.util.function.Supplier<Boolean> questHelperAvailable;
-
-	public void setQuestHelperCallback(java.util.function.Consumer<String> callback,
-									   java.util.function.Supplier<Boolean> available)
-	{
-		this.questHelperCallback = callback;
-		this.questHelperAvailable = available;
-	}
-
-	/** Callback to open an achievement diary in Quest Helper. Args: (areaName, tierDisplayName). */
-	java.util.function.BiConsumer<String, String> diaryHelperCallback;
-
-	public void setDiaryHelperCallback(java.util.function.BiConsumer<String, String> callback)
-	{
-		this.diaryHelperCallback = callback;
-	}
-
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goalplanner.api.GoalPlannerApiImpl api,

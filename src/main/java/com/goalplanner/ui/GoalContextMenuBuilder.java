@@ -268,40 +268,6 @@ class GoalContextMenuBuilder
 			menu.addSeparator();
 		}
 
-		// Quest Helper link — surfaced at the top of the per-goal block so it
-		// reads as a navigation/launch action, distinct from the property-edit
-		// items below. Quest goals link by name; diary goals link by (area,
-		// tier) parsed from the description.
-		boolean addedQuestHelper = false;
-		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null
-			&& !goal.isComplete() && panel.questHelperCallback != null
-			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
-		{
-			JMenuItem qhItem = new JMenuItem("Open in Quest Helper");
-			qhItem.addActionListener(e -> panel.questHelperCallback.accept(goal.getQuestName()));
-			menu.add(qhItem);
-			addedQuestHelper = true;
-		}
-		else if (goal.getType() == GoalType.DIARY && goal.getName() != null
-			&& !goal.isComplete() && panel.diaryHelperCallback != null
-			&& panel.questHelperAvailable != null && panel.questHelperAvailable.get())
-		{
-			com.goalplanner.data.AchievementDiaryData.Tier dhTier =
-				com.goalplanner.data.AchievementDiaryData.parseTierFromDescription(goal.getDescription());
-			if (dhTier != null)
-			{
-				JMenuItem dhItem = new JMenuItem("Open in Quest Helper");
-				final String dhTierDisplay = dhTier.getDisplayName();
-				dhItem.addActionListener(e -> panel.diaryHelperCallback.accept(goal.getName(), dhTierDisplay));
-				menu.add(dhItem);
-				addedQuestHelper = true;
-			}
-		}
-		if (addedQuestHelper)
-		{
-			menu.addSeparator();
-		}
-
 		// Manual completion: CUSTOM and ITEM_GRIND. Skill/quest/diary/CA are
 		// purely game-driven. ITEM_GRIND is terminal once complete:
 		// dropping below the target does NOT auto-revert. The user must
