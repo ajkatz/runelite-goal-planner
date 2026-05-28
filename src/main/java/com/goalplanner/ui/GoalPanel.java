@@ -588,21 +588,20 @@ public class GoalPanel extends PluginPanel
 			headline.setFont(headline.getFont().deriveFont(Font.BOLD, 13f));
 			headline.setAlignmentX(Component.CENTER_ALIGNMENT);
 
-			JLabel hintGoal = new JLabel("Click + to add a goal");
-			hintGoal.setForeground(new Color(130, 130, 130));
-			hintGoal.setFont(hintGoal.getFont().deriveFont(11f));
-			hintGoal.setAlignmentX(Component.CENTER_ALIGNMENT);
-			hintGoal.setBorder(new EmptyBorder(8, 0, 0, 0));
-
-			JLabel hintSection = new JLabel("Or + to add a custom section");
-			hintSection.setForeground(new Color(130, 130, 130));
-			hintSection.setFont(hintSection.getFont().deriveFont(11f));
-			hintSection.setAlignmentX(Component.CENTER_ALIGNMENT);
-			hintSection.setBorder(new EmptyBorder(2, 0, 0, 0));
-
 			emptyPanel.add(headline);
-			emptyPanel.add(hintGoal);
-			emptyPanel.add(hintSection);
+			addHintLines(emptyPanel, 8, new String[] {
+				"Right click on the Incomplete",
+				"section to add your first goal",
+			});
+			addHintLines(emptyPanel, 6, new String[] {
+				"Or right-click in-game on",
+				"skills, quests, diary tasks,",
+				"items, or collection log",
+			});
+			addHintLines(emptyPanel, 6, new String[] {
+				"Right-click any section header",
+				"to add a custom section",
+			});
 			goalListPanel.add(emptyPanel);
 		}
 
@@ -612,6 +611,19 @@ public class GoalPanel extends PluginPanel
 		if (elapsed > 50)
 		{
 			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
+		}
+	}
+
+	private void addHintLines(JPanel parent, int topGap, String[] lines)
+	{
+		for (int i = 0; i < lines.length; i++)
+		{
+			JLabel line = new JLabel(lines[i]);
+			line.setForeground(new Color(130, 130, 130));
+			line.setFont(line.getFont().deriveFont(11f));
+			line.setAlignmentX(Component.CENTER_ALIGNMENT);
+			line.setBorder(new EmptyBorder(i == 0 ? topGap : 0, 0, 0, 0));
+			parent.add(line);
 		}
 	}
 
