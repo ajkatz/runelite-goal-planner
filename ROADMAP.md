@@ -4,7 +4,7 @@ Planned future work. Not committed to an order; items are picked up
 as appetite allows. See [CHANGELOG.md](CHANGELOG.md) for work that has
 shipped in v0.1.0.
 
-> ⚠️ **Experimental v0.1.0** — Persistence format and the public API
+> ⚠️ **Experimental v0.1.1** — Persistence format and the public API
 > may change in breaking ways before a stable 1.0 tag. Items below
 > may become higher-priority if a breaking change is staged.
 

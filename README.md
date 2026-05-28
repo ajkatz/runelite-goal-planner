@@ -4,7 +4,7 @@
 [![License](https://img.shields.io/github/license/ajkatz/runelite-goal-planner)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/ajkatz/runelite-goal-planner)](https://github.com/ajkatz/runelite-goal-planner/releases)
 
-> ⚠️ **Experimental v0.1.0** — This is the first public cut. Persistence
+> ⚠️ **Experimental v0.1.1** — Early public cut. Persistence
 > format and the public Java API may change in breaking ways before a
 > stable 1.0 tag. If you track goals with this today, expect to
 > re-create them if you upgrade across a breaking change. See

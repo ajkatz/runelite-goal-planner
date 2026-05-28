@@ -6,24 +6,81 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
-## [0.1.1] — 2026-04-16 (Docs-only)
+## [0.1.1] — 2026-05-28
 
-No code or behavioral changes. Repository and community polish
-following v0.1.0 and the plugin-hub submission.
+First post-submission release. Right-click menus restructured into a
+column-view drill-down, bulk-action surface expanded to mirror the
+single-item shape, several persistence and refresh bugs fixed.
 
 ### Added
-- Discord community server. README + issue-template config link to
-  the public invite.
+- **ColumnMenu** — column-view popup menu for bulk and single right-click,
+  single-column drill-down with a back row. Keep-open flag for repeat-
+  friendly actions. Clamped inside the RuneLite client window.
+- **Bulk Customize > Relations** — bulk Requires… / Required by… /
+  Remove Requirement / Remove Dependent against the multi-select.
+- **Bulk Move** — Up / Down / Top / Bottom preserving relative order
+  within the selection.
+- **Bulk Mark Optional / Required** under Customize.
+- **Move-to… pick mode** — click a section header or goal card as a
+  drop target after a Move-to gesture; cancel with ESC.
+- **Auto-select on add** — every `addXxxGoal` at the API layer leaves
+  the newly created goal selected.
+- **Auto-deselect rules** at the API layer covering pick-mode entry,
+  arrow actions, and single-item right-click activations.
+- **"Open in Quest Helper"** context menu item on achievement diary
+  goals.
+- **Goal customizations menu** grouped under a Customize submenu,
+  Move actions promoted to a top-level sibling.
+- **Tag submenu** that collapses Add Tag + Remove Tag together when
+  both apply.
+- **Discord community server.** README + issue-template config link
+  to the public invite.
 - README badges (Discord member count, license, latest release).
 - `.github/` issue templates (bug report, feature request, data
   correction) and PR template.
 - Screenshots under `assets/` with the sidebar overview inlined in
   the README as a hero image.
+- Karamja diary varbits — Easy / Medium / Hard now auto-track instead
+  of remaining manual-complete.
+- `.githooks/pre-commit` blocks `java.lang.reflect` usage with a
+  `@SuppressReflection` escape hatch for tests that genuinely need it.
 
 ### Changed
 - Repository renamed from `runelite-goal-tracker` to
   `runelite-goal-planner` on GitHub. Old URL still redirects; the
-  plugin-hub submission manifest now points at the canonical URL.
+  plugin-hub manifest points at the canonical URL.
+- Empty-state hints rewritten to describe the right-click flow
+  (Incomplete header, in-game skill / quest / diary / item / collection
+  log entries, custom-section creation). The `+` button is gone.
+- Goal-card right-click menu trimmed and consolidated; bulk menu
+  restructured to mirror the single-item shape.
+- Completed section now sorts by completion date, newest first.
+- Move-to-Top / Move-to-Bottom baked into the arrow buttons via
+  right-click; FlatLaf base font + 13pt for ColumnMenu rows; ASCII
+  back glyph for cross-platform consistency.
+- Remove Tag / Remove Requirement / Remove Dependent migrated to the
+  multi-select checkbox dialog instead of nested submenus.
+- QuestHelper plugin integration dropped — there's no published
+  cross-plugin compile-time interop API.
+
+### Fixed
+- Panel didn't refresh when logging directly into Leagues.
+- Move-to no-op when the source goal sat above the target.
+- Completion state was lost across profile switches and login
+  windows; canonical tags are now re-seeded on profile switch.
+- Placeholder Discord invite URL in the sidebar Options menu.
+- Plugin-hub deprecated-API check: replaced `WidgetID` and the shared
+  Gson reference; added `build=standard` to plugin properties.
+- "Shadows of Custodia" fix and assorted completion-UI cleanup landed
+  during plugin-hub prep.
+
+### Internal
+- Rebranded source tree from `goaltracker` → `goalplanner` package +
+  class names; renamed plugin to "Goal Planner".
+- Reflection usage in tests replaced with direct package-private
+  access.
+- `addXxxGoal` APIs merged at the API layer; dev-only bulk helpers
+  gated behind a flag.
 
 ## [0.1.0] — 2026-04-16 (Experimental first release)
 

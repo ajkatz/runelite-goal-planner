@@ -1,6 +1,6 @@
 # Goal Planner Plugin API
 
-> ⚠️ **Experimental v0.1.0** — The public API may change in breaking ways
+> ⚠️ **Experimental v0.1.1** — The public API may change in breaking ways
 > before a stable 1.0 tag. Method signatures, DTO shapes, and return
 > semantics are not yet committed. Pin a specific plugin version if you
 > ship a consumer against this API, and expect to update across our
@@ -499,7 +499,7 @@ would spam rebuilds.
 
 ## Versioning and stability
 
-The API is currently **v0.1.0 (experimental)**. Until we cut a stable 1.0
+The API is currently **v0.1.1 (experimental)**. Until we cut a stable 1.0
 tag, existing method signatures and return semantics may change in
 breaking ways between releases. Additions will keep backwards
 compatibility where feasible, but breaking changes (renamed methods,
