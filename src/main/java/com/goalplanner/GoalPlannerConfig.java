@@ -10,7 +10,7 @@ public interface GoalPlannerConfig extends Config
 {
 	@ConfigSection(
 		name = "Appearance",
-		description = "Side-panel font and readability options",
+		description = "Readability options (experimental). Report issues: discord.gg/CFQsA3fmh7",
 		position = 10
 	)
 	String appearanceSection = "appearance";
@@ -38,7 +38,7 @@ public interface GoalPlannerConfig extends Config
 	@ConfigItem(
 		keyName = "fontFamily",
 		name = "Panel font",
-		description = "Font family for the Goal Planner side panel. Try Sans-serif if the default is hard to read.",
+		description = "Side-panel font family. Try Sans-serif if the default is hard to read.",
 		section = appearanceSection,
 		position = 1
 	)
@@ -50,7 +50,7 @@ public interface GoalPlannerConfig extends Config
 	@ConfigItem(
 		keyName = "fontScale",
 		name = "Font size",
-		description = "Scale the side-panel text up or down for readability",
+		description = "Scale side-panel text up or down.",
 		section = appearanceSection,
 		position = 2
 	)
