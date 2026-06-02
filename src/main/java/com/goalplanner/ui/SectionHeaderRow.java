@@ -84,7 +84,7 @@ public class SectionHeaderRow extends JPanel
 
 		JLabel nameLabel = new JLabel(section.name.toUpperCase(), SwingConstants.CENTER);
 		nameLabel.setForeground(TEXT_COLOR);
-		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 10f));
+		nameLabel.setFont(PanelFonts.derive(Font.BOLD, 10f));
 
 		// Spacer of equal width on the right so the centered name visually stays centered
 		// despite the chevron occupying the left edge.

@@ -1,5 +1,6 @@
 package com.goalplanner.ui.columnmenu;
 
+import com.goalplanner.ui.PanelFonts;
 import net.runelite.client.ui.ColorScheme;
 
 import javax.swing.BorderFactory;
@@ -11,7 +12,6 @@ import javax.swing.JSeparator;
 import javax.swing.JWindow;
 import javax.swing.ScrollPaneConstants;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
 import javax.swing.border.EmptyBorder;
 import java.awt.AWTEvent;
 import java.awt.BorderLayout;
@@ -52,15 +52,6 @@ public final class ColumnMenu
 	private static final int COLUMN_PADDING = 8; // 4 top + 4 bottom
 	private static final int MAX_COLUMN_HEIGHT = 480;
 
-	// Match GoalCard's font resolution path so the menu reads consistent
-	// with the rest of the panel — UIManager's Label.font respects the
-	// FlatLaf base. Fallback to Font.DIALOG keeps things sane if the
-	// L&F somehow doesn't have a Label.font registered.
-	private static final Font FONT_BASE = UIManager.getFont("Label.font") != null
-		? UIManager.getFont("Label.font")
-		: new Font(Font.DIALOG, Font.PLAIN, 13);
-	private static final Font FONT_ROW = FONT_BASE.deriveFont(Font.PLAIN, 13f);
-	private static final Font FONT_ROW_BOLD = FONT_BASE.deriveFont(Font.BOLD, 13f);
 
 	private static final Color BG = ColorScheme.DARK_GRAY_COLOR;
 	private static final Color BG_HOVER = brighten(BG, 18);
@@ -200,13 +191,13 @@ public final class ColumnMenu
 		// fall back to colored emoji glyphs on default fonts.
 		JLabel arrow = new JLabel("<");
 		arrow.setForeground(FG_DIM);
-		arrow.setFont(FONT_ROW_BOLD);
+		arrow.setFont(PanelFonts.derive(Font.BOLD, 13f));
 		arrow.setBorder(new EmptyBorder(0, 0, 0, 6));
 		row.add(arrow, BorderLayout.WEST);
 
 		JLabel text = new JLabel(label);
 		text.setForeground(FG_DIM);
-		text.setFont(FONT_ROW);
+		text.setFont(PanelFonts.derive(Font.PLAIN, 13f));
 		row.add(text, BorderLayout.CENTER);
 
 		row.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
@@ -234,14 +225,14 @@ public final class ColumnMenu
 
 		JLabel label = new JLabel(node.label);
 		label.setForeground(node.enabled ? FG : FG_DISABLED);
-		label.setFont(FONT_ROW);
+		label.setFont(PanelFonts.derive(Font.PLAIN, 13f));
 		row.add(label, BorderLayout.WEST);
 
 		if (node.isSubmenu())
 		{
 			JLabel arrow = new JLabel(">");
 			arrow.setForeground(node.enabled ? FG_DIM : SEP);
-			arrow.setFont(FONT_ROW_BOLD);
+			arrow.setFont(PanelFonts.derive(Font.BOLD, 13f));
 			row.add(arrow, BorderLayout.EAST);
 		}
 

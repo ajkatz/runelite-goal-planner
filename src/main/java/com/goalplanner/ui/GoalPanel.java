@@ -129,7 +129,7 @@ public class GoalPanel extends PluginPanel
 
 		JLabel title = new JLabel("Goal Planner");
 		title.setForeground(Color.WHITE);
-		title.setFont(title.getFont().deriveFont(Font.BOLD, 14f));
+		title.setFont(PanelFonts.derive(Font.BOLD, 14f));
 
 		JPanel headerButtons = new JPanel(new FlowLayout(FlowLayout.RIGHT, 3, 0));
 		headerButtons.setOpaque(false);
@@ -215,7 +215,7 @@ public class GoalPanel extends PluginPanel
 		relationModeBanner.setBorder(new EmptyBorder(4, 8, 4, 8));
 		relationModeLabel = new JLabel();
 		relationModeLabel.setForeground(Color.WHITE);
-		relationModeLabel.setFont(relationModeLabel.getFont().deriveFont(11f));
+		relationModeLabel.setFont(PanelFonts.derive(11f));
 		relationModeBanner.add(relationModeLabel, BorderLayout.CENTER);
 		// Use ShapeIcons.closeX for the cancel glyph rather than the
 		// literal "\u2715" Unicode character \u2014 the latter renders inconsistently
@@ -239,7 +239,7 @@ public class GoalPanel extends PluginPanel
 		moveModeBanner.setBorder(new EmptyBorder(4, 8, 4, 8));
 		moveModeLabel = new JLabel();
 		moveModeLabel.setForeground(Color.WHITE);
-		moveModeLabel.setFont(moveModeLabel.getFont().deriveFont(11f));
+		moveModeLabel.setFont(PanelFonts.derive(11f));
 		moveModeBanner.add(moveModeLabel, BorderLayout.CENTER);
 		JButton moveCancelBtn = new JButton(ShapeIcons.closeX(10, Color.WHITE));
 		moveCancelBtn.setContentAreaFilled(false);
@@ -398,7 +398,7 @@ public class GoalPanel extends PluginPanel
 		{
 			JLabel newSectionRow = new JLabel("+ New Section");
 			newSectionRow.setForeground(new Color(0x33, 0x99, 0xFF));
-			newSectionRow.setFont(newSectionRow.getFont().deriveFont(Font.BOLD, 12f));
+			newSectionRow.setFont(PanelFonts.derive(Font.BOLD, 12f));
 			newSectionRow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
 				javax.swing.BorderFactory.createDashedBorder(new Color(0x33, 0x99, 0xFF), 1.5f, 4f, 2f, true),
 				new EmptyBorder(8, 10, 8, 10)));
@@ -476,7 +476,7 @@ public class GoalPanel extends PluginPanel
 			{
 				JLabel placeholder = new JLabel("Empty — right-click goals to move them here");
 				placeholder.setForeground(new Color(120, 120, 120));
-				placeholder.setFont(placeholder.getFont().deriveFont(Font.ITALIC, 10f));
+				placeholder.setFont(PanelFonts.derive(Font.ITALIC, 10f));
 				placeholder.setAlignmentX(Component.CENTER_ALIGNMENT);
 				placeholder.setBorder(new EmptyBorder(2, 4, 6, 4));
 				goalListPanel.add(placeholder);
@@ -585,7 +585,7 @@ public class GoalPanel extends PluginPanel
 
 			JLabel headline = new JLabel("No goals yet");
 			headline.setForeground(new Color(180, 180, 180));
-			headline.setFont(headline.getFont().deriveFont(Font.BOLD, 13f));
+			headline.setFont(PanelFonts.derive(Font.BOLD, 13f));
 			headline.setAlignmentX(Component.CENTER_ALIGNMENT);
 
 			emptyPanel.add(headline);
@@ -620,7 +620,7 @@ public class GoalPanel extends PluginPanel
 		{
 			JLabel line = new JLabel(lines[i]);
 			line.setForeground(new Color(130, 130, 130));
-			line.setFont(line.getFont().deriveFont(11f));
+			line.setFont(PanelFonts.derive(11f));
 			line.setAlignmentX(Component.CENTER_ALIGNMENT);
 			line.setBorder(new EmptyBorder(i == 0 ? topGap : 0, 0, 0, 0));
 			parent.add(line);

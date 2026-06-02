@@ -120,7 +120,7 @@ public class GoalCard extends JPanel
 
 		nameLabel = new JLabel(formatNameHtml());
 		nameLabel.setForeground(view.optional ? new Color(160, 160, 160) : TEXT_PRIMARY);
-		nameLabel.setFont(nameLabel.getFont().deriveFont(Font.BOLD, 12f));
+		nameLabel.setFont(PanelFonts.derive(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 		leftPanel.add(nameLabel, BorderLayout.CENTER);
 
@@ -129,7 +129,7 @@ public class GoalCard extends JPanel
 		// Right side: status (XP, percent, checkmark, etc.)
 		statusLabel = new JLabel(formatPercent());
 		statusLabel.setForeground(TEXT_PRIMARY);
-		statusLabel.setFont(statusLabel.getFont().deriveFont(11f));
+		statusLabel.setFont(PanelFonts.derive(11f));
 		statusLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 		statusLabel.setVerticalAlignment(SwingConstants.CENTER);
 
@@ -433,7 +433,7 @@ public class GoalCard extends JPanel
 			}
 		};
 		pill.setForeground(tagColor(tag));
-		pill.setFont(pill.getFont().deriveFont(Font.PLAIN, 9f));
+		pill.setFont(PanelFonts.derive(Font.PLAIN, 9f));
 		pill.setBorder(new EmptyBorder(1, 5, 1, 5));
 		pill.setOpaque(false);
 		return pill;
@@ -626,23 +626,26 @@ public class GoalCard extends JPanel
 		return sb.toString().trim() + ellipsis;
 	}
 
-	// Use FlatLaf default UI font as the base — matches what JLabel.getFont()
-	// resolves to without depending on the nameLabel field being initialized.
-	private static final Font NAME_FONT = UIManager.getFont("Label.font") != null
-		? UIManager.getFont("Label.font").deriveFont(Font.BOLD, 12f)
-		: new Font(Font.DIALOG, Font.BOLD, 12);
-	private static final Font DESC_FONT = UIManager.getFont("Label.font") != null
-		? UIManager.getFont("Label.font").deriveFont(Font.PLAIN, 9f)
-		: new Font(Font.DIALOG, Font.PLAIN, 9);
+	// Measurement fonts for truncation — resolved through PanelFonts so they track
+	// the configured family + size scale (and stay in sync with the rendered labels).
+	private static Font nameFont()
+	{
+		return PanelFonts.derive(Font.BOLD, 12f);
+	}
+
+	private static Font descFont()
+	{
+		return PanelFonts.derive(Font.PLAIN, 9f);
+	}
 
 	private String fitName(String text)
 	{
-		return truncateToWidth(text, NAME_FONT, NAME_WIDTH_PX);
+		return truncateToWidth(text, nameFont(), NAME_WIDTH_PX);
 	}
 
 	private String fitDescription(String text)
 	{
-		return truncateToWidth(text, DESC_FONT, NAME_WIDTH_PX);
+		return truncateToWidth(text, descFont(), NAME_WIDTH_PX);
 	}
 
 	private String formatNameHtml()

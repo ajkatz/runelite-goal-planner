@@ -17,6 +17,7 @@ import com.goalplanner.persistence.GoalStore;
 import com.goalplanner.tracker.ItemTracker;
 import com.goalplanner.tracker.SkillTracker;
 import com.goalplanner.ui.GoalPanel;
+import com.goalplanner.ui.PanelFonts;
 import com.goalplanner.util.FormatUtil;
 import com.google.inject.Provides;
 
@@ -37,6 +38,7 @@ import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.game.SpriteManager;
@@ -143,6 +145,10 @@ public class GoalPlannerPlugin extends Plugin
 		// switch) by looking up their wiki id by name. No-op if the wiki cache hasn't
 		// populated yet — they'll get filled on a later startup.
 		migrateCaTaskIds();
+
+		// Resolve the configured panel font (family + size scale) before the first
+		// build so the panel renders with it from the start.
+		PanelFonts.configure(config.fontFamily(), config.fontScale());
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
 			goalTrackerApi, reorderingService, this::openItemSearch);
@@ -375,6 +381,24 @@ public class GoalPlannerPlugin extends Plugin
 	 * mid-script — calling getState() synchronously would cause a
 	 * "scripts are not reentrant" assertion error.
 	 */
+	@Subscribe
+	public void onConfigChanged(ConfigChanged event)
+	{
+		if (!"goalplanner".equals(event.getGroup()))
+		{
+			return;
+		}
+		// Re-resolve the panel font and rebuild so a family/size change applies live.
+		if ("fontFamily".equals(event.getKey()) || "fontScale".equals(event.getKey()))
+		{
+			PanelFonts.configure(config.fontFamily(), config.fontScale());
+			if (panel != null)
+			{
+				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+			}
+		}
+	}
+
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{

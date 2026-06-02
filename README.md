@@ -43,6 +43,7 @@ API so other plugins can read and create goals programmatically.
 - **Prereq seeding** — adding a quest/diary/boss goal that has its own requirements offers "Add Goal with Requirements" which recursively seeds the whole AND-linked prereq tree (skills, child quests, item requirements, account metrics, boss-kill prereqs, and OR-alternatives where defined).
 - **Public API** — other RuneLite plugins can declare `@PluginDependency(GoalPlannerPlugin.class)` and inject `GoalPlannerApi` to read goals + sections + tags and create new ones. See [API.md](API.md).
 - **Local persistence** — every goal, section, color, and tag round-trips through `ConfigManager`. Survives client restarts. Schema migrations for built-in section ordering and boss-goal section reconciliation.
+- **Readable fonts** — the panel font is configurable: a family picker (Default / Sans-serif / Serif) and a size scale (Small → Larger) under the *Appearance* config section, applied live across the whole panel for readability on large or high-DPI displays.
 
 ## Install (development)
 

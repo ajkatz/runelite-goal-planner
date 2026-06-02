@@ -67,7 +67,7 @@ public class TagManagementDialog extends JDialog
 		headerRow.setBorder(new EmptyBorder(10, 12, 8, 12));
 
 		JLabel header = new JLabel("Tag Management", SwingConstants.LEFT);
-		header.setFont(header.getFont().deriveFont(Font.BOLD, 14f));
+		header.setFont(PanelFonts.derive(Font.BOLD, 14f));
 		headerRow.add(header, BorderLayout.WEST);
 
 		JButton newTagBtn = new JButton("+ New Tag");

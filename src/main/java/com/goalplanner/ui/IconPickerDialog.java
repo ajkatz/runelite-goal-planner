@@ -76,7 +76,7 @@ public class IconPickerDialog extends JDialog
 		setLocationRelativeTo(owner);
 
 		JLabel header = new JLabel("Pick an icon", SwingConstants.LEFT);
-		header.setFont(header.getFont().deriveFont(Font.BOLD, 14f));
+		header.setFont(PanelFonts.derive(Font.BOLD, 14f));
 		header.setBorder(new EmptyBorder(10, 12, 8, 12));
 		add(header, BorderLayout.NORTH);
 
@@ -90,7 +90,7 @@ public class IconPickerDialog extends JDialog
 		// from the seed, and users can only icon non-system tags, so the
 		// skill grid was unreachable in practice.
 		JLabel itemsHeader = new JLabel("Items (search by name)");
-		itemsHeader.setFont(itemsHeader.getFont().deriveFont(Font.BOLD));
+		itemsHeader.setFont(PanelFonts.derive(Font.BOLD));
 		itemsHeader.setBorder(new EmptyBorder(4, 4, 4, 4));
 		itemsHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
 		content.add(itemsHeader);
@@ -100,7 +100,7 @@ public class IconPickerDialog extends JDialog
 
 		// Bundled icons section
 		JLabel bundledHeader = new JLabel("Bundled");
-		bundledHeader.setFont(bundledHeader.getFont().deriveFont(Font.BOLD));
+		bundledHeader.setFont(PanelFonts.derive(Font.BOLD));
 		bundledHeader.setBorder(new EmptyBorder(4, 4, 4, 4));
 		bundledHeader.setAlignmentX(Component.LEFT_ALIGNMENT);
 		content.add(bundledHeader);
