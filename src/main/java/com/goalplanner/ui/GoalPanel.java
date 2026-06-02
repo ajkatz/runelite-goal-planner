@@ -179,20 +179,8 @@ public class GoalPanel extends PluginPanel
 				importShare.addActionListener(ev ->
 					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, this::rebuild));
 				popup.add(importShare);
-
-				JMenuItem copyShare = new JMenuItem("Copy a section's share code…");
-				copyShare.addActionListener(ev ->
-					ShareDialogs.promptCopySection(GoalPanel.this, goalStore, api, shareCodec, playerNameSupplier));
-				popup.add(copyShare);
-
-				if (shareToParty != null && inPartySupplier != null)
-				{
-					JMenuItem partyShare = new JMenuItem("Share a section to party…");
-					partyShare.addActionListener(ev ->
-						ShareDialogs.promptShareToParty(GoalPanel.this, goalStore, api,
-							playerNameSupplier, inPartySupplier, shareToParty));
-					popup.add(partyShare);
-				}
+				// Section sharing lives on the section-header right-click menu
+				// (consistent with goal sharing); goal sharing on goal cards.
 			}
 
 			popup.show(optionsButton, 0, optionsButton.getHeight());
@@ -409,6 +397,26 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 		ShareDialogs.shareGoalsToParty(this, api, playerNameSupplier, inPartySupplier, shareToParty, goalIds);
+	}
+
+	/** Copy a share code for a whole section to the clipboard. */
+	public void copySectionShareCode(String sectionId)
+	{
+		if (shareCodec == null)
+		{
+			return;
+		}
+		ShareDialogs.copySection(this, api, shareCodec, playerNameSupplier, sectionId);
+	}
+
+	/** Share a whole section to the current RuneLite party. */
+	public void shareSectionToParty(String sectionId)
+	{
+		if (shareToParty == null || inPartySupplier == null)
+		{
+			return;
+		}
+		ShareDialogs.shareSectionToParty(this, api, playerNameSupplier, inPartySupplier, shareToParty, sectionId);
 	}
 
 	/**

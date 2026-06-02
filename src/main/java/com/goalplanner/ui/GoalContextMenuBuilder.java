@@ -1193,6 +1193,26 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
+		// Share this whole section — copy a code or send it to the party.
+		// Mirrors the goal-card Share submenu so sections and goals are
+		// consistent. Only shown when the section actually has goals.
+		if (panel.isShareAvailable() && !sectionGoalIds.isEmpty())
+		{
+			final String shareSectionId = section.id;
+			JMenu shareMenu = new JMenu("Share");
+			JMenuItem copyCode = new JMenuItem("Copy share code");
+			copyCode.addActionListener(e -> panel.copySectionShareCode(shareSectionId));
+			shareMenu.add(copyCode);
+			if (panel.isPartyShareAvailable())
+			{
+				JMenuItem toParty = new JMenuItem("Share to party");
+				toParty.addActionListener(e -> panel.shareSectionToParty(shareSectionId));
+				shareMenu.add(toParty);
+			}
+			menu.add(shareMenu);
+			menu.addSeparator();
+		}
+
 		// Change Color is available on every section, built-in or user.
 		JMenuItem changeColor = new JMenuItem("Change Color");
 		changeColor.addActionListener(e -> dialogFactory.showSectionColorDialog(section));

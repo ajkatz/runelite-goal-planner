@@ -1,8 +1,6 @@
 package com.goalplanner.ui;
 
 import com.goalplanner.api.GoalPlannerApiImpl;
-import com.goalplanner.model.Section;
-import com.goalplanner.persistence.GoalStore;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.ShareCodec;
 import com.goalplanner.share.ShareFormatException;
@@ -10,7 +8,6 @@ import com.goalplanner.share.ShareText;
 import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -67,16 +64,11 @@ public final class ShareDialogs
 			JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	/** Pick a user section → copy a paste-ready share line to the clipboard. */
-	public static void promptCopySection(Component parent, GoalStore store, GoalPlannerApiImpl api,
-		ShareCodec codec, Supplier<String> playerName)
+	/** Copy a paste-ready share line for a section to the clipboard. */
+	public static void copySection(Component parent, GoalPlannerApiImpl api,
+		ShareCodec codec, Supplier<String> playerName, String sectionId)
 	{
-		Section section = pickUserSection(parent, store, "Copy share code");
-		if (section == null)
-		{
-			return;
-		}
-		ShareBundle bundle = api.exportSectionBundle(section.getId(), safeName(playerName));
+		ShareBundle bundle = api.exportSectionBundle(sectionId, safeName(playerName));
 		if (bundle == null || bundle.getGoals().isEmpty())
 		{
 			JOptionPane.showMessageDialog(parent, "That section has no goals to share.",
@@ -86,14 +78,15 @@ public final class ShareDialogs
 		String line = ShareText.invite(bundle, codec.encode(bundle));
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(line), null);
 		JOptionPane.showMessageDialog(parent,
-			"Copied a share code for \"" + section.getName() + "\" to your clipboard.\n"
+			"Copied a share code for \"" + bundle.getSectionName() + "\" to your clipboard.\n"
 				+ "Paste it in Discord or chat — anyone with the plugin can import it.",
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	/** Pick a user section → broadcast it to the current RuneLite party. */
-	public static void promptShareToParty(Component parent, GoalStore store, GoalPlannerApiImpl api,
-		Supplier<String> playerName, BooleanSupplier inParty, Consumer<ShareBundle> shareToParty)
+	/** Broadcast a section to the current RuneLite party. */
+	public static void shareSectionToParty(Component parent, GoalPlannerApiImpl api,
+		Supplier<String> playerName, BooleanSupplier inParty, Consumer<ShareBundle> shareToParty,
+		String sectionId)
 	{
 		if (!inParty.getAsBoolean())
 		{
@@ -103,12 +96,7 @@ public final class ShareDialogs
 				"Share to party", JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
-		Section section = pickUserSection(parent, store, "Share to party");
-		if (section == null)
-		{
-			return;
-		}
-		ShareBundle bundle = api.exportSectionBundle(section.getId(), safeName(playerName));
+		ShareBundle bundle = api.exportSectionBundle(sectionId, safeName(playerName));
 		if (bundle == null || bundle.getGoals().isEmpty())
 		{
 			JOptionPane.showMessageDialog(parent, "That section has no goals to share.",
@@ -117,7 +105,7 @@ public final class ShareDialogs
 		}
 		shareToParty.accept(bundle);
 		JOptionPane.showMessageDialog(parent,
-			"Shared \"" + section.getName() + "\" to your party.",
+			"Shared \"" + bundle.getSectionName() + "\" to your party.",
 			"Share to party", JOptionPane.INFORMATION_MESSAGE);
 	}
 
@@ -166,39 +154,6 @@ public final class ShareDialogs
 		JOptionPane.showMessageDialog(parent,
 			"Shared " + n + " goal" + (n == 1 ? "" : "s") + " to your party.",
 			"Share to party", JOptionPane.INFORMATION_MESSAGE);
-	}
-
-	private static Section pickUserSection(Component parent, GoalStore store, String title)
-	{
-		List<Section> userSections = new ArrayList<>();
-		for (Section s : store.getSections())
-		{
-			if (s != null && !s.isBuiltIn())
-			{
-				userSections.add(s);
-			}
-		}
-		if (userSections.isEmpty())
-		{
-			JOptionPane.showMessageDialog(parent, "You have no custom sections to share.",
-				title, JOptionPane.INFORMATION_MESSAGE);
-			return null;
-		}
-		String[] names = userSections.stream().map(Section::getName).toArray(String[]::new);
-		String chosen = (String) JOptionPane.showInputDialog(parent, "Which section?", title,
-			JOptionPane.PLAIN_MESSAGE, null, names, names[0]);
-		if (chosen == null)
-		{
-			return null;
-		}
-		for (Section s : userSections)
-		{
-			if (chosen.equals(s.getName()))
-			{
-				return s;
-			}
-		}
-		return null;
 	}
 
 	private static String safeName(Supplier<String> playerName)
