@@ -39,6 +39,11 @@ import com.google.gson.Gson;
 import com.goalplanner.share.GoalSharePartyMessage;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.ShareCodec;
+import net.runelite.api.ChatMessageType;
+import net.runelite.client.chat.ChatColorType;
+import net.runelite.client.chat.ChatMessageBuilder;
+import net.runelite.client.chat.ChatMessageManager;
+import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.party.PartyService;
 import net.runelite.client.party.WSClient;
 import net.runelite.api.gameval.InterfaceID;
@@ -135,8 +140,17 @@ public class GoalPlannerPlugin extends Plugin
 	@Inject
 	private WSClient wsClient;
 
+	@Inject
+	private ChatMessageManager chatMessageManager;
+
 	/** Share-code codec, built from the injected Gson at start-up. */
 	private ShareCodec shareCodec;
+
+	/** Bundles received from party members, awaiting the user's import. Drained
+	 *  via the Options menu. Thread-safe: added on the receive thread, polled on
+	 *  the EDT. */
+	private final java.util.concurrent.ConcurrentLinkedDeque<ShareBundle> pendingShares =
+		new java.util.concurrent.ConcurrentLinkedDeque<>();
 
 	/** Local player's display name, cached on the client thread (onGameTick)
 	 *  so the share UI can read it off the EDT. */
@@ -183,6 +197,7 @@ public class GoalPlannerPlugin extends Plugin
 		wsClient.registerMessage(GoalSharePartyMessage.class);
 		panel.setShareSupport(shareCodec, () -> localPlayerName,
 			partyService::isInParty, this::shareBundleToParty);
+		panel.setReceivedShareSupport(this::pendingShareCount, this::importNextPendingShare);
 
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
@@ -236,23 +251,37 @@ public class GoalPlannerPlugin extends Plugin
 	 */
 	private void shareBundleToParty(ShareBundle bundle)
 	{
-		try
+		if (bundle == null)
 		{
-			if (bundle == null || !partyService.isInParty())
+			return;
+		}
+		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		clientThread.invokeLater(() ->
+		{
+			try
 			{
-				return;
+				if (!partyService.isInParty())
+				{
+					return;
+				}
+				partyService.send(new GoalSharePartyMessage(shareCodec.encode(bundle)));
+				postGameMessage(new ChatMessageBuilder()
+					.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
+					.append(ChatColorType.NORMAL).append("Shared " + count + " goal(s) with your party.")
+					.build());
 			}
-			partyService.send(new GoalSharePartyMessage(shareCodec.encode(bundle)));
-		}
-		catch (RuntimeException e)
-		{
-			log.warn("Failed to share goals to party", e);
-		}
+			catch (RuntimeException e)
+			{
+				log.warn("Failed to share goals to party", e);
+			}
+		});
 	}
 
 	/**
 	 * Receive a shared bundle from a party member. Ignores our own broadcast,
-	 * decodes the code, and prompts the user (on the EDT) to import it.
+	 * decodes + queues it, and posts a game-chat notification — the user imports
+	 * it from the Options menu when ready, so nothing pops over the game (mirrors
+	 * how collection-log / drop plugins notify via local game messages).
 	 */
 	@Subscribe
 	public void onGoalSharePartyMessage(GoalSharePartyMessage event)
@@ -272,20 +301,51 @@ public class GoalPlannerPlugin extends Plugin
 			log.debug("Ignoring unreadable party share message", e);
 			return;
 		}
-		final String sharer = bundle.getSharedBy() != null && !bundle.getSharedBy().isEmpty()
+		String sharer = bundle.getSharedBy() != null && !bundle.getSharedBy().isEmpty()
 			? bundle.getSharedBy() : "A party member";
-		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
-		javax.swing.SwingUtilities.invokeLater(() ->
+		int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		pendingShares.addLast(bundle);
+		postGameMessage(new ChatMessageBuilder()
+			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
+			.append(ChatColorType.NORMAL).append(sharer + " shared " + count + " goal(s). ")
+			.append(ChatColorType.HIGHLIGHT).append("Open Goal Planner → Options → Import received.")
+			.build());
+	}
+
+	/** Queue a Goal Planner game-chat message, marshalled to the client thread. */
+	private void postGameMessage(String runeLiteFormattedMessage)
+	{
+		clientThread.invokeLater(() -> chatMessageManager.queue(QueuedMessage.builder()
+			.type(ChatMessageType.GAMEMESSAGE)
+			.runeLiteFormattedMessage(runeLiteFormattedMessage)
+			.build()));
+	}
+
+	/** Number of received shares awaiting import (read by the Options menu). */
+	private int pendingShareCount()
+	{
+		return pendingShares.size();
+	}
+
+	/**
+	 * Import the oldest received share — user-initiated from the Options menu, so
+	 * no extra confirm. Runs on the EDT; the store mutation is thread-safe and
+	 * the rebuild is EDT.
+	 */
+	private void importNextPendingShare()
+	{
+		ShareBundle bundle = pendingShares.pollFirst();
+		if (bundle == null)
 		{
-			int choice = javax.swing.JOptionPane.showConfirmDialog(panel,
-				sharer + " shared " + count + " goal(s) with the party. Import them?",
-				"Goal Planner — shared goals", javax.swing.JOptionPane.YES_NO_OPTION);
-			if (choice == javax.swing.JOptionPane.YES_OPTION)
-			{
-				goalTrackerApi.importShareBundle(bundle);
-				panel.rebuild();
-			}
-		});
+			return;
+		}
+		goalTrackerApi.importShareBundle(bundle);
+		panel.rebuild();
+		int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		postGameMessage(new ChatMessageBuilder()
+			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
+			.append(ChatColorType.NORMAL).append("Imported " + count + " shared goal(s).")
+			.build());
 	}
 
 	/**

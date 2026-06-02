@@ -105,6 +105,8 @@ public class GoalPanel extends PluginPanel
 	private java.util.function.Supplier<String> playerNameSupplier;
 	private java.util.function.BooleanSupplier inPartySupplier;
 	private java.util.function.Consumer<com.goalplanner.share.ShareBundle> shareToParty;
+	private java.util.function.IntSupplier pendingShareCount;
+	private Runnable importNextPendingShare;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -162,6 +164,17 @@ public class GoalPanel extends PluginPanel
 			if (shareCodec != null)
 			{
 				popup.addSeparator();
+
+				// Party shares waiting to be imported (from the game-chat notice).
+				if (pendingShareCount != null && importNextPendingShare != null
+					&& pendingShareCount.getAsInt() > 0)
+				{
+					JMenuItem importReceived = new JMenuItem(
+						"Import received (" + pendingShareCount.getAsInt() + ")");
+					importReceived.addActionListener(ev -> importNextPendingShare.run());
+					popup.add(importReceived);
+				}
+
 				JMenuItem importShare = new JMenuItem("Import shared goals…");
 				importShare.addActionListener(ev ->
 					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, this::rebuild));
@@ -356,6 +369,14 @@ public class GoalPanel extends PluginPanel
 		this.playerNameSupplier = playerName;
 		this.inPartySupplier = inParty;
 		this.shareToParty = shareToParty;
+	}
+
+	/** Wire the received-share queue: {@code pendingCount} reports how many
+	 *  party shares await import, {@code importNext} imports the oldest. */
+	public void setReceivedShareSupport(java.util.function.IntSupplier pendingCount, Runnable importNext)
+	{
+		this.pendingShareCount = pendingCount;
+		this.importNextPendingShare = importNext;
 	}
 
 	/** Whether share/import support is wired (used to gate share menu entries). */
