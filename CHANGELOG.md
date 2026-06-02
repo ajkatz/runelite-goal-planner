@@ -6,6 +6,29 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
+## [0.2.0] — Unreleased
+
+### Added
+- **Configurable panel font (family + size).** An Appearance config
+  section adds a font-family picker (Default / Sans-serif / Serif) and a
+  size scale (Small / Normal / Large / Larger) for the side panel, routed
+  through a central `PanelFonts` helper and applied live. Addresses a
+  plugin-hub user's "font is a little difficult to read" report. The
+  controls are marked experimental in-config with a Discord link for
+  usability feedback.
+
+### Fixed
+- **Stale skill levels when seeding goal prerequisites.** Adding a goal
+  that seeds skill prereqs (e.g. Song of the Elves seeding Herblore /
+  Farming) right after login could read the not-yet-synced skill cache,
+  which reports every skill at its default level (1). Already-met skills
+  then failed the skip check and seeded as spurious level-1 cards that
+  only self-corrected once the game pushed stat updates. Such adds are
+  now deferred through a new `SkillSyncGate` until the post-login stat
+  burst has arrived and settled (with a wall-clock fallback so an add is
+  never stranded), so prerequisites are filtered against accurate levels.
+  Covers quest, achievement-diary, and boss seeding.
+
 ## [0.1.1] — 2026-05-28
 
 First post-submission release. Right-click menus restructured into a
