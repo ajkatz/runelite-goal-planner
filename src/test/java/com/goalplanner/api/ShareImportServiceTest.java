@@ -197,4 +197,27 @@ class ShareImportServiceTest
 		assertNull(api.importShareBundle(empty));
 		assertEquals(0, store.getGoals().size());
 	}
+
+	@Test
+	void looseGoalsImportIntoTheIncompleteSectionStartingIncomplete()
+	{
+		GoalShareDto g = new GoalShareDto();
+		g.setRef(0);
+		g.setType("SKILL");
+		g.setName("Cooking - Level 50");
+		g.setSkillName("COOKING");
+		g.setTargetValue(101_333);
+		ShareBundle bundle = new ShareBundle();
+		bundle.setKind(ShareBundle.Kind.GOALS);
+		bundle.setGoals(java.util.Collections.singletonList(g));
+
+		String landedSectionId = api.importShareBundle(bundle);
+
+		// No new section — a loose selection defaults into Incomplete, unstarted.
+		assertEquals(store.getIncompleteSection().getId(), landedSectionId);
+		Goal imported = goalNamed("Cooking - Level 50");
+		assertEquals(store.getIncompleteSection().getId(), imported.getSectionId());
+		assertFalse(imported.isComplete());
+		assertEquals(0, imported.getCurrentValue());
+	}
 }

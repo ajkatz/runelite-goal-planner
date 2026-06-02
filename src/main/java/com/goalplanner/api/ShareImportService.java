@@ -53,28 +53,50 @@ class ShareImportService
 			return null;
 		}
 
-		final String sectionName = importSectionName(bundle);
+		final boolean isSection = bundle.getKind() == ShareBundle.Kind.SECTION;
+		final String sectionName = isSection ? importSectionName(bundle) : null;
 		final List<GoalShareDto> dtos = bundle.getGoals();
 
 		// Wrap the whole import as ONE undoable command: apply creates the
 		// section, goals and relations; revert removes them. A single undo
 		// reverses the entire import, and redo replays it (creating fresh ids).
 		// Created ids are tracked across apply/revert so redo works too.
+		// Imported goals always start INCOMPLETE — buildGoal copies only
+		// definition fields, never the sharer's progress/completion.
 		final List<String> createdGoalIds = new ArrayList<>();
-		final String[] createdSectionId = {null};
+		final String[] createdSectionId = {null};   // set only when we create a section (for revert)
+		final String[] landedSectionId = {null};     // section the goals ended up in (return value)
 
 		api.executeCommand(new com.goalplanner.command.Command()
 		{
 			@Override
 			public boolean apply()
 			{
-				Section section = api.goalStore.createUserSection(sectionName);
-				if (section == null)
+				String targetSectionId;
+				if (isSection)
 				{
-					log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
-					return false;
+					Section section = api.goalStore.createUserSection(sectionName);
+					if (section == null)
+					{
+						log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
+						return false;
+					}
+					createdSectionId[0] = section.getId();
+					targetSectionId = section.getId();
 				}
-				createdSectionId[0] = section.getId();
+				else
+				{
+					// A loose goal / selection defaults into the Incomplete section.
+					Section incomplete = api.goalStore.getIncompleteSection();
+					if (incomplete == null)
+					{
+						log.warn("importBundle: no Incomplete section available");
+						return false;
+					}
+					createdSectionId[0] = null;   // nothing to delete on revert
+					targetSectionId = incomplete.getId();
+				}
+				landedSectionId[0] = targetSectionId;
 				createdGoalIds.clear();
 				Map<Integer, String> refToId = new HashMap<>();
 
@@ -87,7 +109,7 @@ class ShareImportService
 						log.warn("importBundle: skipping goal with unknown type '{}'", dto.getType());
 						continue;
 					}
-					Goal goal = buildGoal(dto, type, section.getId());
+					Goal goal = buildGoal(dto, type, targetSectionId);
 					api.goalStore.addGoal(goal);
 					createdGoalIds.add(goal.getId());
 					refToId.put(dto.getRef(), goal.getId());
@@ -138,11 +160,11 @@ class ShareImportService
 			@Override
 			public String getDescription()
 			{
-				return "Import shared goals: " + sectionName;
+				return isSection ? "Import shared goals: " + sectionName : "Import shared goals";
 			}
 		});
 
-		return createdSectionId[0];
+		return landedSectionId[0];
 	}
 
 	private Goal buildGoal(GoalShareDto dto, GoalType type, String sectionId)
