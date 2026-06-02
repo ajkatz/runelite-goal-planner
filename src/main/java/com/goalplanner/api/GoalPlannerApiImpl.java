@@ -59,6 +59,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	final SectionService sectionService;
 	private final RelationService relationService;
 	private final ShareImportService shareImportService;
+	private final ShareExportService shareExportService;
 
 	@Inject
 	public GoalPlannerApiImpl(
@@ -80,6 +81,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		this.sectionService = new SectionService(this);
 		this.relationService = new RelationService(this);
 		this.shareImportService = new ShareImportService(this);
+		this.shareExportService = new ShareExportService(this);
 	}
 
 	/**
@@ -133,6 +135,12 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	 * Returns the new section id, or null if nothing was importable.
 	 */
 	public String importShareBundle(com.goalplanner.share.ShareBundle bundle) { return shareImportService.importBundle(bundle); }
+
+	/** Build a share bundle for a whole section (plugin-internal). */
+	public com.goalplanner.share.ShareBundle exportSectionBundle(String sectionId, String sharedBy) { return shareExportService.exportSection(sectionId, sharedBy); }
+
+	/** Build a share bundle for the given goal ids (plugin-internal). */
+	public com.goalplanner.share.ShareBundle exportGoalsBundle(java.util.List<String> goalIds, String sharedBy) { return shareExportService.exportGoals(goalIds, sharedBy); }
 
 	// =====================================================================
 	// Query delegations
