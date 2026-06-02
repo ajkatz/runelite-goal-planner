@@ -30,6 +30,7 @@ import net.runelite.api.InventoryID;
 import net.runelite.api.MenuAction;
 import net.runelite.api.MenuEntry;
 import net.runelite.api.events.GameStateChanged;
+import net.runelite.api.events.GameTick;
 import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
@@ -459,6 +460,25 @@ public class GoalPlannerPlugin extends Plugin
 	}
 
 	/**
+	 * Gates goal-prereq seeding until the client's skill cache has synced
+	 * for the current login. Seeding reads {@code getRealSkillLevel} to skip
+	 * already-met skill requirements; reading before the post-login stat
+	 * block arrives returns the default level (1) and over-seeds already-met
+	 * skills as spurious level-1 cards. Fed by onLogin/onLogout (game-state),
+	 * onStatChanged, and onTick below. One quiet game tick after the stat
+	 * burst means skills are in; the wall-clock fallback covers accounts that
+	 * fire no StatChanged so an add is never stranded.
+	 */
+	private static final int SKILL_SYNC_SETTLE_TICKS = 1;
+	private static final long SKILL_SYNC_FALLBACK_MS = 5_000;
+	private final com.goalplanner.util.SkillSyncGate skillSyncGate =
+		new com.goalplanner.util.SkillSyncGate(
+			() -> client != null && client.getGameState() == GameState.LOGGED_IN,
+			System::currentTimeMillis,
+			SKILL_SYNC_SETTLE_TICKS,
+			SKILL_SYNC_FALLBACK_MS);
+
+	/**
 	 * Derive the current profile from client state. Leagues iff the world is
 	 * SEASONAL or the LEAGUE_ACCOUNT varbit is set; otherwise main.
 	 */
@@ -543,7 +563,18 @@ public class GoalPlannerPlugin extends Plugin
 		// and the player's character/state reflect the new world.
 		if (event.getGameState() == GameState.LOGGED_IN)
 		{
+			// Re-arm the skill-sync gate: the stat block for this login has
+			// not arrived yet, so any prereq seeding must wait for it.
+			skillSyncGate.onLogin();
 			checkProfile();
+		}
+		else if (event.getGameState() == GameState.LOGIN_SCREEN
+			|| event.getGameState() == GameState.HOPPING
+			|| event.getGameState() == GameState.CONNECTION_LOST)
+		{
+			// Left the logged-in state: drop any seeding queued for the
+			// previous session so it can't seed into a different profile.
+			skillSyncGate.onLogout();
 		}
 	}
 
@@ -1032,7 +1063,10 @@ public class GoalPlannerPlugin extends Plugin
 						.setOption("Add Goal: " + tier.getDisplayName())
 						.setTarget(diaryMenuTarget)
 						.setType(MenuAction.RUNELITE)
-						.onClick(e -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier));
+						// Gate on skill sync so an add right after login doesn't
+						// read default level-1 stats and over-seed met skill reqs.
+						.onClick(e -> skillSyncGate.runWhenSynced(
+							() -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier)));
 				}
 				break;
 			}
@@ -1048,17 +1082,17 @@ public class GoalPlannerPlugin extends Plugin
 					.setOption("Add All Unfinished Quests (F2P)")
 					.setTarget("")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> addAllUnfinishedQuests(true));
+					.onClick(e -> skillSyncGate.runWhenSynced(() -> addAllUnfinishedQuests(true)));
 				client.createMenuEntry(1)
 					.setOption("Add All Unfinished Quests")
 					.setTarget("")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> addAllUnfinishedQuests(false));
+					.onClick(e -> skillSyncGate.runWhenSynced(() -> addAllUnfinishedQuests(false)));
 				client.createMenuEntry(1)
 					.setOption("Add All Bosses (1 KC)")
 					.setTarget("")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> addAllBossGoals());
+					.onClick(e -> skillSyncGate.runWhenSynced(() -> addAllBossGoals()));
 			}
 
 			if (isQuestList)
@@ -1075,14 +1109,14 @@ public class GoalPlannerPlugin extends Plugin
 					.setOption("Add Goal")
 					.setTarget(menuTarget)
 					.setType(MenuAction.RUNELITE)
-					.onClick(e ->
+					.onClick(e -> skillSyncGate.runWhenSynced(() ->
 					{
 						String createdId = goalTrackerApi.addQuestGoal(quest);
 						if (createdId == null)
 						{
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
-					});
+					}));
 				break;
 			}
 
@@ -1235,8 +1269,8 @@ public class GoalPlannerPlugin extends Plugin
 									// if invoked off the client thread. The EDT
 									// would swallow that exception silently.
 									final int finalKills = kills;
-									clientThread.invokeLater(() ->
-										goalTrackerApi.addBossGoal(bossName, finalKills));
+									clientThread.invokeLater(() -> skillSyncGate.runWhenSynced(
+										() -> goalTrackerApi.addBossGoal(bossName, finalKills)));
 								});
 							});
 					}
@@ -1316,6 +1350,10 @@ public class GoalPlannerPlugin extends Plugin
 	public void onStatChanged(StatChanged event)
 	{
 		if (client.getGameState() != GameState.LOGGED_IN) return;
+		// Record the post-login stat burst for the seed gate before any
+		// early-return below — the burst arrives regardless of whether
+		// tracking is currently suspended.
+		skillSyncGate.onStatChanged();
 		// Suspension window after a profile switch: the client's skill XP
 		// cache holds the PREVIOUS account's values until each skill
 		// receives its first StatChanged on the new account. The tracker
@@ -1327,6 +1365,19 @@ public class GoalPlannerPlugin extends Plugin
 		boolean updated = skillTracker.checkGoals(goals);
 		updated |= accountTracker.checkGoals(goals);
 		flushIfUpdated(updated);
+	}
+
+	/**
+	 * Advances the skill-sync gate and drains any prereq seeding that was
+	 * deferred while the skill cache was still loading. Runs on the client
+	 * thread, so drained seed actions (which call getRealSkillLevel /
+	 * Quest.getState) read live state safely.
+	 */
+	@Subscribe
+	public void onGameTick(GameTick event)
+	{
+		if (client.getGameState() != GameState.LOGGED_IN) return;
+		skillSyncGate.onTick();
 	}
 
 	/**
