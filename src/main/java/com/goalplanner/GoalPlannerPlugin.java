@@ -35,6 +35,12 @@ import net.runelite.api.events.ItemContainerChanged;
 import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
+import com.google.gson.Gson;
+import com.goalplanner.share.GoalSharePartyMessage;
+import com.goalplanner.share.ShareBundle;
+import com.goalplanner.share.ShareCodec;
+import net.runelite.client.party.PartyService;
+import net.runelite.client.party.WSClient;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -120,6 +126,22 @@ public class GoalPlannerPlugin extends Plugin
 	@Inject
 	private com.goalplanner.service.GoalReorderingService reorderingService;
 
+	@Inject
+	private Gson gson;
+
+	@Inject
+	private PartyService partyService;
+
+	@Inject
+	private WSClient wsClient;
+
+	/** Share-code codec, built from the injected Gson at start-up. */
+	private ShareCodec shareCodec;
+
+	/** Local player's display name, cached on the client thread (onGameTick)
+	 *  so the share UI can read it off the EDT. */
+	private volatile String localPlayerName;
+
 	private GoalPanel panel;
 	private NavigationButton navButton;
 
@@ -154,6 +176,13 @@ public class GoalPlannerPlugin extends Plugin
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
 			goalTrackerApi, reorderingService, this::openItemSearch);
 		panel.setClient(client);
+
+		// Share support: codec + party transport. Register the party message so
+		// incoming shares deserialize; wire the Options-menu share/import actions.
+		shareCodec = new ShareCodec(gson);
+		wsClient.registerMessage(GoalSharePartyMessage.class);
+		panel.setShareSupport(shareCodec, () -> localPlayerName,
+			partyService::isInParty, this::shareBundleToParty);
 
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
@@ -192,10 +221,71 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		log.info("Goal Planner stopped");
 		goalStore.saveNow();
+		wsClient.unregisterMessage(GoalSharePartyMessage.class);
 		if (navButton != null)
 		{
 			clientToolbar.removeNavigation(navButton);
 		}
+	}
+
+	/**
+	 * Broadcast a share bundle to the current RuneLite party. Encoded to a
+	 * GPSHARE code and sent as a {@link GoalSharePartyMessage}; party members
+	 * receive it in {@link #onGoalSharePartyMessage}. Best-effort — never throws
+	 * into the caller.
+	 */
+	private void shareBundleToParty(ShareBundle bundle)
+	{
+		try
+		{
+			if (bundle == null || !partyService.isInParty())
+			{
+				return;
+			}
+			partyService.send(new GoalSharePartyMessage(shareCodec.encode(bundle)));
+		}
+		catch (RuntimeException e)
+		{
+			log.warn("Failed to share goals to party", e);
+		}
+	}
+
+	/**
+	 * Receive a shared bundle from a party member. Ignores our own broadcast,
+	 * decodes the code, and prompts the user (on the EDT) to import it.
+	 */
+	@Subscribe
+	public void onGoalSharePartyMessage(GoalSharePartyMessage event)
+	{
+		net.runelite.client.party.PartyMember local = partyService.getLocalMember();
+		if (local != null && event.getMemberId() == local.getMemberId())
+		{
+			return;   // our own message echoed back
+		}
+		final ShareBundle bundle;
+		try
+		{
+			bundle = shareCodec.decode(event.getCode());
+		}
+		catch (RuntimeException e)
+		{
+			log.debug("Ignoring unreadable party share message", e);
+			return;
+		}
+		final String sharer = bundle.getSharedBy() != null && !bundle.getSharedBy().isEmpty()
+			? bundle.getSharedBy() : "A party member";
+		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		javax.swing.SwingUtilities.invokeLater(() ->
+		{
+			int choice = javax.swing.JOptionPane.showConfirmDialog(panel,
+				sharer + " shared " + count + " goal(s) with the party. Import them?",
+				"Goal Planner — shared goals", javax.swing.JOptionPane.YES_NO_OPTION);
+			if (choice == javax.swing.JOptionPane.YES_OPTION)
+			{
+				goalTrackerApi.importShareBundle(bundle);
+				panel.rebuild();
+			}
+		});
 	}
 
 	/**
@@ -1378,6 +1468,12 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		skillSyncGate.onTick();
+		// Cache the RSN on the client thread so the share UI can read it off the EDT.
+		net.runelite.api.Player local = client.getLocalPlayer();
+		if (local != null && local.getName() != null)
+		{
+			localPlayerName = local.getName();
+		}
 	}
 
 	/**

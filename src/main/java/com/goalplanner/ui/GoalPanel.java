@@ -99,6 +99,13 @@ public class GoalPanel extends PluginPanel
 	private JButton undoButton;
 	private JButton redoButton;
 
+	// Share support — injected via setShareSupport() after construction (like
+	// setClient). Null until then; the Options menu omits share entries if unset.
+	private com.goalplanner.share.ShareCodec shareCodec;
+	private java.util.function.Supplier<String> playerNameSupplier;
+	private java.util.function.BooleanSupplier inPartySupplier;
+	private java.util.function.Consumer<com.goalplanner.share.ShareBundle> shareToParty;
+
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goalplanner.api.GoalPlannerApiImpl api,
@@ -150,6 +157,31 @@ public class GoalPanel extends PluginPanel
 			JMenuItem joinDiscord = new JMenuItem("Join our Discord");
 			joinDiscord.addActionListener(ev -> openDiscordInvite());
 			popup.add(joinDiscord);
+
+			// Share / import (only once share support is wired by the plugin).
+			if (shareCodec != null)
+			{
+				popup.addSeparator();
+				JMenuItem importShare = new JMenuItem("Import shared goals…");
+				importShare.addActionListener(ev ->
+					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, this::rebuild));
+				popup.add(importShare);
+
+				JMenuItem copyShare = new JMenuItem("Copy a section's share code…");
+				copyShare.addActionListener(ev ->
+					ShareDialogs.promptCopySection(GoalPanel.this, goalStore, api, shareCodec, playerNameSupplier));
+				popup.add(copyShare);
+
+				if (shareToParty != null && inPartySupplier != null)
+				{
+					JMenuItem partyShare = new JMenuItem("Share a section to party…");
+					partyShare.addActionListener(ev ->
+						ShareDialogs.promptShareToParty(GoalPanel.this, goalStore, api,
+							playerNameSupplier, inPartySupplier, shareToParty));
+					popup.add(partyShare);
+				}
+			}
+
 			popup.show(optionsButton, 0, optionsButton.getHeight());
 		});
 
@@ -306,6 +338,24 @@ public class GoalPanel extends PluginPanel
 	{
 		this.client = client;
 		dialogFactory.setClient(client);
+	}
+
+	/**
+	 * Inject the share/import support used by the Options menu. Called once at
+	 * plugin start-up. {@code shareToParty} broadcasts a bundle to the party;
+	 * {@code inParty} reports party membership; {@code playerName} supplies the
+	 * local RSN for the "shared by" label.
+	 */
+	public void setShareSupport(
+		com.goalplanner.share.ShareCodec shareCodec,
+		java.util.function.Supplier<String> playerName,
+		java.util.function.BooleanSupplier inParty,
+		java.util.function.Consumer<com.goalplanner.share.ShareBundle> shareToParty)
+	{
+		this.shareCodec = shareCodec;
+		this.playerNameSupplier = playerName;
+		this.inPartySupplier = inParty;
+		this.shareToParty = shareToParty;
 	}
 
 	/**
