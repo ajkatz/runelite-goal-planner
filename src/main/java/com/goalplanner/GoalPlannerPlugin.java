@@ -44,6 +44,7 @@ import net.runelite.client.chat.ChatColorType;
 import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
+import net.runelite.client.events.PluginMessage;
 import net.runelite.client.party.PartyService;
 import net.runelite.client.party.WSClient;
 import net.runelite.api.gameval.InterfaceID;
@@ -310,6 +311,51 @@ public class GoalPlannerPlugin extends Plugin
 			.append(ChatColorType.NORMAL).append(sharer + " shared " + count + " goal(s). ")
 			.append(ChatColorType.HIGHLIGHT).append("Open Goal Planner → Options → Import received.")
 			.build());
+	}
+
+	/** Plugin-hub config-group id — the namespace other plugins address us by. */
+	private static final String POSTIE_NAMESPACE = "goalplanner";
+
+	/**
+	 * Cross-plugin action consumer (the "Postie" convention): another plugin in
+	 * the same client can hand Goal Planner a share bundle to import by posting a
+	 * {@link PluginMessage} addressed to namespace {@code "goalplanner"}, action
+	 * {@code "import-share"}, with a {@code "code"} string in the data. We depend
+	 * on nothing from Postie — this is just the raw PluginMessage convention, so
+	 * any plugin can target us with zero coupling.
+	 */
+	@Subscribe
+	public void onPluginMessage(PluginMessage event)
+	{
+		if (!POSTIE_NAMESPACE.equals(event.getNamespace()) || !"import-share".equals(event.getName()))
+		{
+			return;
+		}
+		Object code = event.getData().get("code");
+		if (!(code instanceof String))
+		{
+			return;
+		}
+		final ShareBundle bundle;
+		try
+		{
+			bundle = shareCodec.decode((String) code);
+		}
+		catch (RuntimeException e)
+		{
+			log.debug("Postie import-share: unreadable code", e);
+			return;
+		}
+		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		javax.swing.SwingUtilities.invokeLater(() ->
+		{
+			goalTrackerApi.importShareBundle(bundle);
+			panel.rebuild();
+			postGameMessage(new ChatMessageBuilder()
+				.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
+				.append(ChatColorType.NORMAL).append("imported " + count + " shared goal(s) via Postie")
+				.build());
+		});
 	}
 
 	/** Queue a Goal Planner game-chat message, marshalled to the client thread. */
