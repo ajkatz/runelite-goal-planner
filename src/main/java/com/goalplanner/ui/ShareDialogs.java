@@ -121,6 +121,53 @@ public final class ShareDialogs
 			"Share to party", JOptionPane.INFORMATION_MESSAGE);
 	}
 
+	/** Copy a paste-ready share line for the given goals to the clipboard. */
+	public static void copyGoals(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
+		Supplier<String> playerName, List<String> goalIds)
+	{
+		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
+		if (bundle == null || bundle.getGoals().isEmpty())
+		{
+			JOptionPane.showMessageDialog(parent, "Nothing to share.", "Share",
+				JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		String line = ShareText.invite(bundle, codec.encode(bundle));
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(line), null);
+		int n = bundle.getGoals().size();
+		JOptionPane.showMessageDialog(parent,
+			"Copied a share code for " + n + " goal" + (n == 1 ? "" : "s") + " to your clipboard.\n"
+				+ "Paste it in Discord or chat — anyone with the plugin can import it.",
+			"Share", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	/** Broadcast the given goals to the current RuneLite party. */
+	public static void shareGoalsToParty(Component parent, GoalPlannerApiImpl api,
+		Supplier<String> playerName, BooleanSupplier inParty, Consumer<ShareBundle> shareToParty,
+		List<String> goalIds)
+	{
+		if (!inParty.getAsBoolean())
+		{
+			JOptionPane.showMessageDialog(parent,
+				"You're not in a RuneLite party.\n"
+					+ "Open the Party panel and create or join one, then try again.",
+				"Share to party", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
+		if (bundle == null || bundle.getGoals().isEmpty())
+		{
+			JOptionPane.showMessageDialog(parent, "Nothing to share.", "Share to party",
+				JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		shareToParty.accept(bundle);
+		int n = bundle.getGoals().size();
+		JOptionPane.showMessageDialog(parent,
+			"Shared " + n + " goal" + (n == 1 ? "" : "s") + " to your party.",
+			"Share to party", JOptionPane.INFORMATION_MESSAGE);
+	}
+
 	private static Section pickUserSection(Component parent, GoalStore store, String title)
 	{
 		List<Section> userSections = new ArrayList<>();

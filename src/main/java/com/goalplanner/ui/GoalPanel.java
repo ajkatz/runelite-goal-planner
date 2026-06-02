@@ -358,6 +358,38 @@ public class GoalPanel extends PluginPanel
 		this.shareToParty = shareToParty;
 	}
 
+	/** Whether share/import support is wired (used to gate share menu entries). */
+	public boolean isShareAvailable()
+	{
+		return shareCodec != null;
+	}
+
+	/** Whether sharing to a RuneLite party is available. */
+	public boolean isPartyShareAvailable()
+	{
+		return shareToParty != null && inPartySupplier != null;
+	}
+
+	/** Copy a share code for the given goals to the clipboard. */
+	public void copyGoalsShareCode(java.util.List<String> goalIds)
+	{
+		if (shareCodec == null)
+		{
+			return;
+		}
+		ShareDialogs.copyGoals(this, api, shareCodec, playerNameSupplier, goalIds);
+	}
+
+	/** Share the given goals to the current RuneLite party. */
+	public void shareGoalsToParty(java.util.List<String> goalIds)
+	{
+		if (shareToParty == null || inPartySupplier == null)
+		{
+			return;
+		}
+		ShareDialogs.shareGoalsToParty(this, api, playerNameSupplier, inPartySupplier, shareToParty, goalIds);
+	}
+
 	/**
 	 * Lightweight selection refresh — updates card borders without
 	 * rebuilding the entire panel. O(cards) repaint vs O(goals * sections)

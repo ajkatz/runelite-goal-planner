@@ -186,6 +186,24 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
+		// Share this goal — copy a share code or send it to the party.
+		if (panel.isShareAvailable())
+		{
+			final java.util.List<String> shareIds = java.util.Collections.singletonList(goal.getId());
+			JMenu shareMenu = new JMenu("Share");
+			JMenuItem copyCode = new JMenuItem("Copy share code");
+			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
+			shareMenu.add(copyCode);
+			if (panel.isPartyShareAvailable())
+			{
+				JMenuItem toParty = new JMenuItem("Share to party");
+				toParty.addActionListener(e -> panel.shareGoalsToParty(shareIds));
+				shareMenu.add(toParty);
+			}
+			menu.add(shareMenu);
+			menu.addSeparator();
+		}
+
 		// Move-to-Top / Move-to-Bottom are accessed via right-clicking the
 		// up/down arrow buttons on the card itself (see GoalCard.createArrowButton).
 
@@ -668,6 +686,24 @@ class GoalContextMenuBuilder
 		JMenuItem header = new JMenuItem(selectionSize + " selected");
 		header.setEnabled(false);
 		menu.add(header);
+
+		// Share the selected goals (copy a code or send to the party).
+		if (panel.isShareAvailable())
+		{
+			final List<String> shareIds = new ArrayList<>(selectedIds);
+			menu.addSeparator();
+			JMenu shareMenu = new JMenu("Share " + selectionSize + " selected");
+			JMenuItem copyCode = new JMenuItem("Copy share code");
+			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
+			shareMenu.add(copyCode);
+			if (panel.isPartyShareAvailable())
+			{
+				JMenuItem toParty = new JMenuItem("Share to party");
+				toParty.addActionListener(e -> panel.shareGoalsToParty(shareIds));
+				shareMenu.add(toParty);
+			}
+			menu.add(shareMenu);
+		}
 
 		// Selection toggle + deselect all on the bulk menu so the
 		// user can drop one card or escape the whole multi-selection without
