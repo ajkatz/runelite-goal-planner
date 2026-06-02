@@ -58,6 +58,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	private final GoalQueryService queryService;
 	final SectionService sectionService;
 	private final RelationService relationService;
+	private final ShareImportService shareImportService;
 
 	@Inject
 	public GoalPlannerApiImpl(
@@ -78,6 +79,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		this.queryService = new GoalQueryService(this);
 		this.sectionService = new SectionService(this);
 		this.relationService = new RelationService(this);
+		this.shareImportService = new ShareImportService(this);
 	}
 
 	/**
@@ -124,6 +126,13 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public String addBossGoal(String bossName, int targetKills) { String id = creationService.addBossGoal(bossName, targetKills); selectAfterCreate(id); return id; }
 	@Override public String addAccountGoal(String metricName, int target) { String id = creationService.addAccountGoal(metricName, target); selectAfterCreate(id); return id; }
 	public String addCustomGoal(String name, String description) { return creationService.addCustomGoal(name, description); }
+
+	/**
+	 * Import a shared bundle (from the Party transport or a pasted share code)
+	 * into a new section. Not part of the published API — plugin-internal.
+	 * Returns the new section id, or null if nothing was importable.
+	 */
+	public String importShareBundle(com.goalplanner.share.ShareBundle bundle) { return shareImportService.importBundle(bundle); }
 
 	// =====================================================================
 	// Query delegations
