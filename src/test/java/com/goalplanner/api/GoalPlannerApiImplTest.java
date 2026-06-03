@@ -66,12 +66,6 @@ class GoalPlannerApiImplTest
 		api.setOnSelectionChanged(callbackFireCount::incrementAndGet);
 	}
 
-	private SectionView sectionViewById(String id)
-	{
-		return api.queryAllSections().stream()
-			.filter(s -> id.equals(s.id)).findFirst().orElseThrow();
-	}
-
 	// ====================================================================
 	// Public API: addSkillGoal / addCustomGoal
 	// ====================================================================
@@ -261,44 +255,41 @@ class GoalPlannerApiImplTest
 	}
 
 	// ====================================================================
-	// Guide sections: account-independent templates are never auto-tracked
+	// User sections keep their completed goals inline (each section its own bucket)
 	// ====================================================================
 
 	@Test
-	@DisplayName("guide goals track normally; a completed one stays in its guide section")
-	void guideGoalsTrackAndStayInSection()
+	@DisplayName("a completed goal stays in its user section, not relocated to Completed")
+	void completedGoalStaysInUserSection()
 	{
-		String guideId = api.createSection("Inferno Guide");
-		assertTrue(store.setSectionGuide(guideId, true));
+		String sectionId = api.createSection("Inferno Prep");
 		Goal g = Goal.builder().type(GoalType.SKILL).name("Ranged").skillName("RANGED")
-			.targetValue(100).currentValue(0).sectionId(guideId).build();
+			.targetValue(100).currentValue(0).sectionId(sectionId).build();
 		store.addGoal(g);
 
-		// Guide mode affects display/relocation, NOT tracking: the goal records
-		// progress and completes normally.
+		// The goal tracks + completes normally.
 		assertTrue(api.recordGoalProgress(g.getId(), 100));
 		assertTrue(g.isComplete());
 
-		// But a completed guide goal is NOT shipped to Completed — it stays in
-		// the guide section, shown inline as a ticked-off requirement.
+		// But a completed goal in a user section is sticky — it stays put as a
+		// ticked-off item, not shipped to the built-in Completed.
 		store.reconcileCompletedSection();
-		assertEquals(guideId, g.getSectionId());
+		assertEquals(sectionId, g.getSectionId());
 	}
 
 	@Test
-	@DisplayName("guide section orders completed goals last (checklist view)")
-	void guideSectionSortsCompletedLast()
+	@DisplayName("user section orders completed goals last (checklist view)")
+	void userSectionSortsCompletedLast()
 	{
-		String guideId = api.createSection("Inferno Guide");
-		assertTrue(store.setSectionGuide(guideId, true));
+		String sectionId = api.createSection("Inferno Prep");
 		// Added done-first to prove the sort sinks it, not just insertion order.
 		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
-			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(guideId).build();
-		Goal todo = Goal.builder().type(GoalType.CUSTOM).name("todo").sectionId(guideId).build();
+			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(sectionId).build();
+		Goal todo = Goal.builder().type(GoalType.CUSTOM).name("todo").sectionId(sectionId).build();
 		store.addGoal(done);
 		store.addGoal(todo);
 
-		java.util.List<com.goalplanner.api.GoalView> views = api.queryGoalsTopologicallySorted(guideId);
+		java.util.List<com.goalplanner.api.GoalView> views = api.queryGoalsTopologicallySorted(sectionId);
 		assertEquals(2, views.size());
 		assertEquals("todo", views.get(0).name);   // incomplete requirement first
 		assertEquals("done", views.get(1).name);   // ticked-off sinks to the bottom
@@ -1394,24 +1385,6 @@ class GoalPlannerApiImplTest
 			assertEquals(0xFF0000, g.getCustomColorRgb());
 			api.undo(); // back to no override
 			assertEquals(-1, g.getCustomColorRgb());
-		}
-
-		@Test
-		@DisplayName("setSectionGuide toggles the flag, is undoable, and rejects built-ins")
-		void setSectionGuideRoundTrip()
-		{
-			String id = api.createSection("Inferno Guide");
-			assertFalse(sectionViewById(id).guide);
-
-			assertTrue(api.setSectionGuide(id, true));
-			assertTrue(sectionViewById(id).guide);
-			assertFalse(api.setSectionGuide(id, true)); // no-op
-
-			api.undo();
-			assertFalse(sectionViewById(id).guide);
-
-			// Built-in sections can never be guides.
-			assertFalse(api.setSectionGuide(store.getIncompleteSection().getId(), true));
 		}
 
 		@Test

@@ -34,8 +34,8 @@ API so other plugins can read and create goals programmatically.
 
 ## Features
 
-- **Sections** — built-in Incomplete + Completed plus user-defined sections in the middle band. Each section can be renamed, recolored, reordered, and right-clicked for bulk operations.
-- **Guide sections** — right-click a user section → **Make Guide** to turn it into an account-independent guide (e.g. an "Inferno prep" set you share). Completed goals stay shown inline instead of being relocated to Completed, so a maxed player can build a complete, shareable guide without it collapsing to all-done — and a recipient sees their own ✓/todo against it inline. Tracking is unchanged; only the auto-relocation is suppressed. A blue **GUIDE** badge marks the header. To put a quest, diary, or CA task into a guide (including ones you've already completed, which would otherwise jump straight to Completed), right-click it in-game → **Add to Guide** — it drops the bare goal straight into the guide section. Shared guides you import also land as guide sections, so you instantly see what you've already done versus what's left.
+- **Sections are independent buckets** — built-in **Incomplete + Completed** are the *default* home (a goal with no user section auto-sorts between them on completion), plus user-defined sections in the middle band. A user section keeps its own goals: completing one **stays in place** (sinking to the bottom of the section as a ✓ checklist item) rather than jumping to Completed. Each section can be renamed, recolored, reordered, and right-clicked for bulk operations.
+- **Add to Section** — quests, diaries, and CA tasks are only addable from the in-game right-click; use **Add to Section** there to drop one (even an already-completed one) straight into a user section, instead of it auto-routing to the default Incomplete/Completed. Shared sets you import land in their own user section, so you instantly see what you've already done versus what's left as an inline checklist.
 - **Colors** — every section, goal, and tag has a default color and an optional user override. Curated 12-swatch palette + JColorChooser escape hatch. Section header backgrounds are darkened to keep light text readable.
 - **Multi-select + bulk actions** — click to select, cmd/ctrl-click to multi-select. Right-click a multi-selection for bulk Move to Section, Add Tag, Change Color, Mark Complete (CUSTOM only), Remove. Selection state is ephemeral.
 - **Undo / Redo** — Ctrl-Z / Ctrl-Shift-Z (or Cmd on macOS) reverses every user mutation: adds, removes, edits, reorders, bulk actions, section changes, color + tag edits.
@@ -99,11 +99,12 @@ eventBus.post(new PluginMessage(
     java.util.Map.of("code", shareCode)));
 ```
 
-Goal Planner decodes the code and imports the goals into a new **guide** section,
-so you immediately see the shared set as a checklist against your own account —
-requirements you already meet show ticked off inline. Get a share code from the
-"Copy share code" right-click menu, or build one with the `ShareCodec` /
-`ShareBundle` classes in `com.goalplanner.share`.
+Goal Planner decodes the code and imports the goals into their own new user
+section. Because user sections keep their completed goals inline, you immediately
+see the shared set as a checklist against your own account — requirements you
+already meet show ticked off. Get a share code from the "Copy share code"
+right-click menu, or build one with the `ShareCodec` / `ShareBundle` classes in
+`com.goalplanner.share`.
 
 ## Testing
 

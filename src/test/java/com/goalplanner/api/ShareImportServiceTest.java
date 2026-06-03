@@ -97,9 +97,9 @@ class ShareImportServiceTest
 			.filter(s -> sectionId.equals(s.getId())).findFirst().orElse(null);
 		assertNotNull(section);
 		assertEquals("Inferno Prep (from Andrew)", section.getName());
-		// Imports land in a GUIDE section so the recipient sees the set as a
-		// checklist (met requirements stay ticked off inline).
-		assertTrue(section.isGuide());
+		// Imports land in their own user section (which keeps completed goals
+		// inline, so the recipient sees it as a checklist against their account).
+		assertFalse(section.isBuiltIn());
 
 		Goal ranged = goalNamed("Ranged - Level 75");
 		Goal zuk = goalNamed("TzKal-Zuk");
@@ -202,7 +202,7 @@ class ShareImportServiceTest
 	}
 
 	@Test
-	void looseGoalsImportIntoANewGuideSectionStartingIncomplete()
+	void looseGoalsImportIntoANewUserSectionStartingIncomplete()
 	{
 		GoalShareDto g = new GoalShareDto();
 		g.setRef(0);
@@ -216,12 +216,11 @@ class ShareImportServiceTest
 
 		String landedSectionId = api.importShareBundle(bundle);
 
-		// A loose selection lands in its own NEW GUIDE section (not Incomplete),
+		// A loose selection lands in its own NEW user section (not Incomplete),
 		// so the recipient sees it as a checklist against their account.
 		assertNotEquals(store.getIncompleteSection().getId(), landedSectionId);
 		Section landed = store.findSection(landedSectionId);
 		assertNotNull(landed);
-		assertTrue(landed.isGuide());
 		assertFalse(landed.isBuiltIn());
 
 		Goal imported = goalNamed("Cooking - Level 50");

@@ -392,7 +392,6 @@ class GoalQueryService
 		v.collapsed = s.isCollapsed();
 		v.builtIn = s.isBuiltIn();
 		v.kind = s.getBuiltInKind() != null ? s.getBuiltInKind().name() : null;
-		v.guide = s.isGuide();
 		v.defaultColorRgb = SECTION_DEFAULT_COLOR_RGB;
 		if (s.getColorRgb() >= 0)
 		{
@@ -544,11 +543,12 @@ class GoalQueryService
 			}
 		}
 
-		// Guide sections keep their completed goals inline (they don't relocate
-		// to Completed), so sink them to the bottom — incomplete requirements
-		// first, ticked-off ones below, like a checklist. Stable partition
-		// preserves the topo/OR order within each group.
-		if (section != null && section.isGuide())
+		// User sections keep their completed goals inline (only the built-in
+		// Incomplete/Completed default relocates on completion), so sink the
+		// completed ones to the bottom — incomplete requirements first,
+		// ticked-off below, like a checklist. Stable partition preserves the
+		// topo/OR order within each group. (Built-in Completed is handled above.)
+		if (section != null && !section.isBuiltIn())
 		{
 			List<Goal> incomplete = new ArrayList<>();
 			List<Goal> done = new ArrayList<>();

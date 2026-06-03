@@ -61,16 +61,6 @@ public class Section
 	/** Non-null for built-in sections (Incomplete / Completed). Null for user sections. */
 	private BuiltInKind builtInKind;
 
-	/**
-	 * When true, this is a "guide" section: its goals are account-independent
-	 * requirements (a shareable template), not the user's live progress. Guide
-	 * goals are never auto-tracked, never auto-complete, and never relocate to
-	 * the Completed section — they stay put as requirements regardless of the
-	 * author's stats. Built-in sections are never guides.
-	 */
-	@Builder.Default
-	private boolean guide = false;
-
 	public boolean isBuiltIn()
 	{
 		return builtInKind != null;

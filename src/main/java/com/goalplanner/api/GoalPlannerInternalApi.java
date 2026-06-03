@@ -185,16 +185,6 @@ public interface GoalPlannerInternalApi
 	boolean setSectionColor(String sectionId, int colorRgb);
 
 	/**
-	 * Mark a user section as a guide (template) section, or clear the flag.
-	 * Guide sections keep their completed goals displayed inline instead of
-	 * relocating them to Completed. Built-in sections cannot be guides.
-	 * Undoable.
-	 *
-	 * @return true if the flag changed, false on: not found, built-in, or no-op
-	 */
-	boolean setSectionGuide(String sectionId, boolean guide);
-
-	/**
 	 * Set a goal's background color override. Works on all goal types —
 	 * the override survives rebuilds because it's persisted on the goal model.
 	 * Pass -1 to clear the override and revert to the GoalType default color.

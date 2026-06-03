@@ -289,35 +289,6 @@ class SectionService
 		});
 	}
 
-	boolean setSectionGuide(String sectionId, boolean guide)
-	{
-		log.debug("API.internal setSectionGuide(sectionId={}, guide={})", sectionId, guide);
-		Section section = api.goalStore.findSection(sectionId);
-		if (section == null || section.isBuiltIn()) return false;
-		if (section.isGuide() == guide) return false;
-		final String name = section.getName();
-		return api.executeCommand(new com.goalplanner.command.Command()
-		{
-			@Override public boolean apply()
-			{
-				Section s = api.goalStore.findSection(sectionId);
-				if (s == null) return false;
-				s.setGuide(guide);
-				api.goalStore.save();
-				return true;
-			}
-			@Override public boolean revert()
-			{
-				Section s = api.goalStore.findSection(sectionId);
-				if (s == null) return false;
-				s.setGuide(!guide);
-				api.goalStore.save();
-				return true;
-			}
-			@Override public String getDescription() { return (guide ? "Make guide: " : "Clear guide: ") + name; }
-		});
-	}
-
 	boolean setGoalColor(String goalId, int colorRgb)
 	{
 		log.debug("API.internal setGoalColor(goalId={}, colorRgb={})", goalId, colorRgb);

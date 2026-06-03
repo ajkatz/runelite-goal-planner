@@ -1225,14 +1225,6 @@ class GoalContextMenuBuilder
 			rename.addActionListener(e -> dialogFactory.showRenameSectionDialog(section));
 			menu.add(rename);
 
-			// Guide toggle — a guide section keeps its completed goals displayed
-			// inline (instead of relocating them to Completed), so a maxed player
-			// can build a complete, shareable guide without it collapsing to
-			// all-done. Tracking is unchanged; only the relocation is suppressed.
-			JMenuItem guideToggle = new JMenuItem(section.guide ? "Clear Guide" : "Make Guide");
-			guideToggle.addActionListener(e -> api.setSectionGuide(section.id, !section.guide));
-			menu.add(guideToggle);
-
 			if (currentUserIndex > 0)
 			{
 				JMenuItem moveUp = new JMenuItem("Move Up");

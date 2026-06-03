@@ -1278,8 +1278,8 @@ public class GoalPlannerPlugin extends Plugin
 						.onClick(e -> skillSyncGate.runWhenSynced(
 							() -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier)));
 
-					// And straight into a guide (bare goal, no seeding).
-					addGuideMenuEntries("Add to Guide: " + tier.getDisplayName(), diaryMenuTarget,
+					// And straight into a user section (bare goal, no seeding).
+					addSectionMenuEntries("Add to Section: " + tier.getDisplayName(), diaryMenuTarget,
 						areaDisplayName + " " + tier.getDisplayName(),
 						() -> goalTrackerApi.addDiaryGoalWithPrereqs(areaDisplayName, apiTier, null));
 				}
@@ -1332,7 +1332,7 @@ public class GoalPlannerPlugin extends Plugin
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
 					}));
-				addGuideMenuEntries("Add to Guide", menuTarget, quest.getName(),
+				addSectionMenuEntries("Add to Section", menuTarget, quest.getName(),
 					() -> goalTrackerApi.addQuestGoalWithPrereqs(quest, java.util.Collections.emptyList()));
 				break;
 			}
@@ -1379,7 +1379,7 @@ public class GoalPlannerPlugin extends Plugin
 						addGoalUndoable(goal, "Add CA goal: " + newName);
 						refreshItemGoalsNow();
 					});
-				addGuideMenuEntries("Add to Guide", entry.getTarget(), preview.getName(),
+				addSectionMenuEntries("Add to Section", entry.getTarget(), preview.getName(),
 					() ->
 					{
 						Goal g = buildCombatAchievementGoal(row);
@@ -1715,39 +1715,39 @@ public class GoalPlannerPlugin extends Plugin
 	}
 
 	// =====================================================================
-	// "Add to Guide" — drop an in-game goal straight into a guide section
+	// "Add to Section" — drop an in-game goal straight into a user section
 	// =====================================================================
 
-	/** The user's guide (template) sections, in panel order. Empty if none. */
-	private java.util.List<com.goalplanner.api.SectionView> guideSections()
+	/** The user's (non-built-in) sections, in panel order. Empty if none. */
+	private java.util.List<com.goalplanner.api.SectionView> userSections()
 	{
-		java.util.List<com.goalplanner.api.SectionView> guides = new java.util.ArrayList<>();
+		java.util.List<com.goalplanner.api.SectionView> out = new java.util.ArrayList<>();
 		for (com.goalplanner.api.SectionView sv : goalTrackerApi.queryAllSections())
 		{
-			if (sv.guide && !sv.builtIn)
+			if (!sv.builtIn)
 			{
-				guides.add(sv);
+				out.add(sv);
 			}
 		}
-		return guides;
+		return out;
 	}
 
 	/**
-	 * Add a bare goal (no prereq seeding) into a guide section as ONE undoable
-	 * gesture. The {@code bareAdd} supplier creates the goal (landing in
-	 * Incomplete) and returns its id; we then move it into the guide, where the
-	 * reconcile-skip keeps it put even when already complete. Guide adds are
-	 * intentionally seed-free — the author is curating exact goals.
+	 * Add a bare goal (no prereq seeding) into a user section as ONE undoable
+	 * gesture. The {@code bareAdd} supplier creates the goal (landing in the
+	 * default Incomplete) and returns its id; we then move it into the section,
+	 * where it stays put even when already complete (user sections keep their
+	 * completed goals inline). Seed-free — the user is curating exact goals.
 	 */
-	private void addToGuide(String guideSectionId, String label, java.util.function.Supplier<String> bareAdd)
+	private void addToSection(String sectionId, String label, java.util.function.Supplier<String> bareAdd)
 	{
-		goalTrackerApi.beginCompound("Add to guide: " + label);
+		goalTrackerApi.beginCompound("Add to section: " + label);
 		try
 		{
 			String id = bareAdd.get();
 			if (id != null)
 			{
-				goalTrackerApi.moveGoalToSection(id, guideSectionId);
+				goalTrackerApi.moveGoalToSection(id, sectionId);
 			}
 		}
 		finally
@@ -1757,27 +1757,27 @@ public class GoalPlannerPlugin extends Plugin
 	}
 
 	/**
-	 * Inject "Add to Guide" affordance next to an in-game "Add Goal" entry. No
-	 * guide sections → nothing added. One guide → a single direct entry. Several
-	 * → an "Add to Guide ▸ &lt;section&gt;" submenu.
+	 * Inject an "Add to Section" affordance next to an in-game "Add Goal" entry.
+	 * No user sections → nothing added. One → a single direct entry. Several →
+	 * an "Add to Section ▸ &lt;section&gt;" submenu.
 	 */
-	private void addGuideMenuEntries(String baseOption, String menuTarget, String label,
+	private void addSectionMenuEntries(String baseOption, String menuTarget, String label,
 		java.util.function.Supplier<String> bareAdd)
 	{
-		java.util.List<com.goalplanner.api.SectionView> guides = guideSections();
-		if (guides.isEmpty())
+		java.util.List<com.goalplanner.api.SectionView> sections = userSections();
+		if (sections.isEmpty())
 		{
 			return;
 		}
-		if (guides.size() == 1)
+		if (sections.size() == 1)
 		{
-			// One guide → unambiguous destination, no need to name it.
-			final String guideId = guides.get(0).id;
+			// One user section → unambiguous destination, no need to name it.
+			final String sectionId = sections.get(0).id;
 			client.createMenuEntry(1)
 				.setOption(baseOption)
 				.setTarget(menuTarget)
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToGuide(guideId, label, bareAdd)));
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, label, bareAdd)));
 			return;
 		}
 		MenuEntry parent = client.createMenuEntry(1)
@@ -1785,13 +1785,13 @@ public class GoalPlannerPlugin extends Plugin
 			.setTarget(menuTarget)
 			.setType(MenuAction.RUNELITE);
 		net.runelite.api.Menu sub = parent.createSubMenu();
-		for (com.goalplanner.api.SectionView guide : guides)
+		for (com.goalplanner.api.SectionView section : sections)
 		{
-			final String guideId = guide.id;
+			final String sectionId = section.id;
 			sub.createMenuEntry(0)
-				.setOption(guide.name)
+				.setOption(section.name)
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToGuide(guideId, label, bareAdd)));
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, label, bareAdd)));
 		}
 	}
 

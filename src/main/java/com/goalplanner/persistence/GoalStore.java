@@ -1765,12 +1765,14 @@ public class GoalStore
 		List<Goal> movedGoals = new ArrayList<>();
 		for (Goal goal : goals)
 		{
-			// Guide-section goals are account-independent requirements: never
-			// relocate them on completion state — they stay put as the guide.
-			if (isGuideSection(goal.getSectionId())) continue;
-			boolean isComplete = goal.isComplete();
 			String currentSid = goal.getSectionId();
-			if (isComplete && !completedId.equals(currentSid))
+			// Only the built-in Incomplete/Completed default auto-sorts by
+			// completion. Goals in a user section are sticky — each section is
+			// its own bucket and keeps its completed goals inline.
+			boolean inDefault = completedId.equals(currentSid) || incompleteId.equals(currentSid);
+			if (!inDefault) continue;
+			boolean isComplete = goal.isComplete();
+			if (isComplete && incompleteId.equals(currentSid))
 			{
 				goal.setSectionId(completedId);
 				anyMoved = true;
@@ -1836,16 +1838,6 @@ public class GoalStore
 		return sectionIndex.get(sectionId);
 	}
 
-	/**
-	 * True if the section exists and is a guide (template) section. Guide goals
-	 * are account-independent requirements: never auto-tracked, auto-completed,
-	 * or relocated to Completed.
-	 */
-	public boolean isGuideSection(String sectionId)
-	{
-		Section s = findSection(sectionId);
-		return s != null && s.isGuide();
-	}
 
 	/**
 	 * Find a user-defined section by case-insensitive name match. Returns null
@@ -1951,22 +1943,6 @@ public class GoalStore
 	}
 
 	/**
-	 * Mark a user-defined section as a guide (template) section, or clear the
-	 * flag. Guide goals are account-independent requirements: never auto-tracked,
-	 * auto-completed, or relocated to Completed. Built-in sections cannot be
-	 * guides. Returns false on: not found, built-in, or no-op (already set).
-	 */
-	public boolean setSectionGuide(String sectionId, boolean guide)
-	{
-		Section section = findSection(sectionId);
-		if (section == null || section.isBuiltIn()) return false;
-		if (section.isGuide() == guide) return false;
-		section.setGuide(guide);
-		saveSectionsIfNotSuspended();
-		return true;
-	}
-
-	/**
 	 * Delete a user-defined section. All goals in the section are moved to the
 	 * end of the Incomplete section (then reconcile may pull completed ones to
 	 * Completed). Returns false on: not found or built-in.
@@ -2049,10 +2025,10 @@ public class GoalStore
 		if (dest == null) return false;
 		if (sectionId.equals(goal.getSectionId())) return false;
 
-		boolean destIsCompleted = dest.getBuiltInKind() == Section.BuiltInKind.COMPLETED;
-		// A completed goal may live in Completed OR a guide section (guides keep
-		// their completed goals inline as a checklist); block it everywhere else.
-		if (goal.isComplete() && !destIsCompleted && !dest.isGuide()) return false;
+		// A completed goal may live in Completed or any user section (each
+		// section keeps its own completed goals inline); only the built-in
+		// Incomplete rejects it — reconcile would just bounce it to Completed.
+		if (goal.isComplete() && dest.getBuiltInKind() == Section.BuiltInKind.INCOMPLETE) return false;
 
 		goal.setSectionId(sectionId);
 		// Move the goal to the end of the goals list within its new section.

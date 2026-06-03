@@ -197,8 +197,8 @@ class GoalStoreTest
 	}
 
 	@Test
-	@DisplayName("moveGoalToSection rejects complete goal moving away from Completed")
-	void moveGoalToSectionRejectsCompleteEscapingCompleted()
+	@DisplayName("moveGoalToSection lets a completed goal leave Completed for a user section")
+	void moveGoalToSectionCompleteCanLeaveCompleted()
 	{
 		Section custom = store.createUserSection("Custom");
 		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g")
@@ -207,11 +207,12 @@ class GoalStoreTest
 			.sectionId(store.getCompletedSection().getId())
 			.build();
 		store.addGoal(g);
-		// addGoal would override the section to Incomplete since g.sectionId was set,
-		// but actually addGoal only overrides when null. Re-set explicitly.
 		g.setSectionId(store.getCompletedSection().getId());
 
-		assertFalse(store.moveGoalToSection(g.getId(), custom.getId()));
+		// Each section keeps its own completed goals, so a completed goal may
+		// move out of Completed into a user section.
+		assertTrue(store.moveGoalToSection(g.getId(), custom.getId()));
+		assertEquals(custom.getId(), g.getSectionId());
 	}
 
 	// ====================================================================
@@ -219,14 +220,14 @@ class GoalStoreTest
 	// ====================================================================
 
 	@Test
-	@DisplayName("reconcileCompletedSection moves COMPLETE goals to Completed")
+	@DisplayName("reconcileCompletedSection moves a completed goal from Incomplete to Completed")
 	void reconcilePullsCompleteIntoCompleted()
 	{
-		Section custom = store.createUserSection("Custom");
-		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g").sectionId(custom.getId()).build();
-		store.addGoal(g);
+		// The default Incomplete/Completed pair auto-sorts: a goal in Incomplete
+		// that completes is relocated to Completed.
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g").build();
+		store.addGoal(g); // lands in Incomplete by default
 
-		// Mark complete by stamping completedAt
 		g.setCompletedAt(System.currentTimeMillis());
 		g.setStatus(GoalStatus.COMPLETE);
 
@@ -264,75 +265,45 @@ class GoalStoreTest
 	}
 
 	// ====================================================================
-	// Guide (template) sections — account-independent requirements
+	// User sections keep their completed goals inline (each section is its
+	// own bucket; only the built-in Incomplete/Completed default auto-sorts)
 	// ====================================================================
 
 	@Test
-	@DisplayName("reconcileCompletedSection leaves a COMPLETE guide goal in its guide section")
-	void reconcileSkipsGuideGoals()
+	@DisplayName("reconcileCompletedSection leaves a completed goal in its user section")
+	void reconcileLeavesCompletedGoalInUserSection()
 	{
-		Section guide = store.createUserSection("Inferno Guide");
-		assertTrue(store.setSectionGuide(guide.getId(), true));
-		Goal g = Goal.builder().type(GoalType.CUSTOM).name("75 Ranged").sectionId(guide.getId()).build();
+		Section custom = store.createUserSection("Inferno Prep");
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("75 Ranged").sectionId(custom.getId()).build();
 		store.addGoal(g);
 
-		// Even if it somehow reads as complete, a guide goal stays put — it is a
-		// requirement, not the author's progress.
+		// A completed goal in a user section is sticky — it stays put, it does
+		// NOT get relocated to the built-in Completed section.
 		g.setCompletedAt(System.currentTimeMillis());
 		g.setStatus(GoalStatus.COMPLETE);
 
 		assertFalse(store.reconcileCompletedSection());
-		assertEquals(guide.getId(), g.getSectionId());
+		assertEquals(custom.getId(), g.getSectionId());
 	}
 
 	@Test
-	@DisplayName("setSectionGuide marks a user section as a guide; survives save/load")
-	void setSectionGuidePersists()
+	@DisplayName("moveGoalToSection lets a completed goal into any user section, but not Incomplete")
+	void moveCompletedGoalIntoUserSectionNotIncomplete()
 	{
-		Section s = store.createUserSection("Guide");
-		assertFalse(store.findSection(s.getId()).isGuide());
-		assertTrue(store.setSectionGuide(s.getId(), true));
-		assertTrue(store.findSection(s.getId()).isGuide());
-		store.save();
-
-		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
-		reloaded.load();
-		Section loaded = reloaded.findUserSectionByName("Guide");
-		assertNotNull(loaded);
-		assertTrue(loaded.isGuide());
-	}
-
-	@Test
-	@DisplayName("moveGoalToSection lets a completed goal into a guide (but not a normal section)")
-	void moveCompletedGoalIntoGuideOnly()
-	{
-		Section guide = store.createUserSection("Guide");
-		store.setSectionGuide(guide.getId(), true);
-		Section normal = store.createUserSection("Normal");
+		Section a = store.createUserSection("Section A");
+		Section b = store.createUserSection("Section B");
 
 		Goal g = Goal.builder().type(GoalType.CUSTOM).name("done")
-			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE).build();
+			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE)
+			.sectionId(a.getId()).build();
 		store.addGoal(g);
 
-		// A completed goal is blocked from a normal user section (stays archived)
-		// but allowed into a guide (guides keep completed goals inline).
-		assertFalse(store.moveGoalToSection(g.getId(), normal.getId()));
-		assertTrue(store.moveGoalToSection(g.getId(), guide.getId()));
-		assertEquals(guide.getId(), g.getSectionId());
-	}
-
-	@Test
-	@DisplayName("setSectionGuide rejects built-ins and no-ops on an unchanged flag")
-	void setSectionGuideRejectsBuiltInAndNoop()
-	{
-		assertFalse(store.setSectionGuide(store.getIncompleteSection().getId(), true));
-		assertFalse(store.setSectionGuide(store.getCompletedSection().getId(), true));
-		assertFalse(store.setSectionGuide("nonexistent", true));
-
-		Section s = store.createUserSection("Guide");
-		assertFalse(store.setSectionGuide(s.getId(), false)); // already false → no-op
-		assertTrue(store.setSectionGuide(s.getId(), true));
-		assertFalse(store.setSectionGuide(s.getId(), true)); // already true → no-op
+		// Allowed into another user section (sections keep completed goals)...
+		assertTrue(store.moveGoalToSection(g.getId(), b.getId()));
+		assertEquals(b.getId(), g.getSectionId());
+		// ...but blocked from the built-in Incomplete (reconcile would bounce it).
+		assertFalse(store.moveGoalToSection(g.getId(), store.getIncompleteSection().getId()));
+		assertEquals(b.getId(), g.getSectionId());
 	}
 
 	// ====================================================================
