@@ -1269,6 +1269,25 @@ public class GoalPlannerPlugin extends Plugin
 					continue;
 				}
 				final String diaryMenuTarget = "<col=ff9040>" + areaDisplayName + "</col>";
+				final java.util.List<com.goalplanner.api.SectionView> diarySections = userSections();
+
+				// ONE "Add Goal" submenu over the tiers (adds to the default),
+				// instead of four flat "Add Goal: <Tier>" entries.
+				final net.runelite.api.Menu addGoalSub = client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget(diaryMenuTarget)
+					.setType(MenuAction.RUNELITE)
+					.createSubMenu();
+
+				// ONE "Add to Section" submenu (tier → section), only if a user
+				// section exists — instead of four flat "Add to Section: <Tier>".
+				final net.runelite.api.Menu addSectionSub = diarySections.isEmpty() ? null
+					: client.createMenuEntry(1)
+						.setOption("Add to Section")
+						.setTarget(diaryMenuTarget)
+						.setType(MenuAction.RUNELITE)
+						.createSubMenu();
+
 				for (final AchievementDiaryData.Tier tier : AchievementDiaryData.Tier.values())
 				{
 					final GoalPlannerApi.DiaryTier apiTier;
@@ -1280,23 +1299,51 @@ public class GoalPlannerPlugin extends Plugin
 						case ELITE:  apiTier = GoalPlannerApi.DiaryTier.ELITE; break;
 						default:     continue;
 					}
+					final String tierName = tier.getDisplayName();
 
-					// API auto-resolves and seeds prereqs on the client thread.
-					client.createMenuEntry(1)
-						.setOption("Add Goal: " + tier.getDisplayName())
-						.setTarget(diaryMenuTarget)
+					// Add Goal ▸ <tier> → default (auto-resolves + seeds prereqs).
+					// Gate on skill sync so an add right after login doesn't read
+					// default level-1 stats and over-seed met skill reqs.
+					addGoalSub.createMenuEntry(0)
+						.setOption(tierName)
 						.setType(MenuAction.RUNELITE)
-						// Gate on skill sync so an add right after login doesn't
-						// read default level-1 stats and over-seed met skill reqs.
 						.onClick(e -> skillSyncGate.runWhenSynced(
 							() -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier)));
 
-					// And straight into a user section (bare goal, no seeding).
-					addSectionMenuEntries("Add to Section: " + tier.getDisplayName(), diaryMenuTarget,
-						Goal.builder().type(GoalType.DIARY).name(areaDisplayName)
-							.description(tier.getDisplayName() + " Achievement Diary").build(),
-						areaDisplayName + " " + tier.getDisplayName(),
-						() -> goalTrackerApi.addDiaryGoalWithPrereqs(areaDisplayName, apiTier, null));
+					// Add to Section ▸ <tier> [▸ <section>] → bare goal, no seeding.
+					if (addSectionSub != null)
+					{
+						final Goal probe = Goal.builder().type(GoalType.DIARY).name(areaDisplayName)
+							.description(tierName + " Achievement Diary").build();
+						final String label = areaDisplayName + " " + tierName;
+						final java.util.function.Supplier<String> bareAdd =
+							() -> goalTrackerApi.addDiaryGoalWithPrereqs(areaDisplayName, apiTier, null);
+						if (diarySections.size() == 1)
+						{
+							final String sectionId = diarySections.get(0).id;
+							addSectionSub.createMenuEntry(0)
+								.setOption(tierName)
+								.setType(MenuAction.RUNELITE)
+								.onClick(e -> skillSyncGate.runWhenSynced(
+									() -> addToSection(sectionId, probe, label, bareAdd)));
+						}
+						else
+						{
+							final net.runelite.api.Menu tierSub = addSectionSub.createMenuEntry(0)
+								.setOption(tierName)
+								.setType(MenuAction.RUNELITE)
+								.createSubMenu();
+							for (final com.goalplanner.api.SectionView sv : diarySections)
+							{
+								final String sectionId = sv.id;
+								tierSub.createMenuEntry(0)
+									.setOption(sv.name)
+									.setType(MenuAction.RUNELITE)
+									.onClick(e -> skillSyncGate.runWhenSynced(
+										() -> addToSection(sectionId, probe, label, bareAdd)));
+							}
+						}
+					}
 				}
 				break;
 			}
