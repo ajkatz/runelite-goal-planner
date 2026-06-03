@@ -1765,6 +1765,9 @@ public class GoalStore
 		List<Goal> movedGoals = new ArrayList<>();
 		for (Goal goal : goals)
 		{
+			// Guide-section goals are account-independent requirements: never
+			// relocate them on completion state — they stay put as the guide.
+			if (isGuideSection(goal.getSectionId())) continue;
 			boolean isComplete = goal.isComplete();
 			String currentSid = goal.getSectionId();
 			if (isComplete && !completedId.equals(currentSid))
@@ -1831,6 +1834,17 @@ public class GoalStore
 	{
 		if (sectionId == null) return null;
 		return sectionIndex.get(sectionId);
+	}
+
+	/**
+	 * True if the section exists and is a guide (template) section. Guide goals
+	 * are account-independent requirements: never auto-tracked, auto-completed,
+	 * or relocated to Completed.
+	 */
+	public boolean isGuideSection(String sectionId)
+	{
+		Section s = findSection(sectionId);
+		return s != null && s.isGuide();
 	}
 
 	/**
@@ -1932,6 +1946,22 @@ public class GoalStore
 		Section dup = findUserSectionByName(trimmed);
 		if (dup != null && !dup.getId().equals(sectionId)) return false;
 		section.setName(trimmed);
+		saveSectionsIfNotSuspended();
+		return true;
+	}
+
+	/**
+	 * Mark a user-defined section as a guide (template) section, or clear the
+	 * flag. Guide goals are account-independent requirements: never auto-tracked,
+	 * auto-completed, or relocated to Completed. Built-in sections cannot be
+	 * guides. Returns false on: not found, built-in, or no-op (already set).
+	 */
+	public boolean setSectionGuide(String sectionId, boolean guide)
+	{
+		Section section = findSection(sectionId);
+		if (section == null || section.isBuiltIn()) return false;
+		if (section.isGuide() == guide) return false;
+		section.setGuide(guide);
 		saveSectionsIfNotSuspended();
 		return true;
 	}

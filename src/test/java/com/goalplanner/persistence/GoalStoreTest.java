@@ -264,6 +264,59 @@ class GoalStoreTest
 	}
 
 	// ====================================================================
+	// Guide (template) sections — account-independent requirements
+	// ====================================================================
+
+	@Test
+	@DisplayName("reconcileCompletedSection leaves a COMPLETE guide goal in its guide section")
+	void reconcileSkipsGuideGoals()
+	{
+		Section guide = store.createUserSection("Inferno Guide");
+		assertTrue(store.setSectionGuide(guide.getId(), true));
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("75 Ranged").sectionId(guide.getId()).build();
+		store.addGoal(g);
+
+		// Even if it somehow reads as complete, a guide goal stays put — it is a
+		// requirement, not the author's progress.
+		g.setCompletedAt(System.currentTimeMillis());
+		g.setStatus(GoalStatus.COMPLETE);
+
+		assertFalse(store.reconcileCompletedSection());
+		assertEquals(guide.getId(), g.getSectionId());
+	}
+
+	@Test
+	@DisplayName("setSectionGuide marks a user section as a guide; survives save/load")
+	void setSectionGuidePersists()
+	{
+		Section s = store.createUserSection("Guide");
+		assertFalse(store.findSection(s.getId()).isGuide());
+		assertTrue(store.setSectionGuide(s.getId(), true));
+		assertTrue(store.findSection(s.getId()).isGuide());
+		store.save();
+
+		GoalStore reloaded = new GoalStore(configManager, new com.google.gson.Gson());
+		reloaded.load();
+		Section loaded = reloaded.findUserSectionByName("Guide");
+		assertNotNull(loaded);
+		assertTrue(loaded.isGuide());
+	}
+
+	@Test
+	@DisplayName("setSectionGuide rejects built-ins and no-ops on an unchanged flag")
+	void setSectionGuideRejectsBuiltInAndNoop()
+	{
+		assertFalse(store.setSectionGuide(store.getIncompleteSection().getId(), true));
+		assertFalse(store.setSectionGuide(store.getCompletedSection().getId(), true));
+		assertFalse(store.setSectionGuide("nonexistent", true));
+
+		Section s = store.createUserSection("Guide");
+		assertFalse(store.setSectionGuide(s.getId(), false)); // already false → no-op
+		assertTrue(store.setSectionGuide(s.getId(), true));
+		assertFalse(store.setSectionGuide(s.getId(), true)); // already true → no-op
+	}
+
+	// ====================================================================
 	// Persistence round-trip
 	// ====================================================================
 

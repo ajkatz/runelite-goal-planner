@@ -282,6 +282,10 @@ class GoalMutationService
 	{
 		Goal g = api.findGoal(goalId);
 		if (g == null) return false;
+		// Guide-section goals are account-independent requirements: never record
+		// the author's live progress or auto-complete them. They stay as the
+		// authored requirement so the guide is shareable account-clean.
+		if (api.goalStore.isGuideSection(g.getSectionId())) return false;
 		if (g.getCurrentValue() == newValue) return false;
 
 		g.setCurrentValue(newValue);

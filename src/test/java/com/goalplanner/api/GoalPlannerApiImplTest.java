@@ -255,6 +255,29 @@ class GoalPlannerApiImplTest
 	}
 
 	// ====================================================================
+	// Guide sections: account-independent templates are never auto-tracked
+	// ====================================================================
+
+	@Test
+	@DisplayName("recordGoalProgress no-ops for guide-section goals (no progress, no completion)")
+	void recordGoalProgressSkipsGuideGoals()
+	{
+		String guideId = api.createSection("Inferno Guide");
+		assertTrue(store.setSectionGuide(guideId, true));
+		// A 75 Ranged requirement the author (99 Ranged) would normally complete.
+		Goal g = Goal.builder().type(GoalType.SKILL).name("Ranged").skillName("RANGED")
+			.targetValue(75).currentValue(0).sectionId(guideId).build();
+		store.addGoal(g);
+
+		// The author's live read of 99 must NOT record progress or complete it.
+		assertFalse(api.recordGoalProgress(g.getId(), 99));
+		assertEquals(0, g.getCurrentValue());
+		assertFalse(g.isComplete());
+		assertEquals(GoalStatus.ACTIVE, g.getStatus());
+		assertEquals(guideId, g.getSectionId());
+	}
+
+	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================
 
