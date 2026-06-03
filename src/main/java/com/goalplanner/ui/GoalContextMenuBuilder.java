@@ -1334,21 +1334,22 @@ class GoalContextMenuBuilder
 			// always keep inline as a checklist.
 			boolean archiveDefault = api.isAutoArchiveDefault();
 			Boolean archiveOverride = section.autoArchiveOverride;
+			String current = "   (current)"; // marks the active choice (ColumnMenu has no radio state)
 			JMenu completedMenu = new JMenu("Completed goals");
 
-			javax.swing.JRadioButtonMenuItem useDefault = new javax.swing.JRadioButtonMenuItem(
-				"Use default (" + (archiveDefault ? "auto-archive" : "keep inline") + ")",
-				archiveOverride == null);
+			JMenuItem useDefault = new JMenuItem("Use default ("
+				+ (archiveDefault ? "auto-archive" : "keep inline") + ")"
+				+ (archiveOverride == null ? current : ""));
 			useDefault.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, null));
 			completedMenu.add(useDefault);
 
-			javax.swing.JRadioButtonMenuItem archiveItem = new javax.swing.JRadioButtonMenuItem(
-				"Auto-archive (move to Completed)", Boolean.TRUE.equals(archiveOverride));
+			JMenuItem archiveItem = new JMenuItem("Auto-archive (move to Completed)"
+				+ (Boolean.TRUE.equals(archiveOverride) ? current : ""));
 			archiveItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.TRUE));
 			completedMenu.add(archiveItem);
 
-			javax.swing.JRadioButtonMenuItem keepItem = new javax.swing.JRadioButtonMenuItem(
-				"Keep inline (checklist)", Boolean.FALSE.equals(archiveOverride));
+			JMenuItem keepItem = new JMenuItem("Keep inline (checklist)"
+				+ (Boolean.FALSE.equals(archiveOverride) ? current : ""));
 			keepItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.FALSE));
 			completedMenu.add(keepItem);
 
@@ -1391,13 +1392,22 @@ class GoalContextMenuBuilder
 			@Override
 			public void mousePressed(MouseEvent e)
 			{
-				if (e.isPopupTrigger()) menu.show(row, e.getX(), e.getY());
+				if (e.isPopupTrigger()) showSectionMenu(row, e.getX(), e.getY());
 			}
 
 			@Override
 			public void mouseReleased(MouseEvent e)
 			{
-				if (e.isPopupTrigger()) menu.show(row, e.getX(), e.getY());
+				if (e.isPopupTrigger()) showSectionMenu(row, e.getX(), e.getY());
+			}
+
+			// Render through the ColumnMenu so section menus match the goal
+			// menus' click-driven, hover-stable column style. The menu is built
+			// as a JPopupMenu above; MenuTreeAdapter walks it into the new model.
+			private void showSectionMenu(java.awt.Component invoker, int x, int y)
+			{
+				com.goalplanner.ui.columnmenu.ColumnMenu.show(invoker, x, y,
+					com.goalplanner.ui.columnmenu.MenuTreeAdapter.fromPopup(menu));
 			}
 		});
 	}
