@@ -1838,6 +1838,43 @@ public class GoalStore
 		return sectionIndex.get(sectionId);
 	}
 
+	/** Namespace key shared by the built-in Incomplete + Completed default. */
+	public static final String DEFAULT_NAMESPACE = "__DEFAULT__";
+
+	/**
+	 * Canonical namespace key for a section. The built-in Incomplete + Completed
+	 * pair collapses to one shared "default" namespace; each user section is its
+	 * own namespace. Returns null for an unknown section id. Drives the
+	 * per-section no-duplicates rule — each section is its own bucket.
+	 */
+	public String namespaceKey(String sectionId)
+	{
+		Section s = findSection(sectionId);
+		if (s == null) return null;
+		return s.getBuiltInKind() != null ? DEFAULT_NAMESPACE : s.getId();
+	}
+
+	/**
+	 * Find an existing goal in the same namespace as {@code targetSectionId} that
+	 * shares {@code goal}'s identity (per {@link com.goalplanner.model.GoalIdentity}),
+	 * or null if none. The candidate {@code goal} itself is never returned.
+	 */
+	public Goal findEquivalentInNamespace(String targetSectionId, Goal goal)
+	{
+		String ns = namespaceKey(targetSectionId);
+		if (ns == null || goal == null) return null;
+		for (Goal g : goals)
+		{
+			if (g == goal) continue;
+			if (ns.equals(namespaceKey(g.getSectionId()))
+				&& com.goalplanner.model.GoalIdentity.sameIdentity(g, goal))
+			{
+				return g;
+			}
+		}
+		return null;
+	}
+
 
 	/**
 	 * Find a user-defined section by case-insensitive name match. Returns null

@@ -306,6 +306,39 @@ class GoalStoreTest
 		assertEquals(b.getId(), g.getSectionId());
 	}
 
+	@Test
+	@DisplayName("namespaceKey collapses built-ins to one default; user sections are distinct")
+	void namespaceKeyCollapsesBuiltins()
+	{
+		String inc = store.getIncompleteSection().getId();
+		String comp = store.getCompletedSection().getId();
+		Section a = store.createUserSection("A");
+		Section b = store.createUserSection("B");
+
+		assertEquals(GoalStore.DEFAULT_NAMESPACE, store.namespaceKey(inc));
+		assertEquals(store.namespaceKey(inc), store.namespaceKey(comp)); // built-ins share one
+		assertEquals(a.getId(), store.namespaceKey(a.getId()));
+		assertNotEquals(store.namespaceKey(a.getId()), store.namespaceKey(b.getId()));
+		assertNull(store.namespaceKey("nonexistent"));
+	}
+
+	@Test
+	@DisplayName("findEquivalentInNamespace matches a same-identity goal within the namespace, not across")
+	void findEquivalentInNamespaceScopes()
+	{
+		Section a = store.createUserSection("A");
+		Section b = store.createUserSection("B");
+		Goal inA = Goal.builder().type(GoalType.QUEST).questName("SONG_OF_THE_ELVES")
+			.sectionId(a.getId()).build();
+		store.addGoal(inA);
+
+		Goal probe = Goal.builder().type(GoalType.QUEST).questName("SONG_OF_THE_ELVES").build();
+		// Found in A's namespace; absent from B's and from the default.
+		assertEquals(inA.getId(), store.findEquivalentInNamespace(a.getId(), probe).getId());
+		assertNull(store.findEquivalentInNamespace(b.getId(), probe));
+		assertNull(store.findEquivalentInNamespace(store.getIncompleteSection().getId(), probe));
+	}
+
 	// ====================================================================
 	// Persistence round-trip
 	// ====================================================================
