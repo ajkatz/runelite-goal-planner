@@ -1280,6 +1280,8 @@ public class GoalPlannerPlugin extends Plugin
 
 					// And straight into a user section (bare goal, no seeding).
 					addSectionMenuEntries("Add to Section: " + tier.getDisplayName(), diaryMenuTarget,
+						Goal.builder().type(GoalType.DIARY).name(areaDisplayName)
+							.description(tier.getDisplayName() + " Achievement Diary").build(),
 						areaDisplayName + " " + tier.getDisplayName(),
 						() -> goalTrackerApi.addDiaryGoalWithPrereqs(areaDisplayName, apiTier, null));
 				}
@@ -1332,7 +1334,9 @@ public class GoalPlannerPlugin extends Plugin
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
 					}));
-				addSectionMenuEntries("Add to Section", menuTarget, quest.getName(),
+				addSectionMenuEntries("Add to Section", menuTarget,
+					Goal.builder().type(GoalType.QUEST).questName(quest.name()).build(),
+					quest.getName(),
 					() -> goalTrackerApi.addQuestGoalWithPrereqs(quest, java.util.Collections.emptyList()));
 				break;
 			}
@@ -1379,7 +1383,7 @@ public class GoalPlannerPlugin extends Plugin
 						addGoalUndoable(goal, "Add CA goal: " + newName);
 						refreshItemGoalsNow();
 					});
-				addSectionMenuEntries("Add to Section", entry.getTarget(), preview.getName(),
+				addSectionMenuEntries("Add to Section", entry.getTarget(), preview, preview.getName(),
 					() ->
 					{
 						Goal g = buildCombatAchievementGoal(row);
@@ -1739,8 +1743,15 @@ public class GoalPlannerPlugin extends Plugin
 	 * where it stays put even when already complete (user sections keep their
 	 * completed goals inline). Seed-free — the user is curating exact goals.
 	 */
-	private void addToSection(String sectionId, String label, java.util.function.Supplier<String> bareAdd)
+	private void addToSection(String sectionId, Goal probe, String label,
+		java.util.function.Supplier<String> bareAdd)
 	{
+		// Per-section dedup: if this section already holds the goal, do nothing
+		// (prevents creating an orphan default goal when the target already has it).
+		if (probe != null && goalStore.findEquivalentInNamespace(sectionId, probe) != null)
+		{
+			return;
+		}
 		goalTrackerApi.beginCompound("Add to section: " + label);
 		try
 		{
@@ -1761,7 +1772,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * No user sections → nothing added. One → a single direct entry. Several →
 	 * an "Add to Section ▸ &lt;section&gt;" submenu.
 	 */
-	private void addSectionMenuEntries(String baseOption, String menuTarget, String label,
+	private void addSectionMenuEntries(String baseOption, String menuTarget, Goal probe, String label,
 		java.util.function.Supplier<String> bareAdd)
 	{
 		java.util.List<com.goalplanner.api.SectionView> sections = userSections();
@@ -1777,7 +1788,7 @@ public class GoalPlannerPlugin extends Plugin
 				.setOption(baseOption)
 				.setTarget(menuTarget)
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, label, bareAdd)));
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, probe, label, bareAdd)));
 			return;
 		}
 		MenuEntry parent = client.createMenuEntry(1)
@@ -1791,7 +1802,7 @@ public class GoalPlannerPlugin extends Plugin
 			sub.createMenuEntry(0)
 				.setOption(section.name)
 				.setType(MenuAction.RUNELITE)
-				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, label, bareAdd)));
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, probe, label, bareAdd)));
 		}
 	}
 
