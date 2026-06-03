@@ -1334,22 +1334,21 @@ class GoalContextMenuBuilder
 			// always keep inline as a checklist.
 			boolean archiveDefault = api.isAutoArchiveDefault();
 			Boolean archiveOverride = section.autoArchiveOverride;
-			String current = "   (current)"; // marks the active choice (ColumnMenu has no radio state)
 			JMenu completedMenu = new JMenu("Completed goals");
 
-			JMenuItem useDefault = new JMenuItem("Use default ("
-				+ (archiveDefault ? "auto-archive" : "keep inline") + ")"
-				+ (archiveOverride == null ? current : ""));
+			javax.swing.JRadioButtonMenuItem useDefault = new javax.swing.JRadioButtonMenuItem(
+				"Use default (" + (archiveDefault ? "auto-archive" : "keep inline") + ")",
+				archiveOverride == null);
 			useDefault.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, null));
 			completedMenu.add(useDefault);
 
-			JMenuItem archiveItem = new JMenuItem("Auto-archive (move to Completed)"
-				+ (Boolean.TRUE.equals(archiveOverride) ? current : ""));
+			javax.swing.JRadioButtonMenuItem archiveItem = new javax.swing.JRadioButtonMenuItem(
+				"Auto-archive (move to Completed)", Boolean.TRUE.equals(archiveOverride));
 			archiveItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.TRUE));
 			completedMenu.add(archiveItem);
 
-			JMenuItem keepItem = new JMenuItem("Keep inline (checklist)"
-				+ (Boolean.FALSE.equals(archiveOverride) ? current : ""));
+			javax.swing.JRadioButtonMenuItem keepItem = new javax.swing.JRadioButtonMenuItem(
+				"Keep inline (checklist)", Boolean.FALSE.equals(archiveOverride));
 			keepItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.FALSE));
 			completedMenu.add(keepItem);
 

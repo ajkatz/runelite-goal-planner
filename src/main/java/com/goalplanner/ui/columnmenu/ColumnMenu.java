@@ -50,6 +50,8 @@ public final class ColumnMenu
 	private static final int MAX_COLUMN_WIDTH = 380;
 	private static final int ROW_HEIGHT = 24;
 	private static final int SEP_HEIGHT = 5;
+	private static final int CHECK_GUTTER = 16; // left column reserved for the selection dot
+	private static final int DOT_SIZE = 6;
 	private static final int COLUMN_PADDING = 8; // 4 top + 4 bottom
 	private static final int MAX_COLUMN_HEIGHT = 480;
 
@@ -265,10 +267,20 @@ public final class ColumnMenu
 		row.setPreferredSize(new Dimension(columnWidth, ROW_HEIGHT));
 		row.setMaximumSize(new Dimension(columnWidth, ROW_HEIGHT));
 
+		if (node.checkable)
+		{
+			// Left gutter — a dot on the selected row, blank on the others
+			// (the gutter stays present on every checkable row so the labels
+			// keep their alignment).
+			JLabel mark = new JLabel(node.checked ? dotIcon(node.enabled ? FG : FG_DISABLED) : null);
+			mark.setPreferredSize(new Dimension(CHECK_GUTTER, ROW_HEIGHT));
+			row.add(mark, BorderLayout.WEST);
+		}
+
 		JLabel label = new JLabel(node.label);
 		label.setForeground(node.enabled ? FG : FG_DISABLED);
 		label.setFont(PanelFonts.derive(Font.PLAIN, 13f));
-		row.add(label, BorderLayout.WEST);
+		row.add(label, BorderLayout.CENTER);
 
 		if (node.isSubmenu())
 		{
@@ -377,6 +389,25 @@ public final class ColumnMenu
 			globalListener = null;
 		}
 		window.dispose();
+	}
+
+	/** Small filled dot used to mark the selected row in a checkable group. */
+	private static javax.swing.Icon dotIcon(Color color)
+	{
+		return new javax.swing.Icon()
+		{
+			@Override public int getIconWidth() { return DOT_SIZE; }
+			@Override public int getIconHeight() { return DOT_SIZE; }
+			@Override public void paintIcon(Component c, java.awt.Graphics g, int x, int y)
+			{
+				java.awt.Graphics2D g2 = (java.awt.Graphics2D) g.create();
+				g2.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+					java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+				g2.setColor(color);
+				g2.fillOval(x, y, DOT_SIZE, DOT_SIZE);
+				g2.dispose();
+			}
+		};
 	}
 
 	private static Color brighten(Color c, int amount)

@@ -84,8 +84,18 @@ public final class MenuTreeAdapter
 			MenuNode leaf = Boolean.TRUE.equals(keepOpen)
 				? MenuNode.leafStaysOpen(item.getText(), action)
 				: MenuNode.leaf(item.getText(), action);
-			return item.getToolTipText() != null
-				? leaf.withTooltip(item.getToolTipText()) : leaf;
+			// Radio / checkbox items carry a selected state — render as a
+			// checkable row (a left dot marks the selected one).
+			if (item instanceof javax.swing.JRadioButtonMenuItem
+				|| item instanceof javax.swing.JCheckBoxMenuItem)
+			{
+				leaf = leaf.withCheck(true, item.isSelected());
+			}
+			if (item.getToolTipText() != null)
+			{
+				leaf = leaf.withTooltip(item.getToolTipText());
+			}
+			return leaf;
 		}
 		return null;
 	}
