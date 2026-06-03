@@ -77,18 +77,19 @@ class ShareImportService
 			@Override
 			public boolean apply()
 			{
-				// Every import lands in its own NEW user section. Because user
-				// sections keep their completed goals inline, the recipient sees
-				// the shared set as a checklist against their account:
-				// requirements they already meet show ticked off, the rest show
-				// progress. Loose selections get their own section too rather
-				// than scattering into Incomplete.
+				// Every import lands in its own NEW user section, forced to
+				// KEEP COMPLETED INLINE (override the global auto-archive default)
+				// so the recipient sees the shared set as a checklist against
+				// their account: requirements they already meet show ticked off,
+				// the rest show progress. Loose selections get their own section
+				// too rather than scattering into Incomplete.
 				Section section = api.goalStore.createUserSection(sectionName);
 				if (section == null)
 				{
 					log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
 					return false;
 				}
+				api.goalStore.setSectionAutoArchiveOverride(section.getId(), false);
 				createdSectionId[0] = section.getId();
 				String targetSectionId = section.getId();
 				landedSectionId[0] = targetSectionId;

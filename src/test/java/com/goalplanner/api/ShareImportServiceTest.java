@@ -97,9 +97,11 @@ class ShareImportServiceTest
 			.filter(s -> sectionId.equals(s.getId())).findFirst().orElse(null);
 		assertNotNull(section);
 		assertEquals("Inferno Prep (from Andrew)", section.getName());
-		// Imports land in their own user section (which keeps completed goals
-		// inline, so the recipient sees it as a checklist against their account).
+		// Imports land in their own user section, forced KEEP-INLINE (overriding
+		// the global auto-archive default) so the recipient sees it as a checklist
+		// against their account.
 		assertFalse(section.isBuiltIn());
+		assertEquals(Boolean.FALSE, section.getAutoArchiveOverride());
 
 		Goal ranged = goalNamed("Ranged - Level 75");
 		Goal zuk = goalNamed("TzKal-Zuk");
