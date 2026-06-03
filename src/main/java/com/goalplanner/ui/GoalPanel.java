@@ -183,6 +183,19 @@ public class GoalPanel extends PluginPanel
 				// (consistent with goal sharing); goal sharing on goal cards.
 			}
 
+			popup.addSeparator();
+			JMenuItem removeDupes = new JMenuItem("Remove duplicate goals");
+			removeDupes.setToolTipText(
+				"Collapse same-goal duplicates within each section (keeps the most-complete one).");
+			removeDupes.addActionListener(ev -> {
+				int n = api.removeDuplicateGoals();
+				rebuild();
+				javax.swing.JOptionPane.showMessageDialog(GoalPanel.this,
+					n == 0 ? "No duplicate goals found." : "Removed " + n + " duplicate goal(s).",
+					"Remove Duplicates", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+			});
+			popup.add(removeDupes);
+
 			popup.show(optionsButton, 0, optionsButton.getHeight());
 		});
 

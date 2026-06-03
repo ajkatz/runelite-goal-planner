@@ -397,6 +397,32 @@ class GoalPlannerApiImplTest
 		assertEquals(Boolean.FALSE, store.findSection(section).getAutoArchiveOverride());
 	}
 
+	@Test
+	@DisplayName("removeDuplicateGoals collapses same-identity dups within a namespace (keeps complete), spares cross-section copies")
+	void removeDuplicateGoals()
+	{
+		String secId = api.createSection("S");
+		// Two "Quest X" in the default bucket (simulating archived dups); one complete.
+		Goal d1 = Goal.builder().type(GoalType.QUEST).questName("X").build();
+		Goal d2 = Goal.builder().type(GoalType.QUEST).questName("X")
+			.completedAt(1L).status(GoalStatus.COMPLETE).build();
+		// Same quest in a user section — a different namespace, must be spared.
+		Goal s1 = Goal.builder().type(GoalType.QUEST).questName("X").sectionId(secId).build();
+		store.addGoal(d1);
+		store.addGoal(d2);
+		store.addGoal(s1);
+		assertEquals(3, store.getGoals().size());
+
+		assertEquals(1, api.removeDuplicateGoals());
+		assertEquals(2, store.getGoals().size());
+		assertNotNull(api.findGoal(d2.getId())); // complete one kept
+		assertNull(api.findGoal(d1.getId()));    // incomplete dup removed
+		assertNotNull(api.findGoal(s1.getId()));  // cross-section copy spared
+
+		api.undo();
+		assertEquals(3, store.getGoals().size()); // undo restores the removed dup
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================

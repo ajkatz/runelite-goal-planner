@@ -628,6 +628,88 @@ class GoalMutationService
 		}
 	}
 
+	/**
+	 * Remove duplicate goals — within each namespace (the default Incomplete+
+	 * Completed, or a user section), goals that share an identity
+	 * ({@link com.goalplanner.model.GoalIdentity}) are collapsed to one, keeping
+	 * the most advanced (complete &gt; more progress &gt; first). Lets the user
+	 * clean up the duplicates that can accumulate in the default bucket from
+	 * auto-archiving several same-identity goals. One undoable gesture.
+	 *
+	 * @return the number of goals removed
+	 */
+	int removeDuplicateGoals()
+	{
+		log.debug("API.internal removeDuplicateGoals()");
+		final java.util.List<Goal> all = new ArrayList<>(api.goalStore.getGoals());
+		final java.util.Set<String> removeIds = new java.util.LinkedHashSet<>();
+		for (int i = 0; i < all.size(); i++)
+		{
+			Goal a = all.get(i);
+			if (removeIds.contains(a.getId())) continue;
+			String nsA = api.goalStore.namespaceKey(a.getSectionId());
+			java.util.List<Goal> group = new ArrayList<>();
+			group.add(a);
+			for (int j = i + 1; j < all.size(); j++)
+			{
+				Goal b = all.get(j);
+				if (removeIds.contains(b.getId())) continue;
+				if (java.util.Objects.equals(nsA, api.goalStore.namespaceKey(b.getSectionId()))
+					&& com.goalplanner.model.GoalIdentity.sameIdentity(a, b))
+				{
+					group.add(b);
+				}
+			}
+			if (group.size() <= 1) continue;
+			Goal keep = group.get(0);
+			for (Goal g : group) keep = preferGoal(keep, g);
+			for (Goal g : group) if (g != keep) removeIds.add(g.getId());
+		}
+		if (removeIds.isEmpty()) return 0;
+
+		final java.util.List<Goal> toRemove = new ArrayList<>();
+		for (Goal g : all) if (removeIds.contains(g.getId())) toRemove.add(g);
+		final java.util.Set<String> selectionSnapshot = new java.util.LinkedHashSet<>(api.selectedGoalIds);
+
+		api.goalStore.suspendSave();
+		try
+		{
+			api.executeCommand(new com.goalplanner.command.Command()
+			{
+				@Override public boolean apply()
+				{
+					for (Goal g : toRemove) api.goalStore.removeGoal(g.getId());
+					api.selectedGoalIds.removeAll(removeIds);
+					return true;
+				}
+				@Override public boolean revert()
+				{
+					for (Goal g : toRemove) if (api.findGoal(g.getId()) == null) api.goalStore.addGoal(g);
+					api.goalStore.normalizeOrder();
+					api.selectedGoalIds.addAll(selectionSnapshot);
+					return true;
+				}
+				@Override public String getDescription() { return "Remove " + toRemove.size() + " duplicate goal(s)"; }
+			});
+		}
+		finally
+		{
+			api.goalStore.resumeSave();
+		}
+		return toRemove.size();
+	}
+
+	/** Pick which of two same-identity goals to keep: complete &gt; more progress &gt; the first. */
+	private Goal preferGoal(Goal keep, Goal candidate)
+	{
+		if (candidate == keep) return keep;
+		if (candidate.isComplete() != keep.isComplete())
+		{
+			return candidate.isComplete() ? candidate : keep;
+		}
+		return candidate.getCurrentValue() > keep.getCurrentValue() ? candidate : keep;
+	}
+
 	boolean moveGoal(String goalId, int newGlobalIndex)
 	{
 		log.debug("API.internal moveGoal(goalId={}, newGlobalIndex={})", goalId, newGlobalIndex);

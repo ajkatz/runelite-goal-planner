@@ -168,6 +168,8 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public int bulkRemoveGoals(java.util.Set<String> goalIds) { return mutationService.bulkRemoveGoals(goalIds); }
 	@Override public int bulkMoveGoalsToSection(java.util.Set<String> goalIds, String targetSectionId) { return mutationService.bulkMoveGoalsToSection(goalIds, targetSectionId); }
 	@Override public void removeAllGoals() { mutationService.removeAllGoals(); }
+	// Not part of the published GoalPlannerApi — UI "Remove duplicate goals" cleanup.
+	public int removeDuplicateGoals() { return mutationService.removeDuplicateGoals(); }
 	@Override public boolean moveGoal(String goalId, int newGlobalIndex) { autoDeselectIfNotMember(goalId); return mutationService.moveGoal(goalId, newGlobalIndex); }
 	@Override public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection) { autoDeselectIfNotMember(goalId); return mutationService.positionGoalInSection(goalId, sectionId, positionInSection); }
 	@Override public boolean setGoalOptional(String goalId, boolean optional) { autoDeselectIfNotMember(goalId); return mutationService.setGoalOptional(goalId, optional); }
