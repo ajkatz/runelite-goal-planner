@@ -17,9 +17,14 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Applies a decoded {@link ShareBundle} (received over the Party transport, or
- * pasted as a share code) into the store: a new user section, fresh goals with
- * find-or-created tags and remapped relations, all in one undo-compound so a
- * single {@code undo()} reverses the whole import.
+ * pasted as a share code) into the store: a new <b>guide</b> section, fresh
+ * goals with find-or-created tags and remapped relations, all in one
+ * undo-compound so a single {@code undo()} reverses the whole import.
+ *
+ * <p>Imports land in a guide section on purpose: the recipient sees the whole
+ * shared set as a checklist against their own account — requirements they
+ * already meet show ticked off inline instead of being relocated to Completed.
+ * They can "Clear Guide" on the section to convert it to normal tracking.
  *
  * <p>Inverse of {@code com.goalplanner.share.ShareMapper}. Because the payload
  * originates on another player's client it is treated as <b>untrusted</b>:
@@ -54,8 +59,7 @@ class ShareImportService
 			return null;
 		}
 
-		final boolean isSection = bundle.getKind() == ShareBundle.Kind.SECTION;
-		final String sectionName = isSection ? importSectionName(bundle) : null;
+		final String sectionName = importSectionName(bundle);
 		final List<GoalShareDto> dtos = bundle.getGoals();
 
 		// Wrap the whole import as ONE undoable command: apply creates the
@@ -73,30 +77,20 @@ class ShareImportService
 			@Override
 			public boolean apply()
 			{
-				String targetSectionId;
-				if (isSection)
+				// Every import lands in a NEW GUIDE section so the recipient sees
+				// the shared set as a checklist: requirements they already meet
+				// stay ticked off inline instead of vanishing to Completed. This
+				// applies to loose selections too (they get their own guide
+				// section rather than scattering into Incomplete).
+				Section section = api.goalStore.createUserSection(sectionName);
+				if (section == null)
 				{
-					Section section = api.goalStore.createUserSection(sectionName);
-					if (section == null)
-					{
-						log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
-						return false;
-					}
-					createdSectionId[0] = section.getId();
-					targetSectionId = section.getId();
+					log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
+					return false;
 				}
-				else
-				{
-					// A loose goal / selection defaults into the Incomplete section.
-					Section incomplete = api.goalStore.getIncompleteSection();
-					if (incomplete == null)
-					{
-						log.warn("importBundle: no Incomplete section available");
-						return false;
-					}
-					createdSectionId[0] = null;   // nothing to delete on revert
-					targetSectionId = incomplete.getId();
-				}
+				api.goalStore.setSectionGuide(section.getId(), true);
+				createdSectionId[0] = section.getId();
+				String targetSectionId = section.getId();
 				landedSectionId[0] = targetSectionId;
 				createdGoalIds.clear();
 				Map<Integer, String> refToId = new HashMap<>();
@@ -161,7 +155,7 @@ class ShareImportService
 			@Override
 			public String getDescription()
 			{
-				return isSection ? "Import shared goals: " + sectionName : "Import shared goals";
+				return "Import shared goals: " + sectionName;
 			}
 		});
 

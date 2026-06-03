@@ -35,7 +35,7 @@ API so other plugins can read and create goals programmatically.
 ## Features
 
 - **Sections** — built-in Incomplete + Completed plus user-defined sections in the middle band. Each section can be renamed, recolored, reordered, and right-clicked for bulk operations.
-- **Guide sections** — right-click a user section → **Make Guide** to turn it into an account-independent guide (e.g. an "Inferno prep" set you share). Completed goals stay shown inline instead of being relocated to Completed, so a maxed player can build a complete, shareable guide without it collapsing to all-done — and a recipient sees their own ✓/todo against it inline. Tracking is unchanged; only the auto-relocation is suppressed. A blue **GUIDE** badge marks the header.
+- **Guide sections** — right-click a user section → **Make Guide** to turn it into an account-independent guide (e.g. an "Inferno prep" set you share). Completed goals stay shown inline instead of being relocated to Completed, so a maxed player can build a complete, shareable guide without it collapsing to all-done — and a recipient sees their own ✓/todo against it inline. Tracking is unchanged; only the auto-relocation is suppressed. A blue **GUIDE** badge marks the header. Shared guides you import also land as guide sections, so you instantly see what you've already done versus what's left.
 - **Colors** — every section, goal, and tag has a default color and an optional user override. Curated 12-swatch palette + JColorChooser escape hatch. Section header backgrounds are darkened to keep light text readable.
 - **Multi-select + bulk actions** — click to select, cmd/ctrl-click to multi-select. Right-click a multi-selection for bulk Move to Section, Add Tag, Change Color, Mark Complete (CUSTOM only), Remove. Selection state is ephemeral.
 - **Undo / Redo** — Ctrl-Z / Ctrl-Shift-Z (or Cmd on macOS) reverses every user mutation: adds, removes, edits, reorders, bulk actions, section changes, color + tag edits.
@@ -99,10 +99,11 @@ eventBus.post(new PluginMessage(
     java.util.Map.of("code", shareCode)));
 ```
 
-Goal Planner decodes the code and imports the goals (into a new section, or the
-Incomplete section for a loose selection). Get a share code from the "Copy share
-code" right-click menu, or build one with the `ShareCodec` / `ShareBundle`
-classes in `com.goalplanner.share`.
+Goal Planner decodes the code and imports the goals into a new **guide** section,
+so you immediately see the shared set as a checklist against your own account —
+requirements you already meet show ticked off inline. Get a share code from the
+"Copy share code" right-click menu, or build one with the `ShareCodec` /
+`ShareBundle` classes in `com.goalplanner.share`.
 
 ## Testing
 
