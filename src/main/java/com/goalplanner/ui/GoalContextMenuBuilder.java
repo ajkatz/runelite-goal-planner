@@ -1317,6 +1317,15 @@ class GoalContextMenuBuilder
 			menu.addSeparator();
 		}
 
+		// View toggle: flat list vs dependency connector rail. The rail draws a
+		// left gutter of requires/orRequires lines between the section's goals.
+		// Available on every section, built-in or user. Rendered as a checkable
+		// row (left dot when active) via the ColumnMenu adapter.
+		javax.swing.JCheckBoxMenuItem railToggle =
+			new javax.swing.JCheckBoxMenuItem("Connector rail view", section.railView);
+		railToggle.addActionListener(e -> api.toggleSectionRailView(section.id));
+		menu.add(railToggle);
+
 		// Change Color is available on every section, built-in or user.
 		JMenuItem changeColor = new JMenuItem("Change Color");
 		changeColor.addActionListener(e -> dialogFactory.showSectionColorDialog(section));

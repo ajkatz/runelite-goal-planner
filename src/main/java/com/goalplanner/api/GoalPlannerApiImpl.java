@@ -214,6 +214,8 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public int removeAllUserSections() { return sectionService.removeAllUserSections(); }
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
 	@Override public boolean toggleSectionCollapsed(String sectionId) { return sectionService.toggleSectionCollapsed(sectionId); }
+	@Override public boolean setSectionRailView(String sectionId, boolean railView) { return sectionService.setSectionRailView(sectionId, railView); }
+	@Override public boolean toggleSectionRailView(String sectionId) { return sectionService.toggleSectionRailView(sectionId); }
 	@Override public boolean setSectionColor(String sectionId, int colorRgb) { return sectionService.setSectionColor(sectionId, colorRgb); }
 	@Override public boolean setSectionAutoArchiveOverride(String sectionId, Boolean value) { return sectionService.setSectionAutoArchiveOverride(sectionId, value); }
 	@Override public boolean isAutoArchiveDefault() { return goalStore.isAutoArchiveDefault(); }

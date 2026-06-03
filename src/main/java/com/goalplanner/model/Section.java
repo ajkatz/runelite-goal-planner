@@ -69,6 +69,15 @@ public class Section
 	 */
 	private Boolean autoArchiveOverride;
 
+	/**
+	 * When {@code true}, this section renders as a dependency connector "rail"
+	 * (a git-graph-style left gutter showing requires/orRequires edges between
+	 * goals) instead of the default flat list. Purely a view preference — does
+	 * not change goal data or ordering. Defaults to {@code false} (flat list).
+	 */
+	@Builder.Default
+	private boolean railView = false;
+
 	public boolean isBuiltIn()
 	{
 		return builtInKind != null;

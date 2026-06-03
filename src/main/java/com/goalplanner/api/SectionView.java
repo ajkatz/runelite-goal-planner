@@ -32,4 +32,10 @@ public class SectionView
 	 * keep inline. Always null for built-ins.
 	 */
 	public Boolean autoArchiveOverride;
+	/**
+	 * When true, the panel renders this section as a dependency connector rail
+	 * (left-gutter git-graph of requires/orRequires edges) rather than a flat
+	 * list. View preference only — no effect on goal data.
+	 */
+	public boolean railView;
 }

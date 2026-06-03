@@ -617,6 +617,19 @@ public class GoalPanel extends PluginPanel
 
 			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
+			// Rail view: when enabled, the rendered cards are collected into a
+			// connector-rail container (left gutter of dependency lines) instead
+			// of being stacked directly. Only in-section edges are drawable, so
+			// we pre-compute the set of goal ids present in this section.
+			java.util.List<com.goalplanner.ui.rail.SectionRailContainer.Row> railRows =
+				section.railView ? new java.util.ArrayList<>() : null;
+			java.util.Set<String> sectionGoalIdSet = null;
+			if (railRows != null)
+			{
+				sectionGoalIdSet = new java.util.HashSet<>();
+				for (com.goalplanner.api.GoalView v : topoOrder) sectionGoalIdSet.add(v.id);
+			}
+
 			// Iterate topo-order for rendering, but resolve each
 			// goal's flat-priority index for the arrow buttons. Arrows target
 			// the VISUALLY adjacent card in the topo view, but only when that
@@ -694,7 +707,35 @@ public class GoalPanel extends PluginPanel
 						new Color(0x33, 0x99, 0xFF), 2));
 				}
 
-				goalListPanel.add(card);
+				if (railRows != null)
+				{
+					java.util.List<String> req = new java.util.ArrayList<>();
+					for (String rid : goal.getRequiredGoalIds())
+					{
+						if (sectionGoalIdSet.contains(rid)) req.add(rid);
+					}
+					java.util.List<String> orReq = new java.util.ArrayList<>();
+					for (String rid : goal.getOrRequiredGoalIds())
+					{
+						if (sectionGoalIdSet.contains(rid)) orReq.add(rid);
+					}
+					railRows.add(new com.goalplanner.ui.rail.SectionRailContainer.Row(
+						goal.getId(), req, orReq, goal.isComplete(), card));
+				}
+				else
+				{
+					goalListPanel.add(card);
+					goalListPanel.add(Box.createVerticalStrut(4));
+				}
+			}
+
+			// Flush the collected rail rows for this section into one container.
+			if (railRows != null && !railRows.isEmpty())
+			{
+				com.goalplanner.ui.rail.SectionRailContainer railContainer =
+					new com.goalplanner.ui.rail.SectionRailContainer(railRows);
+				railContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+				goalListPanel.add(railContainer);
 				goalListPanel.add(Box.createVerticalStrut(4));
 			}
 		}

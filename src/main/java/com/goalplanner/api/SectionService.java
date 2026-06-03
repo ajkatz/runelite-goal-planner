@@ -258,6 +258,31 @@ class SectionService
 		return false;
 	}
 
+	boolean setSectionRailView(String sectionId, boolean railView)
+	{
+		log.debug("API.internal setSectionRailView(sectionId={}, railView={})", sectionId, railView);
+		if (sectionId == null) return false;
+		Section s = api.goalStore.findSection(sectionId);
+		if (s == null || s.isRailView() == railView) return false;
+		s.setRailView(railView);
+		api.goalStore.save();
+		api.fireIfNotInCompound();
+		return true;
+	}
+
+	boolean toggleSectionRailView(String sectionId)
+	{
+		log.debug("API.internal toggleSectionRailView(sectionId={})", sectionId);
+		if (sectionId == null) return false;
+		Section s = api.goalStore.findSection(sectionId);
+		if (s == null) return false;
+		boolean next = !s.isRailView();
+		s.setRailView(next);
+		api.goalStore.save();
+		api.fireIfNotInCompound();
+		return next;
+	}
+
 	boolean setSectionColor(String sectionId, int colorRgb)
 	{
 		log.debug("API.internal setSectionColor(sectionId={}, colorRgb={})", sectionId, colorRgb);

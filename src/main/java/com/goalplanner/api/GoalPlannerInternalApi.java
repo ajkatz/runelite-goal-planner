@@ -104,6 +104,24 @@ public interface GoalPlannerInternalApi
 	 */
 	boolean toggleSectionCollapsed(String sectionId);
 
+	/**
+	 * Set whether a section renders as the dependency connector rail (true) or
+	 * the flat list (false). View preference only — does not alter goal data.
+	 *
+	 * @return true if the state changed, false if no such section or already in
+	 *         the requested state
+	 */
+	boolean setSectionRailView(String sectionId, boolean railView);
+
+	/**
+	 * Flip a section's rail/list view preference. Convenience over
+	 * {@link #setSectionRailView} — callers don't need to know the current state.
+	 *
+	 * @return the new rail-view state (true = now rail, false = now flat list);
+	 *         returns the unchanged state if the section doesn't exist
+	 */
+	boolean toggleSectionRailView(String sectionId);
+
 	// ---------------------------------------------------------------------
 	// User-defined section CRUD (Phase 2)
 	// ---------------------------------------------------------------------
