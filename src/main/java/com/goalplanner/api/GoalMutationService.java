@@ -520,6 +520,63 @@ class GoalMutationService
 		return ok ? affectedIds.size() : 0;
 	}
 
+	/**
+	 * Move goals to the DEFAULT namespace — each lands in the built-in that
+	 * matches its completion (incomplete → Incomplete, complete → Completed),
+	 * as one undoable gesture. This is the "Move to Default" action: the default
+	 * is one logical bucket that auto-splits by completion, so the caller doesn't
+	 * pick a half. Goals already in the correct default half are skipped.
+	 *
+	 * @return the number of goals actually moved
+	 */
+	int moveGoalsToDefault(java.util.Collection<String> goalIds)
+	{
+		log.debug("API.internal moveGoalsToDefault({} goals)", goalIds == null ? 0 : goalIds.size());
+		if (goalIds == null || goalIds.isEmpty()) return 0;
+		final String incId = api.goalStore.getIncompleteSection().getId();
+		final String compId = api.goalStore.getCompletedSection().getId();
+		final java.util.List<String> affectedIds = new ArrayList<>();
+		final java.util.List<String> targets = new ArrayList<>();
+		final java.util.List<String> prevSections = new ArrayList<>();
+		final java.util.List<Integer> prevPriorities = new ArrayList<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (!goalIds.contains(g.getId())) continue;
+			String target = g.isComplete() ? compId : incId;
+			if (target.equals(g.getSectionId())) continue; // already in the right default half
+			affectedIds.add(g.getId());
+			targets.add(target);
+			prevSections.add(g.getSectionId());
+			prevPriorities.add(g.getPriority());
+		}
+		if (affectedIds.isEmpty()) return 0;
+		boolean ok = api.executeCommand(new com.goalplanner.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				for (int i = 0; i < affectedIds.size(); i++)
+				{
+					api.sectionService.moveGoalToSectionInternal(affectedIds.get(i), targets.get(i));
+				}
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				for (int i = 0; i < affectedIds.size(); i++)
+				{
+					String gid = affectedIds.get(i);
+					api.goalStore.moveGoalToSection(gid, prevSections.get(i));
+					Goal g = api.findGoal(gid);
+					if (g != null) g.setPriority(prevPriorities.get(i));
+				}
+				api.goalStore.normalizeOrder();
+				return true;
+			}
+			@Override public String getDescription() { return "Move " + affectedIds.size() + " goal(s) to default"; }
+		});
+		return ok ? affectedIds.size() : 0;
+	}
+
 	void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");

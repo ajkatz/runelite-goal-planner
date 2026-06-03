@@ -207,6 +207,8 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public boolean moveGoalToSection(String goalId, String sectionId) { autoDeselectIfNotMember(goalId); return sectionService.moveGoalToSection(goalId, sectionId); }
 	// Not part of the published GoalPlannerApi — UI duplicate-to-section action.
 	public java.util.List<String> duplicateGoalsToSection(java.util.Collection<String> goalIds, String targetSectionId) { return creationService.duplicateGoalsToSection(goalIds, targetSectionId); }
+	// Not part of the published GoalPlannerApi — UI "Move to Default" action.
+	public int moveGoalsToDefault(java.util.Collection<String> goalIds) { return mutationService.moveGoalsToDefault(goalIds); }
 	@Override public int removeAllUserSections() { return sectionService.removeAllUserSections(); }
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
 	@Override public boolean toggleSectionCollapsed(String sectionId) { return sectionService.toggleSectionCollapsed(sectionId); }

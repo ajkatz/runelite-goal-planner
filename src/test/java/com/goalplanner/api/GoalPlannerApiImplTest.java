@@ -356,6 +356,26 @@ class GoalPlannerApiImplTest
 		assertEquals(newId, api.addCustomGoal("Beat Inferno", ""));
 	}
 
+	@Test
+	@DisplayName("moveGoalsToDefault routes each goal to its completion-matching built-in, undoable")
+	void moveGoalsToDefault()
+	{
+		String section = api.createSection("Stuff");
+		Goal todo = Goal.builder().type(GoalType.CUSTOM).name("todo").sectionId(section).build();
+		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(section).build();
+		store.addGoal(todo);
+		store.addGoal(done);
+
+		assertEquals(2, api.moveGoalsToDefault(java.util.Arrays.asList(todo.getId(), done.getId())));
+		assertEquals(store.getIncompleteSection().getId(), todo.getSectionId()); // incomplete → Incomplete
+		assertEquals(store.getCompletedSection().getId(), done.getSectionId());  // complete → Completed
+
+		api.undo(); // one gesture restores both to the user section
+		assertEquals(section, todo.getSectionId());
+		assertEquals(section, done.getSectionId());
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================

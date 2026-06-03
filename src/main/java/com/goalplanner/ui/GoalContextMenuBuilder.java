@@ -600,15 +600,30 @@ class GoalContextMenuBuilder
 
 			List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
 			List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
+			// The two built-ins are one logical "Default" bucket (auto-split by
+			// completion) — offered as a single "Default" entry below, not as
+			// individual Incomplete/Completed destinations.
+			String defaultIncompleteId = null;
+			boolean goalInDefault = false;
 			for (com.goalplanner.api.SectionView sv : allSections)
 			{
-				if ("COMPLETED".equals(sv.kind)) continue;
-				// A completed goal can't live in Incomplete (it'd bounce back to
-				// Completed), so don't offer it for move OR duplicate — completed
-				// goals file into user sections only.
-				if ("INCOMPLETE".equals(sv.kind) && goal.isComplete()) continue;
+				if ("INCOMPLETE".equals(sv.kind)) defaultIncompleteId = sv.id;
+				if (sv.builtIn)
+				{
+					if (sv.id.equals(goal.getSectionId())) goalInDefault = true;
+					continue;
+				}
 				if (sv.id.equals(goal.getSectionId())) continue;
 				destinations.add(sv);
+			}
+			if (!goalInDefault)
+			{
+				// "Default" → the Incomplete/Completed list; lands by completion.
+				JMenuItem moveDefault = new JMenuItem("Default");
+				moveDefault.setToolTipText("Move to the default Incomplete / Completed list.");
+				moveDefault.addActionListener(e -> api.moveGoalsToDefault(
+					java.util.Collections.singletonList(goal.getId())));
+				moveToSection.add(moveDefault);
 			}
 			for (com.goalplanner.api.SectionView dest : destinations)
 			{
@@ -639,6 +654,16 @@ class GoalContextMenuBuilder
 			// Duplicate to Section — an independent copy in another section.
 			// Per-section identity: the same goal can live once per section.
 			JMenu dupToSection = new JMenu("Duplicate to Section");
+			if (!goalInDefault && defaultIncompleteId != null)
+			{
+				// A fresh copy is incomplete, so it enters the default via Incomplete.
+				final String defId = defaultIncompleteId;
+				JMenuItem dupDefault = new JMenuItem("Default");
+				dupDefault.setToolTipText("Duplicate into the default Incomplete / Completed list.");
+				dupDefault.addActionListener(e -> api.duplicateGoalsToSection(
+					java.util.Collections.singletonList(goal.getId()), defId));
+				dupToSection.add(dupDefault);
+			}
 			for (com.goalplanner.api.SectionView dest : destinations)
 			{
 				JMenuItem dupItem = new JMenuItem(dest.name);
@@ -1001,17 +1026,18 @@ class GoalContextMenuBuilder
 		// Available whenever there's a selection + a destination section
 		// (completed goals are movable/duplicable now).
 		boolean anyMovable = !selectedGoals.isEmpty();
-		boolean anyComplete = false;
-		for (Goal g : selectedGoals) { if (g.isComplete()) { anyComplete = true; break; } }
 		List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
+		String defaultIncompleteId = null, defaultCompletedId = null;
+		for (com.goalplanner.api.SectionView sv : allSections)
+		{
+			if ("INCOMPLETE".equals(sv.kind)) defaultIncompleteId = sv.id;
+			if ("COMPLETED".equals(sv.kind)) defaultCompletedId = sv.id;
+		}
 		List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
 		for (com.goalplanner.api.SectionView sv : allSections)
 		{
-			// Completed is auto-managed; bulk-move can't target it.
-			if ("COMPLETED".equals(sv.kind)) continue;
-			// Incomplete can't hold a completed goal (it'd bounce to Completed),
-			// so don't offer it when any selected goal is complete.
-			if ("INCOMPLETE".equals(sv.kind) && anyComplete) continue;
+			// Built-ins are offered as a single "Default" entry, not individually.
+			if (sv.builtIn) continue;
 			// Skip sections where every selected goal already lives.
 			boolean allAlreadyHere = true;
 			for (Goal g : selectedGoals)
@@ -1020,6 +1046,17 @@ class GoalContextMenuBuilder
 			}
 			if (allAlreadyHere) continue;
 			destinations.add(sv);
+		}
+		// "Default" shows unless every selected goal already lives in the default.
+		boolean allInDefault = !selectedGoals.isEmpty();
+		for (Goal g : selectedGoals)
+		{
+			String sid = g.getSectionId();
+			if (sid == null || (!sid.equals(defaultIncompleteId) && !sid.equals(defaultCompletedId)))
+			{
+				allInDefault = false;
+				break;
+			}
 		}
 
 		// In-section bulk reordering — only when every selected goal is in
@@ -1098,9 +1135,20 @@ class GoalContextMenuBuilder
 				moveMenu.add(moveDown);
 			}
 
-			if (!destinations.isEmpty())
+			if (!destinations.isEmpty() || !allInDefault)
 			{
 				JMenu moveToSection = new JMenu("Move to Section");
+				if (!allInDefault)
+				{
+					JMenuItem moveDefault = new JMenuItem("Default");
+					moveDefault.setToolTipText("Move to the default Incomplete / Completed list.");
+					moveDefault.addActionListener(e -> {
+						LinkedHashSet<String> ids = new LinkedHashSet<>();
+						for (Goal g : selectedGoals) ids.add(g.getId());
+						api.moveGoalsToDefault(ids);
+					});
+					moveToSection.add(moveDefault);
+				}
 				for (com.goalplanner.api.SectionView dest : destinations)
 				{
 					JMenuItem item = new JMenuItem(dest.name);
@@ -1116,6 +1164,18 @@ class GoalContextMenuBuilder
 				// Bulk Duplicate to Section — independent copies, in-set
 				// relations remapped, per-section dedup skips ones already there.
 				JMenu dupToSection = new JMenu("Duplicate to Section");
+				if (!allInDefault && defaultIncompleteId != null)
+				{
+					final String defId = defaultIncompleteId;
+					JMenuItem dupDefault = new JMenuItem("Default");
+					dupDefault.setToolTipText("Duplicate into the default Incomplete / Completed list.");
+					dupDefault.addActionListener(e -> {
+						LinkedHashSet<String> ids = new LinkedHashSet<>();
+						for (Goal g : selectedGoals) ids.add(g.getId());
+						api.duplicateGoalsToSection(ids, defId);
+					});
+					dupToSection.add(dupDefault);
+				}
 				for (com.goalplanner.api.SectionView dest : destinations)
 				{
 					JMenuItem item = new JMenuItem(dest.name);
