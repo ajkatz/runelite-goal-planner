@@ -213,6 +213,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
 	@Override public boolean toggleSectionCollapsed(String sectionId) { return sectionService.toggleSectionCollapsed(sectionId); }
 	@Override public boolean setSectionColor(String sectionId, int colorRgb) { return sectionService.setSectionColor(sectionId, colorRgb); }
+	@Override public boolean setSectionAutoArchiveCompleted(String sectionId, boolean value) { return sectionService.setSectionAutoArchiveCompleted(sectionId, value); }
 	@Override public boolean setGoalColor(String goalId, int colorRgb) { autoDeselectIfNotMember(goalId); return sectionService.setGoalColor(goalId, colorRgb); }
 
 	// =====================================================================

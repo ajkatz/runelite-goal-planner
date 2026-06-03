@@ -1766,11 +1766,21 @@ public class GoalStore
 		for (Goal goal : goals)
 		{
 			String currentSid = goal.getSectionId();
-			// Only the built-in Incomplete/Completed default auto-sorts by
-			// completion. Goals in a user section are sticky — each section is
-			// its own bucket and keeps its completed goals inline.
 			boolean inDefault = completedId.equals(currentSid) || incompleteId.equals(currentSid);
-			if (!inDefault) continue;
+			if (!inDefault)
+			{
+				// User section: sticky by default (keeps completed goals inline),
+				// UNLESS it opted into auto-archiving — then completed goals move
+				// out to the default Completed section.
+				Section sec = findSection(currentSid);
+				if (sec != null && sec.isAutoArchiveCompleted() && goal.isComplete())
+				{
+					goal.setSectionId(completedId);
+					anyMoved = true;
+					movedGoals.add(goal);
+				}
+				continue;
+			}
 			boolean isComplete = goal.isComplete();
 			if (isComplete && incompleteId.equals(currentSid))
 			{
@@ -1975,6 +1985,23 @@ public class GoalStore
 		Section dup = findUserSectionByName(trimmed);
 		if (dup != null && !dup.getId().equals(sectionId)) return false;
 		section.setName(trimmed);
+		saveSectionsIfNotSuspended();
+		return true;
+	}
+
+	/**
+	 * Set whether a user section auto-archives its completed goals to the default
+	 * Completed section. Built-in sections can't be toggled. Returns false on:
+	 * not found, built-in, or no-op (already set). Does NOT reconcile — callers
+	 * that want existing completed goals archived immediately call
+	 * {@link #reconcileCompletedSection()} after.
+	 */
+	public boolean setSectionAutoArchiveCompleted(String sectionId, boolean value)
+	{
+		Section section = findSection(sectionId);
+		if (section == null || section.isBuiltIn()) return false;
+		if (section.isAutoArchiveCompleted() == value) return false;
+		section.setAutoArchiveCompleted(value);
 		saveSectionsIfNotSuspended();
 		return true;
 	}

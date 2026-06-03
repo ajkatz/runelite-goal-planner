@@ -185,6 +185,15 @@ public interface GoalPlannerInternalApi
 	boolean setSectionColor(String sectionId, int colorRgb);
 
 	/**
+	 * Set whether a user section auto-archives its completed goals to the default
+	 * Completed section (opt-in; default keeps them inline). Enabling it archives
+	 * existing completed goals immediately. Built-ins can't be toggled. Undoable.
+	 *
+	 * @return true if the flag changed, false on: not found, built-in, or no-op
+	 */
+	boolean setSectionAutoArchiveCompleted(String sectionId, boolean value);
+
+	/**
 	 * Set a goal's background color override. Works on all goal types —
 	 * the override survives rebuilds because it's persisted on the goal model.
 	 * Pass -1 to clear the override and revert to the GoalType default color.

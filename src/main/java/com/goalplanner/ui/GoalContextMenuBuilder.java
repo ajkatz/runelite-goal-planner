@@ -1329,6 +1329,18 @@ class GoalContextMenuBuilder
 			rename.addActionListener(e -> dialogFactory.showRenameSectionDialog(section));
 			menu.add(rename);
 
+			// Auto-archive toggle — by default a section keeps its completed goals
+			// inline (checklist); enabling this graduates them out to Completed.
+			JMenuItem archiveToggle = new JMenuItem(section.autoArchiveCompleted
+				? "Keep completed in section"
+				: "Auto-archive completed");
+			archiveToggle.setToolTipText(section.autoArchiveCompleted
+				? "Stop sending this section's completed goals to Completed; keep them inline."
+				: "Send this section's completed goals out to the Completed list as they finish.");
+			archiveToggle.addActionListener(e ->
+				api.setSectionAutoArchiveCompleted(section.id, !section.autoArchiveCompleted));
+			menu.add(archiveToggle);
+
 			if (currentUserIndex > 0)
 			{
 				JMenuItem moveUp = new JMenuItem("Move Up");

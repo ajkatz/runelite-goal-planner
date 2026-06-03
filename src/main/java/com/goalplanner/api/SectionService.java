@@ -289,6 +289,42 @@ class SectionService
 		});
 	}
 
+	boolean setSectionAutoArchiveCompleted(String sectionId, boolean value)
+	{
+		log.debug("API.internal setSectionAutoArchiveCompleted(sectionId={}, value={})", sectionId, value);
+		Section section = api.goalStore.findSection(sectionId);
+		if (section == null || section.isBuiltIn()) return false;
+		if (section.isAutoArchiveCompleted() == value) return false;
+		final String name = section.getName();
+		return api.executeCommand(new com.goalplanner.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				Section s = api.goalStore.findSection(sectionId);
+				if (s == null) return false;
+				s.setAutoArchiveCompleted(value);
+				// Enabling it archives the section's existing completed goals now.
+				// (Like auto-completion, the relocation itself isn't separately
+				// undoable — revert just restores the flag.)
+				if (value) api.goalStore.reconcileCompletedSection();
+				api.goalStore.save();
+				return true;
+			}
+			@Override public boolean revert()
+			{
+				Section s = api.goalStore.findSection(sectionId);
+				if (s == null) return false;
+				s.setAutoArchiveCompleted(!value);
+				api.goalStore.save();
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return (value ? "Auto-archive completed: " : "Keep completed in: ") + name;
+			}
+		});
+	}
+
 	boolean setGoalColor(String goalId, int colorRgb)
 	{
 		log.debug("API.internal setGoalColor(goalId={}, colorRgb={})", goalId, colorRgb);

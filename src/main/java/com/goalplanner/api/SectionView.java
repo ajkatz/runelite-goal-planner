@@ -26,4 +26,9 @@ public class SectionView
 	public int defaultColorRgb;
 	/** True when {@link #colorRgb} is a user override. */
 	public boolean colorOverridden;
+	/**
+	 * When true, completed goals in this section are auto-archived to the default
+	 * Completed section instead of staying inline. Always false for built-ins.
+	 */
+	public boolean autoArchiveCompleted;
 }

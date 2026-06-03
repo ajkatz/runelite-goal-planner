@@ -376,6 +376,26 @@ class GoalPlannerApiImplTest
 		assertEquals(section, done.getSectionId());
 	}
 
+	@Test
+	@DisplayName("setSectionAutoArchiveCompleted archives existing completed goals on enable; undoable")
+	void setSectionAutoArchiveCompleted()
+	{
+		String section = api.createSection("Boss Tasks");
+		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(section).build();
+		store.addGoal(done);
+		assertEquals(section, done.getSectionId());
+
+		// Enabling immediately graduates the completed goal out to Completed.
+		assertTrue(api.setSectionAutoArchiveCompleted(section, true));
+		assertTrue(store.findSection(section).isAutoArchiveCompleted());
+		assertEquals(store.getCompletedSection().getId(), done.getSectionId());
+
+		// Undo restores the flag (relocation follows reconcile semantics).
+		api.undo();
+		assertFalse(store.findSection(section).isAutoArchiveCompleted());
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================

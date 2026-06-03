@@ -356,6 +356,40 @@ class GoalStoreTest
 		assertNull(store.findEquivalentInNamespace(store.getIncompleteSection().getId(), probe));
 	}
 
+	@Test
+	@DisplayName("reconcile auto-archives completed goals from an opted-in section; others stay inline")
+	void reconcileAutoArchivesFromOptedInSection()
+	{
+		Section archiving = store.createUserSection("Archiving");
+		assertTrue(store.setSectionAutoArchiveCompleted(archiving.getId(), true));
+		Section keeping = store.createUserSection("Keeping");
+
+		Goal a = Goal.builder().type(GoalType.CUSTOM).name("a")
+			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE)
+			.sectionId(archiving.getId()).build();
+		Goal b = Goal.builder().type(GoalType.CUSTOM).name("b")
+			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE)
+			.sectionId(keeping.getId()).build();
+		store.addGoal(a);
+		store.addGoal(b);
+
+		assertTrue(store.reconcileCompletedSection());
+		assertEquals(store.getCompletedSection().getId(), a.getSectionId()); // archived out
+		assertEquals(keeping.getId(), b.getSectionId());                     // kept inline
+	}
+
+	@Test
+	@DisplayName("setSectionAutoArchiveCompleted toggles a user section; rejects built-ins + no-op")
+	void setSectionAutoArchiveCompletedToggles()
+	{
+		assertFalse(store.setSectionAutoArchiveCompleted(store.getIncompleteSection().getId(), true));
+		Section s = store.createUserSection("S");
+		assertFalse(store.setSectionAutoArchiveCompleted(s.getId(), false)); // already false → no-op
+		assertTrue(store.setSectionAutoArchiveCompleted(s.getId(), true));
+		assertTrue(store.findSection(s.getId()).isAutoArchiveCompleted());
+		assertFalse(store.setSectionAutoArchiveCompleted(s.getId(), true)); // no-op
+	}
+
 	// ====================================================================
 	// Persistence round-trip
 	// ====================================================================
