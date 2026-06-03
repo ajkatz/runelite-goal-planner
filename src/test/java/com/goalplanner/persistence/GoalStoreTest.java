@@ -405,6 +405,48 @@ class GoalStoreTest
 		assertFalse(store.effectiveAutoArchive(s));
 	}
 
+	@Test
+	@DisplayName("auto-archive round-trips: an archived goal returns to its section when flipped back to keep-inline")
+	void autoArchiveRoundTripsBackToSection()
+	{
+		Section x = store.createUserSection("Bosses");
+		store.setSectionAutoArchiveOverride(x.getId(), true); // archive
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g").completedAt(1L)
+			.status(GoalStatus.COMPLETE).sectionId(x.getId()).build();
+		store.addGoal(g);
+
+		// Archive out to Completed, remembering its home section.
+		assertTrue(store.reconcileCompletedSection());
+		assertEquals(store.getCompletedSection().getId(), g.getSectionId());
+		assertEquals(x.getId(), g.getArchivedFromSectionId());
+
+		// Flip the section back to keep-inline → the goal returns home, memory cleared.
+		store.setSectionAutoArchiveOverride(x.getId(), false);
+		assertTrue(store.reconcileCompletedSection());
+		assertEquals(x.getId(), g.getSectionId());
+		assertNull(g.getArchivedFromSectionId());
+	}
+
+	@Test
+	@DisplayName("an archived goal that un-completes returns to its home section")
+	void archivedGoalUncompletesReturnsHome()
+	{
+		Section x = store.createUserSection("Bosses");
+		store.setSectionAutoArchiveOverride(x.getId(), true);
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g").completedAt(1L)
+			.status(GoalStatus.COMPLETE).sectionId(x.getId()).build();
+		store.addGoal(g);
+		store.reconcileCompletedSection(); // archived to Completed
+		assertEquals(store.getCompletedSection().getId(), g.getSectionId());
+
+		// Un-complete it → it leaves Completed back to its home section.
+		g.setCompletedAt(0);
+		g.setStatus(GoalStatus.ACTIVE);
+		assertTrue(store.reconcileCompletedSection());
+		assertEquals(x.getId(), g.getSectionId());
+		assertNull(g.getArchivedFromSectionId());
+	}
+
 	// ====================================================================
 	// Persistence round-trip
 	// ====================================================================

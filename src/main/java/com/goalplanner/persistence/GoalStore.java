@@ -1773,35 +1773,67 @@ public class GoalStore
 		for (Goal goal : goals)
 		{
 			String currentSid = goal.getSectionId();
-			boolean inDefault = completedId.equals(currentSid) || incompleteId.equals(currentSid);
-			if (!inDefault)
+			boolean isComplete = goal.isComplete();
+			String archivedFrom = goal.getArchivedFromSectionId();
+
+			if (completedId.equals(currentSid))
 			{
-				// User section: completed goals stay inline unless this section's
-				// EFFECTIVE setting (its override, else the global default) is to
-				// archive them out to the default Completed section.
-				Section sec = findSection(currentSid);
-				if (sec != null && effectiveAutoArchive(sec) && goal.isComplete())
+				// In the Completed bucket.
+				if (!isComplete)
+				{
+					// No longer complete → leave Completed: back to its remembered
+					// home section if it still exists, else the default Incomplete.
+					Section home = findSection(archivedFrom);
+					goal.setSectionId(home != null ? archivedFrom : incompleteId);
+					goal.setArchivedFromSectionId(null);
+					anyMoved = true;
+					movedGoals.add(goal);
+				}
+				else if (archivedFrom != null)
+				{
+					Section home = findSection(archivedFrom);
+					if (home == null)
+					{
+						// Home section gone → it's now a genuine default-completed goal.
+						goal.setArchivedFromSectionId(null);
+						anyMoved = true;
+						movedGoals.add(goal);
+					}
+					else if (!effectiveAutoArchive(home))
+					{
+						// Home flipped to keep-inline → return the goal to it.
+						goal.setSectionId(archivedFrom);
+						goal.setArchivedFromSectionId(null);
+						anyMoved = true;
+						movedGoals.add(goal);
+					}
+					// else: home still auto-archives → stay archived.
+				}
+				// else: a genuine default-completed goal → stays.
+			}
+			else if (incompleteId.equals(currentSid))
+			{
+				// Default Incomplete → Completed when it completes.
+				if (isComplete)
 				{
 					goal.setSectionId(completedId);
 					anyMoved = true;
 					movedGoals.add(goal);
 				}
-				continue;
 			}
-			boolean isComplete = goal.isComplete();
-			if (isComplete && incompleteId.equals(currentSid))
+			else
 			{
-				goal.setSectionId(completedId);
-				anyMoved = true;
-				movedGoals.add(goal);
-			}
-			else if (!isComplete && completedId.equals(currentSid))
-			{
-				// Defensive: if a goal un-completes (e.g. value changes via custom toggle),
-				// return it to the Incomplete section.
-				goal.setSectionId(incompleteId);
-				anyMoved = true;
-				movedGoals.add(goal);
+				// User section: archive completed goals out to Completed when the
+				// section's effective setting says so, remembering the home section
+				// so they can flip back. Otherwise keep them inline.
+				Section sec = findSection(currentSid);
+				if (sec != null && isComplete && effectiveAutoArchive(sec))
+				{
+					goal.setArchivedFromSectionId(currentSid);
+					goal.setSectionId(completedId);
+					anyMoved = true;
+					movedGoals.add(goal);
+				}
 			}
 		}
 		if (anyMoved)
@@ -2131,6 +2163,9 @@ public class GoalStore
 		if (findEquivalentInNamespace(sectionId, goal) != null) return false;
 
 		goal.setSectionId(sectionId);
+		// A manual move makes the goal a real member of the destination — drop
+		// any auto-archive home memory so reconcile won't pull it elsewhere.
+		goal.setArchivedFromSectionId(null);
 		// Move the goal to the end of the goals list within its new section.
 		// normalizeOrder groups by section.order; within a section we order by
 		// current priority. Bumping this goal's priority above all others in the

@@ -304,10 +304,12 @@ class SectionService
 				Section s = api.goalStore.findSection(sectionId);
 				if (s == null) return false;
 				s.setAutoArchiveOverride(value);
-				// If the new effective decision is "archive", sweep existing
-				// completed goals out now. (Like auto-completion, the relocation
-				// itself isn't separately undoable — revert restores the flag.)
-				if (api.goalStore.effectiveAutoArchive(s)) api.goalStore.reconcileCompletedSection();
+				// Reconcile both directions: archive existing completed goals out
+				// if this is now auto-archive, OR pull previously-archived goals
+				// back inline if it's now keep-inline. (Like auto-completion, the
+				// relocation itself isn't separately undoable — revert restores
+				// just the flag.)
+				api.goalStore.reconcileCompletedSection();
 				api.goalStore.save();
 				return true;
 			}

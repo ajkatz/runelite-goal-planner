@@ -38,6 +38,10 @@ public class Goal
 	private int spriteId;         // Optional sprite icon (e.g. CA tier sword); 0 = unset
 	private String tooltip;       // Optional hover tooltip text (e.g. CA full description)
 	private String sectionId;     // Section this goal belongs to; null = unassigned (migrated on load)
+	// When a completed goal is auto-archived OUT of a user section to the
+	// Completed bucket, this remembers its home section so it can flip back if
+	// that section switches to keep-inline. null = a genuine default-bucket goal.
+	private String archivedFromSectionId;
 
 	// For COMBAT_ACHIEVEMENT goals: the wiki / in-game CA task id. Used to look up
 	// the bit-packed completion state from one of the 20 CA_TASK_COMPLETED varplayers.
