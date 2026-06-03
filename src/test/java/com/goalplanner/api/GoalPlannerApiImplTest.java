@@ -295,6 +295,44 @@ class GoalPlannerApiImplTest
 		assertEquals("done", views.get(1).name);   // ticked-off sinks to the bottom
 	}
 
+	@Test
+	@DisplayName("duplicateGoalsToSection copies into target (originals kept), remaps in-set edges, dedups per-section, undoable")
+	void duplicateGoalsToSection()
+	{
+		String target = api.createSection("Target");
+		String aId = api.addCustomGoal("A", "");
+		String bId = api.addCustomGoal("B", "");
+		store.addRequirement(aId, bId); // A requires B
+
+		java.util.List<String> created = api.duplicateGoalsToSection(java.util.Arrays.asList(aId, bId), target);
+		assertEquals(2, created.size());
+		// Originals untouched.
+		assertNotNull(api.findGoal(aId));
+		assertNotNull(api.findGoal(bId));
+
+		Goal copyA = null, copyB = null;
+		for (String id : created)
+		{
+			Goal g = api.findGoal(id);
+			assertEquals(target, g.getSectionId());
+			if ("A".equals(g.getName())) copyA = g;
+			else if ("B".equals(g.getName())) copyB = g;
+		}
+		assertNotNull(copyA);
+		assertNotNull(copyB);
+		// Edge remapped to the copies, not the originals.
+		assertTrue(copyA.getRequiredGoalIds().contains(copyB.getId()));
+		assertFalse(copyA.getRequiredGoalIds().contains(bId));
+
+		// Per-section no-duplicates: duplicating again into the same target is a no-op.
+		assertTrue(api.duplicateGoalsToSection(java.util.Arrays.asList(aId, bId), target).isEmpty());
+
+		// One undo reverses the whole gesture.
+		api.undo();
+		assertNull(api.findGoal(copyA.getId()));
+		assertNull(api.findGoal(copyB.getId()));
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================

@@ -1833,4 +1833,116 @@ class GoalCreationService
 		log.info("addCustomGoal created: {} ({})", goalId, trimmedName);
 		return goalId;
 	}
+
+	/**
+	 * Duplicate goals into a target section as independent copies (new ids, fresh
+	 * progress). Relations AMONG the duplicated set are preserved (remapped to the
+	 * new ids); edges to goals outside the set are dropped. A source is skipped if
+	 * the target section's namespace already contains an equivalent (per-section
+	 * no-duplicates — each section is its own bucket). One undo reverses the whole
+	 * gesture.
+	 *
+	 * @return the new goal ids (empty if nothing was duplicated)
+	 */
+	java.util.List<String> duplicateGoalsToSection(java.util.Collection<String> goalIds, String targetSectionId)
+	{
+		log.debug("API.internal duplicateGoalsToSection(n={}, target={})",
+			goalIds == null ? 0 : goalIds.size(), targetSectionId);
+		if (goalIds == null || goalIds.isEmpty()) return java.util.Collections.emptyList();
+		if (api.goalStore.findSection(targetSectionId) == null) return java.util.Collections.emptyList();
+
+		final java.util.List<Goal> sources = new java.util.ArrayList<>();
+		for (String id : goalIds)
+		{
+			Goal g = api.findGoal(id);
+			if (g != null) sources.add(g);
+		}
+		if (sources.isEmpty()) return java.util.Collections.emptyList();
+
+		final java.util.List<String> createdGoalIds = new java.util.ArrayList<>();
+		api.executeCommand(new com.goalplanner.command.Command()
+		{
+			@Override public boolean apply()
+			{
+				createdGoalIds.clear();
+				java.util.Map<String, String> oldToNew = new java.util.HashMap<>();
+				// Pass 1: create copies, honoring per-section dedup against the target.
+				for (Goal src : sources)
+				{
+					if (api.goalStore.findEquivalentInNamespace(targetSectionId, src) != null) continue;
+					Goal copy = copyGoalInto(src, targetSectionId);
+					api.goalStore.addGoal(copy);
+					createdGoalIds.add(copy.getId());
+					oldToNew.put(src.getId(), copy.getId());
+				}
+				// Pass 2: rewire relations that fall WITHIN the duplicated set.
+				for (Goal src : sources)
+				{
+					String newFrom = oldToNew.get(src.getId());
+					if (newFrom == null) continue;
+					if (src.getRequiredGoalIds() != null)
+					{
+						for (String req : src.getRequiredGoalIds())
+						{
+							if (oldToNew.containsKey(req)) api.goalStore.addRequirement(newFrom, oldToNew.get(req));
+						}
+					}
+					if (src.getOrRequiredGoalIds() != null)
+					{
+						for (String req : src.getOrRequiredGoalIds())
+						{
+							if (oldToNew.containsKey(req)) api.goalStore.addOrRequirement(newFrom, oldToNew.get(req));
+						}
+					}
+				}
+				return !createdGoalIds.isEmpty();
+			}
+			@Override public boolean revert()
+			{
+				for (String id : createdGoalIds) api.goalStore.removeGoal(id);
+				return true;
+			}
+			@Override public String getDescription()
+			{
+				return "Duplicate " + sources.size() + " goal(s) to section";
+			}
+		});
+		return new java.util.ArrayList<>(createdGoalIds);
+	}
+
+	/**
+	 * Build an independent copy of a goal placed in {@code sectionId}: same
+	 * definition fields + tags, but a fresh id and zeroed progress (the trackers
+	 * re-evaluate it against the account). Relations are NOT copied here — the
+	 * caller rewires them.
+	 */
+	private Goal copyGoalInto(Goal src, String sectionId)
+	{
+		Goal copy = Goal.builder()
+			.type(src.getType())
+			.name(src.getName())
+			.description(src.getDescription())
+			.targetValue(src.getTargetValue())
+			.skillName(src.getSkillName())
+			.questName(src.getQuestName())
+			.accountMetric(src.getAccountMetric())
+			.bossName(src.getBossName())
+			.varbitId(src.getVarbitId())
+			.itemId(src.getItemId())
+			.spriteId(src.getSpriteId())
+			.tooltip(src.getTooltip())
+			.caTaskId(src.getCaTaskId())
+			.customColorRgb(src.getCustomColorRgb())
+			.optional(src.isOptional())
+			.autoSeeded(src.isAutoSeeded())
+			.wikiUrl(src.getWikiUrl())
+			.inventorySetup(src.getInventorySetup())
+			.sectionId(sectionId)
+			.build();
+		if (src.getTagIds() != null)
+		{
+			copy.setTagIds(new java.util.ArrayList<>(src.getTagIds()));
+		}
+		return copy;
+	}
 }

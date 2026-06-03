@@ -629,6 +629,36 @@ class GoalContextMenuBuilder
 
 			moveMenu.add(moveToSection);
 
+			// Duplicate to Section — an independent copy in another section.
+			// Per-section identity: the same goal can live once per section.
+			JMenu dupToSection = new JMenu("Duplicate to Section");
+			for (com.goalplanner.api.SectionView dest : destinations)
+			{
+				JMenuItem dupItem = new JMenuItem(dest.name);
+				dupItem.addActionListener(e -> api.duplicateGoalsToSection(
+					java.util.Collections.singletonList(goal.getId()), dest.id));
+				dupToSection.add(dupItem);
+			}
+			if (!destinations.isEmpty())
+			{
+				dupToSection.addSeparator();
+			}
+			JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
+			dupNewSection.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(panel, "New section name:", "");
+				if (input != null && !input.trim().isEmpty())
+				{
+					String newId = api.createSection(input.trim());
+					if (newId != null)
+					{
+						api.duplicateGoalsToSection(
+							java.util.Collections.singletonList(goal.getId()), newId);
+					}
+				}
+			});
+			dupToSection.add(dupNewSection);
+			moveMenu.add(dupToSection);
+
 			menu.add(moveMenu);
 		}
 
@@ -1083,6 +1113,21 @@ class GoalContextMenuBuilder
 					moveToSection.add(item);
 				}
 				moveMenu.add(moveToSection);
+
+				// Bulk Duplicate to Section — independent copies, in-set
+				// relations remapped, per-section dedup skips ones already there.
+				JMenu dupToSection = new JMenu("Duplicate to Section");
+				for (com.goalplanner.api.SectionView dest : destinations)
+				{
+					JMenuItem item = new JMenuItem(dest.name);
+					item.addActionListener(e -> {
+						LinkedHashSet<String> ids = new LinkedHashSet<>();
+						for (Goal g : selectedGoals) ids.add(g.getId());
+						api.duplicateGoalsToSection(ids, dest.id);
+					});
+					dupToSection.add(item);
+				}
+				moveMenu.add(dupToSection);
 			}
 
 			menu.add(moveMenu);
