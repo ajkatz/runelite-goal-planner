@@ -44,6 +44,8 @@ import net.runelite.client.chat.ChatColorType;
 import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
+import com.goalplanner.postie.Postie;
+import net.runelite.client.eventbus.EventBus;
 import net.runelite.client.events.PluginMessage;
 import net.runelite.client.party.PartyService;
 import net.runelite.client.party.WSClient;
@@ -143,6 +145,9 @@ public class GoalPlannerPlugin extends Plugin
 
 	@Inject
 	private ChatMessageManager chatMessageManager;
+
+	@Inject
+	private EventBus eventBus;
 
 	/** Share-code codec, built from the injected Gson at start-up. */
 	private ShareCodec shareCodec;
@@ -315,19 +320,28 @@ public class GoalPlannerPlugin extends Plugin
 
 	/** Plugin-hub config-group id — the namespace other plugins address us by. */
 	private static final String POSTIE_NAMESPACE = "goalplanner";
+	/** Our one published action: import a share bundle (data key {@code "code"}). */
+	private static final String ACTION_IMPORT_SHARE = "import-share";
 
 	/**
-	 * Cross-plugin action consumer (the "Postie" convention): another plugin in
-	 * the same client can hand Goal Planner a share bundle to import by posting a
-	 * {@link PluginMessage} addressed to namespace {@code "goalplanner"}, action
-	 * {@code "import-share"}, with a {@code "code"} string in the data. We depend
-	 * on nothing from Postie — this is just the raw PluginMessage convention, so
-	 * any plugin can target us with zero coupling.
+	 * Cross-plugin action consumer via the {@link Postie} convention: another
+	 * plugin in the same client can hand Goal Planner a share bundle to import by
+	 * posting a {@link PluginMessage} to namespace {@code "goalplanner"}, action
+	 * {@code "import-share"}, with a {@code "code"} string in the data. Goal
+	 * Planner also answers Postie discovery so callers can feature-detect it. The
+	 * Postie module depends only on RuneLite core types, so this works with zero
+	 * coupling to any sender.
 	 */
 	@Subscribe
 	public void onPluginMessage(PluginMessage event)
 	{
-		if (!POSTIE_NAMESPACE.equals(event.getNamespace()) || !"import-share".equals(event.getName()))
+		// Discovery: announce our action vocabulary so callers can find us.
+		if (Postie.isDiscover(event))
+		{
+			Postie.announce(eventBus, POSTIE_NAMESPACE, java.util.Collections.singletonList(ACTION_IMPORT_SHARE));
+			return;
+		}
+		if (!Postie.isAction(event, POSTIE_NAMESPACE, ACTION_IMPORT_SHARE))
 		{
 			return;
 		}
