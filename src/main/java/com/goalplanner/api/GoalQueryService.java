@@ -544,6 +544,22 @@ class GoalQueryService
 			}
 		}
 
+		// Guide sections keep their completed goals inline (they don't relocate
+		// to Completed), so sink them to the bottom — incomplete requirements
+		// first, ticked-off ones below, like a checklist. Stable partition
+		// preserves the topo/OR order within each group.
+		if (section != null && section.isGuide())
+		{
+			List<Goal> incomplete = new ArrayList<>();
+			List<Goal> done = new ArrayList<>();
+			for (Goal g : grouped)
+			{
+				(g.isComplete() ? done : incomplete).add(g);
+			}
+			incomplete.addAll(done);
+			grouped = incomplete;
+		}
+
 		for (Goal g : grouped)
 		{
 			out.add(toGoalView(g));

@@ -303,6 +303,25 @@ class GoalStoreTest
 	}
 
 	@Test
+	@DisplayName("moveGoalToSection lets a completed goal into a guide (but not a normal section)")
+	void moveCompletedGoalIntoGuideOnly()
+	{
+		Section guide = store.createUserSection("Guide");
+		store.setSectionGuide(guide.getId(), true);
+		Section normal = store.createUserSection("Normal");
+
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE).build();
+		store.addGoal(g);
+
+		// A completed goal is blocked from a normal user section (stays archived)
+		// but allowed into a guide (guides keep completed goals inline).
+		assertFalse(store.moveGoalToSection(g.getId(), normal.getId()));
+		assertTrue(store.moveGoalToSection(g.getId(), guide.getId()));
+		assertEquals(guide.getId(), g.getSectionId());
+	}
+
+	@Test
 	@DisplayName("setSectionGuide rejects built-ins and no-ops on an unchanged flag")
 	void setSectionGuideRejectsBuiltInAndNoop()
 	{

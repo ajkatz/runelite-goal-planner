@@ -285,6 +285,25 @@ class GoalPlannerApiImplTest
 		assertEquals(guideId, g.getSectionId());
 	}
 
+	@Test
+	@DisplayName("guide section orders completed goals last (checklist view)")
+	void guideSectionSortsCompletedLast()
+	{
+		String guideId = api.createSection("Inferno Guide");
+		assertTrue(store.setSectionGuide(guideId, true));
+		// Added done-first to prove the sort sinks it, not just insertion order.
+		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(guideId).build();
+		Goal todo = Goal.builder().type(GoalType.CUSTOM).name("todo").sectionId(guideId).build();
+		store.addGoal(done);
+		store.addGoal(todo);
+
+		java.util.List<com.goalplanner.api.GoalView> views = api.queryGoalsTopologicallySorted(guideId);
+		assertEquals(2, views.size());
+		assertEquals("todo", views.get(0).name);   // incomplete requirement first
+		assertEquals("done", views.get(1).name);   // ticked-off sinks to the bottom
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================

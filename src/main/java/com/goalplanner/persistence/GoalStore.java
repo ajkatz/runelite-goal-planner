@@ -2050,7 +2050,9 @@ public class GoalStore
 		if (sectionId.equals(goal.getSectionId())) return false;
 
 		boolean destIsCompleted = dest.getBuiltInKind() == Section.BuiltInKind.COMPLETED;
-		if (goal.isComplete() && !destIsCompleted) return false;
+		// A completed goal may live in Completed OR a guide section (guides keep
+		// their completed goals inline as a checklist); block it everywhere else.
+		if (goal.isComplete() && !destIsCompleted && !dest.isGuide()) return false;
 
 		goal.setSectionId(sectionId);
 		// Move the goal to the end of the goals list within its new section.
