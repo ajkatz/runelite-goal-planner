@@ -1277,6 +1277,11 @@ public class GoalPlannerPlugin extends Plugin
 						// read default level-1 stats and over-seed met skill reqs.
 						.onClick(e -> skillSyncGate.runWhenSynced(
 							() -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier)));
+
+					// And straight into a guide (bare goal, no seeding).
+					addGuideMenuEntries("Add to Guide: " + tier.getDisplayName(), diaryMenuTarget,
+						areaDisplayName + " " + tier.getDisplayName(),
+						() -> goalTrackerApi.addDiaryGoalWithPrereqs(areaDisplayName, apiTier, null));
 				}
 				break;
 			}
@@ -1327,6 +1332,8 @@ public class GoalPlannerPlugin extends Plugin
 							log.warn("addQuestGoal returned null for {}", quest);
 						}
 					}));
+				addGuideMenuEntries("Add to Guide", menuTarget, quest.getName(),
+					() -> goalTrackerApi.addQuestGoalWithPrereqs(quest, java.util.Collections.emptyList()));
 				break;
 			}
 
@@ -1371,6 +1378,12 @@ public class GoalPlannerPlugin extends Plugin
 						}
 						addGoalUndoable(goal, "Add CA goal: " + newName);
 						refreshItemGoalsNow();
+					});
+				addGuideMenuEntries("Add to Guide", entry.getTarget(), preview.getName(),
+					() ->
+					{
+						Goal g = buildCombatAchievementGoal(row);
+						return g == null ? null : goalTrackerApi.addCombatAchievementGoal(g.getCaTaskId());
 					});
 				break;
 			}
@@ -1701,6 +1714,86 @@ public class GoalPlannerPlugin extends Plugin
 		}
 	}
 
+	// =====================================================================
+	// "Add to Guide" — drop an in-game goal straight into a guide section
+	// =====================================================================
+
+	/** The user's guide (template) sections, in panel order. Empty if none. */
+	private java.util.List<com.goalplanner.api.SectionView> guideSections()
+	{
+		java.util.List<com.goalplanner.api.SectionView> guides = new java.util.ArrayList<>();
+		for (com.goalplanner.api.SectionView sv : goalTrackerApi.queryAllSections())
+		{
+			if (sv.guide && !sv.builtIn)
+			{
+				guides.add(sv);
+			}
+		}
+		return guides;
+	}
+
+	/**
+	 * Add a bare goal (no prereq seeding) into a guide section as ONE undoable
+	 * gesture. The {@code bareAdd} supplier creates the goal (landing in
+	 * Incomplete) and returns its id; we then move it into the guide, where the
+	 * reconcile-skip keeps it put even when already complete. Guide adds are
+	 * intentionally seed-free — the author is curating exact goals.
+	 */
+	private void addToGuide(String guideSectionId, String label, java.util.function.Supplier<String> bareAdd)
+	{
+		goalTrackerApi.beginCompound("Add to guide: " + label);
+		try
+		{
+			String id = bareAdd.get();
+			if (id != null)
+			{
+				goalTrackerApi.moveGoalToSection(id, guideSectionId);
+			}
+		}
+		finally
+		{
+			goalTrackerApi.endCompound();
+		}
+	}
+
+	/**
+	 * Inject "Add to Guide" affordance next to an in-game "Add Goal" entry. No
+	 * guide sections → nothing added. One guide → a single direct entry. Several
+	 * → an "Add to Guide ▸ &lt;section&gt;" submenu.
+	 */
+	private void addGuideMenuEntries(String baseOption, String menuTarget, String label,
+		java.util.function.Supplier<String> bareAdd)
+	{
+		java.util.List<com.goalplanner.api.SectionView> guides = guideSections();
+		if (guides.isEmpty())
+		{
+			return;
+		}
+		if (guides.size() == 1)
+		{
+			// One guide → unambiguous destination, no need to name it.
+			final String guideId = guides.get(0).id;
+			client.createMenuEntry(1)
+				.setOption(baseOption)
+				.setTarget(menuTarget)
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToGuide(guideId, label, bareAdd)));
+			return;
+		}
+		MenuEntry parent = client.createMenuEntry(1)
+			.setOption(baseOption)
+			.setTarget(menuTarget)
+			.setType(MenuAction.RUNELITE);
+		net.runelite.api.Menu sub = parent.createSubMenu();
+		for (com.goalplanner.api.SectionView guide : guides)
+		{
+			final String guideId = guide.id;
+			sub.createMenuEntry(0)
+				.setOption(guide.name)
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToGuide(guideId, label, bareAdd)));
+		}
+	}
 
 	/**
 	 * Common flush after tracker updates: reconcile completed goals into
