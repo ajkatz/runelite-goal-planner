@@ -52,8 +52,9 @@ class GoalCreationService
 			return null;
 		}
 
-		// Duplicate guard: same skill + same target XP = no new goal, return existing id.
-		Goal existing = findExistingSkillGoal(skill, targetXp);
+		// Duplicate guard: same skill + target XP within the default namespace.
+		Goal existing = existingInDefault(Goal.builder()
+			.type(GoalType.SKILL).skillName(skill.name()).targetValue(targetXp).build());
 		if (existing != null)
 		{
 			log.info("addSkillGoal: duplicate of existing goal {} ({} → {} XP)",
@@ -123,10 +124,11 @@ class GoalCreationService
 	 *       lose, or the caller has a reason to keep both)</li>
 	 * </ul>
 	 *
-	 * <p>Cross-section: auto-link is global by design — the user flagged
-	 * that the relation graph is the source of truth, and topo sort is a
-	 * per-section projection. A 50 Prayer goal in the Skills section is
-	 * still a prerequisite of a 90 Prayer goal in the Quest Cape section.
+	 * <p>Per-section: auto-link is scoped to the new goal's namespace (the
+	 * default Incomplete+Completed pair, or its user section). Same-skill
+	 * ladders are self-contained per section — a 50 Prayer goal in section A
+	 * does not chain to a 90 Prayer goal in section B. (Each section is its
+	 * own bucket.)
 	 *
 	 * <p>Quiet on failure: cycle detection (via addRequirement) silently
 	 * skips edges that would close a cycle, which shouldn't happen in
@@ -144,6 +146,9 @@ class GoalCreationService
 
 		String newId = newGoal.getId();
 		int newTarget = newGoal.getTargetValue();
+		// Per-section: only chain to same-namespace goals (each section is its
+		// own bucket; the default Incomplete+Completed pair is one namespace).
+		String newNs = api.goalStore.namespaceKey(newGoal.getSectionId());
 		// Copy the goal list so we're iterating a stable snapshot — addRequirement
 		// doesn't mutate the list but future code might, and copying is cheap.
 		List<Goal> snapshot = new ArrayList<>(api.goalStore.getGoals());
@@ -151,6 +156,7 @@ class GoalCreationService
 		{
 			if (other.getId().equals(newId)) continue;
 			if (other.getType() != type) continue;
+			if (!java.util.Objects.equals(newNs, api.goalStore.namespaceKey(other.getSectionId()))) continue;
 			// Identity check per type
 			if (type == GoalType.SKILL)
 			{
@@ -198,18 +204,16 @@ class GoalCreationService
 		return addSkillGoal(skill, Experience.getXpForLevel(level));
 	}
 
-	private Goal findExistingSkillGoal(Skill skill, int targetXp)
+	/**
+	 * Existing goal in the DEFAULT namespace (built-in Incomplete + Completed)
+	 * whose identity matches the probe, or null. The standard add methods land
+	 * goals in the default, so their duplicate guards scope here: a goal living
+	 * in a user section does NOT block a fresh default add (per-section identity).
+	 */
+	private Goal existingInDefault(Goal probe)
 	{
-		for (Goal g : api.goalStore.getGoals())
-		{
-			if (g.getType() == GoalType.SKILL
-				&& skill.name().equals(g.getSkillName())
-				&& g.getTargetValue() == targetXp)
-			{
-				return g;
-			}
-		}
-		return null;
+		return api.goalStore.findEquivalentInNamespace(
+			api.goalStore.getIncompleteSection().getId(), probe);
 	}
 
 	String addItemGoal(int itemId, int targetQuantity)
@@ -221,14 +225,12 @@ class GoalCreationService
 			return null;
 		}
 
-		// Duplicate guard: same item id (any qty) → existing wins
-		for (Goal g : api.goalStore.getGoals())
+		// Duplicate guard: same item id (any qty) in the default namespace.
+		Goal itemDup = existingInDefault(Goal.builder().type(GoalType.ITEM_GRIND).itemId(itemId).build());
+		if (itemDup != null)
 		{
-			if (g.getType() == GoalType.ITEM_GRIND && g.getItemId() == itemId)
-			{
-				log.info("addItemGoal: duplicate of existing goal {} (item {})", g.getId(), itemId);
-				return g.getId();
-			}
+			log.info("addItemGoal: duplicate of existing goal {} (item {})", itemDup.getId(), itemId);
+			return itemDup.getId();
 		}
 
 		String itemName;
@@ -302,15 +304,13 @@ class GoalCreationService
 		}
 		api.clearGoalSelection();
 
-		// Duplicate guard: same questName
+		// Duplicate guard: same questName in the default namespace.
 		String questName = quest.name();
-		for (Goal g : api.goalStore.getGoals())
+		Goal questDup = existingInDefault(Goal.builder().type(GoalType.QUEST).questName(questName).build());
+		if (questDup != null)
 		{
-			if (g.getType() == GoalType.QUEST && questName.equals(g.getQuestName()))
-			{
-				log.info("insertQuestGoal: duplicate of existing goal {} ({})", g.getId(), questName);
-				return g.getId();
-			}
+			log.info("insertQuestGoal: duplicate of existing goal {} ({})", questDup.getId(), questName);
+			return questDup.getId();
 		}
 
 		int qpReward = com.goalplanner.data.QuestRequirements.questPointReward(quest);
@@ -911,17 +911,14 @@ class GoalCreationService
 		AchievementDiaryData.Tier internalTier = mapDiaryTier(tier);
 		String description = internalTier.getDisplayName() + " Achievement Diary";
 
-		// Duplicate guard: same area + same tier description
-		for (Goal g : api.goalStore.getGoals())
+		// Duplicate guard: same area + tier description in the default namespace.
+		Goal diaryDup = existingInDefault(Goal.builder()
+			.type(GoalType.DIARY).name(areaDisplayName).description(description).build());
+		if (diaryDup != null)
 		{
-			if (g.getType() == GoalType.DIARY
-				&& areaDisplayName.equalsIgnoreCase(g.getName())
-				&& description.equalsIgnoreCase(g.getDescription()))
-			{
-				log.info("insertDiaryGoal: duplicate of existing goal {} ({} {})",
-					g.getId(), areaDisplayName, internalTier);
-				return g.getId();
-			}
+			log.info("insertDiaryGoal: duplicate of existing goal {} ({} {})",
+				diaryDup.getId(), areaDisplayName, internalTier);
+			return diaryDup.getId();
 		}
 
 		AchievementDiaryData.Tracking tracking = AchievementDiaryData.tracking(areaDisplayName, internalTier);
@@ -1336,17 +1333,14 @@ class GoalCreationService
 			return null;
 		}
 
-		// Duplicate guard: same caTaskId or same name
-		for (Goal g : api.goalStore.getGoals())
+		// Duplicate guard: same caTaskId or name in the default namespace.
+		Goal caDup = existingInDefault(Goal.builder()
+			.type(GoalType.COMBAT_ACHIEVEMENT).caTaskId(caTaskId).name(info.name).build());
+		if (caDup != null)
 		{
-			if (g.getType() != GoalType.COMBAT_ACHIEVEMENT) continue;
-			if (g.getCaTaskId() == caTaskId
-				|| (info.name != null && info.name.equalsIgnoreCase(g.getName())))
-			{
-				log.info("addCombatAchievementGoal: duplicate of existing goal {} ({})",
-					g.getId(), info.name);
-				return g.getId();
-			}
+			log.info("addCombatAchievementGoal: duplicate of existing goal {} ({})",
+				caDup.getId(), info.name);
+			return caDup.getId();
 		}
 
 		// Tier sprite: SpriteID.CaTierSwordsSmall._0..5 = 3399..3404
@@ -1439,17 +1433,14 @@ class GoalCreationService
 			Math.min(metric.getMaxTarget(), target));
 		api.clearGoalSelection();
 
-		// Duplicate guard: same metric + same target
-		for (Goal g : api.goalStore.getGoals())
+		// Duplicate guard: same metric + target in the default namespace.
+		Goal acctDup = existingInDefault(Goal.builder()
+			.type(GoalType.ACCOUNT).accountMetric(metricName).targetValue(clampedTarget).build());
+		if (acctDup != null)
 		{
-			if (g.getType() == GoalType.ACCOUNT
-				&& metricName.equals(g.getAccountMetric())
-				&& g.getTargetValue() == clampedTarget)
-			{
-				log.info("addAccountGoal: duplicate of existing goal {} ({} {})",
-					g.getId(), metricName, clampedTarget);
-				return g.getId();
-			}
+			log.info("addAccountGoal: duplicate of existing goal {} ({} {})",
+				acctDup.getId(), metricName, clampedTarget);
+			return acctDup.getId();
 		}
 
 		String goalName;
@@ -1515,14 +1506,12 @@ class GoalCreationService
 		}
 		if (targetKills < 1) return null;
 
-		// Duplicate guard: same boss name
-		for (Goal g : api.goalStore.getGoals())
+		// Duplicate guard: same boss name in the default namespace.
+		Goal bossDup = existingInDefault(Goal.builder().type(GoalType.BOSS).bossName(bossName).build());
+		if (bossDup != null)
 		{
-			if (g.getType() == GoalType.BOSS && bossName.equals(g.getBossName()))
-			{
-				log.info("addBossGoal: duplicate of existing goal {} ({})", g.getId(), bossName);
-				return g.getId();
-			}
+			log.info("addBossGoal: duplicate of existing goal {} ({})", bossDup.getId(), bossName);
+			return bossDup.getId();
 		}
 
 		int petItemId = com.goalplanner.data.BossKillData.getPetItemId(bossName);
@@ -1788,16 +1777,8 @@ class GoalCreationService
 		log.debug("API.public addCustomGoal(name={}, description={})", name, description);
 		if (name == null || name.trim().isEmpty()) return null;
 		String trimmedName = name.trim();
-		// Duplicate guard: same name + same type = no new goal
-		Goal existing = null;
-		for (Goal g : api.goalStore.getGoals())
-		{
-			if (g.getType() == GoalType.CUSTOM && trimmedName.equalsIgnoreCase(g.getName()))
-			{
-				existing = g;
-				break;
-			}
-		}
+		// Duplicate guard: same name in the default namespace.
+		Goal existing = existingInDefault(Goal.builder().type(GoalType.CUSTOM).name(trimmedName).build());
 		if (existing != null)
 		{
 			log.info("addCustomGoal: duplicate of existing goal {} ({})", existing.getId(), trimmedName);

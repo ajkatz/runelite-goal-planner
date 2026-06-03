@@ -333,6 +333,29 @@ class GoalPlannerApiImplTest
 		assertNull(api.findGoal(copyB.getId()));
 	}
 
+	@Test
+	@DisplayName("per-section identity: adding a goal that exists only in a user section creates a NEW default instance")
+	void addCreatesNewInstanceWhenOnlyInUserSection()
+	{
+		String sectionId = api.createSection("Guide");
+		Goal inSection = Goal.builder().type(GoalType.CUSTOM).name("Beat Inferno")
+			.sectionId(sectionId).build();
+		store.addGoal(inSection);
+
+		// The normal add path dedups only within the DEFAULT namespace, so the
+		// user-section copy does not block it — a fresh default instance is made.
+		String newId = api.addCustomGoal("Beat Inferno", "");
+		assertNotNull(newId);
+		assertNotEquals(inSection.getId(), newId);
+		assertEquals(store.getIncompleteSection().getId(), api.findGoal(newId).getSectionId());
+		long count = store.getGoals().stream()
+			.filter(g -> "Beat Inferno".equalsIgnoreCase(g.getName())).count();
+		assertEquals(2, count); // one per namespace
+
+		// Adding again now dedups against the default copy (idempotent within default).
+		assertEquals(newId, api.addCustomGoal("Beat Inferno", ""));
+	}
+
 	// ====================================================================
 	// Internal API: section CRUD
 	// ====================================================================
