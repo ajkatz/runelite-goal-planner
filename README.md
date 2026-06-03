@@ -80,6 +80,29 @@ src/main/java/com/goalplanner/
 └── util/                         # Formatting helpers
 ```
 
+## Cross-plugin API
+
+Other plugins in the same client can hand Goal Planner a share bundle to import
+by posting a RuneLite `PluginMessage` — no dependency on Goal Planner required
+(the same convention shortest-path / quest-helper use to interop):
+
+| field | value |
+|---|---|
+| **namespace** | `goalplanner` |
+| **name** | `import-share` |
+| **data** | `{ "code": "<a Goal Planner share code, e.g. GPSHARE1:…>" }` |
+
+```java
+eventBus.post(new PluginMessage(
+    "goalplanner", "import-share",
+    java.util.Map.of("code", shareCode)));
+```
+
+Goal Planner decodes the code and imports the goals (into a new section, or the
+Incomplete section for a loose selection). Get a share code from the "Copy share
+code" right-click menu, or build one with the `ShareCodec` / `ShareBundle`
+classes in `com.goalplanner.share`.
+
 ## Testing
 
 ```bash
