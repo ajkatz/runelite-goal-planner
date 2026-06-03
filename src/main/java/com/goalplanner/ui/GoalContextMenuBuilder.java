@@ -603,6 +603,10 @@ class GoalContextMenuBuilder
 			for (com.goalplanner.api.SectionView sv : allSections)
 			{
 				if ("COMPLETED".equals(sv.kind)) continue;
+				// A completed goal can't live in Incomplete (it'd bounce back to
+				// Completed), so don't offer it for move OR duplicate — completed
+				// goals file into user sections only.
+				if ("INCOMPLETE".equals(sv.kind) && goal.isComplete()) continue;
 				if (sv.id.equals(goal.getSectionId())) continue;
 				destinations.add(sv);
 			}
@@ -997,12 +1001,17 @@ class GoalContextMenuBuilder
 		// Available whenever there's a selection + a destination section
 		// (completed goals are movable/duplicable now).
 		boolean anyMovable = !selectedGoals.isEmpty();
+		boolean anyComplete = false;
+		for (Goal g : selectedGoals) { if (g.isComplete()) { anyComplete = true; break; } }
 		List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
 		List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
 		for (com.goalplanner.api.SectionView sv : allSections)
 		{
 			// Completed is auto-managed; bulk-move can't target it.
 			if ("COMPLETED".equals(sv.kind)) continue;
+			// Incomplete can't hold a completed goal (it'd bounce to Completed),
+			// so don't offer it when any selected goal is complete.
+			if ("INCOMPLETE".equals(sv.kind) && anyComplete) continue;
 			// Skip sections where every selected goal already lives.
 			boolean allAlreadyHere = true;
 			for (Goal g : selectedGoals)
