@@ -66,6 +66,12 @@ class GoalPlannerApiImplTest
 		api.setOnSelectionChanged(callbackFireCount::incrementAndGet);
 	}
 
+	private SectionView sectionViewById(String id)
+	{
+		return api.queryAllSections().stream()
+			.filter(s -> id.equals(s.id)).findFirst().orElseThrow();
+	}
+
 	// ====================================================================
 	// Public API: addSkillGoal / addCustomGoal
 	// ====================================================================
@@ -259,21 +265,23 @@ class GoalPlannerApiImplTest
 	// ====================================================================
 
 	@Test
-	@DisplayName("recordGoalProgress no-ops for guide-section goals (no progress, no completion)")
-	void recordGoalProgressSkipsGuideGoals()
+	@DisplayName("guide goals track normally; a completed one stays in its guide section")
+	void guideGoalsTrackAndStayInSection()
 	{
 		String guideId = api.createSection("Inferno Guide");
 		assertTrue(store.setSectionGuide(guideId, true));
-		// A 75 Ranged requirement the author (99 Ranged) would normally complete.
 		Goal g = Goal.builder().type(GoalType.SKILL).name("Ranged").skillName("RANGED")
-			.targetValue(75).currentValue(0).sectionId(guideId).build();
+			.targetValue(100).currentValue(0).sectionId(guideId).build();
 		store.addGoal(g);
 
-		// The author's live read of 99 must NOT record progress or complete it.
-		assertFalse(api.recordGoalProgress(g.getId(), 99));
-		assertEquals(0, g.getCurrentValue());
-		assertFalse(g.isComplete());
-		assertEquals(GoalStatus.ACTIVE, g.getStatus());
+		// Guide mode affects display/relocation, NOT tracking: the goal records
+		// progress and completes normally.
+		assertTrue(api.recordGoalProgress(g.getId(), 100));
+		assertTrue(g.isComplete());
+
+		// But a completed guide goal is NOT shipped to Completed — it stays in
+		// the guide section, shown inline as a ticked-off requirement.
+		store.reconcileCompletedSection();
 		assertEquals(guideId, g.getSectionId());
 	}
 
@@ -1367,6 +1375,24 @@ class GoalPlannerApiImplTest
 			assertEquals(0xFF0000, g.getCustomColorRgb());
 			api.undo(); // back to no override
 			assertEquals(-1, g.getCustomColorRgb());
+		}
+
+		@Test
+		@DisplayName("setSectionGuide toggles the flag, is undoable, and rejects built-ins")
+		void setSectionGuideRoundTrip()
+		{
+			String id = api.createSection("Inferno Guide");
+			assertFalse(sectionViewById(id).guide);
+
+			assertTrue(api.setSectionGuide(id, true));
+			assertTrue(sectionViewById(id).guide);
+			assertFalse(api.setSectionGuide(id, true)); // no-op
+
+			api.undo();
+			assertFalse(sectionViewById(id).guide);
+
+			// Built-in sections can never be guides.
+			assertFalse(api.setSectionGuide(store.getIncompleteSection().getId(), true));
 		}
 
 		@Test

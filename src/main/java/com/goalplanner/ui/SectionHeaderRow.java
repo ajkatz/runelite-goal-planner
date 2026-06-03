@@ -26,6 +26,8 @@ public class SectionHeaderRow extends JPanel
 	private static final Color BORDER_COLOR = new Color(60, 60, 60);
 	private static final Color TEXT_COLOR = new Color(200, 200, 200);
 	private static final Color CHEVRON_COLOR = new Color(160, 160, 160);
+	/** Soft blue tag color for the GUIDE badge — noticeable but not loud. */
+	private static final Color GUIDE_BADGE_COLOR = new Color(120, 170, 210);
 	private static final int ROW_HEIGHT = 22;
 	private static final int CHEVRON_WIDTH = 14;
 
@@ -86,14 +88,29 @@ public class SectionHeaderRow extends JPanel
 		nameLabel.setForeground(TEXT_COLOR);
 		nameLabel.setFont(PanelFonts.derive(Font.BOLD, 10f));
 
-		// Spacer of equal width on the right so the centered name visually stays centered
-		// despite the chevron occupying the left edge.
-		JLabel spacer = new JLabel();
-		spacer.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
+		// Right edge: a "GUIDE" badge on guide sections, otherwise a spacer of
+		// equal width to the chevron so the centered name visually stays centered.
+		final Component eastComp;
+		if (section.guide)
+		{
+			JLabel badge = new JLabel("GUIDE", SwingConstants.RIGHT);
+			badge.setForeground(GUIDE_BADGE_COLOR);
+			badge.setFont(PanelFonts.derive(Font.BOLD, 8f));
+			badge.setBorder(new EmptyBorder(0, 4, 0, 2));
+			badge.setToolTipText("Guide section — completed goals stay shown here "
+				+ "instead of moving to Completed, so you can build a shareable guide.");
+			eastComp = badge;
+		}
+		else
+		{
+			JLabel spacer = new JLabel();
+			spacer.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
+			eastComp = spacer;
+		}
 
 		add(chevron, BorderLayout.WEST);
 		add(nameLabel, BorderLayout.CENTER);
-		add(spacer, BorderLayout.EAST);
+		add(eastComp, BorderLayout.EAST);
 
 		addMouseListener(new MouseAdapter()
 		{

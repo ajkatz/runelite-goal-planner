@@ -26,4 +26,10 @@ public class SectionView
 	public int defaultColorRgb;
 	/** True when {@link #colorRgb} is a user override. */
 	public boolean colorOverridden;
+	/**
+	 * True when this is a guide (template) section: completed goals stay
+	 * displayed inline here instead of being relocated to Completed. Always
+	 * false for built-in sections.
+	 */
+	public boolean guide;
 }
