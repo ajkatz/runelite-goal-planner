@@ -50,17 +50,24 @@ public final class DependencyRailPrototype
 
 	private static List<String> ids(String... s) { return new ArrayList<>(Arrays.asList(s)); }
 
-	/** Sample graph in topo order (prereqs first). Diamond over "70 Agility"; OR on the Western diary. */
+	/**
+	 * Sample graph in topo order (prereqs first). Interconnected diamonds: each
+	 * of three skills feeds TWO of three quests, which all merge into Quest Cape;
+	 * a final goal needs that AND a Fire-or-Infernal OR.
+	 */
 	private static List<Node> sample()
 	{
 		return Arrays.asList(
-			new Node("agility", "70 Agility",          true,  ids(),                ids()),
-			new Node("mm2",     "Monkey Madness II",   false, ids("agility"),       ids()),
-			new Node("ds2",     "Dragon Slayer II",    true,  ids("agility"),       ids()),
-			new Node("qpc",     "Quest Point Cape",    false, ids("mm2", "ds2"),    ids()),
-			new Node("fire",    "Fire Cape",           true,  ids(),                ids()),
-			new Node("inferno", "Infernal Cape",       false, ids(),                ids()),
-			new Node("western", "Western Elite Diary", false, ids(),                ids("fire", "inferno"))
+			new Node("agility", "70 Agility",          true,  ids(),                      ids()),
+			new Node("combat",  "100 Combat",          true,  ids(),                      ids()),
+			new Node("ranged",  "75 Ranged",           false, ids(),                      ids()),
+			new Node("mm2",     "Monkey Madness II",   false, ids("agility", "combat"),   ids()),
+			new Node("dt2",     "Desert Treasure II",  false, ids("combat", "ranged"),    ids()),
+			new Node("sote",    "Song of the Elves",   false, ids("agility", "ranged"),   ids()),
+			new Node("qpc",     "Quest Point Cape",    false, ids("mm2", "dt2", "sote"),  ids()),
+			new Node("fire",    "Fire Cape",           true,  ids(),                      ids()),
+			new Node("inferno", "Infernal Cape",       false, ids(),                      ids()),
+			new Node("gm",      "Grandmaster CA",      false, ids("qpc"),                 ids("fire", "inferno"))
 		);
 	}
 
@@ -97,7 +104,7 @@ public final class DependencyRailPrototype
 			legend.setBackground(new Color(0x22, 0x22, 0x22));
 			f.add(legend, BorderLayout.SOUTH);
 
-			f.setSize(260, 360); // deliberately narrow — like the RuneLite side panel
+			f.setSize(300, 480); // narrow-ish — like the RuneLite side panel
 			f.setLocationRelativeTo(null);
 			f.setVisible(true);
 		});
@@ -117,7 +124,8 @@ public final class DependencyRailPrototype
 			for (Node n : nodes) byId.put(n.id, n);
 			assignLanes();
 			setBackground(BG);
-			setPreferredSize(new Dimension(244, nodes.size() * ROW_H + 2 * TOP_PAD));
+			int gutterW = GUTTER_LEFT + (maxLane + 1) * LANE_STEP;
+			setPreferredSize(new Dimension(gutterW + 180, nodes.size() * ROW_H + 2 * TOP_PAD));
 		}
 
 		private List<String> prereqs(Node n)
