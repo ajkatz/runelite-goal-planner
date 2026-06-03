@@ -1803,7 +1803,9 @@ public class GoalStore
 	// User-defined section CRUD (Phase 2)
 	// ---------------------------------------------------------------------
 
-	private static final int MAX_SECTION_NAME_LENGTH = 40;
+	/** Max user-section name length. Public so callers (e.g. share import) can
+	 *  fit generated names; {@link #createUserSection} throws on longer ones. */
+	public static final int MAX_SECTION_NAME_LENGTH = 40;
 
 	/**
 	 * Validate a proposed section name. Returns null if valid, otherwise an

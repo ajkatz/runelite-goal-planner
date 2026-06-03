@@ -349,11 +349,28 @@ public class GoalPlannerPlugin extends Plugin
 		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
 		javax.swing.SwingUtilities.invokeLater(() ->
 		{
-			goalTrackerApi.importShareBundle(bundle);
+			String sectionId;
+			try
+			{
+				sectionId = goalTrackerApi.importShareBundle(bundle);
+			}
+			catch (RuntimeException ex)
+			{
+				log.warn("Postie import-share: importShareBundle threw", ex);
+				postGameMessage(new ChatMessageBuilder()
+					.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
+					.append(ChatColorType.NORMAL).append("Postie import FAILED: " + ex)
+					.build());
+				return;
+			}
 			panel.rebuild();
+			log.info("Postie import-share: result sectionId={} (payload had {} goals)", sectionId, count);
+			String msg = sectionId != null
+				? "imported " + count + " shared goal(s) via Postie → section " + sectionId
+				: "Postie import returned NO section (nothing added)";
 			postGameMessage(new ChatMessageBuilder()
 				.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
-				.append(ChatColorType.NORMAL).append("imported " + count + " shared goal(s) via Postie")
+				.append(ChatColorType.NORMAL).append(msg)
 				.build());
 		});
 	}

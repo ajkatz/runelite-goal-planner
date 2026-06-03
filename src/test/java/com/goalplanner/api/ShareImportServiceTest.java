@@ -220,4 +220,32 @@ class ShareImportServiceTest
 		assertFalse(imported.isComplete());
 		assertEquals(0, imported.getCurrentValue());
 	}
+
+	@Test
+	void longSectionNameStillImports()
+	{
+		// Regression: "<name> (from <sharer>)" can exceed the 40-char section cap,
+		// which createUserSection rejects (and CommandHistory swallows) — the import
+		// must fit the name instead of silently returning null.
+		GoalShareDto g = new GoalShareDto();
+		g.setRef(0);
+		g.setType("SKILL");
+		g.setName("Ranged");
+		g.setSkillName("RANGED");
+		g.setTargetValue(1_210_421);
+
+		ShareBundle bundle = new ShareBundle();
+		bundle.setKind(ShareBundle.Kind.SECTION);
+		bundle.setSectionName("Inferno Prep (Postie demo)");   // 26 chars
+		bundle.setSharedBy("Postie demo");                      // "(from …)" → 45 total, over 40
+		bundle.setGoals(java.util.Collections.singletonList(g));
+
+		String sectionId = api.importShareBundle(bundle);
+
+		assertNotNull(sectionId, "long section name must not silently fail the import");
+		Section section = store.getSections().stream()
+			.filter(s -> sectionId.equals(s.getId())).findFirst().orElseThrow();
+		assertTrue(section.getName().length() <= 40);
+		assertEquals(1, store.getGoals().size());
+	}
 }

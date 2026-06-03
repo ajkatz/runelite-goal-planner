@@ -5,6 +5,7 @@ import com.goalplanner.model.GoalType;
 import com.goalplanner.model.Section;
 import com.goalplanner.model.Tag;
 import com.goalplanner.model.TagCategory;
+import com.goalplanner.persistence.GoalStore;
 import com.goalplanner.share.GoalShareDto;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.TagShareDto;
@@ -238,11 +239,16 @@ class ShareImportService
 		String base = bundle.getKind() == ShareBundle.Kind.SECTION && notBlank(bundle.getSectionName())
 			? bundle.getSectionName().trim()
 			: "Shared goals";
-		String sharedBy = clamp(bundle.getSharedBy(), MAX_NAME);
-		String name = notBlank(sharedBy)
-			? base + " (from " + sharedBy + ")"
-			: base;
-		return clamp(name, MAX_NAME);
+		String sharedBy = bundle.getSharedBy() != null ? bundle.getSharedBy().trim() : null;
+		String withFrom = notBlank(sharedBy) ? base + " (from " + sharedBy + ")" : base;
+		// Section names are capped (GoalStore.createUserSection THROWS on longer
+		// ones — which CommandHistory swallows, silently failing the whole import).
+		// If the "(from X)" form doesn't fit, drop the suffix; clamp as a backstop.
+		if (withFrom.length() <= GoalStore.MAX_SECTION_NAME_LENGTH)
+		{
+			return withFrom;
+		}
+		return clamp(base, GoalStore.MAX_SECTION_NAME_LENGTH);
 	}
 
 	private static GoalType parseType(String name)
