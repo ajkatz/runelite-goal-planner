@@ -270,15 +270,14 @@ class GoalStoreTest
 	// ====================================================================
 
 	@Test
-	@DisplayName("reconcileCompletedSection leaves a completed goal in its user section")
-	void reconcileLeavesCompletedGoalInUserSection()
+	@DisplayName("a keep-inline section leaves its completed goal in place (override beats the global default)")
+	void reconcileKeepInlineSectionLeavesCompletedGoal()
 	{
 		Section custom = store.createUserSection("Inferno Prep");
+		store.setSectionAutoArchiveOverride(custom.getId(), false); // keep inline
 		Goal g = Goal.builder().type(GoalType.CUSTOM).name("75 Ranged").sectionId(custom.getId()).build();
 		store.addGoal(g);
 
-		// A completed goal in a user section is sticky — it stays put, it does
-		// NOT get relocated to the built-in Completed section.
 		g.setCompletedAt(System.currentTimeMillis());
 		g.setStatus(GoalStatus.COMPLETE);
 
@@ -357,37 +356,53 @@ class GoalStoreTest
 	}
 
 	@Test
-	@DisplayName("reconcile auto-archives completed goals from an opted-in section; others stay inline")
-	void reconcileAutoArchivesFromOptedInSection()
+	@DisplayName("reconcile archives per effective setting: global default + force-archive out, keep-inline stays")
+	void reconcileAutoArchivesPerEffectiveSetting()
 	{
-		Section archiving = store.createUserSection("Archiving");
-		assertTrue(store.setSectionAutoArchiveCompleted(archiving.getId(), true));
-		Section keeping = store.createUserSection("Keeping");
+		// Store's global default is auto-archive (true).
+		Section def = store.createUserSection("Default");          // inherits → archive
+		Section force = store.createUserSection("Force");
+		store.setSectionAutoArchiveOverride(force.getId(), true);  // force archive
+		Section keep = store.createUserSection("Keep");
+		store.setSectionAutoArchiveOverride(keep.getId(), false);  // keep inline
 
-		Goal a = Goal.builder().type(GoalType.CUSTOM).name("a")
-			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE)
-			.sectionId(archiving.getId()).build();
-		Goal b = Goal.builder().type(GoalType.CUSTOM).name("b")
-			.completedAt(System.currentTimeMillis()).status(GoalStatus.COMPLETE)
-			.sectionId(keeping.getId()).build();
-		store.addGoal(a);
-		store.addGoal(b);
+		Goal d = Goal.builder().type(GoalType.CUSTOM).name("d").completedAt(1L)
+			.status(GoalStatus.COMPLETE).sectionId(def.getId()).build();
+		Goal f = Goal.builder().type(GoalType.CUSTOM).name("f").completedAt(1L)
+			.status(GoalStatus.COMPLETE).sectionId(force.getId()).build();
+		Goal k = Goal.builder().type(GoalType.CUSTOM).name("k").completedAt(1L)
+			.status(GoalStatus.COMPLETE).sectionId(keep.getId()).build();
+		store.addGoal(d);
+		store.addGoal(f);
+		store.addGoal(k);
 
 		assertTrue(store.reconcileCompletedSection());
-		assertEquals(store.getCompletedSection().getId(), a.getSectionId()); // archived out
-		assertEquals(keeping.getId(), b.getSectionId());                     // kept inline
+		String completedId = store.getCompletedSection().getId();
+		assertEquals(completedId, d.getSectionId()); // inherits default → archived
+		assertEquals(completedId, f.getSectionId()); // forced → archived
+		assertEquals(keep.getId(), k.getSectionId()); // keep-inline → stays
 	}
 
 	@Test
-	@DisplayName("setSectionAutoArchiveCompleted toggles a user section; rejects built-ins + no-op")
-	void setSectionAutoArchiveCompletedToggles()
+	@DisplayName("setSectionAutoArchiveOverride sets null/true/false, rejects built-ins; effectiveAutoArchive resolves it")
+	void setSectionAutoArchiveOverrideAndEffective()
 	{
-		assertFalse(store.setSectionAutoArchiveCompleted(store.getIncompleteSection().getId(), true));
+		assertFalse(store.setSectionAutoArchiveOverride(store.getIncompleteSection().getId(), true));
 		Section s = store.createUserSection("S");
-		assertFalse(store.setSectionAutoArchiveCompleted(s.getId(), false)); // already false → no-op
-		assertTrue(store.setSectionAutoArchiveCompleted(s.getId(), true));
-		assertTrue(store.findSection(s.getId()).isAutoArchiveCompleted());
-		assertFalse(store.setSectionAutoArchiveCompleted(s.getId(), true)); // no-op
+
+		// Inheriting + global default true → effective archive.
+		assertTrue(store.effectiveAutoArchive(s));
+		assertFalse(store.setSectionAutoArchiveOverride(s.getId(), null)); // already null → no-op
+		assertTrue(store.setSectionAutoArchiveOverride(s.getId(), false)); // keep inline
+		assertEquals(Boolean.FALSE, store.findSection(s.getId()).getAutoArchiveOverride());
+		assertFalse(store.effectiveAutoArchive(s));
+		assertTrue(store.setSectionAutoArchiveOverride(s.getId(), true));  // force archive
+		assertTrue(store.effectiveAutoArchive(s));
+
+		// Back to inherit, then flip the global default → effective follows it.
+		assertTrue(store.setSectionAutoArchiveOverride(s.getId(), null));
+		store.setAutoArchiveDefault(false);
+		assertFalse(store.effectiveAutoArchive(s));
 	}
 
 	// ====================================================================

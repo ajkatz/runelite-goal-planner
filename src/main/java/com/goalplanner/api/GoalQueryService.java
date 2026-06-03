@@ -392,7 +392,7 @@ class GoalQueryService
 		v.collapsed = s.isCollapsed();
 		v.builtIn = s.isBuiltIn();
 		v.kind = s.getBuiltInKind() != null ? s.getBuiltInKind().name() : null;
-		v.autoArchiveCompleted = s.isAutoArchiveCompleted();
+		v.autoArchiveOverride = s.getAutoArchiveOverride();
 		v.defaultColorRgb = SECTION_DEFAULT_COLOR_RGB;
 		if (s.getColorRgb() >= 0)
 		{

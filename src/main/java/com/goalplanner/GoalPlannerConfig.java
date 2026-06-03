@@ -9,6 +9,25 @@ import net.runelite.client.config.ConfigSection;
 public interface GoalPlannerConfig extends Config
 {
 	@ConfigSection(
+		name = "Behaviour",
+		description = "How goals and sections behave.",
+		position = 5
+	)
+	String behaviourSection = "behaviour";
+
+	@ConfigItem(
+		keyName = "autoArchiveCompleted",
+		name = "Auto-archive completed",
+		description = "Global default: when on, completed goals graduate out to the Completed list as they finish. Turn off to keep completed goals inline in their section as a checklist. Individual sections can override this.",
+		section = behaviourSection,
+		position = 1
+	)
+	default boolean autoArchiveCompleted()
+	{
+		return true;
+	}
+
+	@ConfigSection(
 		name = "Appearance",
 		description = "Readability options (experimental). Report issues: discord.gg/CFQsA3fmh7",
 		position = 10

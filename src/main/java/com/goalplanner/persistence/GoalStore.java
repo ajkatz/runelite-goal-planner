@@ -99,6 +99,13 @@ public class GoalStore
 
 	/** When true, granular saves are deferred. Call resumeSave() to persist. */
 	private boolean saveSuspended = false;
+
+	/**
+	 * Global default for completed-goal archiving (synced from config by the
+	 * plugin). True = completed goals graduate out to Completed; false = kept
+	 * inline. A section's {@code autoArchiveOverride} takes precedence.
+	 */
+	private boolean autoArchiveDefault = true;
 	/** Granular dirty tracking for suspend/resume. */
 	private final java.util.Set<String> dirtyGoalIds = new java.util.HashSet<>();
 	private final java.util.Set<String> dirtyTagIds = new java.util.HashSet<>();
@@ -1769,11 +1776,11 @@ public class GoalStore
 			boolean inDefault = completedId.equals(currentSid) || incompleteId.equals(currentSid);
 			if (!inDefault)
 			{
-				// User section: sticky by default (keeps completed goals inline),
-				// UNLESS it opted into auto-archiving — then completed goals move
-				// out to the default Completed section.
+				// User section: completed goals stay inline unless this section's
+				// EFFECTIVE setting (its override, else the global default) is to
+				// archive them out to the default Completed section.
 				Section sec = findSection(currentSid);
-				if (sec != null && sec.isAutoArchiveCompleted() && goal.isComplete())
+				if (sec != null && effectiveAutoArchive(sec) && goal.isComplete())
 				{
 					goal.setSectionId(completedId);
 					anyMoved = true;
@@ -1989,19 +1996,44 @@ public class GoalStore
 		return true;
 	}
 
+	/** Global completed-archiving default (synced from config by the plugin). */
+	public boolean isAutoArchiveDefault()
+	{
+		return autoArchiveDefault;
+	}
+
+	/** Set the global completed-archiving default (the plugin syncs it from config). */
+	public void setAutoArchiveDefault(boolean value)
+	{
+		this.autoArchiveDefault = value;
+	}
+
 	/**
-	 * Set whether a user section auto-archives its completed goals to the default
-	 * Completed section. Built-in sections can't be toggled. Returns false on:
-	 * not found, built-in, or no-op (already set). Does NOT reconcile — callers
-	 * that want existing completed goals archived immediately call
+	 * Effective archiving decision for a user section: its per-section override
+	 * if set, else the global default. Built-ins never archive (they ARE the
+	 * default), so this returns false for them.
+	 */
+	public boolean effectiveAutoArchive(Section section)
+	{
+		if (section == null || section.isBuiltIn()) return false;
+		return section.getAutoArchiveOverride() != null
+			? section.getAutoArchiveOverride()
+			: autoArchiveDefault;
+	}
+
+	/**
+	 * Set a user section's completed-archiving override: {@code null} inherits
+	 * the global default, {@code TRUE} forces archive, {@code FALSE} forces keep.
+	 * Built-in sections can't be set. Returns false on: not found, built-in, or
+	 * no-op. Does NOT reconcile — callers wanting immediate effect call
 	 * {@link #reconcileCompletedSection()} after.
 	 */
-	public boolean setSectionAutoArchiveCompleted(String sectionId, boolean value)
+	public boolean setSectionAutoArchiveOverride(String sectionId, Boolean value)
 	{
 		Section section = findSection(sectionId);
 		if (section == null || section.isBuiltIn()) return false;
-		if (section.isAutoArchiveCompleted() == value) return false;
-		section.setAutoArchiveCompleted(value);
+		if (java.util.Objects.equals(section.getAutoArchiveOverride(), value)) return false;
+		section.setAutoArchiveOverride(value);
 		saveSectionsIfNotSuspended();
 		return true;
 	}

@@ -289,12 +289,13 @@ class SectionService
 		});
 	}
 
-	boolean setSectionAutoArchiveCompleted(String sectionId, boolean value)
+	boolean setSectionAutoArchiveOverride(String sectionId, Boolean value)
 	{
-		log.debug("API.internal setSectionAutoArchiveCompleted(sectionId={}, value={})", sectionId, value);
+		log.debug("API.internal setSectionAutoArchiveOverride(sectionId={}, value={})", sectionId, value);
 		Section section = api.goalStore.findSection(sectionId);
 		if (section == null || section.isBuiltIn()) return false;
-		if (section.isAutoArchiveCompleted() == value) return false;
+		if (java.util.Objects.equals(section.getAutoArchiveOverride(), value)) return false;
+		final Boolean prev = section.getAutoArchiveOverride();
 		final String name = section.getName();
 		return api.executeCommand(new com.goalplanner.command.Command()
 		{
@@ -302,11 +303,11 @@ class SectionService
 			{
 				Section s = api.goalStore.findSection(sectionId);
 				if (s == null) return false;
-				s.setAutoArchiveCompleted(value);
-				// Enabling it archives the section's existing completed goals now.
-				// (Like auto-completion, the relocation itself isn't separately
-				// undoable — revert just restores the flag.)
-				if (value) api.goalStore.reconcileCompletedSection();
+				s.setAutoArchiveOverride(value);
+				// If the new effective decision is "archive", sweep existing
+				// completed goals out now. (Like auto-completion, the relocation
+				// itself isn't separately undoable — revert restores the flag.)
+				if (api.goalStore.effectiveAutoArchive(s)) api.goalStore.reconcileCompletedSection();
 				api.goalStore.save();
 				return true;
 			}
@@ -314,13 +315,14 @@ class SectionService
 			{
 				Section s = api.goalStore.findSection(sectionId);
 				if (s == null) return false;
-				s.setAutoArchiveCompleted(!value);
+				s.setAutoArchiveOverride(prev);
 				api.goalStore.save();
 				return true;
 			}
 			@Override public String getDescription()
 			{
-				return (value ? "Auto-archive completed: " : "Keep completed in: ") + name;
+				String state = value == null ? "default" : (value ? "auto-archive" : "keep inline");
+				return "Completed goals (" + state + "): " + name;
 			}
 		});
 	}

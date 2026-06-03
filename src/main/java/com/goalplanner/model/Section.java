@@ -62,12 +62,12 @@ public class Section
 	private BuiltInKind builtInKind;
 
 	/**
-	 * When true, completed goals in this user section are auto-archived out to
-	 * the default Completed section (instead of the default behaviour, which
-	 * keeps them inline as a checklist). Opt-in, per section. Built-ins ignore it.
+	 * Per-section override for completed-goal archiving:
+	 * {@code null} = inherit the global default; {@code TRUE} = always archive
+	 * completed goals out to Completed; {@code FALSE} = always keep them inline.
+	 * Built-ins ignore it.
 	 */
-	@Builder.Default
-	private boolean autoArchiveCompleted = false;
+	private Boolean autoArchiveOverride;
 
 	public boolean isBuiltIn()
 	{

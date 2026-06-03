@@ -1329,17 +1329,30 @@ class GoalContextMenuBuilder
 			rename.addActionListener(e -> dialogFactory.showRenameSectionDialog(section));
 			menu.add(rename);
 
-			// Auto-archive toggle — by default a section keeps its completed goals
-			// inline (checklist); enabling this graduates them out to Completed.
-			JMenuItem archiveToggle = new JMenuItem(section.autoArchiveCompleted
-				? "Keep completed in section"
-				: "Auto-archive completed");
-			archiveToggle.setToolTipText(section.autoArchiveCompleted
-				? "Stop sending this section's completed goals to Completed; keep them inline."
-				: "Send this section's completed goals out to the Completed list as they finish.");
-			archiveToggle.addActionListener(e ->
-				api.setSectionAutoArchiveCompleted(section.id, !section.autoArchiveCompleted));
-			menu.add(archiveToggle);
+			// Completed goals — per-section override of the global auto-archive
+			// default: inherit (Use default), always archive out to Completed, or
+			// always keep inline as a checklist.
+			boolean archiveDefault = api.isAutoArchiveDefault();
+			Boolean archiveOverride = section.autoArchiveOverride;
+			JMenu completedMenu = new JMenu("Completed goals");
+
+			javax.swing.JRadioButtonMenuItem useDefault = new javax.swing.JRadioButtonMenuItem(
+				"Use default (" + (archiveDefault ? "auto-archive" : "keep inline") + ")",
+				archiveOverride == null);
+			useDefault.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, null));
+			completedMenu.add(useDefault);
+
+			javax.swing.JRadioButtonMenuItem archiveItem = new javax.swing.JRadioButtonMenuItem(
+				"Auto-archive (move to Completed)", Boolean.TRUE.equals(archiveOverride));
+			archiveItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.TRUE));
+			completedMenu.add(archiveItem);
+
+			javax.swing.JRadioButtonMenuItem keepItem = new javax.swing.JRadioButtonMenuItem(
+				"Keep inline (checklist)", Boolean.FALSE.equals(archiveOverride));
+			keepItem.addActionListener(e -> api.setSectionAutoArchiveOverride(section.id, Boolean.FALSE));
+			completedMenu.add(keepItem);
+
+			menu.add(completedMenu);
 
 			if (currentUserIndex > 0)
 			{

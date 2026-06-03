@@ -177,6 +177,7 @@ public class GoalPlannerPlugin extends Plugin
 		log.info("Goal Planner started");
 
 		goalStore.load();
+		goalStore.setAutoArchiveDefault(config.autoArchiveCompleted());
 		seedCanonicalSystemTags();
 		wikiCaRepository.loadAsync();
 		// Migrate any pre-existing CA goals (from before the bit-packed varp tracking
@@ -603,6 +604,18 @@ public class GoalPlannerPlugin extends Plugin
 		if ("fontFamily".equals(event.getKey()) || "fontScale".equals(event.getKey()))
 		{
 			PanelFonts.configure(config.fontFamily(), config.fontScale());
+			if (panel != null)
+			{
+				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+			}
+		}
+		// Global auto-archive default changed — sync to the store, re-sort the
+		// default-following sections, and rebuild.
+		if ("autoArchiveCompleted".equals(event.getKey()))
+		{
+			goalStore.setAutoArchiveDefault(config.autoArchiveCompleted());
+			goalStore.reconcileCompletedSection();
+			goalStore.save();
 			if (panel != null)
 			{
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);

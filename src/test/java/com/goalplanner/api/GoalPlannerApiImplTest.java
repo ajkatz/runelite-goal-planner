@@ -259,10 +259,11 @@ class GoalPlannerApiImplTest
 	// ====================================================================
 
 	@Test
-	@DisplayName("a completed goal stays in its user section, not relocated to Completed")
-	void completedGoalStaysInUserSection()
+	@DisplayName("a keep-inline section keeps its completed goal in place, not relocated to Completed")
+	void keepInlineSectionKeepsCompletedGoal()
 	{
 		String sectionId = api.createSection("Inferno Prep");
+		store.setSectionAutoArchiveOverride(sectionId, false); // keep inline
 		Goal g = Goal.builder().type(GoalType.SKILL).name("Ranged").skillName("RANGED")
 			.targetValue(100).currentValue(0).sectionId(sectionId).build();
 		store.addGoal(g);
@@ -271,8 +272,7 @@ class GoalPlannerApiImplTest
 		assertTrue(api.recordGoalProgress(g.getId(), 100));
 		assertTrue(g.isComplete());
 
-		// But a completed goal in a user section is sticky — it stays put as a
-		// ticked-off item, not shipped to the built-in Completed.
+		// A keep-inline section holds its completed goal as a ticked-off item.
 		store.reconcileCompletedSection();
 		assertEquals(sectionId, g.getSectionId());
 	}
@@ -377,23 +377,24 @@ class GoalPlannerApiImplTest
 	}
 
 	@Test
-	@DisplayName("setSectionAutoArchiveCompleted archives existing completed goals on enable; undoable")
-	void setSectionAutoArchiveCompleted()
+	@DisplayName("setSectionAutoArchiveOverride to archive sweeps existing completed goals out; undoable")
+	void setSectionAutoArchiveOverrideArchives()
 	{
 		String section = api.createSection("Boss Tasks");
+		store.setSectionAutoArchiveOverride(section, false); // keep inline first
 		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
 			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(section).build();
 		store.addGoal(done);
 		assertEquals(section, done.getSectionId());
 
-		// Enabling immediately graduates the completed goal out to Completed.
-		assertTrue(api.setSectionAutoArchiveCompleted(section, true));
-		assertTrue(store.findSection(section).isAutoArchiveCompleted());
+		// Switching this section to archive graduates the completed goal out now.
+		assertTrue(api.setSectionAutoArchiveOverride(section, Boolean.TRUE));
+		assertEquals(Boolean.TRUE, store.findSection(section).getAutoArchiveOverride());
 		assertEquals(store.getCompletedSection().getId(), done.getSectionId());
 
-		// Undo restores the flag (relocation follows reconcile semantics).
+		// Undo restores the override (relocation follows reconcile semantics).
 		api.undo();
-		assertFalse(store.findSection(section).isAutoArchiveCompleted());
+		assertEquals(Boolean.FALSE, store.findSection(section).getAutoArchiveOverride());
 	}
 
 	// ====================================================================
