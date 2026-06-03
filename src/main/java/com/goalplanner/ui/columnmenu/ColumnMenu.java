@@ -46,11 +46,21 @@ import java.util.List;
  */
 public final class ColumnMenu
 {
-	private static final int COLUMN_WIDTH = 170;
+	private static final int MIN_COLUMN_WIDTH = 180;
+	private static final int MAX_COLUMN_WIDTH = 380;
 	private static final int ROW_HEIGHT = 24;
 	private static final int SEP_HEIGHT = 5;
 	private static final int COLUMN_PADDING = 8; // 4 top + 4 bottom
 	private static final int MAX_COLUMN_HEIGHT = 480;
+
+	/**
+	 * One width for the whole menu — sized to the widest label across ALL levels
+	 * (computed up front in {@link #show}). This keeps deep submenus from
+	 * clipping their text, and keeps the width consistent as the user drills in
+	 * and back out. Clamped to {@link #MIN_COLUMN_WIDTH}..{@link #MAX_COLUMN_WIDTH}
+	 * so a very long label can't push the column off-screen.
+	 */
+	private int columnWidth = MIN_COLUMN_WIDTH;
 
 
 	private static final Color BG = ColorScheme.DARK_GRAY_COLOR;
@@ -86,6 +96,7 @@ public final class ColumnMenu
 	public static void show(Component anchor, int x, int y, List<MenuNode> rootItems)
 	{
 		ColumnMenu m = new ColumnMenu(anchor);
+		m.columnWidth = m.computeColumnWidth(rootItems);
 		m.stack.push(new Frame(null, rootItems));
 		m.renderCurrent();
 		m.position(anchor, x, y);
@@ -104,6 +115,37 @@ public final class ColumnMenu
 		root.setBackground(BG);
 		root.setBorder(BorderFactory.createLineBorder(BORDER, 1));
 		window.setContentPane(root);
+	}
+
+	/**
+	 * Width for every column = the widest label anywhere in the tree (so deep
+	 * submenus don't clip their text), plus padding for the row border and the
+	 * leading/trailing arrow column, clamped to [MIN, MAX] and to the owner
+	 * window so a long label can't push the column off-screen.
+	 */
+	private int computeColumnWidth(List<MenuNode> rootItems)
+	{
+		java.awt.FontMetrics fm = new JLabel().getFontMetrics(PanelFonts.derive(Font.PLAIN, 13f));
+		int widest = maxLabelWidth(rootItems, fm);
+		int needed = widest + 20 + 26; // 10+10 row border + ~26 arrow column + slack
+		int cap = MAX_COLUMN_WIDTH;
+		if (ownerWindow != null && ownerWindow.getWidth() > 0)
+		{
+			cap = Math.min(cap, ownerWindow.getWidth() - 24);
+		}
+		return Math.max(MIN_COLUMN_WIDTH, Math.min(needed, cap));
+	}
+
+	private int maxLabelWidth(List<MenuNode> items, java.awt.FontMetrics fm)
+	{
+		int max = 0;
+		for (MenuNode n : items)
+		{
+			if (n.separator) continue;
+			if (n.label != null) max = Math.max(max, fm.stringWidth(n.label));
+			if (!n.children.isEmpty()) max = Math.max(max, maxLabelWidth(n.children, fm));
+		}
+		return max;
 	}
 
 	/**
@@ -159,7 +201,7 @@ public final class ColumnMenu
 		// longer over-estimate via a flat ROW_HEIGHT count.
 		int contentHeight = rowCount * ROW_HEIGHT + sepCount * SEP_HEIGHT + COLUMN_PADDING;
 		int height = Math.min(contentHeight, MAX_COLUMN_HEIGHT);
-		scroll.setPreferredSize(new Dimension(COLUMN_WIDTH, height));
+		scroll.setPreferredSize(new Dimension(columnWidth, height));
 
 		root.add(scroll, BorderLayout.CENTER);
 		window.pack();
@@ -171,8 +213,8 @@ public final class ColumnMenu
 		JSeparator sep = new JSeparator(JSeparator.HORIZONTAL);
 		sep.setForeground(SEP);
 		sep.setBackground(SEP);
-		sep.setPreferredSize(new Dimension(COLUMN_WIDTH, SEP_HEIGHT));
-		sep.setMaximumSize(new Dimension(COLUMN_WIDTH, SEP_HEIGHT));
+		sep.setPreferredSize(new Dimension(columnWidth, SEP_HEIGHT));
+		sep.setMaximumSize(new Dimension(columnWidth, SEP_HEIGHT));
 		sep.setBorder(new EmptyBorder(2, 0, 2, 0));
 		return sep;
 	}
@@ -183,8 +225,8 @@ public final class ColumnMenu
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(BG);
 		row.setBorder(new EmptyBorder(2, 10, 2, 10));
-		row.setPreferredSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
-		row.setMaximumSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
+		row.setPreferredSize(new Dimension(columnWidth, ROW_HEIGHT));
+		row.setMaximumSize(new Dimension(columnWidth, ROW_HEIGHT));
 
 		// "<" matches the ">" submenu indicator — ASCII, font-friendly,
 		// renders consistently on macOS where unicode arrows like ← can
@@ -220,8 +262,8 @@ public final class ColumnMenu
 		JPanel row = new JPanel(new BorderLayout());
 		row.setBackground(BG);
 		row.setBorder(new EmptyBorder(2, 10, 2, 10));
-		row.setPreferredSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
-		row.setMaximumSize(new Dimension(COLUMN_WIDTH, ROW_HEIGHT));
+		row.setPreferredSize(new Dimension(columnWidth, ROW_HEIGHT));
+		row.setMaximumSize(new Dimension(columnWidth, ROW_HEIGHT));
 
 		JLabel label = new JLabel(node.label);
 		label.setForeground(node.enabled ? FG : FG_DISABLED);
