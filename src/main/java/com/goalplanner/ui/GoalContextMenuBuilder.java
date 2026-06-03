@@ -353,13 +353,10 @@ class GoalContextMenuBuilder
 
 		// Change Color is available on all active goal types — override persists
 		// on the goal model so rebuilds don't clobber it. Hidden on completed
-		// goals to keep the menu lean (re-coloring history is noise).
-		if (!goal.isComplete())
-		{
-			JMenuItem changeGoalColor = new JMenuItem("Change Color");
-			changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
-			customizeMenu.add(changeGoalColor);
-		}
+		// goals included — completed goals are first-class, so recolouring is fine.
+		JMenuItem changeGoalColor = new JMenuItem("Change Color");
+		changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
+		customizeMenu.add(changeGoalColor);
 
 		// Skill-specific options
 		if (goal.getType() == GoalType.SKILL && !goal.isComplete())
@@ -450,8 +447,10 @@ class GoalContextMenuBuilder
 			}
 			finally { api.endCompound(); }
 		};
+		// Completed goals are first-class — allow tagging them too (their tags
+		// render on the card, same as active goals).
 		JMenuItem tagEntry = buildTagMenuEntry(
-			!goal.isComplete(), addTagAction,
+			true, addTagAction,
 			!removableTags.isEmpty(), removeTagAction);
 		if (tagEntry != null) customizeMenu.add(tagEntry);
 
@@ -566,32 +565,36 @@ class GoalContextMenuBuilder
 		// under one hover: Move to Top/Bottom reorder within the current
 		// section; Move to… enters click-mode; Move to Section ▶ lists every
 		// other valid section plus a "New Section" option, so almost every
-		// incomplete goal has at least one valid destination. Hidden on
-		// completed goals — Completed is terminal and reordering completed
-		// history adds noise.
-		if (!goal.isComplete())
+		// incomplete goal has at least one valid destination. Completed goals
+		// are included now (first-class section members) — but the in-section
+		// REORDER items (Top/Bottom, Move to…) stay hidden on completed goals,
+		// which are force-sorted to the bottom, so reorder is a no-op there.
+		// Move to Section / Duplicate to Section still work on them.
 		{
 			JMenu moveMenu = new JMenu("Move");
 
-			int sectionSize = sectionEnd - sectionStart + 1;
-			if (sectionSize > 1)
+			if (!goal.isComplete())
 			{
-				JMenuItem moveToTop = new JMenuItem("Move to Top");
-				moveToTop.addActionListener(e ->
-					reorderController.moveGoalTo(goal.getId(), sectionStart));
-				moveMenu.add(moveToTop);
+				int sectionSize = sectionEnd - sectionStart + 1;
+				if (sectionSize > 1)
+				{
+					JMenuItem moveToTop = new JMenuItem("Move to Top");
+					moveToTop.addActionListener(e ->
+						reorderController.moveGoalTo(goal.getId(), sectionStart));
+					moveMenu.add(moveToTop);
 
-				JMenuItem moveToBottom = new JMenuItem("Move to Bottom");
-				moveToBottom.addActionListener(e ->
-					reorderController.moveGoalTo(goal.getId(), sectionEnd));
-				moveMenu.add(moveToBottom);
+					JMenuItem moveToBottom = new JMenuItem("Move to Bottom");
+					moveToBottom.addActionListener(e ->
+						reorderController.moveGoalTo(goal.getId(), sectionEnd));
+					moveMenu.add(moveToBottom);
+				}
+
+				JMenuItem moveToPicker = new JMenuItem("Move to…");
+				moveToPicker.setToolTipText(
+					"Click, then click another goal to place this one above it, or click + New Section.");
+				moveToPicker.addActionListener(e -> panel.enterMoveMode(goal.getId()));
+				moveMenu.add(moveToPicker);
 			}
-
-			JMenuItem moveToPicker = new JMenuItem("Move to…");
-			moveToPicker.setToolTipText(
-				"Click, then click another goal to place this one above it, or click + New Section.");
-			moveToPicker.addActionListener(e -> panel.enterMoveMode(goal.getId()));
-			moveMenu.add(moveToPicker);
 
 			JMenu moveToSection = new JMenu("Move to Section");
 
@@ -840,13 +843,9 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		// Change Color — applies only to active goals in the selection;
-		// completed goals are recolor-frozen (matches single-item menu).
-		List<Goal> recolorTargets = new ArrayList<>();
-		for (Goal g : selectedGoals)
-		{
-			if (!g.isComplete()) recolorTargets.add(g);
-		}
+		// Change Color — applies to every selected goal (completed included;
+		// matches the single-item menu, where completed goals are recolourable).
+		List<Goal> recolorTargets = new ArrayList<>(selectedGoals);
 		if (!recolorTargets.isEmpty())
 		{
 			JMenuItem changeColor = new JMenuItem("Change Color");
@@ -854,14 +853,9 @@ class GoalContextMenuBuilder
 			customizeMenu.add(changeColor);
 		}
 
-		// Tag — Add applies only to active goals in the selection (completed
-		// are tag-frozen, matching the single-item menu); Remove still applies
-		// to any tagged goal so users can clean up stale tags on completed cards.
-		List<Goal> tagAddTargets = new ArrayList<>();
-		for (Goal g : selectedGoals)
-		{
-			if (!g.isComplete()) tagAddTargets.add(g);
-		}
+		// Tag — Add applies to every selected goal (completed included, matching
+		// the single-item menu); Remove still applies to any tagged goal.
+		List<Goal> tagAddTargets = new ArrayList<>(selectedGoals);
 		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
 			api.getRemovableTagsForSelection(selectedIds);
 		JMenuItem bulkTagEntry = buildTagMenuEntry(
@@ -1000,13 +994,9 @@ class GoalContextMenuBuilder
 		}
 
 		// Move submenu — sibling of Customize (mirrors single-item menu).
-		// Hidden when no selected goal is movable (all completed) or no
-		// destination section exists.
-		boolean anyMovable = false;
-		for (Goal g : selectedGoals)
-		{
-			if (!g.isComplete()) { anyMovable = true; break; }
-		}
+		// Available whenever there's a selection + a destination section
+		// (completed goals are movable/duplicable now).
+		boolean anyMovable = !selectedGoals.isEmpty();
 		List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
 		List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
 		for (com.goalplanner.api.SectionView sv : allSections)

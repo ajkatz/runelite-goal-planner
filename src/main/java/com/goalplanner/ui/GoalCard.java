@@ -94,9 +94,10 @@ public class GoalCard extends JPanel
 		this.spriteManager = spriteManager;
 		this.itemManager = itemManager;
 
-		// Tags are hidden on completed cards to save vertical space — completed
-		// goals are reference history, not active tracking, so the tag row is noise.
-		List<TagView> allTags = view.completedAt > 0 ? java.util.Collections.emptyList() : combinedTags(view);
+		// Tags render on completed cards too — completed goals are first-class
+		// section members now (movable, duplicable, taggable), so their tags show
+		// the same as active goals.
+		List<TagView> allTags = combinedTags(view);
 		boolean hasTags = !allTags.isEmpty();
 		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
 
