@@ -307,6 +307,23 @@ class GoalStoreTest
 	}
 
 	@Test
+	@DisplayName("moveGoalToSection blocks a move into a section that already has an equivalent goal")
+	void moveBlockedByPerSectionDuplicate()
+	{
+		Section a = store.createUserSection("A");
+		Section b = store.createUserSection("B");
+		// The same quest can legitimately exist in both sections (per-section identity).
+		Goal inA = Goal.builder().type(GoalType.QUEST).questName("SOTE").sectionId(a.getId()).build();
+		Goal inB = Goal.builder().type(GoalType.QUEST).questName("SOTE").sectionId(b.getId()).build();
+		store.addGoal(inA);
+		store.addGoal(inB);
+
+		// But moving B's copy into A is blocked — A already holds that quest.
+		assertFalse(store.moveGoalToSection(inB.getId(), a.getId()));
+		assertEquals(b.getId(), inB.getSectionId());
+	}
+
+	@Test
 	@DisplayName("namespaceKey collapses built-ins to one default; user sections are distinct")
 	void namespaceKeyCollapsesBuiltins()
 	{

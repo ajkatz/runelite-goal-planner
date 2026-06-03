@@ -2067,6 +2067,10 @@ public class GoalStore
 		// Incomplete rejects it — reconcile would just bounce it to Completed.
 		if (goal.isComplete() && dest.getBuiltInKind() == Section.BuiltInKind.INCOMPLETE) return false;
 
+		// Per-section no-duplicates: don't move into a namespace that already
+		// holds an equivalent goal (each section is its own bucket).
+		if (findEquivalentInNamespace(sectionId, goal) != null) return false;
+
 		goal.setSectionId(sectionId);
 		// Move the goal to the end of the goals list within its new section.
 		// normalizeOrder groups by section.order; within a section we order by
