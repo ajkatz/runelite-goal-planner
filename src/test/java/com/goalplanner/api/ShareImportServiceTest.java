@@ -125,6 +125,25 @@ class ShareImportServiceTest
 	}
 
 	@Test
+	void importAppliesSharedSectionColor()
+	{
+		GoalShareDto g = new GoalShareDto();
+		g.setRef(0);
+		g.setType("CUSTOM");
+		g.setName("X");
+		ShareBundle bundle = new ShareBundle();
+		bundle.setKind(ShareBundle.Kind.SECTION);
+		bundle.setSectionName("Themed");
+		bundle.setSectionColorRgb(0x3366CC);
+		bundle.setGoals(java.util.Collections.singletonList(g));
+
+		String sectionId = api.importShareBundle(bundle);
+		Section section = store.findSection(sectionId);
+		assertNotNull(section);
+		assertEquals(0x3366CC, section.getColorRgb()); // shared colour carried over
+	}
+
+	@Test
 	void undoReversesTheEntireImportAndRedoReplaysIt()
 	{
 		int goalsBefore = store.getGoals().size();

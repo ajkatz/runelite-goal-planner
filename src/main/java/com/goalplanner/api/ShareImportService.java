@@ -89,6 +89,12 @@ class ShareImportService
 					log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
 					return false;
 				}
+				// Carry the shared section's colour override (matches goal + tag
+				// colours, which are also shared). -1 = no override.
+				if (bundle.getSectionColorRgb() >= 0)
+				{
+					section.setColorRgb(bundle.getSectionColorRgb());
+				}
 				api.goalStore.setSectionAutoArchiveOverride(section.getId(), false);
 				createdSectionId[0] = section.getId();
 				String targetSectionId = section.getId();
