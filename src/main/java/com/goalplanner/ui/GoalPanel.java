@@ -73,8 +73,6 @@ public class GoalPanel extends PluginPanel
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
 	 *  selection. Cleared on rebuilds when the goal no longer exists. */
 	private String selectionAnchorId = null;
-	/** Goal to scroll into view once the next rebuild finishes (click-to-jump). */
-	private String pendingScrollGoalId = null;
 	/** Source goal ids the user initiated a relation-pick from. Empty when
 	 *  not in relation-pick mode. The single-goal "Requires…"/"Required
 	 *  by…" path adds one id; the bulk Customize > Relations path adds
@@ -646,7 +644,7 @@ public class GoalPanel extends PluginPanel
 				for (com.goalplanner.api.GoalView v : topoOrder)
 				{
 					Goal vg = goalStore.findGoalById(v.id);
-					if (vg == null) continue;
+					if (vg == null || vg.isComplete()) continue; // completed goals sink to the bottom, not nested
 					java.util.List<String> prereqs = new java.util.ArrayList<>();
 					for (String rid : vg.getRequiredGoalIds())
 						if (sectionGoalIdSet.contains(rid)) prereqs.add(rid);
@@ -744,53 +742,57 @@ public class GoalPanel extends PluginPanel
 				}
 			}
 
-			// Nested view: assemble the cards into one outline container, ordered
-			// by the pre-order walk and indented by tree level. Extra (non-primary)
-			// prerequisites surface as a hover tooltip rather than a drawn line.
-			if (nestedView && nestResult != null && !nestResult.ordered.isEmpty())
+			// Nested view: incomplete goals form an outline tree (indented by
+			// dependency, extra prereqs in a tooltip); completed goals sink to a
+			// flat group at the bottom as cards. Un-completing a goal returns it to
+			// its nested position on the next rebuild.
+			if (nestedView)
 			{
 				java.util.List<com.goalplanner.ui.nest.SectionNestContainer.Row> nestRows =
 					new java.util.ArrayList<>();
-				for (String gid : nestResult.ordered)
+				if (nestResult != null)
 				{
-					GoalCard card = cardMap.get(gid);
-					if (card == null) continue; // search-filtered out
-					int lvl = nestResult.level.getOrDefault(gid, 0);
-					int extra = nestResult.extraPrereqs.getOrDefault(gid, 0);
-					if (extra > 0)
+					for (String gid : nestResult.ordered)
 					{
-						String primaryId = nestResult.primaryParent.get(gid);
-						java.util.List<String> extraNames = new java.util.ArrayList<>();
-						Goal cg = goalStore.findGoalById(gid);
-						if (cg != null)
+						GoalCard card = cardMap.get(gid);
+						if (card == null) continue; // search-filtered out
+						int lvl = nestResult.level.getOrDefault(gid, 0);
+						int extra = nestResult.extraPrereqs.getOrDefault(gid, 0);
+						if (extra > 0)
 						{
-							java.util.List<String> all = new java.util.ArrayList<>(cg.getRequiredGoalIds());
-							all.addAll(cg.getOrRequiredGoalIds());
-							for (String rid : all)
+							String primaryId = nestResult.primaryParent.get(gid);
+							java.util.List<String> extraNames = new java.util.ArrayList<>();
+							Goal cg = goalStore.findGoalById(gid);
+							if (cg != null)
 							{
-								if (rid.equals(primaryId) || !sectionGoalIdSet.contains(rid)) continue;
-								Goal rg = goalStore.findGoalById(rid);
-								if (rg != null && !extraNames.contains(rg.getName())) extraNames.add(rg.getName());
+								java.util.List<String> all = new java.util.ArrayList<>(cg.getRequiredGoalIds());
+								all.addAll(cg.getOrRequiredGoalIds());
+								for (String rid : all)
+								{
+									if (rid.equals(primaryId) || !sectionGoalIdSet.contains(rid)) continue;
+									Goal rg = goalStore.findGoalById(rid);
+									if (rg != null && !extraNames.contains(rg.getName())) extraNames.add(rg.getName());
+								}
 							}
+							card.setToolTipText(extraNames.isEmpty() ? null
+								: "Also needs: " + String.join(", ", extraNames));
 						}
-						if (!extraNames.isEmpty())
+						else
 						{
-							card.setToolTipText("Also needs: " + String.join(", ", extraNames));
+							card.setToolTipText(null);
 						}
+						nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(gid, lvl, card));
 					}
-					else
-					{
-						card.setToolTipText(null);
-					}
-					nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(gid, lvl, card));
-
-					// Reconstruct the satisfied chain: a completed prerequisite that
-					// graduated out to the Completed section is shown as a faint "✓"
-					// stand-in nested under this goal, recursing through completed
-					// ancestors — so the guide stays whole even after archiving.
-					java.util.Set<String> ghostSeen = new java.util.HashSet<>();
-					ghostSeen.add(gid);
-					appendCompletedPrereqGhosts(nestRows, gid, lvl + 1, ghostSeen, sectionGoalIdSet);
+				}
+				// Completed in-section goals: flat (level 0), sunk to the bottom.
+				for (com.goalplanner.api.GoalView v : topoOrder)
+				{
+					Goal vg = goalStore.findGoalById(v.id);
+					if (vg == null || !vg.isComplete()) continue;
+					GoalCard card = cardMap.get(v.id);
+					if (card == null) continue;
+					card.setToolTipText(null);
+					nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(v.id, 0, card));
 				}
 				if (!nestRows.isEmpty())
 				{
@@ -835,106 +837,11 @@ public class GoalPanel extends PluginPanel
 
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
-
-		// Honor a pending click-to-jump scroll once the section it lives in has
-		// been (re)rendered — e.g. after expanding a collapsed Completed section.
-		if (pendingScrollGoalId != null)
-		{
-			GoalCard target = cardMap.get(pendingScrollGoalId);
-			pendingScrollGoalId = null;
-			if (target != null) scrollCardIntoView(target);
-		}
-
 		long elapsed = System.currentTimeMillis() - start;
 		if (elapsed > 50)
 		{
 			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
 		}
-	}
-
-	/**
-	 * Appends faint "✓ name" stand-in rows for {@code goalId}'s completed
-	 * prerequisites that live OUTSIDE this section (archived to Completed), so
-	 * the nested guide still shows the satisfied chain. Recurses through those
-	 * prereqs' own completed cross-section prereqs. In-section prereqs are skipped
-	 * (they already render as real cards); incomplete cross-section prereqs are
-	 * skipped (nothing meaningful to show). {@code seen} guards against repeats
-	 * and cycles within one goal's ghost subtree.
-	 */
-	private void appendCompletedPrereqGhosts(
-		java.util.List<com.goalplanner.ui.nest.SectionNestContainer.Row> out,
-		String goalId, int level, java.util.Set<String> seen,
-		java.util.Set<String> sectionGoalIdSet)
-	{
-		Goal g = goalStore.findGoalById(goalId);
-		if (g == null) return;
-		java.util.List<String> prereqs = new java.util.ArrayList<>(g.getRequiredGoalIds());
-		prereqs.addAll(g.getOrRequiredGoalIds());
-		for (String pid : prereqs)
-		{
-			if (sectionGoalIdSet.contains(pid)) continue; // shown in-section already
-			if (!seen.add(pid)) continue;                 // dedup / cycle guard
-			Goal p = goalStore.findGoalById(pid);
-			if (p == null || !p.isComplete()) continue;   // only completed cross-section prereqs
-			out.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(
-				"ghost:" + pid, level, makeGhostLabel(pid, p.getName())));
-			appendCompletedPrereqGhosts(out, pid, level + 1, seen, sectionGoalIdSet);
-		}
-	}
-
-	/**
-	 * A faint, italic label standing in for a completed prereq that has archived
-	 * out to the Completed section. Clicking it jumps to (selects + scrolls to)
-	 * the real goal.
-	 */
-	private javax.swing.JComponent makeGhostLabel(String goalId, String name)
-	{
-		javax.swing.JLabel label = new javax.swing.JLabel("✓ " + name);
-		label.setForeground(new Color(0x80, 0x80, 0x80));
-		label.setFont(PanelFonts.derive(Font.ITALIC, 11f));
-		label.setToolTipText("Completed prerequisite — click to jump to it");
-		label.setOpaque(false);
-		label.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
-		label.addMouseListener(new MouseAdapter()
-		{
-			@Override
-			public void mouseClicked(MouseEvent e)
-			{
-				if (e.getButton() == MouseEvent.BUTTON1) jumpToGoal(goalId);
-			}
-		});
-		return label;
-	}
-
-	/**
-	 * Select a goal and scroll it into view. If its card isn't currently rendered
-	 * (e.g. it lives in a collapsed Completed section), expand that section and
-	 * scroll once the rebuild lands (via {@link #pendingScrollGoalId}).
-	 */
-	private void jumpToGoal(String goalId)
-	{
-		Goal g = goalStore.findGoalById(goalId);
-		if (g == null) return;
-		api.replaceGoalSelection(java.util.Collections.singleton(goalId));
-		GoalCard card = cardMap.get(goalId);
-		if (card != null)
-		{
-			scrollCardIntoView(card);
-			return;
-		}
-		// Not rendered — expand its section (if collapsed) and scroll after rebuild.
-		com.goalplanner.model.Section sec = goalStore.findSection(g.getSectionId());
-		if (sec != null && sec.isCollapsed())
-		{
-			pendingScrollGoalId = goalId;
-			api.setSectionCollapsed(g.getSectionId(), false); // fires a rebuild
-		}
-	}
-
-	private void scrollCardIntoView(javax.swing.JComponent card)
-	{
-		javax.swing.SwingUtilities.invokeLater(() ->
-			card.scrollRectToVisible(new java.awt.Rectangle(0, 0, card.getWidth(), card.getHeight())));
 	}
 
 	private void addHintLines(JPanel parent, int topGap, String[] lines)
