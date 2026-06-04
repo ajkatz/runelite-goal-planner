@@ -80,9 +80,10 @@ public interface GoalPlannerConfig extends Config
 
 	@ConfigItem(
 		keyName = "showDependenciesIndented",
-		name = "Indent dependencies",
-		description = "Show goals nested under the goals they require, indented with a faint guide. "
-			+ "Applies to every section; individual sections can also be forced on via their right-click menu.",
+		name = "Indent dependencies by default",
+		description = "Default for every section: show goals nested under the goals they require, "
+			+ "indented with a faint guide. Each section can override this (Always nested / Never "
+			+ "nested / Use default) from its right-click menu.",
 		section = appearanceSection,
 		position = 3
 	)

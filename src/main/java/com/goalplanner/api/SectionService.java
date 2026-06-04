@@ -258,29 +258,16 @@ class SectionService
 		return false;
 	}
 
-	boolean setSectionRailView(String sectionId, boolean railView)
+	boolean setSectionNestedOverride(String sectionId, Boolean value)
 	{
-		log.debug("API.internal setSectionRailView(sectionId={}, railView={})", sectionId, railView);
+		log.debug("API.internal setSectionNestedOverride(sectionId={}, value={})", sectionId, value);
 		if (sectionId == null) return false;
 		Section s = api.goalStore.findSection(sectionId);
-		if (s == null || s.isRailView() == railView) return false;
-		s.setRailView(railView);
+		if (s == null || java.util.Objects.equals(s.getNestedOverride(), value)) return false;
+		s.setNestedOverride(value);
 		api.goalStore.save();
 		api.fireIfNotInCompound();
 		return true;
-	}
-
-	boolean toggleSectionRailView(String sectionId)
-	{
-		log.debug("API.internal toggleSectionRailView(sectionId={})", sectionId);
-		if (sectionId == null) return false;
-		Section s = api.goalStore.findSection(sectionId);
-		if (s == null) return false;
-		boolean next = !s.isRailView();
-		s.setRailView(next);
-		api.goalStore.save();
-		api.fireIfNotInCompound();
-		return next;
 	}
 
 	boolean setSectionColor(String sectionId, int colorRgb)

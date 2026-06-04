@@ -28,18 +28,21 @@ class GoalContextMenuBuilder
 	private final GoalPanel panel;
 	private final GoalDialogFactory dialogFactory;
 	private final GoalReorderController reorderController;
+	private final com.goalplanner.GoalPlannerConfig config;
 
 	GoalContextMenuBuilder(GoalPlannerApiImpl api,
 						   GoalStore goalStore,
 						   GoalPanel panel,
 						   GoalDialogFactory dialogFactory,
-						   GoalReorderController reorderController)
+						   GoalReorderController reorderController,
+						   com.goalplanner.GoalPlannerConfig config)
 	{
 		this.api = api;
 		this.goalStore = goalStore;
 		this.panel = panel;
 		this.dialogFactory = dialogFactory;
 		this.reorderController = reorderController;
+		this.config = config;
 	}
 
 	/**
@@ -1351,10 +1354,28 @@ class GoalContextMenuBuilder
 		// checkable row (left dot when active) via the ColumnMenu adapter.
 		// (The underlying flag/API is still named railView — internal rename to
 		// nestedView is a tracked follow-up.)
-		javax.swing.JCheckBoxMenuItem nestedToggle =
-			new javax.swing.JCheckBoxMenuItem("Nested view", section.railView);
-		nestedToggle.addActionListener(e -> api.toggleSectionRailView(section.id));
-		menu.add(nestedToggle);
+		// Dependency nesting — per-section override of the global "Indent
+		// dependencies by default" setting: inherit (Use default), always nested,
+		// or never nested. Mirrors the auto-archive override above.
+		boolean indentDefault = config.showDependenciesIndented();
+		Boolean nestedOverride = section.nestedOverride;
+		JMenu nestMenu = new JMenu("Dependency nesting");
+		javax.swing.JRadioButtonMenuItem nestDefault = new javax.swing.JRadioButtonMenuItem(
+			"Use default (" + (indentDefault ? "nested" : "flat") + ")", nestedOverride == null);
+		nestDefault.addActionListener(e -> api.setSectionNestedOverride(section.id, null));
+		nestMenu.add(nestDefault);
+
+		javax.swing.JRadioButtonMenuItem nestOn = new javax.swing.JRadioButtonMenuItem(
+			"Always nested", Boolean.TRUE.equals(nestedOverride));
+		nestOn.addActionListener(e -> api.setSectionNestedOverride(section.id, Boolean.TRUE));
+		nestMenu.add(nestOn);
+
+		javax.swing.JRadioButtonMenuItem nestOff = new javax.swing.JRadioButtonMenuItem(
+			"Never nested", Boolean.FALSE.equals(nestedOverride));
+		nestOff.addActionListener(e -> api.setSectionNestedOverride(section.id, Boolean.FALSE));
+		nestMenu.add(nestOff);
+
+		menu.add(nestMenu);
 
 		// Change Color is available on every section, built-in or user.
 		JMenuItem changeColor = new JMenuItem("Change Color");

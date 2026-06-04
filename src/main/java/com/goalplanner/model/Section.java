@@ -70,13 +70,12 @@ public class Section
 	private Boolean autoArchiveOverride;
 
 	/**
-	 * When {@code true}, this section renders as a dependency connector "rail"
-	 * (a git-graph-style left gutter showing requires/orRequires edges between
-	 * goals) instead of the default flat list. Purely a view preference — does
-	 * not change goal data or ordering. Defaults to {@code false} (flat list).
+	 * Per-section override for the "Indent dependencies" nested view:
+	 * {@code null} = follow the global default, {@code TRUE} = always nested,
+	 * {@code FALSE} = never nested. Purely a view preference — does not change
+	 * goal data or ordering. Mirrors {@link #autoArchiveOverride}.
 	 */
-	@Builder.Default
-	private boolean railView = false;
+	private Boolean nestedOverride;
 
 	public boolean isBuiltIn()
 	{

@@ -33,9 +33,9 @@ public class SectionView
 	 */
 	public Boolean autoArchiveOverride;
 	/**
-	 * When true, the panel renders this section as a dependency connector rail
-	 * (left-gutter git-graph of requires/orRequires edges) rather than a flat
-	 * list. View preference only — no effect on goal data.
+	 * Per-section override for the nested ("Indent dependencies") view:
+	 * {@code null} = follow the global default, {@code TRUE} = always nested,
+	 * {@code FALSE} = never nested. View preference only — no effect on goal data.
 	 */
-	public boolean railView;
+	public Boolean nestedOverride;
 }

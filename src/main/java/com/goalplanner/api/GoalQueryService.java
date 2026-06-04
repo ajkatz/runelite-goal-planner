@@ -393,7 +393,7 @@ class GoalQueryService
 		v.builtIn = s.isBuiltIn();
 		v.kind = s.getBuiltInKind() != null ? s.getBuiltInKind().name() : null;
 		v.autoArchiveOverride = s.getAutoArchiveOverride();
-		v.railView = s.isRailView();
+		v.nestedOverride = s.getNestedOverride();
 		v.defaultColorRgb = SECTION_DEFAULT_COLOR_RGB;
 		if (s.getColorRgb() >= 0)
 		{

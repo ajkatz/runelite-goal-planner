@@ -129,7 +129,7 @@ public class GoalPanel extends PluginPanel
 		this.dialogFactory = new GoalDialogFactory(api, goalStore, skillIconManager,
 			itemManager, spriteManager, itemSearchCallback, this);
 		this.contextMenuBuilder = new GoalContextMenuBuilder(api, goalStore, this,
-			dialogFactory, reorderController);
+			dialogFactory, reorderController, config);
 
 		setLayout(new BorderLayout());
 		setBackground(ColorScheme.DARK_GRAY_COLOR);
@@ -628,7 +628,10 @@ public class GoalPanel extends PluginPanel
 			// each goal's indent level up front.
 			// Nested when the global "Indent dependencies" option is on, OR the
 			// section's own override flag is set (per-section force-on).
-			boolean nestedView = config.showDependenciesIndented() || section.railView;
+			// Per-section override wins when set; otherwise the global default.
+			boolean nestedView = section.nestedOverride != null
+				? section.nestedOverride
+				: config.showDependenciesIndented();
 			java.util.Set<String> sectionGoalIdSet = null;
 			com.goalplanner.ui.nest.NestIndentAssigner.Result nestResult = null;
 			if (nestedView)
