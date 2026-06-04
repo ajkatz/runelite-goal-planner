@@ -73,6 +73,8 @@ public class GoalPanel extends PluginPanel
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
 	 *  selection. Cleared on rebuilds when the goal no longer exists. */
 	private String selectionAnchorId = null;
+	/** Goal to scroll into view once the next rebuild finishes (click-to-jump). */
+	private String pendingScrollGoalId = null;
 	/** Source goal ids the user initiated a relation-pick from. Empty when
 	 *  not in relation-pick mode. The single-goal "Requires…"/"Required
 	 *  by…" path adds one id; the bulk Customize > Relations path adds
@@ -833,6 +835,16 @@ public class GoalPanel extends PluginPanel
 
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
+
+		// Honor a pending click-to-jump scroll once the section it lives in has
+		// been (re)rendered — e.g. after expanding a collapsed Completed section.
+		if (pendingScrollGoalId != null)
+		{
+			GoalCard target = cardMap.get(pendingScrollGoalId);
+			pendingScrollGoalId = null;
+			if (target != null) scrollCardIntoView(target);
+		}
+
 		long elapsed = System.currentTimeMillis() - start;
 		if (elapsed > 50)
 		{
@@ -865,20 +877,64 @@ public class GoalPanel extends PluginPanel
 			Goal p = goalStore.findGoalById(pid);
 			if (p == null || !p.isComplete()) continue;   // only completed cross-section prereqs
 			out.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(
-				"ghost:" + pid, level, makeGhostLabel(p.getName())));
+				"ghost:" + pid, level, makeGhostLabel(pid, p.getName())));
 			appendCompletedPrereqGhosts(out, pid, level + 1, seen, sectionGoalIdSet);
 		}
 	}
 
-	/** A faint, italic, non-interactive label standing in for a completed prereq. */
-	private javax.swing.JComponent makeGhostLabel(String name)
+	/**
+	 * A faint, italic label standing in for a completed prereq that has archived
+	 * out to the Completed section. Clicking it jumps to (selects + scrolls to)
+	 * the real goal.
+	 */
+	private javax.swing.JComponent makeGhostLabel(String goalId, String name)
 	{
 		javax.swing.JLabel label = new javax.swing.JLabel("✓ " + name);
 		label.setForeground(new Color(0x80, 0x80, 0x80));
 		label.setFont(PanelFonts.derive(Font.ITALIC, 11f));
-		label.setToolTipText("Completed prerequisite (archived to Completed)");
+		label.setToolTipText("Completed prerequisite — click to jump to it");
 		label.setOpaque(false);
+		label.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+		label.addMouseListener(new MouseAdapter()
+		{
+			@Override
+			public void mouseClicked(MouseEvent e)
+			{
+				if (e.getButton() == MouseEvent.BUTTON1) jumpToGoal(goalId);
+			}
+		});
 		return label;
+	}
+
+	/**
+	 * Select a goal and scroll it into view. If its card isn't currently rendered
+	 * (e.g. it lives in a collapsed Completed section), expand that section and
+	 * scroll once the rebuild lands (via {@link #pendingScrollGoalId}).
+	 */
+	private void jumpToGoal(String goalId)
+	{
+		Goal g = goalStore.findGoalById(goalId);
+		if (g == null) return;
+		api.replaceGoalSelection(java.util.Collections.singleton(goalId));
+		GoalCard card = cardMap.get(goalId);
+		if (card != null)
+		{
+			scrollCardIntoView(card);
+			return;
+		}
+		// Not rendered — expand its section (if collapsed) and scroll after rebuild.
+		com.goalplanner.model.Section sec = goalStore.findSection(g.getSectionId());
+		if (sec != null && sec.isCollapsed())
+		{
+			pendingScrollGoalId = goalId;
+			api.setSectionCollapsed(g.getSectionId(), false); // fires a rebuild
+		}
+	}
+
+	private void scrollCardIntoView(javax.swing.JComponent card)
+	{
+		javax.swing.SwingUtilities.invokeLater(() ->
+			card.scrollRectToVisible(new java.awt.Rectangle(0, 0, card.getWidth(), card.getHeight())));
 	}
 
 	private void addHintLines(JPanel parent, int topGap, String[] lines)
