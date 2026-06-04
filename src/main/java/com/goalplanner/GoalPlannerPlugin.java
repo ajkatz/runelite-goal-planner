@@ -208,7 +208,13 @@ public class GoalPlannerPlugin extends Plugin
 			panel.rebuild());
 		rebuildDebounce.setRepeats(false);
 		goalTrackerApi.setOnGoalsChanged(() ->
-			javax.swing.SwingUtilities.invokeLater(rebuildDebounce::restart));
+		{
+			javax.swing.SwingUtilities.invokeLater(rebuildDebounce::restart);
+			// Any structural change (add/seed/import) may have introduced skill or
+			// account goals that need their first value sync — do it now rather
+			// than waiting for the next in-game XP event.
+			refreshSkillGoalsNow();
+		});
 		goalTrackerApi.setOnSelectionChanged(
 			() -> javax.swing.SwingUtilities.invokeLater(() -> panel.refreshSelection()));
 
@@ -1648,6 +1654,26 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		clientThread.invokeLater(() ->
 			flushIfUpdated(itemTracker.checkGoals(goalStore.getGoals())));
+	}
+
+	/**
+	 * Immediately sync skill + account goals against current client state. Skill
+	 * goals are created at currentValue 0 and otherwise only sync on the next
+	 * {@link StatChanged}, so a freshly-added or seeded "70 Agility" goal would
+	 * sit at 0 XP until the player next gains XP in some skill. Running on the
+	 * client thread (getSkillExperience is client-thread-only) populates them at
+	 * once. Idempotent — already-synced goals are no-ops.
+	 */
+	private void refreshSkillGoalsNow()
+	{
+		clientThread.invokeLater(() ->
+		{
+			if (client.getGameState() != GameState.LOGGED_IN) return;
+			java.util.List<Goal> goals = goalStore.getGoals();
+			boolean updated = skillTracker.checkGoals(goals);
+			updated |= accountTracker.checkGoals(goals);
+			flushIfUpdated(updated);
+		});
 	}
 
 	@Subscribe
