@@ -95,6 +95,35 @@ class SeedRequirementsForGoalTest
 	}
 
 	@Test
+	@DisplayName("'All' sets the section to keep completed goals inline (so they render as cards, not ghosts)")
+	void allKeepsCompletedInline()
+	{
+		String sectionId = api.createSection("Guide");
+		String questId = api.addQuestGoal(Quest.DRAGON_SLAYER_II);
+		api.moveGoalToSection(questId, sectionId);
+
+		api.seedRequirementsForGoal(questId, true);
+
+		com.goalplanner.model.Section sec = store.findSection(sectionId);
+		assertEquals(Boolean.FALSE, sec.getAutoArchiveOverride(),
+			"'All' should flip the section to keep-inline so met requirements stay as cards");
+	}
+
+	@Test
+	@DisplayName("'Incomplete only' leaves the section's auto-archive setting untouched")
+	void incompleteOnlyLeavesArchiveUntouched()
+	{
+		String sectionId = api.createSection("Guide");
+		String questId = api.addQuestGoal(Quest.DRAGON_SLAYER_II);
+		api.moveGoalToSection(questId, sectionId);
+
+		api.seedRequirementsForGoal(questId, false);
+
+		com.goalplanner.model.Section sec = store.findSection(sectionId);
+		assertNull(sec.getAutoArchiveOverride(), "incomplete-only must not change the archive override");
+	}
+
+	@Test
 	@DisplayName("one undo reverses the whole seeding gesture")
 	void undoReversesSeeding()
 	{

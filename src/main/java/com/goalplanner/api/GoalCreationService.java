@@ -618,6 +618,14 @@ class GoalCreationService
 			+ com.goalplanner.data.QuestRequirements.displayName(quest));
 		try
 		{
+			// "All" includes already-met requirements. Keep this section's
+			// completed goals inline (as cards, sunk to the bottom) instead of
+			// letting them auto-archive to Completed, where they'd appear only as
+			// faint ghost stand-ins. No-op for built-in/unknown sections.
+			if (includeMet)
+			{
+				api.setSectionAutoArchiveOverride(g.getSectionId(), Boolean.FALSE);
+			}
 			java.util.List<String> gestureGoalIds =
 				seedPrereqsAndPrioritize(goalId, quest, resolved.templates);
 			return gestureGoalIds.size() - 1;
