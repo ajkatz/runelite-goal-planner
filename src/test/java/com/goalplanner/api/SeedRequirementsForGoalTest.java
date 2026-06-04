@@ -83,6 +83,71 @@ class SeedRequirementsForGoalTest
 			assertEquals(sectionId, g.getSectionId(),
 				"seeded goal " + g.getName() + " should share the quest's section");
 		}
+
+		// No goal is duplicated: cross-section dedup reuses an equivalent already
+		// in the target section instead of spawning a fresh copy on the 2nd+ path.
+		assertNoDuplicateIdentities();
+	}
+
+	@Test
+	@DisplayName("'All' reuses a shared transitive prereq once (no stranded duplicate) and reaches under completed quests")
+	void allSeedsSharedTransitivePrereqExactlyOnce()
+	{
+		// Desert Treasure II reaches Troll Stronghold via TWO paths:
+		//   DT2 → Desert Treasure I → Troll Stronghold
+		//   DT2 → Secrets of the North → Devious Minds → Troll Stronghold
+		// and Death Plateau sits transitively UNDER Troll Stronghold. Full-tree
+		// (floor-lookup) recursion must reach Death Plateau, and the shared Troll
+		// Stronghold must be reused — not duplicated and stranded in Incomplete.
+		String sectionId = api.createSection("Guide");
+		String questId = api.addQuestGoal(Quest.DESERT_TREASURE_II__THE_FALLEN_EMPIRE);
+		assertNotNull(questId);
+		api.moveGoalToSection(questId, sectionId);
+
+		int seeded = api.seedRequirementsForGoal(questId, true);
+		assertTrue(seeded > 0, "expected DT2 to seed prerequisites");
+
+		// (a) The shared transitive prereq exists EXACTLY once.
+		assertEquals(1, countByQuestName("TROLL_STRONGHOLD"),
+			"shared transitive prereq Troll Stronghold should be seeded exactly once");
+
+		// (b) Every seeded goal lives in the target section — nothing stranded in
+		//     the default Incomplete by a blocked cross-namespace move.
+		for (Goal g : store.getGoals())
+		{
+			assertEquals(sectionId, g.getSectionId(),
+				"seeded goal " + g.getName() + " should share the quest's section");
+		}
+		assertNoDuplicateIdentities();
+
+		// (c) A prereq sitting transitively under Troll Stronghold is present —
+		//     proves full-tree recursion descends past it.
+		assertEquals(1, countByQuestName("DEATH_PLATEAU"),
+			"transitive prereq Death Plateau (under Troll Stronghold) should be seeded");
+	}
+
+	/** Count goals whose questName matches (QUEST goals only). */
+	private long countByQuestName(String questEnumName)
+	{
+		return store.getGoals().stream()
+			.filter(g -> questEnumName.equals(g.getQuestName()))
+			.count();
+	}
+
+	/** Fail if any two goals denote the same objective (per {@link com.goalplanner.model.GoalIdentity}). */
+	private void assertNoDuplicateIdentities()
+	{
+		java.util.List<Goal> goals = new java.util.ArrayList<>(store.getGoals());
+		for (int i = 0; i < goals.size(); i++)
+		{
+			for (int j = i + 1; j < goals.size(); j++)
+			{
+				assertFalse(
+					com.goalplanner.model.GoalIdentity.sameIdentity(goals.get(i), goals.get(j)),
+					"duplicate goal identity: '" + goals.get(i).getName()
+						+ "' and '" + goals.get(j).getName() + "'");
+			}
+		}
 	}
 
 	@Test

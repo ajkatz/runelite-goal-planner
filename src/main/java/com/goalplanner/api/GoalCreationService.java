@@ -815,7 +815,40 @@ class GoalCreationService
 			String seedGoalId;
 			Quest childQuestForNextLevel = null;
 
-			if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+			// Cross-section dedup: if an equivalent goal already lives in the TARGET
+			// section's namespace — e.g. a shared prerequisite reached via another
+			// path and created earlier in THIS gesture — reuse it instead of
+			// creating a fresh copy. Without this, the per-type creators
+			// (insertQuestGoal/addAccountGoal/addBossGoal/addItemGoal/findOrCreate-
+			// SkillGoalForSeed→addSkillGoal) dedup only against the DEFAULT namespace,
+			// so the second encounter spawns a duplicate in Incomplete that the
+			// per-section no-duplicate guard then strands. Identity is per-type
+			// (GoalIdentity.sameIdentity): SKILL matches on exact target XP and
+			// ACCOUNT/BOSS on metric+target / boss name, so different skill levels
+			// or kc/combat targets are never merged. (The SKILL ">= target" reuse of
+			// a pre-existing user goal still happens below in findOrCreateSkillGoalForSeed
+			// when this exact-identity probe misses.)
+			Goal reusableInSection = sectionId == null
+				? null : api.goalStore.findEquivalentInNamespace(sectionId, template);
+
+			if (reusableInSection != null)
+			{
+				seedGoalId = reusableInSection.getId();
+				// A reused QUEST goal still needs its child tree walked (guarded by
+				// `visited` below — already-walked quests are skipped).
+				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
+				{
+					try
+					{
+						childQuestForNextLevel = Quest.valueOf(template.getQuestName());
+					}
+					catch (IllegalArgumentException ignored)
+					{
+						// Unknown enum name — nothing to recurse into; keep the reused goal.
+					}
+				}
+			}
+			else if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
 			{
 				Quest childQuest;
 				try
@@ -951,8 +984,14 @@ class GoalCreationService
 				{
 					continue;
 				}
+				// In "All" mode resolve the child's FULL requirement tree with floor
+				// lookups (treat nothing as met) so transitive prereqs sitting under an
+				// ALREADY-COMPLETED quest (e.g. Death Plateau under a finished Troll
+				// Stronghold) seed too. Quest-add / "Incomplete only" use live state.
 				com.goalplanner.data.QuestRequirementResolver.Resolved childResolved =
-					api.resolveQuestRequirements(childQuestForNextLevel);
+					seedKeepCompleted
+						? resolveAllRequirements(childQuestForNextLevel)
+						: api.resolveQuestRequirements(childQuestForNextLevel);
 				// Sort child skill templates highest-level-first.
 				java.util.List<Goal> sortedChildTemplates = new java.util.ArrayList<>(childResolved.templates);
 				sortedChildTemplates.sort((a, b) -> {
