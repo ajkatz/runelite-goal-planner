@@ -122,6 +122,16 @@ public interface GoalPlannerInternalApi
 	 */
 	boolean toggleSectionRailView(String sectionId);
 
+	/**
+	 * Seed an existing quest goal's requirement tree into its own section, linked
+	 * beneath it, as one undo. {@code includeMet=false} adds only unmet
+	 * requirements; {@code true} adds the whole tree. No-op (returns 0) for
+	 * non-quest goals or quests without requirement data.
+	 *
+	 * @return number of prerequisite goals seeded (created or reused), excluding the root
+	 */
+	int seedRequirementsForGoal(String goalId, boolean includeMet);
+
 	// ---------------------------------------------------------------------
 	// User-defined section CRUD (Phase 2)
 	// ---------------------------------------------------------------------

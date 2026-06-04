@@ -35,6 +35,7 @@ public class GoalPanel extends PluginPanel
 	private final GoalStore goalStore;
 	private final GoalReorderingService reorderingService;
 	private final com.goalplanner.api.GoalPlannerApiImpl api;
+	private final com.goalplanner.GoalPlannerConfig config;
 	private final SkillIconManager skillIconManager;
 	private final ItemManager itemManager;
 	private final net.runelite.client.game.SpriteManager spriteManager;
@@ -112,12 +113,14 @@ public class GoalPanel extends PluginPanel
 					 net.runelite.client.game.SpriteManager spriteManager,
 					 com.goalplanner.api.GoalPlannerApiImpl api,
 					 GoalReorderingService reorderingService,
-					 ItemSearchRequest itemSearchCallback)
+					 ItemSearchRequest itemSearchCallback,
+					 com.goalplanner.GoalPlannerConfig config)
 	{
 		super(false);
 		this.goalStore = goalStore;
 		this.reorderingService = reorderingService;
 		this.api = api;
+		this.config = config;
 		this.skillIconManager = skillIconManager;
 		this.itemManager = itemManager;
 		this.spriteManager = spriteManager;
@@ -617,17 +620,36 @@ public class GoalPanel extends PluginPanel
 
 			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
-			// Rail view: when enabled, the rendered cards are collected into a
-			// connector-rail container (left gutter of dependency lines) instead
-			// of being stacked directly. Only in-section edges are drawable, so
-			// we pre-compute the set of goal ids present in this section.
-			java.util.List<com.goalplanner.ui.rail.SectionRailContainer.Row> railRows =
-				section.railView ? new java.util.ArrayList<>() : null;
+			// Nested view: when enabled (the section's railView flag — kept for
+			// now; the renderer is the subtle indent+guide nesting, not the
+			// rejected connector rail), cards are collected into a nesting
+			// container that left-indents each card by its in-section dependency
+			// depth. Only in-section edges count, so pre-compute the id set and
+			// each goal's indent level up front.
+			// Nested when the global "Indent dependencies" option is on, OR the
+			// section's own override flag is set (per-section force-on).
+			boolean nestedView = config.showDependenciesIndented() || section.railView;
 			java.util.Set<String> sectionGoalIdSet = null;
-			if (railRows != null)
+			com.goalplanner.ui.nest.NestIndentAssigner.Result nestResult = null;
+			if (nestedView)
 			{
 				sectionGoalIdSet = new java.util.HashSet<>();
 				for (com.goalplanner.api.GoalView v : topoOrder) sectionGoalIdSet.add(v.id);
+
+				java.util.List<com.goalplanner.ui.nest.NestIndentAssigner.Node> nestNodes =
+					new java.util.ArrayList<>();
+				for (com.goalplanner.api.GoalView v : topoOrder)
+				{
+					Goal vg = goalStore.findGoalById(v.id);
+					if (vg == null) continue;
+					java.util.List<String> prereqs = new java.util.ArrayList<>();
+					for (String rid : vg.getRequiredGoalIds())
+						if (sectionGoalIdSet.contains(rid)) prereqs.add(rid);
+					for (String rid : vg.getOrRequiredGoalIds())
+						if (sectionGoalIdSet.contains(rid)) prereqs.add(rid);
+					nestNodes.add(new com.goalplanner.ui.nest.NestIndentAssigner.Node(v.id, prereqs));
+				}
+				nestResult = com.goalplanner.ui.nest.NestIndentAssigner.assign(nestNodes);
 			}
 
 			// Iterate topo-order for rendering, but resolve each
@@ -707,36 +729,72 @@ public class GoalPanel extends PluginPanel
 						new Color(0x33, 0x99, 0xFF), 2));
 				}
 
-				if (railRows != null)
-				{
-					java.util.List<String> req = new java.util.ArrayList<>();
-					for (String rid : goal.getRequiredGoalIds())
-					{
-						if (sectionGoalIdSet.contains(rid)) req.add(rid);
-					}
-					java.util.List<String> orReq = new java.util.ArrayList<>();
-					for (String rid : goal.getOrRequiredGoalIds())
-					{
-						if (sectionGoalIdSet.contains(rid)) orReq.add(rid);
-					}
-					railRows.add(new com.goalplanner.ui.rail.SectionRailContainer.Row(
-						goal.getId(), req, orReq, goal.isComplete(), card));
-				}
-				else
+				// In nested view the cards are laid out by the nest container in
+				// tree pre-order (built after this loop, from cardMap); don't add
+				// them to the flat list here.
+				if (!nestedView)
 				{
 					goalListPanel.add(card);
 					goalListPanel.add(Box.createVerticalStrut(4));
 				}
 			}
 
-			// Flush the collected rail rows for this section into one container.
-			if (railRows != null && !railRows.isEmpty())
+			// Nested view: assemble the cards into one outline container, ordered
+			// by the pre-order walk and indented by tree level. Extra (non-primary)
+			// prerequisites surface as a hover tooltip rather than a drawn line.
+			if (nestedView && nestResult != null && !nestResult.ordered.isEmpty())
 			{
-				com.goalplanner.ui.rail.SectionRailContainer railContainer =
-					new com.goalplanner.ui.rail.SectionRailContainer(railRows);
-				railContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
-				goalListPanel.add(railContainer);
-				goalListPanel.add(Box.createVerticalStrut(4));
+				java.util.List<com.goalplanner.ui.nest.SectionNestContainer.Row> nestRows =
+					new java.util.ArrayList<>();
+				for (String gid : nestResult.ordered)
+				{
+					GoalCard card = cardMap.get(gid);
+					if (card == null) continue; // search-filtered out
+					int lvl = nestResult.level.getOrDefault(gid, 0);
+					int extra = nestResult.extraPrereqs.getOrDefault(gid, 0);
+					if (extra > 0)
+					{
+						String primaryId = nestResult.primaryParent.get(gid);
+						java.util.List<String> extraNames = new java.util.ArrayList<>();
+						Goal cg = goalStore.findGoalById(gid);
+						if (cg != null)
+						{
+							java.util.List<String> all = new java.util.ArrayList<>(cg.getRequiredGoalIds());
+							all.addAll(cg.getOrRequiredGoalIds());
+							for (String rid : all)
+							{
+								if (rid.equals(primaryId) || !sectionGoalIdSet.contains(rid)) continue;
+								Goal rg = goalStore.findGoalById(rid);
+								if (rg != null && !extraNames.contains(rg.getName())) extraNames.add(rg.getName());
+							}
+						}
+						if (!extraNames.isEmpty())
+						{
+							card.setToolTipText("Also needs: " + String.join(", ", extraNames));
+						}
+					}
+					else
+					{
+						card.setToolTipText(null);
+					}
+					nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(gid, lvl, card));
+
+					// Reconstruct the satisfied chain: a completed prerequisite that
+					// graduated out to the Completed section is shown as a faint "✓"
+					// stand-in nested under this goal, recursing through completed
+					// ancestors — so the guide stays whole even after archiving.
+					java.util.Set<String> ghostSeen = new java.util.HashSet<>();
+					ghostSeen.add(gid);
+					appendCompletedPrereqGhosts(nestRows, gid, lvl + 1, ghostSeen, sectionGoalIdSet);
+				}
+				if (!nestRows.isEmpty())
+				{
+					com.goalplanner.ui.nest.SectionNestContainer nestContainer =
+						new com.goalplanner.ui.nest.SectionNestContainer(nestRows);
+					nestContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
+					goalListPanel.add(nestContainer);
+					goalListPanel.add(Box.createVerticalStrut(4));
+				}
 			}
 		}
 
@@ -777,6 +835,47 @@ public class GoalPanel extends PluginPanel
 		{
 			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
 		}
+	}
+
+	/**
+	 * Appends faint "✓ name" stand-in rows for {@code goalId}'s completed
+	 * prerequisites that live OUTSIDE this section (archived to Completed), so
+	 * the nested guide still shows the satisfied chain. Recurses through those
+	 * prereqs' own completed cross-section prereqs. In-section prereqs are skipped
+	 * (they already render as real cards); incomplete cross-section prereqs are
+	 * skipped (nothing meaningful to show). {@code seen} guards against repeats
+	 * and cycles within one goal's ghost subtree.
+	 */
+	private void appendCompletedPrereqGhosts(
+		java.util.List<com.goalplanner.ui.nest.SectionNestContainer.Row> out,
+		String goalId, int level, java.util.Set<String> seen,
+		java.util.Set<String> sectionGoalIdSet)
+	{
+		Goal g = goalStore.findGoalById(goalId);
+		if (g == null) return;
+		java.util.List<String> prereqs = new java.util.ArrayList<>(g.getRequiredGoalIds());
+		prereqs.addAll(g.getOrRequiredGoalIds());
+		for (String pid : prereqs)
+		{
+			if (sectionGoalIdSet.contains(pid)) continue; // shown in-section already
+			if (!seen.add(pid)) continue;                 // dedup / cycle guard
+			Goal p = goalStore.findGoalById(pid);
+			if (p == null || !p.isComplete()) continue;   // only completed cross-section prereqs
+			out.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(
+				"ghost:" + pid, level, makeGhostLabel(p.getName())));
+			appendCompletedPrereqGhosts(out, pid, level + 1, seen, sectionGoalIdSet);
+		}
+	}
+
+	/** A faint, italic, non-interactive label standing in for a completed prereq. */
+	private javax.swing.JComponent makeGhostLabel(String name)
+	{
+		javax.swing.JLabel label = new javax.swing.JLabel("✓ " + name);
+		label.setForeground(new Color(0x80, 0x80, 0x80));
+		label.setFont(PanelFonts.derive(Font.ITALIC, 11f));
+		label.setToolTipText("Completed prerequisite (archived to Completed)");
+		label.setOpaque(false);
+		return label;
 	}
 
 	private void addHintLines(JPanel parent, int topGap, String[] lines)

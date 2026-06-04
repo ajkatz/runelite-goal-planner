@@ -77,4 +77,17 @@ public interface GoalPlannerConfig extends Config
 	{
 		return PanelFontScale.NORMAL;
 	}
+
+	@ConfigItem(
+		keyName = "showDependenciesIndented",
+		name = "Indent dependencies",
+		description = "Show goals nested under the goals they require, indented with a faint guide. "
+			+ "Applies to every section; individual sections can also be forced on via their right-click menu.",
+		section = appearanceSection,
+		position = 3
+	)
+	default boolean showDependenciesIndented()
+	{
+		return false;
+	}
 }

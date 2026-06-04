@@ -190,7 +190,7 @@ public class GoalPlannerPlugin extends Plugin
 		PanelFonts.configure(config.fontFamily(), config.fontScale());
 
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
-			goalTrackerApi, reorderingService, this::openItemSearch);
+			goalTrackerApi, reorderingService, this::openItemSearch, config);
 		panel.setClient(client);
 
 		// Share support: codec + party transport. Register the party message so
@@ -604,6 +604,15 @@ public class GoalPlannerPlugin extends Plugin
 		if ("fontFamily".equals(event.getKey()) || "fontScale".equals(event.getKey()))
 		{
 			PanelFonts.configure(config.fontFamily(), config.fontScale());
+			if (panel != null)
+			{
+				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+			}
+		}
+		// Global "indent dependencies" toggled — just rebuild so every section
+		// re-renders flat or nested to match.
+		if ("showDependenciesIndented".equals(event.getKey()))
+		{
 			if (panel != null)
 			{
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);

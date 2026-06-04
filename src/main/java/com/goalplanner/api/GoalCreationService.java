@@ -557,6 +557,90 @@ class GoalCreationService
 	}
 
 	/**
+	 * Seed an EXISTING quest goal's requirement tree (prior quests, skill levels,
+	 * QP/combat) into that goal's own section, linked beneath it, as one undo.
+	 * Reuses the same BFS seeder as quest creation, rooted at the existing goal
+	 * (so prereqs land in its section — see {@link #seedPrereqsInto}).
+	 *
+	 * <p>{@code includeMet = false} seeds only requirements not yet satisfied
+	 * (the resolver's live default); {@code true} seeds the entire tree including
+	 * already-met requirements. Existing matching goals are reused, not
+	 * duplicated, so it's safe to run more than once. No-op (returns 0) for
+	 * non-quest goals or quests without requirement data.
+	 *
+	 * @return number of prerequisite goals seeded (created or reused), excluding the root
+	 */
+	int seedRequirementsForGoal(String goalId, boolean includeMet)
+	{
+		log.debug("API.internal seedRequirementsForGoal(goalId={}, includeMet={})", goalId, includeMet);
+		Goal g = api.findGoal(goalId);
+		if (g == null || g.getType() != GoalType.QUEST || g.getQuestName() == null)
+		{
+			return 0;
+		}
+		Quest quest;
+		try
+		{
+			quest = Quest.valueOf(g.getQuestName());
+		}
+		catch (IllegalArgumentException e)
+		{
+			return 0;
+		}
+		if (!com.goalplanner.data.QuestRequirements.hasRequirements(quest))
+		{
+			return 0;
+		}
+
+		com.goalplanner.data.QuestRequirementResolver.Resolved resolved =
+			includeMet ? resolveAllRequirements(quest) : api.resolveQuestRequirements(quest);
+		if (resolved == null || resolved.isEmpty())
+		{
+			return 0;
+		}
+
+		api.clearGoalSelection();
+		api.beginCompound((includeMet ? "Add all requirements: " : "Add requirements: ")
+			+ com.goalplanner.data.QuestRequirements.displayName(quest));
+		try
+		{
+			java.util.Set<Quest> visited = new java.util.HashSet<>();
+			visited.add(quest);
+			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
+			for (Goal x : api.goalStore.getGoals())
+			{
+				preExistingGoalIds.add(x.getId());
+			}
+			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
+			gestureGoalIds.add(goalId);
+
+			seedPrereqsInto(goalId, quest, resolved.templates, visited, preExistingGoalIds, gestureGoalIds);
+
+			api.reorderingService.promoteLeafGoalsToTop();
+			api.selectedGoalIds.addAll(gestureGoalIds);
+			return gestureGoalIds.size() - 1;
+		}
+		finally
+		{
+			api.endCompound();
+		}
+	}
+
+	/**
+	 * Resolve a quest's FULL requirement tree, treating nothing as already met
+	 * (level 1, every prereq quest NOT_STARTED, combat 3), so the entire tree is
+	 * returned. Used by {@link #seedRequirementsForGoal} for the "All" variant.
+	 */
+	private com.goalplanner.data.QuestRequirementResolver.Resolved resolveAllRequirements(Quest quest)
+	{
+		return com.goalplanner.data.QuestRequirementResolver.resolve(
+			quest,
+			s -> 1,
+			q -> net.runelite.api.QuestState.NOT_STARTED,
+			() -> 3);
+	}
+
+	/**
 	 * Individual queue entry for {@link #seedPrereqsInto}: one template
 	 * paired with its parent goal/quest context. Skills and quests from
 	 * the same parent are split into separate entries so the priority

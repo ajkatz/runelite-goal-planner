@@ -561,6 +561,34 @@ class GoalContextMenuBuilder
 			menu.add(customizeMenu);
 		}
 
+		// Add requirements to this section — for quest goals with known game-data
+		// requirements, seed the requirement tree (prior quests, skill levels, …)
+		// into this goal's section so the nested guide is whole. "Incomplete only"
+		// = unmet reqs; "All" = the entire tree. Existing goals are reused.
+		boolean questWithReqs = false;
+		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null)
+		{
+			try
+			{
+				net.runelite.api.Quest q = net.runelite.api.Quest.valueOf(goal.getQuestName());
+				questWithReqs = com.goalplanner.data.QuestRequirements.hasRequirements(q);
+			}
+			catch (IllegalArgumentException ignored) {}
+		}
+		if (questWithReqs)
+		{
+			JMenu addReqs = new JMenu("Add requirements to this section");
+			JMenuItem reqsIncomplete = new JMenuItem("Incomplete only");
+			reqsIncomplete.setToolTipText("Add requirements you haven't met yet.");
+			reqsIncomplete.addActionListener(e -> api.seedRequirementsForGoal(goal.getId(), false));
+			JMenuItem reqsAll = new JMenuItem("All");
+			reqsAll.setToolTipText("Add the whole requirement tree, including ones already met.");
+			reqsAll.addActionListener(e -> api.seedRequirementsForGoal(goal.getId(), true));
+			addReqs.add(reqsIncomplete);
+			addReqs.add(reqsAll);
+			menu.add(addReqs);
+		}
+
 		// Move submenu — sibling of Customize. Collects all relocation actions
 		// under one hover: Move to Top/Bottom reorder within the current
 		// section; Move to… enters click-mode; Move to Section ▶ lists every
@@ -1317,14 +1345,16 @@ class GoalContextMenuBuilder
 			menu.addSeparator();
 		}
 
-		// View toggle: flat list vs dependency connector rail. The rail draws a
-		// left gutter of requires/orRequires lines between the section's goals.
-		// Available on every section, built-in or user. Rendered as a checkable
-		// row (left dot when active) via the ColumnMenu adapter.
-		javax.swing.JCheckBoxMenuItem railToggle =
-			new javax.swing.JCheckBoxMenuItem("Connector rail view", section.railView);
-		railToggle.addActionListener(e -> api.toggleSectionRailView(section.id));
-		menu.add(railToggle);
+		// View toggle: flat list vs subtle nested view. Nested view left-indents
+		// each goal by its in-section dependency depth with a faint file-tree
+		// guide. Available on every section, built-in or user. Rendered as a
+		// checkable row (left dot when active) via the ColumnMenu adapter.
+		// (The underlying flag/API is still named railView — internal rename to
+		// nestedView is a tracked follow-up.)
+		javax.swing.JCheckBoxMenuItem nestedToggle =
+			new javax.swing.JCheckBoxMenuItem("Nested view", section.railView);
+		nestedToggle.addActionListener(e -> api.toggleSectionRailView(section.id));
+		menu.add(nestedToggle);
 
 		// Change Color is available on every section, built-in or user.
 		JMenuItem changeColor = new JMenuItem("Change Color");
