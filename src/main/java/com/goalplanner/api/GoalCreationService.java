@@ -458,7 +458,7 @@ class GoalCreationService
 			// Seed the prereq tree under the quest goal, assign priorities,
 			// promote leaf goals, and select the gesture — shared with the
 			// "Add requirements to this section" action.
-			seedPrereqsAndPrioritize(questGoalId, quest, prereqTemplates);
+			seedPrereqsAndPrioritize(questGoalId, quest, prereqTemplates, /*allMode=*/false);
 
 			return questGoalId;
 		}
@@ -478,8 +478,18 @@ class GoalCreationService
 	 *
 	 * @return every goal id touched by the gesture (root first)
 	 */
+	/**
+	 * Set for the duration of ONE {@link #seedPrereqsAndPrioritize} gesture: when
+	 * true (the "Add requirements → All" action), already-completed prereqs are
+	 * kept and linked (so the guide shows the full tree as cards), and child
+	 * quests are re-resolved with floor lookups so the FULL transitive tree seeds.
+	 * Default false → quest-add and "Incomplete only" skip already-completed
+	 * prereqs. Single-threaded seeding, so a plain field is safe.
+	 */
+	private boolean seedKeepCompleted = false;
+
 	private java.util.List<String> seedPrereqsAndPrioritize(
-		String rootGoalId, Quest rootQuest, java.util.List<Goal> prereqTemplates)
+		String rootGoalId, Quest rootQuest, java.util.List<Goal> prereqTemplates, boolean allMode)
 	{
 		java.util.Set<Quest> visited = new java.util.HashSet<>();
 		if (rootQuest != null)
@@ -498,7 +508,15 @@ class GoalCreationService
 		java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
 		gestureGoalIds.add(rootGoalId);
 
-		seedPrereqsInto(rootGoalId, rootQuest, prereqTemplates, visited, preExistingGoalIds, gestureGoalIds);
+		this.seedKeepCompleted = allMode;
+		try
+		{
+			seedPrereqsInto(rootGoalId, rootQuest, prereqTemplates, visited, preExistingGoalIds, gestureGoalIds);
+		}
+		finally
+		{
+			this.seedKeepCompleted = false;
+		}
 
 		// Assign priorities so the topo sort renders correctly:
 		// 1. Zero-dependency QUEST goals at the very top (leaf quests — do first)
@@ -627,7 +645,7 @@ class GoalCreationService
 				api.setSectionAutoArchiveOverride(g.getSectionId(), Boolean.FALSE);
 			}
 			java.util.List<String> gestureGoalIds =
-				seedPrereqsAndPrioritize(goalId, quest, resolved.templates);
+				seedPrereqsAndPrioritize(goalId, quest, resolved.templates, /*allMode=*/includeMet);
 			return gestureGoalIds.size() - 1;
 		}
 		finally
@@ -899,10 +917,12 @@ class GoalCreationService
 				}
 			}
 
-			// Skip completed goals — they're already done, no need to
-			// link them as requirements in the tree.
+			// Skip completed goals — they're already done, no need to link them as
+			// requirements in the tree. EXCEPT in "All" mode (seedKeepCompleted),
+			// where the whole point is to show the full tree including the parts
+			// you've finished (they render as completed cards at the bottom).
 			Goal seedGoal = api.findGoal(seedGoalId);
-			if (seedGoal != null && seedGoal.isComplete())
+			if (!seedKeepCompleted && seedGoal != null && seedGoal.isComplete())
 			{
 				continue;
 			}
