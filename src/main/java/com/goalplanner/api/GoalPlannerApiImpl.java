@@ -123,7 +123,14 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	// internal callers that want to supply pre-computed templates directly.
 	public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
 	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { String id = creationService.addDiaryGoal(areaDisplayName, tier); selectAfterCreate(id); return id; }
+	// Bare diary add: insert the diary goal ONLY, no prereq auto-seeding. Used by the
+	// in-game diary menu (organising/seeding is left to the panel's "Add requirements
+	// to this section"). Mirrors the bare-add intent of addQuestGoalWithPrereqs(…, []).
+	public String addDiaryGoalNoPrereqs(String areaDisplayName, DiaryTier tier) { String id = creationService.insertDiaryGoal(areaDisplayName, tier); selectAfterCreate(id); return id; }
 	public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goalplanner.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
+	// Panel "Add requirements to this section" for an existing DIARY goal (parallel
+	// to seedRequirementsForGoal for quests).
+	public int seedDiaryRequirementsForGoal(String diaryGoalId, boolean includeMet) { return creationService.seedDiaryRequirementsForGoal(diaryGoalId, includeMet); }
 	@Override public String addCombatAchievementGoal(int caTaskId) { String id = creationService.addCombatAchievementGoal(caTaskId); selectAfterCreate(id); return id; }
 	@Override public String addBossGoal(String bossName, int targetKills) { String id = creationService.addBossGoal(bossName, targetKills); selectAfterCreate(id); return id; }
 	@Override public String addAccountGoal(String metricName, int target) { String id = creationService.addAccountGoal(metricName, target); selectAfterCreate(id); return id; }

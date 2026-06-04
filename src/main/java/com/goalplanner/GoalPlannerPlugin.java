@@ -1290,10 +1290,11 @@ public class GoalPlannerPlugin extends Plugin
 				}
 				final String diaryMenuTarget = "<col=ff9040>" + areaDisplayName + "</col>";
 
-				// ONE "Add Goal" submenu over the tiers (adds to the default),
-				// instead of four flat "Add Goal: <Tier>" entries. Section
-				// organising is left to the panel (its ColumnMenu drills down
-				// nicely) — the native in-game menu stays one level deep.
+				// "Add Goal" submenu with one entry per tier; each tier is itself a
+				// submenu of [Default + each user section]. Every leaf does a BARE add
+				// (no prereq auto-seeding) — organising/seeding is left to the panel's
+				// "Add requirements to this section". Mirrors the quest Add Goal ▸ section
+				// menu (addGoalSectionItems), one level deeper for the tier.
 				final net.runelite.api.Menu addGoalSub = client.createMenuEntry(1)
 					.setOption("Add Goal")
 					.setTarget(diaryMenuTarget)
@@ -1311,14 +1312,24 @@ public class GoalPlannerPlugin extends Plugin
 						case ELITE:  apiTier = GoalPlannerApi.DiaryTier.ELITE; break;
 						default:     continue;
 					}
-					// Add Goal ▸ <tier> → default (auto-resolves + seeds prereqs).
-					// Gate on skill sync so an add right after login doesn't read
-					// default level-1 stats and over-seed met skill reqs.
-					addGoalSub.createMenuEntry(0)
+					// Add Goal ▸ <Tier> ▸ [Default + each user section].
+					final net.runelite.api.Menu tierSub = addGoalSub.createMenuEntry(0)
 						.setOption(tier.getDisplayName())
 						.setType(MenuAction.RUNELITE)
-						.onClick(e -> skillSyncGate.runWhenSynced(
-							() -> goalTrackerApi.addDiaryGoal(areaDisplayName, apiTier)));
+						.createSubMenu();
+					// Dedup probe matching insertDiaryGoal's identity (name=area,
+					// description="<Tier> Achievement Diary").
+					final Goal diaryProbe = Goal.builder()
+						.type(GoalType.DIARY)
+						.name(areaDisplayName)
+						.description(tier.getDisplayName() + " Achievement Diary")
+						.build();
+					// Bare add for both Default and section entries (diaries don't
+					// auto-seed). Gate on skill sync for parity with the quest menu.
+					addGoalSectionItems(tierSub, diaryProbe,
+						areaDisplayName + " " + tier.getDisplayName(),
+						/*defaultAdd=*/() -> goalTrackerApi.addDiaryGoalNoPrereqs(areaDisplayName, apiTier),
+						/*sectionAdd=*/() -> goalTrackerApi.addDiaryGoalNoPrereqs(areaDisplayName, apiTier));
 				}
 				break;
 			}

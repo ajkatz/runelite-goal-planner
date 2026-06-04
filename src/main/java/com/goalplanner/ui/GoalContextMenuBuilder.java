@@ -564,10 +564,11 @@ class GoalContextMenuBuilder
 			menu.add(customizeMenu);
 		}
 
-		// Add requirements to this section — for quest goals with known game-data
-		// requirements, seed the requirement tree (prior quests, skill levels, …)
-		// into this goal's section so the nested guide is whole. "Incomplete only"
-		// = unmet reqs; "All" = the entire tree. Existing goals are reused.
+		// Add requirements to this section — for quest/diary goals with known
+		// game-data requirements, seed the requirement tree (prior quests, skill
+		// levels, unlocks, …) into this goal's section so the nested guide is whole.
+		// "Incomplete only" = unmet reqs (live state); "All" = the entire tree
+		// (floor lookups, deterministic). Existing goals in the section are reused.
 		boolean questWithReqs = false;
 		if (goal.getType() == GoalType.QUEST && goal.getQuestName() != null)
 		{
@@ -578,15 +579,24 @@ class GoalContextMenuBuilder
 			}
 			catch (IllegalArgumentException ignored) {}
 		}
-		if (questWithReqs)
+		boolean diaryWithReqs = false;
+		if (goal.getType() == GoalType.DIARY && goal.getName() != null)
 		{
+			com.goalplanner.data.AchievementDiaryData.Tier tier =
+				parseDiaryTier(goal.getDescription());
+			diaryWithReqs = tier != null
+				&& com.goalplanner.data.DiaryRequirements.hasRequirements(goal.getName(), tier);
+		}
+		if (questWithReqs || diaryWithReqs)
+		{
+			final boolean isDiary = diaryWithReqs;
 			JMenu addReqs = new JMenu("Add requirements to this section");
 			JMenuItem reqsIncomplete = new JMenuItem("Incomplete only");
 			reqsIncomplete.setToolTipText("Add requirements you haven't met yet.");
-			reqsIncomplete.addActionListener(e -> api.seedRequirementsForGoal(goal.getId(), false));
+			reqsIncomplete.addActionListener(e -> seedReqs(goal.getId(), false, isDiary));
 			JMenuItem reqsAll = new JMenuItem("All");
 			reqsAll.setToolTipText("Add the whole requirement tree, including ones already met.");
-			reqsAll.addActionListener(e -> api.seedRequirementsForGoal(goal.getId(), true));
+			reqsAll.addActionListener(e -> seedReqs(goal.getId(), true, isDiary));
 			addReqs.add(reqsIncomplete);
 			addReqs.add(reqsAll);
 			menu.add(addReqs);
@@ -1598,5 +1608,36 @@ class GoalContextMenuBuilder
 			}
 		}
 		finally { api.endCompound(); }
+	}
+
+	/** Route "Add requirements" to the quest or diary seeder. */
+	private void seedReqs(String goalId, boolean includeMet, boolean isDiary)
+	{
+		if (isDiary)
+		{
+			api.seedDiaryRequirementsForGoal(goalId, includeMet);
+		}
+		else
+		{
+			api.seedRequirementsForGoal(goalId, includeMet);
+		}
+	}
+
+	/** Internal diary tier from a diary goal's "&lt;Tier&gt; Achievement Diary" description, or null. */
+	private static com.goalplanner.data.AchievementDiaryData.Tier parseDiaryTier(String description)
+	{
+		if (description == null)
+		{
+			return null;
+		}
+		for (com.goalplanner.data.AchievementDiaryData.Tier t
+			: com.goalplanner.data.AchievementDiaryData.Tier.values())
+		{
+			if (description.startsWith(t.getDisplayName()))
+			{
+				return t;
+			}
+		}
+		return null;
 	}
 }

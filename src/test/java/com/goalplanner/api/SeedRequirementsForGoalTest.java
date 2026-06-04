@@ -21,7 +21,7 @@ import static org.mockito.Mockito.*;
  * requirements to this section" action. The "All" path (includeMet=true) uses
  * floor lookups and needs no live client, so it's deterministic in tests.
  */
-@DisplayName("seedRequirementsForGoal — populate a quest goal's section with its requirements")
+@DisplayName("seedRequirementsForGoal — populate a quest/diary goal's section with its requirements")
 class SeedRequirementsForGoalTest
 {
 	private GoalStore store;
@@ -201,5 +201,100 @@ class SeedRequirementsForGoalTest
 		assertTrue(store.getGoals().size() > beforeSeed);
 		api.undo();
 		assertEquals(beforeSeed, store.getGoals().size(), "undo should remove every seeded goal");
+	}
+
+	// ---- Diary goals (seedDiaryRequirementsForGoal) -------------------------
+	// Ardougne Medium has skills + prereq quests + the Fairy Rings unlock (a CUSTOM
+	// goal with its own quest prereqs), so it exercises both the shared section-aware
+	// BFS (seedPrereqsInto) and the unlock/boss/account direct creations that go
+	// through reuseOrCreateInSection. "All" uses floor lookups → no live Client.
+
+	@Test
+	@DisplayName("a diary goal is recognised (no longer a no-op for the add-requirements action)")
+	void diaryGoalSeedsRequirements()
+	{
+		String diaryId = api.addDiaryGoalNoPrereqs("Ardougne", GoalPlannerApi.DiaryTier.MEDIUM);
+		assertNotNull(diaryId);
+		int seeded = api.seedDiaryRequirementsForGoal(diaryId, true);
+		assertTrue(seeded > 0, "expected Ardougne Medium to seed at least one prerequisite");
+	}
+
+	@Test
+	@DisplayName("diary 'All' seeds the requirement tree into the diary goal's own section and links it")
+	void diaryAllSeedsRequirementTreeIntoSection()
+	{
+		String sectionId = api.createSection("Guide");
+		String diaryId = api.addDiaryGoalNoPrereqs("Ardougne", GoalPlannerApi.DiaryTier.MEDIUM);
+		assertNotNull(diaryId);
+		api.moveGoalToSection(diaryId, sectionId);
+
+		int seeded = api.seedDiaryRequirementsForGoal(diaryId, true);
+		assertTrue(seeded > 0, "expected Ardougne Medium to seed prerequisites");
+
+		// The diary goal is now linked to in-section prerequisites.
+		Goal diary = store.findGoalById(diaryId);
+		assertFalse(diary.getRequiredGoalIds().isEmpty(), "diary goal should gain requirement edges");
+
+		// EVERY seeded goal (skill/quest/unlock/…) lands in the diary's user section,
+		// not the default Incomplete — boss/account/quest/unlock direct creations are
+		// section-aware via reuseOrCreateInSection.
+		for (Goal g : store.getGoals())
+		{
+			assertEquals(sectionId, g.getSectionId(),
+				"seeded goal " + g.getName() + " should share the diary's section");
+		}
+
+		// The Fairy Rings unlock (a CUSTOM milestone created outside the BFS) seeded
+		// into the section — proves the unlock path is section-aware.
+		assertTrue(store.getGoals().stream()
+				.anyMatch(g -> "Fairy Rings Unlocked".equalsIgnoreCase(g.getName())),
+			"the Fairy Rings unlock goal should be seeded");
+
+		// Cross-section dedup: a shared prereq reached via multiple paths is reused,
+		// not duplicated and stranded.
+		assertNoDuplicateIdentities();
+	}
+
+	@Test
+	@DisplayName("running diary 'All' twice reuses existing goals instead of duplicating")
+	void diaryRerunReusesGoals()
+	{
+		String sectionId = api.createSection("Guide");
+		String diaryId = api.addDiaryGoalNoPrereqs("Ardougne", GoalPlannerApi.DiaryTier.MEDIUM);
+		api.moveGoalToSection(diaryId, sectionId);
+
+		api.seedDiaryRequirementsForGoal(diaryId, true);
+		int afterFirst = store.getGoals().size();
+		api.seedDiaryRequirementsForGoal(diaryId, true);
+		int afterSecond = store.getGoals().size();
+		assertEquals(afterFirst, afterSecond, "re-running should not create duplicate goals");
+		assertNoDuplicateIdentities();
+	}
+
+	@Test
+	@DisplayName("diary 'All' sets the section to keep completed goals inline")
+	void diaryAllKeepsCompletedInline()
+	{
+		String sectionId = api.createSection("Guide");
+		String diaryId = api.addDiaryGoalNoPrereqs("Ardougne", GoalPlannerApi.DiaryTier.MEDIUM);
+		api.moveGoalToSection(diaryId, sectionId);
+
+		api.seedDiaryRequirementsForGoal(diaryId, true);
+
+		com.goalplanner.model.Section sec = store.findSection(sectionId);
+		assertEquals(Boolean.FALSE, sec.getAutoArchiveOverride(),
+			"'All' should flip the section to keep-inline so met requirements stay as cards");
+	}
+
+	@Test
+	@DisplayName("one undo reverses the whole diary seeding gesture")
+	void diaryUndoReversesSeeding()
+	{
+		String diaryId = api.addDiaryGoalNoPrereqs("Ardougne", GoalPlannerApi.DiaryTier.MEDIUM);
+		int beforeSeed = store.getGoals().size();
+		api.seedDiaryRequirementsForGoal(diaryId, true);
+		assertTrue(store.getGoals().size() > beforeSeed);
+		api.undo();
+		assertEquals(beforeSeed, store.getGoals().size(), "undo should remove every seeded diary prerequisite");
 	}
 }

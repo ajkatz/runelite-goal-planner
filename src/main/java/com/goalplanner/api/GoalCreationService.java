@@ -1162,20 +1162,86 @@ class GoalCreationService
 	}
 
 	/**
+	 * Reuse-or-create a diary sub-goal inside the diary goal's section. If an
+	 * equivalent goal already lives in {@code sectionId}'s namespace — a shared
+	 * prereq reached via another path this gesture, or a pre-existing user goal —
+	 * reuse it; otherwise run {@code create} and move the freshly-made goal into
+	 * the section so it follows that section's rules instead of stranding in the
+	 * default Incomplete. Mirrors the cross-section dedup in {@link #seedPrereqsInto}
+	 * (commit e5e7383), applied to the boss/account/quest/unlock sub-goals that
+	 * {@link #addDiaryGoalWithPrereqsCore} creates outside that BFS. No-op for the
+	 * default namespace (new-goal flow): the per-type creators already dedup there
+	 * and a move into the same section is refused, so behaviour is unchanged.
+	 */
+	private String reuseOrCreateInSection(String sectionId, Goal probe,
+		java.util.Set<String> preExistingGoalIds, java.util.function.Supplier<String> create)
+	{
+		if (sectionId != null && probe != null)
+		{
+			Goal reuse = api.goalStore.findEquivalentInNamespace(sectionId, probe);
+			if (reuse != null)
+			{
+				return reuse.getId();
+			}
+		}
+		String id = create.get();
+		if (id == null)
+		{
+			return null;
+		}
+		if (sectionId != null && (preExistingGoalIds == null || !preExistingGoalIds.contains(id)))
+		{
+			Goal placed = api.findGoal(id);
+			if (placed != null && !sectionId.equals(placed.getSectionId()))
+			{
+				api.moveGoalToSection(id, sectionId);
+			}
+		}
+		return id;
+	}
+
+	/**
 	 * Add a diary goal with all unmet skill and quest requirements seeded
 	 * as prerequisite goals. Parallel to addQuestGoalWithPrereqs.
 	 */
 	String addDiaryGoalWithPrereqs(String areaDisplayName, GoalPlannerApi.DiaryTier tier,
 		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved)
 	{
-		log.debug("API.internal addDiaryGoalWithPrereqs(area={}, tier={}, templates={}, unlocks={})",
-			areaDisplayName, tier,
-			resolved == null ? 0 : resolved.templates.size(),
-			resolved == null ? 0 : resolved.unlocks.size());
 		if (areaDisplayName == null || tier == null) return null;
 		if (resolved == null || resolved.isEmpty())
 		{
 			return insertDiaryGoal(areaDisplayName, tier);
+		}
+		java.util.List<String> gesture =
+			addDiaryGoalWithPrereqsCore(null, areaDisplayName, tier, resolved, /*keepCompleted=*/false);
+		return gesture.isEmpty() ? null : areaDisplayName;
+	}
+
+	/**
+	 * Core diary prereq seeder. When {@code existingDiaryGoalId} is null, inserts a
+	 * fresh diary goal (the in-game add path); otherwise seeds INTO that existing
+	 * goal (the panel "Add requirements to this section" path —
+	 * {@link #seedDiaryRequirementsForGoal}). Seeds {@code resolved.templates} via
+	 * the shared section-aware {@link #seedPrereqsInto}, plus {@code resolved.bossReqs}
+	 * and {@code resolved.unlocks} (with their own sub-prereqs) — every sub-goal goes
+	 * through {@link #reuseOrCreateInSection} so it lands in the diary goal's section
+	 * and a shared prereq is reused, never duplicated/stranded. {@code keepCompleted}
+	 * (the "All" variant) keeps already-met requirements linked as inline cards.
+	 *
+	 * @return every goal id touched by the gesture (diary goal first), or empty on failure
+	 */
+	private java.util.List<String> addDiaryGoalWithPrereqsCore(
+		String existingDiaryGoalId, String areaDisplayName, GoalPlannerApi.DiaryTier tier,
+		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved, boolean keepCompleted)
+	{
+		log.debug("API.internal addDiaryGoalWithPrereqsCore(existing={}, area={}, tier={}, templates={}, unlocks={}, keepCompleted={})",
+			existingDiaryGoalId, areaDisplayName, tier,
+			resolved == null ? 0 : resolved.templates.size(),
+			resolved == null ? 0 : resolved.unlocks.size(), keepCompleted);
+		java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
+		if (areaDisplayName == null || tier == null || resolved == null || resolved.isEmpty())
+		{
+			return gestureGoalIds;
 		}
 		java.util.List<Goal> prereqTemplates = resolved.templates;
 
@@ -1184,13 +1250,16 @@ class GoalCreationService
 		String compoundDesc = "Add diary with requirements: " + areaDisplayName + " " + tierStr;
 
 		api.beginCompound(compoundDesc);
+		boolean prevKeepCompleted = this.seedKeepCompleted;
+		this.seedKeepCompleted = keepCompleted;
 		try
 		{
-			String diaryGoalId = insertDiaryGoal(areaDisplayName, tier);
+			String diaryGoalId = existingDiaryGoalId != null
+				? existingDiaryGoalId : insertDiaryGoal(areaDisplayName, tier);
 			if (diaryGoalId == null)
 			{
-				log.warn("addDiaryGoalWithPrereqs: insertDiaryGoal returned null");
-				return null;
+				log.warn("addDiaryGoalWithPrereqsCore: insertDiaryGoal returned null");
+				return gestureGoalIds;
 			}
 
 			Goal diaryGoal = api.findGoal(diaryGoalId);
@@ -1202,7 +1271,6 @@ class GoalCreationService
 				tagLabel = areaDisplayName;
 			}
 
-			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
 			gestureGoalIds.add(diaryGoalId);
 
 			// Use the same BFS priority queue as quest prereq seeding.
@@ -1217,16 +1285,19 @@ class GoalCreationService
 			// seeded by addBossGoal via BossKillData.getPrereqs().
 			for (com.goalplanner.data.DiaryRequirementResolver.ResolvedBossReq entry : resolved.bossReqs)
 			{
-				Goal bt = entry.bossTemplate;
+				final Goal bt = entry.bossTemplate;
+				final String sid = sectionId;
 				String goalId;
 				if (bt.getType() == GoalType.BOSS && bt.getBossName() != null)
 				{
 					// addBossGoal auto-seeds skill/unlock prereqs from BossKillData
-					goalId = addBossGoal(bt.getBossName(), bt.getTargetValue());
+					goalId = reuseOrCreateInSection(sid, bt, preExisting,
+						() -> addBossGoal(bt.getBossName(), bt.getTargetValue()));
 				}
 				else if (bt.getType() == GoalType.ACCOUNT && bt.getAccountMetric() != null)
 				{
-					goalId = addAccountGoal(bt.getAccountMetric(), bt.getTargetValue());
+					goalId = reuseOrCreateInSection(sid, bt, preExisting,
+						() -> addAccountGoal(bt.getAccountMetric(), bt.getTargetValue()));
 				}
 				else
 				{
@@ -1260,8 +1331,9 @@ class GoalCreationService
 					{
 						try
 						{
-							Quest quest = Quest.valueOf(prereqTemplate.getQuestName());
-							String questGoalId = insertQuestGoal(quest);
+							final Quest quest = Quest.valueOf(prereqTemplate.getQuestName());
+							String questGoalId = reuseOrCreateInSection(sid, prereqTemplate, preExisting,
+								() -> insertQuestGoal(quest));
 							if (questGoalId == null) continue;
 							gestureGoalIds.add(questGoalId);
 							api.addRequirement(goalId, questGoalId);
@@ -1295,7 +1367,9 @@ class GoalCreationService
 			// Unlocks: create CUSTOM goal → link quest prereqs to it → link to diary.
 			for (com.goalplanner.data.DiaryRequirementResolver.ResolvedUnlock unlock : resolved.unlocks)
 			{
-				String unlockGoalId = addCustomGoal(unlock.name, "Requirement");
+				String unlockGoalId = reuseOrCreateInSection(sectionId,
+					Goal.builder().type(GoalType.CUSTOM).name(unlock.name).build(), preExisting,
+					() -> addCustomGoal(unlock.name, "Requirement"));
 				if (unlockGoalId == null) continue;
 				// Set item icon on the unlock goal.
 				if (unlock.itemId > 0)
@@ -1325,8 +1399,10 @@ class GoalCreationService
 						continue;
 					try
 					{
-						Quest quest = Quest.valueOf(questTemplate.getQuestName());
-						String questGoalId = insertQuestGoal(quest);
+						final Quest quest = Quest.valueOf(questTemplate.getQuestName());
+						final Goal qProbe = questTemplate;
+						String questGoalId = reuseOrCreateInSection(sectionId, qProbe, preExisting,
+							() -> insertQuestGoal(quest));
 						if (questGoalId == null) continue;
 						gestureGoalIds.add(questGoalId);
 						api.addRequirement(unlockGoalId, questGoalId);
@@ -1364,9 +1440,9 @@ class GoalCreationService
 				{
 					if (skillTemplate.getType() != GoalType.SKILL || skillTemplate.getSkillName() == null)
 						continue;
-					String skillGoalId = addSkillGoal(
-						Skill.valueOf(skillTemplate.getSkillName()),
-						skillTemplate.getTargetValue());
+					final Goal st = skillTemplate;
+					String skillGoalId = reuseOrCreateInSection(sectionId, st, preExisting,
+						() -> addSkillGoal(Skill.valueOf(st.getSkillName()), st.getTargetValue()));
 					if (skillGoalId == null) continue;
 					Goal skillGoal = api.findGoal(skillGoalId);
 					if (skillGoal != null) skillGoal.setOptional(true);
@@ -1387,9 +1463,9 @@ class GoalCreationService
 				{
 					if (accountTemplate.getType() != GoalType.ACCOUNT || accountTemplate.getAccountMetric() == null)
 						continue;
-					String accountGoalId = addAccountGoal(
-						accountTemplate.getAccountMetric(),
-						accountTemplate.getTargetValue());
+					final Goal at = accountTemplate;
+					String accountGoalId = reuseOrCreateInSection(sectionId, at, preExisting,
+						() -> addAccountGoal(at.getAccountMetric(), at.getTargetValue()));
 					if (accountGoalId == null) continue;
 					gestureGoalIds.add(accountGoalId);
 					api.addRequirement(unlockGoalId, accountGoalId);
@@ -1416,9 +1492,9 @@ class GoalCreationService
 					{
 						if (skillTemplate.getType() != GoalType.SKILL || skillTemplate.getSkillName() == null)
 							continue;
-						String skillGoalId = addSkillGoal(
-							Skill.valueOf(skillTemplate.getSkillName()),
-							skillTemplate.getTargetValue());
+						final Goal altSt = skillTemplate;
+						String skillGoalId = reuseOrCreateInSection(sectionId, altSt, preExisting,
+							() -> addSkillGoal(Skill.valueOf(altSt.getSkillName()), altSt.getTargetValue()));
 						if (skillGoalId == null) continue;
 						gestureGoalIds.add(skillGoalId);
 						api.addOrRequirement(unlockGoalId, skillGoalId);
@@ -1435,9 +1511,9 @@ class GoalCreationService
 					{
 						if (accountTemplate.getType() != GoalType.ACCOUNT || accountTemplate.getAccountMetric() == null)
 							continue;
-						String accountGoalId = addAccountGoal(
-							accountTemplate.getAccountMetric(),
-							accountTemplate.getTargetValue());
+						final Goal altAt = accountTemplate;
+						String accountGoalId = reuseOrCreateInSection(sectionId, altAt, preExisting,
+							() -> addAccountGoal(altAt.getAccountMetric(), altAt.getTargetValue()));
 						if (accountGoalId == null) continue;
 						gestureGoalIds.add(accountGoalId);
 						api.addOrRequirement(unlockGoalId, accountGoalId);
@@ -1454,9 +1530,9 @@ class GoalCreationService
 					{
 						if (bossTemplate.getType() != GoalType.BOSS || bossTemplate.getBossName() == null)
 							continue;
-						String bossGoalId = addBossGoal(
-							bossTemplate.getBossName(),
-							bossTemplate.getTargetValue());
+						final Goal altBt = bossTemplate;
+						String bossGoalId = reuseOrCreateInSection(sectionId, altBt, preExisting,
+							() -> addBossGoal(altBt.getBossName(), altBt.getTargetValue()));
 						if (bossGoalId == null) continue;
 						gestureGoalIds.add(bossGoalId);
 						api.addOrRequirement(unlockGoalId, bossGoalId);
@@ -1480,9 +1556,108 @@ class GoalCreationService
 		}
 		finally
 		{
+			this.seedKeepCompleted = prevKeepCompleted;
 			api.endCompound();
 		}
-		return areaDisplayName;
+		return gestureGoalIds;
+	}
+
+	/**
+	 * Panel "Add requirements to this section" for an existing DIARY goal — the
+	 * diary parallel of {@link #seedRequirementsForGoal}. Derives the area from the
+	 * goal's name and the tier from its description prefix ("Easy/Medium/Hard/Elite
+	 * Achievement Diary"), resolves the requirement tree, and seeds it INTO the
+	 * diary goal's own section under one undo (reusing equivalents already there).
+	 *
+	 * <p>{@code includeMet = false} seeds only unmet requirements from live player
+	 * state (needs a Client); {@code true} ("All") uses floor lookups (treat nothing
+	 * as met) so the whole tree seeds deterministically and met requirements are kept
+	 * inline as cards. No-op (returns 0) for non-diary goals or diaries without
+	 * requirement data.
+	 *
+	 * @return number of prerequisite goals seeded (created or reused), excluding the root
+	 */
+	int seedDiaryRequirementsForGoal(String diaryGoalId, boolean includeMet)
+	{
+		log.debug("API.internal seedDiaryRequirementsForGoal(goalId={}, includeMet={})", diaryGoalId, includeMet);
+		Goal g = api.findGoal(diaryGoalId);
+		if (g == null || g.getType() != GoalType.DIARY || g.getName() == null)
+		{
+			return 0;
+		}
+		AchievementDiaryData.Tier internalTier = parseTierFromDescription(g.getDescription());
+		if (internalTier == null)
+		{
+			return 0;
+		}
+		String area = g.getName();
+		if (!com.goalplanner.data.DiaryRequirements.hasRequirements(area, internalTier))
+		{
+			return 0;
+		}
+		GoalPlannerApi.DiaryTier apiTier = toApiTier(internalTier);
+
+		// "All" resolves the full tree with floor lookups (nothing met) — no Client
+		// needed, deterministic. "Incomplete only" uses live player state.
+		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved = includeMet
+			? com.goalplanner.data.DiaryRequirementResolver.resolve(
+				area, internalTier,
+				s -> 1,
+				q -> net.runelite.api.QuestState.NOT_STARTED)
+			: com.goalplanner.data.DiaryRequirementResolver.resolve(area, internalTier, api.client);
+		if (resolved == null || resolved.isEmpty())
+		{
+			return 0;
+		}
+
+		api.clearGoalSelection();
+		api.beginCompound((includeMet ? "Add all requirements: " : "Add requirements: ")
+			+ area + " " + internalTier.getDisplayName());
+		try
+		{
+			// "All" keeps the section's completed prereqs inline as cards (matches the
+			// quest "All" behaviour) instead of letting them auto-archive to ghosts.
+			if (includeMet)
+			{
+				api.setSectionAutoArchiveOverride(g.getSectionId(), Boolean.FALSE);
+			}
+			java.util.List<String> gesture =
+				addDiaryGoalWithPrereqsCore(diaryGoalId, area, apiTier, resolved, /*keepCompleted=*/includeMet);
+			return Math.max(0, gesture.size() - 1);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+	}
+
+	/** Parse the internal diary tier from a diary goal's "&lt;Tier&gt; Achievement Diary" description. */
+	private static AchievementDiaryData.Tier parseTierFromDescription(String description)
+	{
+		if (description == null)
+		{
+			return null;
+		}
+		for (AchievementDiaryData.Tier t : AchievementDiaryData.Tier.values())
+		{
+			if (description.startsWith(t.getDisplayName()))
+			{
+				return t;
+			}
+		}
+		return null;
+	}
+
+	private static GoalPlannerApi.DiaryTier toApiTier(AchievementDiaryData.Tier tier)
+	{
+		switch (tier)
+		{
+			case EASY:   return GoalPlannerApi.DiaryTier.EASY;
+			case MEDIUM: return GoalPlannerApi.DiaryTier.MEDIUM;
+			case HARD:   return GoalPlannerApi.DiaryTier.HARD;
+			case ELITE:  return GoalPlannerApi.DiaryTier.ELITE;
+			default:     throw new IllegalArgumentException("Unknown Tier " + tier);
+		}
 	}
 
 	String addCombatAchievementGoal(int caTaskId)
