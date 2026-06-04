@@ -455,98 +455,10 @@ class GoalCreationService
 				return null;
 			}
 
-			// Cycle guard — questlines are DAGs in practice, but guard
-			// anyway so a bad data entry can't infinite-loop the plugin.
-			// Seed with the root quest so we don't recurse back into it.
-			java.util.Set<Quest> visited = new java.util.HashSet<>();
-			visited.add(quest);
-
-			// Snapshot goal IDs that existed BEFORE this gesture so the
-			// hybrid skill helper only reuses pre-existing user goals,
-			// not goals created during the same gesture.
-			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
-			for (Goal g : api.goalStore.getGoals())
-			{
-				preExistingGoalIds.add(g.getId());
-			}
-
-			// Track all goal IDs touched during the BFS for selection.
-			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
-			gestureGoalIds.add(questGoalId);
-
-			seedPrereqsInto(questGoalId, quest, prereqTemplates, visited, preExistingGoalIds, gestureGoalIds);
-
-			// Assign priorities so the topo sort renders correctly:
-			// 1. Zero-dependency QUEST goals at the very top (these are
-			//    leaf quests like Rune Mysteries, Death Plateau — do first)
-			// 2. Everything else in reversed creation order (deepest leaves
-			//    near top, root quest at bottom)
-			java.util.Set<String> gestureSet = new java.util.HashSet<>(gestureGoalIds);
-			java.util.List<String> zeroDegQuests = new java.util.ArrayList<>();
-			java.util.List<String> others = new java.util.ArrayList<>();
-			for (String id : gestureGoalIds)
-			{
-				Goal g = api.findGoal(id);
-				if (g != null && g.getType() == GoalType.QUEST && g.getQuestName() != null)
-				{
-					boolean isKnownLeaf = false;
-					try
-					{
-						Quest q = Quest.valueOf(g.getQuestName());
-						com.goalplanner.data.QuestRequirements.Reqs reqs =
-							com.goalplanner.data.QuestRequirements.lookup(q);
-						if (reqs != null && !com.goalplanner.data.QuestRequirements.hasRequirements(q))
-						{
-							isKnownLeaf = true;
-						}
-					}
-					catch (IllegalArgumentException ignored) {}
-
-					if (isKnownLeaf)
-					{
-						boolean hasInGestureReqs = false;
-						if (g.getRequiredGoalIds() != null)
-						{
-							for (String reqId : g.getRequiredGoalIds())
-							{
-								if (gestureSet.contains(reqId))
-								{
-									hasInGestureReqs = true;
-									break;
-								}
-							}
-						}
-						if (!hasInGestureReqs)
-						{
-							zeroDegQuests.add(id);
-							continue;
-						}
-					}
-				}
-				others.add(id);
-			}
-			java.util.Collections.reverse(others);
-
-			int p = 0;
-			for (String id : zeroDegQuests)
-			{
-				Goal g = api.findGoal(id);
-				if (g != null) { g.setPriority(p++); api.goalStore.updateGoal(g); }
-			}
-			for (String id : others)
-			{
-				Goal g = api.findGoal(id);
-				if (g != null) { g.setPriority(p++); api.goalStore.updateGoal(g); }
-			}
-
-			// Promote leaf quests (zero active requirements) to the top
-			// so the user sees "do first" goals at the top of the list.
-			api.reorderingService.promoteLeafGoalsToTop();
-
-			// Select all goals created by the gesture. Add directly to
-			// the ephemeral set (no per-goal callback) — the compound's
-			// endCompound fires onGoalsChanged once for the whole batch.
-			api.selectedGoalIds.addAll(gestureGoalIds);
+			// Seed the prereq tree under the quest goal, assign priorities,
+			// promote leaf goals, and select the gesture — shared with the
+			// "Add requirements to this section" action.
+			seedPrereqsAndPrioritize(questGoalId, quest, prereqTemplates);
 
 			return questGoalId;
 		}
@@ -554,6 +466,108 @@ class GoalCreationService
 		{
 			api.endCompound();
 		}
+	}
+
+	/**
+	 * Shared post-root seeding pass: BFS-seed {@code rootQuest}'s prereq templates
+	 * beneath {@code rootGoalId} (into its section — see {@link #seedPrereqsInto}),
+	 * assign priorities for a clean topo render (leaf "do-first" quests on top,
+	 * then reversed creation order), promote leaf goals, and select the whole
+	 * gesture. Caller MUST already be inside a beginCompound/endCompound block and
+	 * {@code rootGoalId} must already exist.
+	 *
+	 * @return every goal id touched by the gesture (root first)
+	 */
+	private java.util.List<String> seedPrereqsAndPrioritize(
+		String rootGoalId, Quest rootQuest, java.util.List<Goal> prereqTemplates)
+	{
+		java.util.Set<Quest> visited = new java.util.HashSet<>();
+		if (rootQuest != null)
+		{
+			visited.add(rootQuest);
+		}
+
+		// Snapshot goal IDs present before the BFS so the hybrid skill helper only
+		// reuses pre-existing goals, not ones created during this same gesture.
+		java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			preExistingGoalIds.add(g.getId());
+		}
+
+		java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
+		gestureGoalIds.add(rootGoalId);
+
+		seedPrereqsInto(rootGoalId, rootQuest, prereqTemplates, visited, preExistingGoalIds, gestureGoalIds);
+
+		// Assign priorities so the topo sort renders correctly:
+		// 1. Zero-dependency QUEST goals at the very top (leaf quests — do first)
+		// 2. Everything else in reversed creation order (deepest leaves near top,
+		//    root at bottom)
+		java.util.Set<String> gestureSet = new java.util.HashSet<>(gestureGoalIds);
+		java.util.List<String> zeroDegQuests = new java.util.ArrayList<>();
+		java.util.List<String> others = new java.util.ArrayList<>();
+		for (String id : gestureGoalIds)
+		{
+			Goal g = api.findGoal(id);
+			if (g != null && g.getType() == GoalType.QUEST && g.getQuestName() != null)
+			{
+				boolean isKnownLeaf = false;
+				try
+				{
+					Quest q = Quest.valueOf(g.getQuestName());
+					com.goalplanner.data.QuestRequirements.Reqs reqs =
+						com.goalplanner.data.QuestRequirements.lookup(q);
+					if (reqs != null && !com.goalplanner.data.QuestRequirements.hasRequirements(q))
+					{
+						isKnownLeaf = true;
+					}
+				}
+				catch (IllegalArgumentException ignored) {}
+
+				if (isKnownLeaf)
+				{
+					boolean hasInGestureReqs = false;
+					if (g.getRequiredGoalIds() != null)
+					{
+						for (String reqId : g.getRequiredGoalIds())
+						{
+							if (gestureSet.contains(reqId))
+							{
+								hasInGestureReqs = true;
+								break;
+							}
+						}
+					}
+					if (!hasInGestureReqs)
+					{
+						zeroDegQuests.add(id);
+						continue;
+					}
+				}
+			}
+			others.add(id);
+		}
+		java.util.Collections.reverse(others);
+
+		int p = 0;
+		for (String id : zeroDegQuests)
+		{
+			Goal g = api.findGoal(id);
+			if (g != null) { g.setPriority(p++); api.goalStore.updateGoal(g); }
+		}
+		for (String id : others)
+		{
+			Goal g = api.findGoal(id);
+			if (g != null) { g.setPriority(p++); api.goalStore.updateGoal(g); }
+		}
+
+		// Promote leaf quests (zero active requirements) to the top so the user
+		// sees "do first" goals at the top of the list.
+		api.reorderingService.promoteLeafGoalsToTop();
+		// Select all goals created by the gesture (one onGoalsChanged at endCompound).
+		api.selectedGoalIds.addAll(gestureGoalIds);
+		return gestureGoalIds;
 	}
 
 	/**
@@ -604,20 +618,8 @@ class GoalCreationService
 			+ com.goalplanner.data.QuestRequirements.displayName(quest));
 		try
 		{
-			java.util.Set<Quest> visited = new java.util.HashSet<>();
-			visited.add(quest);
-			java.util.Set<String> preExistingGoalIds = new java.util.HashSet<>();
-			for (Goal x : api.goalStore.getGoals())
-			{
-				preExistingGoalIds.add(x.getId());
-			}
-			java.util.List<String> gestureGoalIds = new java.util.ArrayList<>();
-			gestureGoalIds.add(goalId);
-
-			seedPrereqsInto(goalId, quest, resolved.templates, visited, preExistingGoalIds, gestureGoalIds);
-
-			api.reorderingService.promoteLeafGoalsToTop();
-			api.selectedGoalIds.addAll(gestureGoalIds);
+			java.util.List<String> gestureGoalIds =
+				seedPrereqsAndPrioritize(goalId, quest, resolved.templates);
 			return gestureGoalIds.size() - 1;
 		}
 		finally
