@@ -1356,23 +1356,20 @@ public class GoalPlannerPlugin extends Plugin
 					continue;
 				}
 
-				// API auto-resolves and seeds prereqs on the client thread.
-				client.createMenuEntry(1)
+				// One "Add Goal" submenu: Default (auto-resolves + seeds prereqs into
+				// the default list) followed by each user section (bare add — use the
+				// panel's "Add requirements to this section" to seed into a section).
+				// Replaces the old separate "Add Goal" + "Add to Section" entries.
+				net.runelite.api.Menu questAddSub = client.createMenuEntry(1)
 					.setOption("Add Goal")
 					.setTarget(menuTarget)
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> skillSyncGate.runWhenSynced(() ->
-					{
-						String createdId = goalTrackerApi.addQuestGoal(quest);
-						if (createdId == null)
-						{
-							log.warn("addQuestGoal returned null for {}", quest);
-						}
-					}));
-				addSectionMenuEntries("Add to Section", menuTarget,
+					.createSubMenu();
+				addGoalSectionItems(questAddSub,
 					Goal.builder().type(GoalType.QUEST).questName(quest.name()).build(),
 					quest.getName(),
-					() -> goalTrackerApi.addQuestGoalWithPrereqs(quest, java.util.Collections.emptyList()));
+					/*defaultAdd=*/() -> goalTrackerApi.addQuestGoal(quest),
+					/*sectionAdd=*/() -> goalTrackerApi.addQuestGoalWithPrereqs(quest, java.util.Collections.emptyList()));
 				break;
 			}
 
@@ -1827,6 +1824,30 @@ public class GoalPlannerPlugin extends Plugin
 	 * No user sections → nothing added. One → a single direct entry. Several →
 	 * an "Add to Section ▸ &lt;section&gt;" submenu.
 	 */
+	/**
+	 * Populate an "Add Goal" submenu with a <b>Default</b> entry followed by one
+	 * entry per user section. Default runs {@code defaultAdd} (e.g. the
+	 * seed-prereqs add for quests); each section runs {@code sectionAdd} then moves
+	 * the new goal into that section (via {@link #addToSection}, which dedups).
+	 */
+	private void addGoalSectionItems(net.runelite.api.Menu sub, Goal probe, String label,
+		java.util.function.Supplier<String> defaultAdd,
+		java.util.function.Supplier<String> sectionAdd)
+	{
+		sub.createMenuEntry(0)
+			.setOption("Default")
+			.setType(MenuAction.RUNELITE)
+			.onClick(e -> skillSyncGate.runWhenSynced(defaultAdd::get));
+		for (com.goalplanner.api.SectionView section : userSections())
+		{
+			final String sectionId = section.id;
+			sub.createMenuEntry(0)
+				.setOption(section.name)
+				.setType(MenuAction.RUNELITE)
+				.onClick(e -> skillSyncGate.runWhenSynced(() -> addToSection(sectionId, probe, label, sectionAdd)));
+		}
+	}
+
 	private void addSectionMenuEntries(String baseOption, String menuTarget, Goal probe, String label,
 		java.util.function.Supplier<String> bareAdd)
 	{
