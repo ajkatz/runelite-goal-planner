@@ -884,6 +884,21 @@ class GoalCreationService
 				seedGoalId = result.goalId;
 			}
 
+			// Place newly-created seeds in the parent's section so they follow that
+			// section's rules (e.g. keep-inline) instead of stranding in the default
+			// Incomplete section — which ALWAYS archives completed goals to Completed,
+			// ignoring the section's keep-inline override. Only QUEST seeds were moved
+			// above; SKILL/ACCOUNT/BOSS/ITEM create in the default section. Reused
+			// pre-existing goals stay where the user already has them.
+			if (sectionId != null && !preExistingGoalIds.contains(seedGoalId))
+			{
+				Goal placed = api.findGoal(seedGoalId);
+				if (placed != null && !sectionId.equals(placed.getSectionId()))
+				{
+					api.moveGoalToSection(seedGoalId, sectionId);
+				}
+			}
+
 			// Skip completed goals — they're already done, no need to
 			// link them as requirements in the tree.
 			Goal seedGoal = api.findGoal(seedGoalId);

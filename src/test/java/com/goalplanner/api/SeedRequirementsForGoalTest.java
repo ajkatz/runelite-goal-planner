@@ -62,19 +62,22 @@ class SeedRequirementsForGoalTest
 	@DisplayName("'All' seeds the requirement tree into the quest goal's own section and links it")
 	void allSeedsRequirementTreeIntoSection()
 	{
+		// Put the quest in a USER section (not the default Incomplete) so the test
+		// actually catches seeds that strand in the default section.
+		String sectionId = api.createSection("Guide");
 		String questId = api.addQuestGoal(Quest.DRAGON_SLAYER_II);
 		assertNotNull(questId);
-		Goal quest = store.findGoalById(questId);
-		String sectionId = quest.getSectionId();
+		api.moveGoalToSection(questId, sectionId);
 
 		int seeded = api.seedRequirementsForGoal(questId, true);
 		assertTrue(seeded > 0, "expected DS2 to seed at least one prerequisite");
 
 		// The quest goal is now linked to in-section prerequisites.
-		quest = store.findGoalById(questId);
+		Goal quest = store.findGoalById(questId);
 		assertFalse(quest.getRequiredGoalIds().isEmpty(), "quest goal should gain requirement edges");
 
-		// Every seeded goal lands in the quest's own section (parent's section).
+		// EVERY seeded goal (skill/quest/account/…) lands in the quest's user
+		// section, not the default Incomplete section.
 		for (Goal g : store.getGoals())
 		{
 			assertEquals(sectionId, g.getSectionId(),
