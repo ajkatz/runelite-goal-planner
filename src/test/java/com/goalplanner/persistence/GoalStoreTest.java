@@ -406,6 +406,33 @@ class GoalStoreTest
 	}
 
 	@Test
+	@DisplayName("a nested section keeps completed inline; an explicit auto-archive override still wins")
+	void nestedSectionKeepsCompletedInline()
+	{
+		Section s = store.createUserSection("Guide");
+		store.setAutoArchiveDefault(true);
+
+		// Not nested → follows the global archive default.
+		assertTrue(store.effectiveAutoArchive(s));
+
+		// Nested via per-section override → keep inline, despite global archive on.
+		store.findSection(s.getId()).setNestedOverride(Boolean.TRUE);
+		assertFalse(store.effectiveAutoArchive(s));
+
+		// An explicit auto-archive override wins over nested.
+		store.setSectionAutoArchiveOverride(s.getId(), true);
+		assertTrue(store.effectiveAutoArchive(s));
+
+		// Clear it; nested via the GLOBAL indent default also keeps inline.
+		store.setSectionAutoArchiveOverride(s.getId(), null);
+		store.findSection(s.getId()).setNestedOverride(null);
+		store.setIndentDependenciesDefault(true);
+		assertFalse(store.effectiveAutoArchive(s));
+		store.setIndentDependenciesDefault(false);
+		assertTrue(store.effectiveAutoArchive(s));
+	}
+
+	@Test
 	@DisplayName("auto-archive round-trips: an archived goal returns to its section when flipped back to keep-inline")
 	void autoArchiveRoundTripsBackToSection()
 	{

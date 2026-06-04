@@ -178,6 +178,7 @@ public class GoalPlannerPlugin extends Plugin
 
 		goalStore.load();
 		goalStore.setAutoArchiveDefault(config.autoArchiveCompleted());
+		goalStore.setIndentDependenciesDefault(config.showDependenciesIndented());
 		seedCanonicalSystemTags();
 		wikiCaRepository.loadAsync();
 		// Migrate any pre-existing CA goals (from before the bit-packed varp tracking
@@ -615,10 +616,14 @@ public class GoalPlannerPlugin extends Plugin
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
 			}
 		}
-		// Global "indent dependencies" toggled — just rebuild so every section
-		// re-renders flat or nested to match.
+		// Global "indent dependencies" toggled — sync the flag (nested sections
+		// keep completed inline), reconcile so completed goals re-sort between
+		// inline/Completed, and rebuild so every section re-renders to match.
 		if ("showDependenciesIndented".equals(event.getKey()))
 		{
+			goalStore.setIndentDependenciesDefault(config.showDependenciesIndented());
+			goalStore.reconcileCompletedSection();
+			goalStore.save();
 			if (panel != null)
 			{
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);

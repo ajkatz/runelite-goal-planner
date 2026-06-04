@@ -106,6 +106,9 @@ public class GoalStore
 	 * inline. A section's {@code autoArchiveOverride} takes precedence.
 	 */
 	private boolean autoArchiveDefault = true;
+	/** Global "indent dependencies by default" (synced from config). Nested
+	 *  sections keep completed goals inline rather than archiving them. */
+	private boolean indentDependenciesDefault = false;
 	/** Granular dirty tracking for suspend/resume. */
 	private final java.util.Set<String> dirtyGoalIds = new java.util.HashSet<>();
 	private final java.util.Set<String> dirtyTagIds = new java.util.HashSet<>();
@@ -2040,17 +2043,40 @@ public class GoalStore
 		this.autoArchiveDefault = value;
 	}
 
+	/** Set the global "indent dependencies by default" flag (plugin syncs from config). */
+	public void setIndentDependenciesDefault(boolean value)
+	{
+		this.indentDependenciesDefault = value;
+	}
+
 	/**
-	 * Effective archiving decision for a user section: its per-section override
-	 * if set, else the global default. Built-ins never archive (they ARE the
-	 * default), so this returns false for them.
+	 * Whether a section renders nested ("guide" view): its per-section override
+	 * if set, else the global default. Built-ins can nest too.
+	 */
+	public boolean isSectionNested(Section section)
+	{
+		if (section == null) return false;
+		return section.getNestedOverride() != null
+			? section.getNestedOverride()
+			: indentDependenciesDefault;
+	}
+
+	/**
+	 * Effective archiving decision for a user section. Precedence:
+	 * <ol>
+	 *   <li>built-ins never archive (they ARE the default) → false;</li>
+	 *   <li>an explicit per-section auto-archive override wins;</li>
+	 *   <li>a nested ("guide") section keeps completed goals inline → false, so
+	 *       they sink to the bottom as cards instead of graduating to Completed;</li>
+	 *   <li>otherwise the global default.</li>
+	 * </ol>
 	 */
 	public boolean effectiveAutoArchive(Section section)
 	{
 		if (section == null || section.isBuiltIn()) return false;
-		return section.getAutoArchiveOverride() != null
-			? section.getAutoArchiveOverride()
-			: autoArchiveDefault;
+		if (section.getAutoArchiveOverride() != null) return section.getAutoArchiveOverride();
+		if (isSectionNested(section)) return false;
+		return autoArchiveDefault;
 	}
 
 	/**
