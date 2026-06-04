@@ -61,15 +61,6 @@ tasks.register('run', JavaExec) {
 	args "--developer-mode", "--debug"
 }
 
-// Standalone UI prototype — dependency connector rail (not shipped).
-tasks.register('rail', JavaExec) {
-	group = 'application'
-	description = 'Run the dependency-rail UI prototype'
-	classpath = sourceSets.test.runtimeClasspath
-	mainClass = 'com.goalplanner.prototype.DependencyRailPrototype'
-	jvmArgs "--add-opens=java.desktop/com.apple.eawt=ALL-UNNAMED"
-}
-
 tasks.register('shadowJar', Jar) {
 	dependsOn configurations.testRuntimeClasspath
 	manifest {
