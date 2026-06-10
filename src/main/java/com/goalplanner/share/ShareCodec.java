@@ -29,8 +29,12 @@ import java.util.zip.GZIPOutputStream;
  */
 public final class ShareCodec
 {
-	/** Magic marker + schema version. Decode rejects anything without it. */
-	static final String PREFIX = "GPSHARE" + ShareBundle.SCHEMA_VERSION + ":";
+	/** Magic marker + schema version (current, multi-section). */
+	static final String PREFIX_V2 = "GPSHARE" + ShareBundle.SCHEMA_VERSION + ":";
+
+	/** Legacy single-section marker — still decoded, and still emitted for
+	 *  plain single-section bundles so older plugin builds can import them. */
+	static final String PREFIX = "GPSHARE" + ShareBundle.SCHEMA_VERSION_V1 + ":";
 
 	private final Gson gson;
 
@@ -39,16 +43,52 @@ public final class ShareCodec
 		this.gson = gson;
 	}
 
-	/** Encode a bundle to a prefixed, gzipped, URL-safe-Base64 string. */
+	/**
+	 * Encode a bundle to a prefixed, gzipped, URL-safe-Base64 string. The wire
+	 * version is chosen from the content: multi-section or default-target
+	 * bundles emit {@code GPSHARE2:}; plain single-section bundles down-convert
+	 * to the legacy {@code GPSHARE1:} shape so older plugin builds import them.
+	 */
 	public String encode(ShareBundle bundle)
 	{
 		if (bundle == null)
 		{
 			throw new ShareFormatException("nothing to share");
 		}
-		byte[] json = gson.toJson(bundle).getBytes(StandardCharsets.UTF_8);
+		ShareBundle wire = normalizeForWire(bundle);
+		String prefix = wire.getV() == ShareBundle.SCHEMA_VERSION ? PREFIX_V2 : PREFIX;
+		byte[] json = gson.toJson(wire).getBytes(StandardCharsets.UTF_8);
 		byte[] gz = gzip(json);
-		return PREFIX + Base64.getUrlEncoder().withoutPadding().encodeToString(gz);
+		return prefix + Base64.getUrlEncoder().withoutPadding().encodeToString(gz);
+	}
+
+	/**
+	 * Build the version-correct wire copy of {@code bundle}: v2 keeps only
+	 * {@code sections}; v1 keeps only the legacy single-section fields. The
+	 * input bundle is never mutated.
+	 */
+	static ShareBundle normalizeForWire(ShareBundle bundle)
+	{
+		java.util.List<SectionShareDto> secs = bundle.effectiveSections();
+		ShareBundle wire = new ShareBundle();
+		wire.setSharedBy(bundle.getSharedBy());
+		if (bundle.needsV2())
+		{
+			wire.setV(ShareBundle.SCHEMA_VERSION);
+			wire.setKind(null);
+			wire.setSectionName(null);
+			wire.setGoals(null);
+			wire.setSections(secs);
+			return wire;
+		}
+		SectionShareDto only = secs.get(0);
+		wire.setV(ShareBundle.SCHEMA_VERSION_V1);
+		wire.setKind(only.getName() != null ? ShareBundle.Kind.SECTION : ShareBundle.Kind.GOALS);
+		wire.setSectionName(only.getName());
+		wire.setSectionColorRgb(only.getColorRgb());
+		wire.setGoals(only.getGoals());
+		wire.setSections(null);
+		return wire;
 	}
 
 	/**
@@ -66,13 +106,19 @@ public final class ShareCodec
 		// The code may be embedded in surrounding instruction text — e.g. a
 		// "get the plugin to import this: <code>" chat/Discord line — so locate
 		// the marker and read the base64url token that follows it, rather than
-		// requiring the code to sit alone.
-		int marker = text.indexOf(PREFIX);
+		// requiring the code to sit alone. v2 is checked first; both decode.
+		String prefix = PREFIX_V2;
+		int marker = text.indexOf(PREFIX_V2);
+		if (marker < 0)
+		{
+			prefix = PREFIX;
+			marker = text.indexOf(PREFIX);
+		}
 		if (marker < 0)
 		{
 			throw new ShareFormatException("unrecognised or wrong-version share code");
 		}
-		int start = marker + PREFIX.length();
+		int start = marker + prefix.length();
 		int end = start;
 		while (end < text.length() && isBase64Url(text.charAt(end)))
 		{
@@ -101,14 +147,34 @@ public final class ShareCodec
 		{
 			throw new ShareFormatException("invalid share payload", e);
 		}
-		if (bundle == null || bundle.getGoals() == null)
+		if (bundle == null)
 		{
 			throw new ShareFormatException("empty share payload");
 		}
-		if (bundle.getV() != ShareBundle.SCHEMA_VERSION)
+		int expected = prefix.equals(PREFIX_V2)
+			? ShareBundle.SCHEMA_VERSION : ShareBundle.SCHEMA_VERSION_V1;
+		if (bundle.getV() != expected)
 		{
 			throw new ShareFormatException(
 				"share code is from an incompatible plugin version (v" + bundle.getV() + ")");
+		}
+		if (expected == ShareBundle.SCHEMA_VERSION)
+		{
+			if (bundle.getSections() == null || bundle.getSections().isEmpty())
+			{
+				throw new ShareFormatException("empty share payload");
+			}
+			for (SectionShareDto s : bundle.getSections())
+			{
+				if (s == null || s.getGoals() == null)
+				{
+					throw new ShareFormatException("invalid share payload");
+				}
+			}
+		}
+		else if (bundle.getGoals() == null)
+		{
+			throw new ShareFormatException("empty share payload");
 		}
 		return bundle;
 	}

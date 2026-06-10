@@ -1348,6 +1348,9 @@ class GoalContextMenuBuilder
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copySectionShareCode(shareSectionId));
 			shareMenu.add(copyCode);
+			JMenuItem copyAll = new JMenuItem("Copy share code (all sections)");
+			copyAll.addActionListener(e -> panel.copyAllSectionsShareCode());
+			shareMenu.add(copyAll);
 			if (panel.isPartyShareAvailable())
 			{
 				JMenuItem toParty = new JMenuItem("Share to party");

@@ -425,6 +425,16 @@ public class GoalPanel extends PluginPanel
 		ShareDialogs.copySection(this, api, shareCodec, playerNameSupplier, sectionId);
 	}
 
+	/** Copy one share code carrying every user section (v2 multi-section). */
+	public void copyAllSectionsShareCode()
+	{
+		if (!isShareAvailable())
+		{
+			return;
+		}
+		ShareDialogs.copyAllSections(this, api, shareCodec, playerNameSupplier);
+	}
+
 	/** Share a whole section to the current RuneLite party. */
 	public void shareSectionToParty(String sectionId)
 	{

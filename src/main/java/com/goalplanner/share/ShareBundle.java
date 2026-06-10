@@ -19,7 +19,11 @@ import lombok.Data;
 public class ShareBundle
 {
 	/** Current share-format schema version. Bump on any breaking change. */
-	public static final int SCHEMA_VERSION = 1;
+	public static final int SCHEMA_VERSION = 2;
+
+	/** Legacy single-section schema version (still decoded and, for plain
+	 *  single-section bundles, still emitted — older plugin builds import it). */
+	public static final int SCHEMA_VERSION_V1 = 1;
 
 	/** What the bundle represents. */
 	public enum Kind
@@ -30,7 +34,10 @@ public class ShareBundle
 		GOALS
 	}
 
-	private int v = SCHEMA_VERSION;
+	/** Wire schema version. {@link ShareCodec#encode} sets this from the bundle
+	 *  shape (see {@code normalizeForWire}); the default matches a legacy-built
+	 *  single-section bundle so hand-constructed bundles stay v1-comparable. */
+	private int v = SCHEMA_VERSION_V1;
 	private Kind kind;
 
 	/** Display name (RSN) of the sharer, shown in the import prompt. */
@@ -43,6 +50,47 @@ public class ShareBundle
 	private int sectionColorRgb = -1;
 
 	/** The shared goal definitions. Relations between them are encoded as
-	 *  bundle-local {@code ref} indices on each {@link GoalShareDto}. */
+	 *  bundle-local {@code ref} indices on each {@link GoalShareDto}.
+	 *  v1 payloads only; {@code null} on the v2 wire (see {@link #sections}). */
 	private List<GoalShareDto> goals = new ArrayList<>();
+
+	/**
+	 * v2 payloads: one entry per shared section ({@code null} on the v1 wire).
+	 * Consumers should read {@link #effectiveSections()} instead of branching
+	 * on the schema version.
+	 */
+	private List<SectionShareDto> sections;
+
+	/**
+	 * Version-neutral view: the v2 section list, or the legacy single-section
+	 * fields wrapped as one {@link SectionShareDto}. Never null/empty (a legacy
+	 * bundle with no goals yields one section with an empty goal list).
+	 */
+	public List<SectionShareDto> effectiveSections()
+	{
+		if (sections != null && !sections.isEmpty())
+		{
+			return sections;
+		}
+		SectionShareDto legacy = new SectionShareDto();
+		legacy.setName(kind == Kind.SECTION ? sectionName : null);
+		legacy.setColorRgb(sectionColorRgb);
+		legacy.setGoals(goals != null ? goals : new ArrayList<>());
+		return java.util.Collections.singletonList(legacy);
+	}
+
+	/**
+	 * True when this bundle needs the v2 wire format: more than one section, or
+	 * any section targeting the recipient's default plan. Plain single-section
+	 * bundles stay on the v1 wire so older plugin builds keep importing them.
+	 */
+	public boolean needsV2()
+	{
+		List<SectionShareDto> secs = effectiveSections();
+		if (secs.size() > 1)
+		{
+			return true;
+		}
+		return secs.get(0).isTargetDefault();
+	}
 }

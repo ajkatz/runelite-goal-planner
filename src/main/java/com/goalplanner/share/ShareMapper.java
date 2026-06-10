@@ -53,6 +53,45 @@ public final class ShareMapper
 		Function<String, Tag> tagLookup,
 		String sharedBy)
 	{
+		ShareBundle bundle = new ShareBundle();
+		bundle.setKind(kind);
+		bundle.setSharedBy(sharedBy);
+		bundle.setSectionName(sectionName);
+		bundle.setSectionColorRgb(sectionColorRgb);
+		bundle.setGoals(toDtos(goals, tagLookup));
+		return bundle;
+	}
+
+	/**
+	 * Build one v2 section entry. Relation refs are scoped to this section's
+	 * goal list (cross-section edges are dropped by {@code remap}).
+	 */
+	public static SectionShareDto toSectionDto(
+		String name,
+		int colorRgb,
+		boolean targetDefault,
+		List<Goal> goals,
+		Function<String, Tag> tagLookup)
+	{
+		SectionShareDto dto = new SectionShareDto();
+		dto.setName(name);
+		dto.setColorRgb(colorRgb);
+		dto.setTargetDefault(targetDefault);
+		dto.setGoals(toDtos(goals, tagLookup));
+		return dto;
+	}
+
+	/** Build a multi-section (v2) bundle from prepared section entries. */
+	public static ShareBundle toMultiBundle(List<SectionShareDto> sections, String sharedBy)
+	{
+		ShareBundle bundle = new ShareBundle();
+		bundle.setSharedBy(sharedBy);
+		bundle.setSections(sections != null ? sections : new ArrayList<>());
+		return bundle;
+	}
+
+	private static List<GoalShareDto> toDtos(List<Goal> goals, Function<String, Tag> tagLookup)
+	{
 		List<Goal> source = goals != null ? goals : List.of();
 
 		// goal id → bundle-local ref index, for rewiring relations.
@@ -100,13 +139,7 @@ public final class ShareMapper
 			dtos.add(dto);
 		}
 
-		ShareBundle bundle = new ShareBundle();
-		bundle.setKind(kind);
-		bundle.setSharedBy(sharedBy);
-		bundle.setSectionName(sectionName);
-		bundle.setSectionColorRgb(sectionColorRgb);
-		bundle.setGoals(dtos);
-		return bundle;
+		return dtos;
 	}
 
 	private static List<TagShareDto> resolveTags(List<String> tagIds, Function<String, Tag> lookup)

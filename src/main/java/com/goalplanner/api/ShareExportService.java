@@ -2,6 +2,7 @@ package com.goalplanner.api;
 
 import com.goalplanner.model.Goal;
 import com.goalplanner.model.Section;
+import com.goalplanner.share.SectionShareDto;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.ShareMapper;
 import java.util.ArrayList;
@@ -43,6 +44,42 @@ class ShareExportService
 		return ShareMapper.toBundle(
 			ShareBundle.Kind.SECTION, section.getName(), section.getColorRgb(),
 			goals, api.goalStore::findTag, sharedBy);
+	}
+
+	/**
+	 * Multi-section (v2) bundle of EVERY user section that has goals, in
+	 * display order. Built-ins (the default plan) are not included. Returns
+	 * null when there is no user section with goals.
+	 */
+	ShareBundle exportAllUserSections(String sharedBy)
+	{
+		List<SectionShareDto> sections = new ArrayList<>();
+		for (Section section : api.goalStore.getSections())
+		{
+			if (section == null || section.isBuiltIn())
+			{
+				continue;
+			}
+			List<Goal> goals = new ArrayList<>();
+			for (Goal g : api.goalStore.getGoals())
+			{
+				if (g != null && section.getId().equals(g.getSectionId()))
+				{
+					goals.add(g);
+				}
+			}
+			if (goals.isEmpty())
+			{
+				continue;
+			}
+			sections.add(ShareMapper.toSectionDto(
+				section.getName(), section.getColorRgb(), false, goals, api.goalStore::findTag));
+		}
+		if (sections.isEmpty())
+		{
+			return null;
+		}
+		return ShareMapper.toMultiBundle(sections, sharedBy);
 	}
 
 	/** Bundle of the given goals (in store order), or null if none resolve. */

@@ -145,6 +145,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 
 	/** Build a share bundle for a whole section (plugin-internal). */
 	public com.goalplanner.share.ShareBundle exportSectionBundle(String sectionId, String sharedBy) { return shareExportService.exportSection(sectionId, sharedBy); }
+	public com.goalplanner.share.ShareBundle exportAllSectionsBundle(String sharedBy) { return shareExportService.exportAllUserSections(sharedBy); }
 
 	/** Build a share bundle for the given goal ids (plugin-internal). */
 	public com.goalplanner.share.ShareBundle exportGoalsBundle(java.util.List<String> goalIds, String sharedBy) { return shareExportService.exportGoals(goalIds, sharedBy); }

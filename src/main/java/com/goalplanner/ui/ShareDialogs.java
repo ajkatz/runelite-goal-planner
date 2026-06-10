@@ -59,9 +59,41 @@ public final class ShareDialogs
 		{
 			onDone.run();
 		}
-		int n = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
-		JOptionPane.showMessageDialog(parent, "Imported " + n + " goal(s).", "Import",
+		int n = 0;
+		int sections = 0;
+		for (com.goalplanner.share.SectionShareDto sec : bundle.effectiveSections())
+		{
+			if (sec.getGoals() != null && !sec.getGoals().isEmpty())
+			{
+				sections++;
+				n += sec.getGoals().size();
+			}
+		}
+		String where = sections > 1 ? " across " + sections + " sections" : "";
+		JOptionPane.showMessageDialog(parent, "Imported " + n + " goal(s)" + where + ".", "Import",
 			JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	/** Copy a paste-ready share line carrying EVERY user section (one v2 code). */
+	public static void copyAllSections(Component parent, GoalPlannerApiImpl api,
+		ShareCodec codec, Supplier<String> playerName)
+	{
+		ShareBundle bundle = api.exportAllSectionsBundle(safeName(playerName));
+		if (bundle == null)
+		{
+			JOptionPane.showMessageDialog(parent, "No user sections with goals to share.",
+				"Share", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		String line = ShareText.invite(bundle, codec.encode(bundle));
+		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(line), null);
+		int sections = bundle.effectiveSections().size();
+		JOptionPane.showMessageDialog(parent,
+			"Copied a share code for " + sections + " section" + (sections == 1 ? "" : "s")
+				+ " to your clipboard.\n"
+				+ "Paste it in Discord or chat — anyone with the plugin can import it.\n"
+				+ "(Multi-section codes need a recent plugin version to import.)",
+			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	/** Copy a paste-ready share line for a section to the clipboard. */

@@ -7,6 +7,7 @@ import com.goalplanner.model.Tag;
 import com.goalplanner.model.TagCategory;
 import com.goalplanner.persistence.GoalStore;
 import com.goalplanner.share.GoalShareDto;
+import com.goalplanner.share.SectionShareDto;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.TagShareDto;
 import java.util.ArrayList;
@@ -54,107 +55,165 @@ class ShareImportService
 	 */
 	String importBundle(ShareBundle bundle)
 	{
-		if (bundle == null || bundle.getGoals() == null || bundle.getGoals().isEmpty())
+		if (bundle == null)
 		{
 			return null;
 		}
+		final List<SectionShareDto> sections = new ArrayList<>();
+		for (SectionShareDto s : bundle.effectiveSections())
+		{
+			if (s != null && s.getGoals() != null && !s.getGoals().isEmpty())
+			{
+				sections.add(s);
+			}
+		}
+		if (sections.isEmpty())
+		{
+			return null;
+		}
+		final String sharedBy = bundle.getSharedBy();
+		final String description = sections.size() == 1
+			? "Import shared goals: " + displayName(sections.get(0))
+			: "Import shared goals: " + sections.size() + " sections";
 
-		final String sectionName = importSectionName(bundle);
-		final List<GoalShareDto> dtos = bundle.getGoals();
-
-		// Wrap the whole import as ONE undoable command: apply creates the
-		// section, goals and relations; revert removes them. A single undo
-		// reverses the entire import, and redo replays it (creating fresh ids).
-		// Created ids are tracked across apply/revert so redo works too.
+		// Wrap the whole import as ONE undoable command across every section.
 		// Imported goals always start INCOMPLETE — buildGoal copies only
 		// definition fields, never the sharer's progress/completion.
 		final List<String> createdGoalIds = new ArrayList<>();
-		final String[] createdSectionId = {null};   // set only when we create a section (for revert)
-		final String[] landedSectionId = {null};     // section the goals ended up in (return value)
+		final List<String> createdSectionIds = new ArrayList<>();
+		// Relations added during import, tracked explicitly: default-target
+		// sections REUSE existing goals, and a relation added between two reused
+		// goals would otherwise survive an undo.
+		final List<String[]> addedRequires = new ArrayList<>();
+		final List<String[]> addedOrRequires = new ArrayList<>();
+		final String[] landedSectionId = {null};
 
 		api.executeCommand(new com.goalplanner.command.Command()
 		{
 			@Override
 			public boolean apply()
 			{
-				// Every import lands in its own NEW user section, forced to
-				// KEEP COMPLETED INLINE (override the global auto-archive default)
-				// so the recipient sees the shared set as a checklist against
-				// their account: requirements they already meet show ticked off,
-				// the rest show progress. Loose selections get their own section
-				// too rather than scattering into Incomplete.
-				Section section = api.goalStore.createUserSection(sectionName);
-				if (section == null)
-				{
-					log.warn("importBundle: createUserSection returned null for '{}'", sectionName);
-					return false;
-				}
-				// Carry the shared section's colour override (matches goal + tag
-				// colours, which are also shared). -1 = no override.
-				if (bundle.getSectionColorRgb() >= 0)
-				{
-					section.setColorRgb(bundle.getSectionColorRgb());
-				}
-				api.goalStore.setSectionAutoArchiveOverride(section.getId(), false);
-				createdSectionId[0] = section.getId();
-				String targetSectionId = section.getId();
-				landedSectionId[0] = targetSectionId;
 				createdGoalIds.clear();
-				Map<Integer, String> refToId = new HashMap<>();
+				createdSectionIds.clear();
+				addedRequires.clear();
+				addedOrRequires.clear();
+				landedSectionId[0] = null;
+				boolean importedAnything = false;
 
-				// First pass: create goals, skipping any with an unknown type.
-				for (GoalShareDto dto : dtos)
+				for (SectionShareDto shared : sections)
 				{
-					GoalType type = parseType(dto.getType());
-					if (type == null)
+					final boolean reuseEquivalents = shared.isTargetDefault();
+					final String targetSectionId;
+					if (reuseEquivalents)
 					{
-						log.warn("importBundle: skipping goal with unknown type '{}'", dto.getType());
-						continue;
+						// Default plan: goals land in the Incomplete built-in and
+						// existing equivalents are reused — the same dedup the
+						// in-game Add Goal flow applies.
+						targetSectionId = api.goalStore.getIncompleteSection().getId();
 					}
-					Goal goal = buildGoal(dto, type, targetSectionId);
-					api.goalStore.addGoal(goal);
-					createdGoalIds.add(goal.getId());
-					refToId.put(dto.getRef(), goal.getId());
-				}
-
-				// Second pass: rewire relations now that every goal has a fresh id.
-				for (GoalShareDto dto : dtos)
-				{
-					String fromId = refToId.get(dto.getRef());
-					if (fromId == null)
+					else
 					{
-						continue;
-					}
-					for (Integer ref : dto.getRequires())
-					{
-						String toId = refToId.get(ref);
-						if (toId != null)
+						// A named import lands in its own NEW user section, forced
+						// to KEEP COMPLETED INLINE so the recipient sees the shared
+						// set as a checklist against their account.
+						Section section = api.goalStore.createUserSection(
+							importSectionName(shared, sharedBy));
+						if (section == null)
 						{
-							api.goalStore.addRequirement(fromId, toId);
+							log.warn("importBundle: createUserSection failed for '{}' — skipping section",
+								shared.getName());
+							continue;
+						}
+						if (shared.getColorRgb() >= 0)
+						{
+							section.setColorRgb(shared.getColorRgb());
+						}
+						api.goalStore.setSectionAutoArchiveOverride(section.getId(), false);
+						createdSectionIds.add(section.getId());
+						targetSectionId = section.getId();
+					}
+					if (landedSectionId[0] == null)
+					{
+						landedSectionId[0] = targetSectionId;
+					}
+
+					// First pass: create (or, in default mode, reuse) goals.
+					// Relation refs are SECTION-scoped in v2.
+					Map<Integer, String> refToId = new HashMap<>();
+					for (GoalShareDto dto : shared.getGoals())
+					{
+						GoalType type = parseType(dto.getType());
+						if (type == null)
+						{
+							log.warn("importBundle: skipping goal with unknown type '{}'", dto.getType());
+							continue;
+						}
+						Goal goal = buildGoal(dto, type, reuseEquivalents ? null : targetSectionId);
+						if (reuseEquivalents)
+						{
+							Goal existing = api.goalStore.findEquivalentInNamespace(targetSectionId, goal);
+							if (existing != null)
+							{
+								refToId.put(dto.getRef(), existing.getId());
+								importedAnything = true;
+								continue;
+							}
+						}
+						api.goalStore.addGoal(goal);   // null sectionId → Incomplete built-in
+						createdGoalIds.add(goal.getId());
+						refToId.put(dto.getRef(), goal.getId());
+						importedAnything = true;
+					}
+
+					// Second pass: rewire relations now that every ref has an id.
+					for (GoalShareDto dto : shared.getGoals())
+					{
+						String fromId = refToId.get(dto.getRef());
+						if (fromId == null)
+						{
+							continue;
+						}
+						for (Integer ref : dto.getRequires())
+						{
+							String toId = refToId.get(ref);
+							if (toId != null && api.goalStore.addRequirement(fromId, toId))
+							{
+								addedRequires.add(new String[]{fromId, toId});
+							}
+						}
+						for (Integer ref : dto.getOrRequires())
+						{
+							String toId = refToId.get(ref);
+							if (toId != null && api.goalStore.addOrRequirement(fromId, toId))
+							{
+								addedOrRequires.add(new String[]{fromId, toId});
+							}
 						}
 					}
-					for (Integer ref : dto.getOrRequires())
-					{
-						String toId = refToId.get(ref);
-						if (toId != null)
-						{
-							api.goalStore.addOrRequirement(fromId, toId);
-						}
-					}
 				}
-				return true;
+				return importedAnything;
 			}
 
 			@Override
 			public boolean revert()
 			{
+				// Relations first — created goals take theirs with them, but a
+				// relation between two REUSED goals must be removed explicitly.
+				for (String[] rel : addedRequires)
+				{
+					api.goalStore.removeRequirement(rel[0], rel[1]);
+				}
+				for (String[] rel : addedOrRequires)
+				{
+					api.goalStore.removeOrRequirement(rel[0], rel[1]);
+				}
 				for (String goalId : createdGoalIds)
 				{
 					api.goalStore.removeGoal(goalId);
 				}
-				if (createdSectionId[0] != null)
+				for (String sectionId : createdSectionIds)
 				{
-					api.goalStore.deleteUserSection(createdSectionId[0]);
+					api.goalStore.deleteUserSection(sectionId);
 				}
 				return true;
 			}
@@ -162,11 +221,20 @@ class ShareImportService
 			@Override
 			public String getDescription()
 			{
-				return "Import shared goals: " + sectionName;
+				return description;
 			}
 		});
 
 		return landedSectionId[0];
+	}
+
+	private static String displayName(SectionShareDto shared)
+	{
+		if (shared.isTargetDefault())
+		{
+			return "Default";
+		}
+		return notBlank(shared.getName()) ? shared.getName().trim() : "Shared goals";
 	}
 
 	private Goal buildGoal(GoalShareDto dto, GoalType type, String sectionId)
@@ -235,13 +303,11 @@ class ShareImportService
 		return existing != null ? existing : api.goalStore.createUserTag(label, category);
 	}
 
-	private String importSectionName(ShareBundle bundle)
+	private String importSectionName(SectionShareDto shared, String sharedBy)
 	{
-		String base = bundle.getKind() == ShareBundle.Kind.SECTION && notBlank(bundle.getSectionName())
-			? bundle.getSectionName().trim()
-			: "Shared goals";
-		String sharedBy = bundle.getSharedBy() != null ? bundle.getSharedBy().trim() : null;
-		String withFrom = notBlank(sharedBy) ? base + " (from " + sharedBy + ")" : base;
+		String base = notBlank(shared.getName()) ? shared.getName().trim() : "Shared goals";
+		String from = sharedBy != null ? sharedBy.trim() : null;
+		String withFrom = notBlank(from) ? base + " (from " + from + ")" : base;
 		// Section names are capped (GoalStore.createUserSection THROWS on longer
 		// ones — which CommandHistory swallows, silently failing the whole import).
 		// If the "(from X)" form doesn't fit, drop the suffix; clamp as a backstop.

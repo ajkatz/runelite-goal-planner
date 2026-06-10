@@ -137,9 +137,22 @@ public class ShareCodecTest
 	@Test
 	public void rejectsAnIncompatibleSchemaVersion()
 	{
+		// encode() normalizes the version from the bundle shape, so a forged
+		// version has to be smuggled in as a hand-built wire payload.
 		ShareBundle bundle = sampleSection();
 		bundle.setV(999);  // payload claims a future schema version
-		String code = codec.encode(bundle);
+		byte[] json = new Gson().toJson(bundle).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+		java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+		try (java.util.zip.GZIPOutputStream gz = new java.util.zip.GZIPOutputStream(out))
+		{
+			gz.write(json);
+		}
+		catch (java.io.IOException e)
+		{
+			throw new AssertionError(e);
+		}
+		String code = "GPSHARE1:" + Base64.getUrlEncoder().withoutPadding()
+			.encodeToString(out.toByteArray());
 		assertRejected(code);
 	}
 

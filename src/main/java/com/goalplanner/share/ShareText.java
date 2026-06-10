@@ -39,13 +39,25 @@ public final class ShareText
 
 	private static String describe(ShareBundle bundle)
 	{
-		int n = bundle != null && bundle.getGoals() != null ? bundle.getGoals().size() : 0;
-		String goals = n == 1 ? "1 goal" : n + " goals";
-		if (bundle != null
-			&& bundle.getKind() == ShareBundle.Kind.SECTION
-			&& notBlank(bundle.getSectionName()))
+		if (bundle == null)
 		{
-			return "\"" + bundle.getSectionName().trim() + "\" (" + goals + ")";
+			return "0 goals";
+		}
+		java.util.List<SectionShareDto> sections = bundle.effectiveSections();
+		int n = 0;
+		for (SectionShareDto s : sections)
+		{
+			n += s.getGoals() != null ? s.getGoals().size() : 0;
+		}
+		String goals = n == 1 ? "1 goal" : n + " goals";
+		if (sections.size() > 1)
+		{
+			return sections.size() + " sections (" + goals + ")";
+		}
+		SectionShareDto only = sections.get(0);
+		if (!only.isTargetDefault() && notBlank(only.getName()))
+		{
+			return "\"" + only.getName().trim() + "\" (" + goals + ")";
 		}
 		return goals;
 	}
