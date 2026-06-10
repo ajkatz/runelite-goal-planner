@@ -108,6 +108,15 @@ already meet show ticked off. Get a share code from the "Copy share code"
 right-click menu, or build one with the `ShareCodec` / `ShareBundle` classes in
 `com.goalplanner.share`.
 
+Two wire versions exist. `GPSHARE1:` carries one section (or loose goals) and is
+what single-section shares still emit, so any plugin build imports them.
+`GPSHARE2:` carries **multiple sections in one code** — each imports as its own
+section, in one undo — and a section can be marked `targetDefault`, landing its
+goals in your **Default plan** instead: existing equivalent goals are reused
+(the same dedup as in-game adds), so re-importing never duplicates. "Copy share
+code (all sections)" in the section right-click menu exports every user section
+as one `GPSHARE2:` code.
+
 ## Testing
 
 ```bash
