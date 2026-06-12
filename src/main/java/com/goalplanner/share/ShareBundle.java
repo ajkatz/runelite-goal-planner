@@ -80,6 +80,26 @@ public class ShareBundle
 	}
 
 	/**
+	 * Export-side metadata: requires/orRequires edges between goals in
+	 * DIFFERENT sections of this bundle that the wire format cannot carry
+	 * (relation refs are section-scoped) and were therefore dropped.
+	 * {@code transient} — never serialized; only meaningful on a bundle fresh
+	 * from {@code ShareExportService}, so the export UI can warn the sharer.
+	 */
+	private transient int droppedCrossSectionEdges;
+
+	/** Total goals across all sections, version-neutral (v1 or v2 shape). */
+	public int totalGoalCount()
+	{
+		int n = 0;
+		for (SectionShareDto s : effectiveSections())
+		{
+			n += s.getGoals() != null ? s.getGoals().size() : 0;
+		}
+		return n;
+	}
+
+	/**
 	 * True when this bundle needs the v2 wire format: more than one section, or
 	 * any section targeting the recipient's default plan. Plain single-section
 	 * bundles stay on the v1 wire so older plugin builds keep importing them.

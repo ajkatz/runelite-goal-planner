@@ -1214,7 +1214,7 @@ class GoalCreationService
 		}
 		java.util.List<String> gesture =
 			addDiaryGoalWithPrereqsCore(null, areaDisplayName, tier, resolved, /*keepCompleted=*/false);
-		return gesture.isEmpty() ? null : areaDisplayName;
+		return gesture.isEmpty() ? null : gesture.get(0);
 	}
 
 	/**

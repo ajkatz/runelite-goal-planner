@@ -18,6 +18,65 @@ class NestIndentAssignerTest
 	}
 
 	@Test
+	@DisplayName("resolveVisiblePrereqs follows a chain through a hidden (completed) goal")
+	void resolveVisiblePrereqsBridgesHiddenNode()
+	{
+		// a requires b, b requires c; b is hidden (completed) → a's visible prereq is c.
+		java.util.Map<String, List<String>> edges = new java.util.HashMap<>();
+		edges.put("a", Arrays.asList("b"));
+		edges.put("b", Arrays.asList("c"));
+		edges.put("c", new ArrayList<>());
+		java.util.Set<String> hidden = new java.util.HashSet<>(Arrays.asList("b"));
+
+		List<String> visible = NestIndentAssigner.resolveVisiblePrereqs(
+			edges.get("a"), edges::get, hidden::contains);
+		assertEquals(Arrays.asList("c"), visible);
+	}
+
+	@Test
+	@DisplayName("resolveVisiblePrereqs keeps visible prereqs, drops fully-hidden chains, survives cycles")
+	void resolveVisiblePrereqsMixedAndCycleSafe()
+	{
+		// a requires [b(hidden), d]; b requires c(hidden); c requires b (cycle) → just d.
+		java.util.Map<String, List<String>> edges = new java.util.HashMap<>();
+		edges.put("a", Arrays.asList("b", "d"));
+		edges.put("b", Arrays.asList("c"));
+		edges.put("c", Arrays.asList("b"));
+		edges.put("d", new ArrayList<>());
+		java.util.Set<String> hidden = new java.util.HashSet<>(Arrays.asList("b", "c"));
+
+		List<String> visible = NestIndentAssigner.resolveVisiblePrereqs(
+			edges.get("a"), edges::get, hidden::contains);
+		assertEquals(Arrays.asList("d"), visible);
+	}
+
+	@Test
+	@DisplayName("a chain through a completed goal still nests the dependent under its grandparent")
+	void chainThroughCompletedGoalKeepsNesting()
+	{
+		// Section: c (incomplete), b (completed, requires c), a (requires b).
+		// The completed b is excluded from the outline; expanding a's prereqs
+		// through b must yield c, so a nests under c instead of flattening.
+		java.util.Map<String, List<String>> edges = new java.util.HashMap<>();
+		edges.put("c", new ArrayList<>());
+		edges.put("b", Arrays.asList("c"));
+		edges.put("a", Arrays.asList("b"));
+		java.util.Set<String> completed = new java.util.HashSet<>(Arrays.asList("b"));
+
+		List<NestIndentAssigner.Node> nodes = new ArrayList<>();
+		for (String id : Arrays.asList("c", "a")) // topo order, completed excluded
+		{
+			nodes.add(new NestIndentAssigner.Node(id, NestIndentAssigner.resolveVisiblePrereqs(
+				edges.get(id), edges::get, completed::contains)));
+		}
+		NestIndentAssigner.Result r = NestIndentAssigner.assign(nodes);
+		assertEquals(Arrays.asList("c", "a"), r.ordered);
+		assertEquals(0, r.level.get("c"));
+		assertEquals(1, r.level.get("a"));
+		assertEquals("c", r.primaryParent.get("a"));
+	}
+
+	@Test
 	@DisplayName("a goal with no in-section prerequisites is a root at level 0")
 	void rootsAreLevelZero()
 	{

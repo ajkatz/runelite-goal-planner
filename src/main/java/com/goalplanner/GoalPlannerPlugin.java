@@ -264,7 +264,7 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			return;
 		}
-		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		final int count = bundle.totalGoalCount();
 		clientThread.invokeLater(() ->
 		{
 			try
@@ -312,7 +312,7 @@ public class GoalPlannerPlugin extends Plugin
 		}
 		String sharer = bundle.getSharedBy() != null && !bundle.getSharedBy().isEmpty()
 			? bundle.getSharedBy() : "A party member";
-		int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		int count = bundle.totalGoalCount();
 		pendingShares.addLast(bundle);
 		postGameMessage(new ChatMessageBuilder()
 			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
@@ -351,7 +351,7 @@ public class GoalPlannerPlugin extends Plugin
 			log.debug("Postie import-share: unreadable code", e);
 			return;
 		}
-		final int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		final int count = bundle.totalGoalCount();
 		javax.swing.SwingUtilities.invokeLater(() ->
 		{
 			String sectionId;
@@ -409,7 +409,7 @@ public class GoalPlannerPlugin extends Plugin
 		}
 		goalTrackerApi.importShareBundle(bundle);
 		panel.rebuild();
-		int count = bundle.getGoals() != null ? bundle.getGoals().size() : 0;
+		int count = bundle.totalGoalCount();
 		postGameMessage(new ChatMessageBuilder()
 			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
 			.append(ChatColorType.NORMAL).append("Imported " + count + " shared goal(s).")

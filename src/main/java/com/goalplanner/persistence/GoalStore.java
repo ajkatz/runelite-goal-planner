@@ -1828,9 +1828,13 @@ public class GoalStore
 			{
 				// User section: archive completed goals out to Completed when the
 				// section's effective setting says so, remembering the home section
-				// so they can flip back. Otherwise keep them inline.
+				// so they can flip back. Otherwise keep them inline. A goal whose
+				// home memory already points at its CURRENT section was manually
+				// moved here while complete (see moveGoalToSection) — deliberately
+				// kept inline, so auto-archive leaves it alone.
 				Section sec = findSection(currentSid);
-				if (sec != null && isComplete && effectiveAutoArchive(sec))
+				if (sec != null && isComplete && effectiveAutoArchive(sec)
+					&& !currentSid.equals(archivedFrom))
 				{
 					goal.setArchivedFromSectionId(currentSid);
 					goal.setSectionId(completedId);
@@ -2189,9 +2193,13 @@ public class GoalStore
 		if (findEquivalentInNamespace(sectionId, goal) != null) return false;
 
 		goal.setSectionId(sectionId);
-		// A manual move makes the goal a real member of the destination — drop
-		// any auto-archive home memory so reconcile won't pull it elsewhere.
-		goal.setArchivedFromSectionId(null);
+		// A manual move makes the goal a real member of the destination. For a
+		// completed goal placed in a user section, record THIS section as its
+		// home — reconcile reads home==current as "deliberately kept inline"
+		// and won't auto-archive it back to Completed. Everything else drops
+		// any stale home memory so reconcile won't pull it elsewhere.
+		goal.setArchivedFromSectionId(
+			goal.isComplete() && !dest.isBuiltIn() ? sectionId : null);
 		// Move the goal to the end of the goals list within its new section.
 		// normalizeOrder groups by section.order; within a section we order by
 		// current priority. Bumping this goal's priority above all others in the

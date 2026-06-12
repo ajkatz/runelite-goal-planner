@@ -137,4 +137,44 @@ class ShareExportServiceTest
 		Env env = new Env();
 		assertNull(env.api.exportSectionBundle("no-such-section", "Andrew"));
 	}
+
+	@Test
+	void exportAllSectionsCountsDroppedCrossSectionEdges()
+	{
+		Env env = new Env();
+		Section skills = env.store.createUserSection("Skills");
+		Section quests = env.store.createUserSection("Quests");
+
+		Goal agility = Goal.builder().type(GoalType.SKILL).name("Agility - Level 70")
+			.skillName("AGILITY").targetValue(737_627).sectionId(skills.getId()).build();
+		Goal sote = Goal.builder().type(GoalType.QUEST).name("Song of the Elves")
+			.questName("SONG_OF_THE_ELVES").sectionId(quests.getId()).build();
+		env.store.addGoal(agility);
+		env.store.addGoal(sote);
+		// Cross-section dependency: the wire format can't carry it.
+		env.store.addRequirement(sote.getId(), agility.getId());
+
+		ShareBundle bundle = env.api.exportAllSectionsBundle("Andrew");
+
+		assertNotNull(bundle);
+		assertEquals(2, bundle.totalGoalCount());
+		assertEquals(1, bundle.getDroppedCrossSectionEdges());
+		// The edge really is absent from the wire payload.
+		assertTrue(bundle.effectiveSections().stream()
+			.flatMap(s -> s.getGoals().stream())
+			.allMatch(g -> g.getRequires().isEmpty() && g.getOrRequires().isEmpty()));
+	}
+
+	@Test
+	void exportAllSectionsReportsZeroDroppedEdgesWhenRelationsAreSectionLocal()
+	{
+		Env env = new Env();
+		seedInfernoSection(env); // Zuk requires Ranged, both in one section
+
+		ShareBundle bundle = env.api.exportAllSectionsBundle("Andrew");
+
+		assertNotNull(bundle);
+		assertEquals(0, bundle.getDroppedCrossSectionEdges());
+		assertEquals(2, bundle.totalGoalCount());
+	}
 }

@@ -44,11 +44,7 @@ public final class ShareText
 			return "0 goals";
 		}
 		java.util.List<SectionShareDto> sections = bundle.effectiveSections();
-		int n = 0;
-		for (SectionShareDto s : sections)
-		{
-			n += s.getGoals() != null ? s.getGoals().size() : 0;
-		}
+		int n = bundle.totalGoalCount();
 		String goals = n == 1 ? "1 goal" : n + " goals";
 		if (sections.size() > 1)
 		{

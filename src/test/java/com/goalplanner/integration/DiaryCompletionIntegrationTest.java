@@ -302,6 +302,12 @@ class DiaryCompletionIntegrationTest
 		String diaryGoalId = api.addDiaryGoalWithPrereqs(
 			"Ardougne", GoalPlannerApi.DiaryTier.EASY, resolved);
 
+		// The return value is the created DIARY goal's id (not the area name).
+		Goal diaryGoal = store.getGoals().stream()
+			.filter(g -> g.getId().equals(diaryGoalId)).findFirst().orElse(null);
+		assertNotNull(diaryGoal, "returned id must resolve to a stored goal");
+		assertEquals(GoalType.DIARY, diaryGoal.getType());
+
 		// Should have fewer seeded goals since some were already met
 		List<Goal> skillGoals = goalsOfType(GoalType.SKILL);
 		assertEquals(0, skillGoals.size(),

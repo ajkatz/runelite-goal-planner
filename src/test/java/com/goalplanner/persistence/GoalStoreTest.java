@@ -213,6 +213,28 @@ class GoalStoreTest
 		// move out of Completed into a user section.
 		assertTrue(store.moveGoalToSection(g.getId(), custom.getId()));
 		assertEquals(custom.getId(), g.getSectionId());
+
+		// The manual placement is pinned: even with auto-archive on (the
+		// default), reconcile must NOT yank the goal back to Completed.
+		store.reconcileCompletedSection();
+		assertEquals(custom.getId(), g.getSectionId());
+	}
+
+	@Test
+	@DisplayName("a goal that completes naturally in an auto-archive section still archives")
+	void naturalCompletionInUserSectionStillArchives()
+	{
+		Section custom = store.createUserSection("Custom");
+		Goal g = Goal.builder().type(GoalType.CUSTOM).name("g").build();
+		store.addGoal(g);
+		assertTrue(store.moveGoalToSection(g.getId(), custom.getId()));
+
+		// Completes while sitting in the section (no manual pin) → tidied away.
+		g.setCompletedAt(System.currentTimeMillis());
+		g.setStatus(GoalStatus.COMPLETE);
+		assertTrue(store.reconcileCompletedSection());
+		assertEquals(store.getCompletedSection().getId(), g.getSectionId());
+		assertEquals(custom.getId(), g.getArchivedFromSectionId());
 	}
 
 	// ====================================================================

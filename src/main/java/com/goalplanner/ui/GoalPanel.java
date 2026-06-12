@@ -649,18 +649,37 @@ public class GoalPanel extends PluginPanel
 				sectionGoalIdSet = new java.util.HashSet<>();
 				for (com.goalplanner.api.GoalView v : topoOrder) sectionGoalIdSet.add(v.id);
 
+				// In-section direct prereq edges for any goal id.
+				final java.util.Set<String> inSection = sectionGoalIdSet;
+				java.util.function.Function<String, java.util.List<String>> inSectionEdges = gid ->
+				{
+					Goal gg = goalStore.findGoalById(gid);
+					java.util.List<String> edges = new java.util.ArrayList<>();
+					if (gg != null)
+					{
+						for (String rid : gg.getRequiredGoalIds())
+							if (inSection.contains(rid)) edges.add(rid);
+						for (String rid : gg.getOrRequiredGoalIds())
+							if (inSection.contains(rid)) edges.add(rid);
+					}
+					return edges;
+				};
+				// Completed goals sink to the bottom, not nested — but chains must
+				// survive THROUGH them: A → B(done) → C still nests A under C.
+				java.util.function.Predicate<String> sunk = gid ->
+				{
+					Goal gg = goalStore.findGoalById(gid);
+					return gg == null || gg.isComplete();
+				};
 				java.util.List<com.goalplanner.ui.nest.NestIndentAssigner.Node> nestNodes =
 					new java.util.ArrayList<>();
 				for (com.goalplanner.api.GoalView v : topoOrder)
 				{
-					Goal vg = goalStore.findGoalById(v.id);
-					if (vg == null || vg.isComplete()) continue; // completed goals sink to the bottom, not nested
-					java.util.List<String> prereqs = new java.util.ArrayList<>();
-					for (String rid : vg.getRequiredGoalIds())
-						if (sectionGoalIdSet.contains(rid)) prereqs.add(rid);
-					for (String rid : vg.getOrRequiredGoalIds())
-						if (sectionGoalIdSet.contains(rid)) prereqs.add(rid);
-					nestNodes.add(new com.goalplanner.ui.nest.NestIndentAssigner.Node(v.id, prereqs));
+					if (sunk.test(v.id)) continue;
+					nestNodes.add(new com.goalplanner.ui.nest.NestIndentAssigner.Node(
+						v.id,
+						com.goalplanner.ui.nest.NestIndentAssigner.resolveVisiblePrereqs(
+							inSectionEdges.apply(v.id), inSectionEdges, sunk)));
 				}
 				nestResult = com.goalplanner.ui.nest.NestIndentAssigner.assign(nestNodes);
 			}

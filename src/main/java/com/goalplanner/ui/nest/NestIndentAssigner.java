@@ -66,6 +66,51 @@ public final class NestIndentAssigner
 	}
 
 	/**
+	 * Resolve a goal's visible prerequisites by following edges THROUGH hidden
+	 * nodes: a hidden prerequisite (e.g. a completed goal the caller filters
+	 * out of the outline) is replaced by its own visible prerequisites,
+	 * transitively — so A → B(hidden) → C still nests A under C instead of
+	 * flattening A to a root. Cycle-safe via the visited set; result order
+	 * follows edge order (depth-first through hidden nodes).
+	 *
+	 * @param direct    the goal's direct prerequisite ids (already scoped, e.g.
+	 *                  in-section only)
+	 * @param prereqsOf direct prerequisite ids for any id (same scoping)
+	 * @param hidden    true for ids excluded from the outline (pass-through)
+	 */
+	public static List<String> resolveVisiblePrereqs(
+		List<String> direct,
+		java.util.function.Function<String, List<String>> prereqsOf,
+		java.util.function.Predicate<String> hidden)
+	{
+		List<String> out = new ArrayList<>();
+		expandThroughHidden(direct, prereqsOf, hidden, new HashSet<>(), out);
+		return out;
+	}
+
+	private static void expandThroughHidden(
+		List<String> edges,
+		java.util.function.Function<String, List<String>> prereqsOf,
+		java.util.function.Predicate<String> hidden,
+		Set<String> visited,
+		List<String> out)
+	{
+		if (edges == null) return;
+		for (String id : edges)
+		{
+			if (!visited.add(id)) continue;
+			if (hidden.test(id))
+			{
+				expandThroughHidden(prereqsOf.apply(id), prereqsOf, hidden, visited, out);
+			}
+			else
+			{
+				out.add(id);
+			}
+		}
+	}
+
+	/**
 	 * @param nodes goals in topological order (prereqs before dependents)
 	 * @return the outline tree (order, levels, primary parents, extra-prereq counts)
 	 */

@@ -54,6 +54,7 @@ class ShareExportService
 	ShareBundle exportAllUserSections(String sharedBy)
 	{
 		List<SectionShareDto> sections = new ArrayList<>();
+		List<List<Goal>> sectionGoals = new ArrayList<>();
 		for (Section section : api.goalStore.getSections())
 		{
 			if (section == null || section.isBuiltIn())
@@ -74,12 +75,57 @@ class ShareExportService
 			}
 			sections.add(ShareMapper.toSectionDto(
 				section.getName(), section.getColorRgb(), false, goals, api.goalStore::findTag));
+			sectionGoals.add(goals);
 		}
 		if (sections.isEmpty())
 		{
 			return null;
 		}
-		return ShareMapper.toMultiBundle(sections, sharedBy);
+		ShareBundle bundle = ShareMapper.toMultiBundle(sections, sharedBy);
+		bundle.setDroppedCrossSectionEdges(countCrossSectionEdges(sectionGoals));
+		return bundle;
+	}
+
+	/**
+	 * Count requires/orRequires edges that connect goals in DIFFERENT exported
+	 * sections. The wire format scopes relation refs per section, so these
+	 * edges cannot be carried and are dropped by {@code ShareMapper.remap} —
+	 * the export UI uses this count to warn the sharer. (Edges to goals
+	 * outside the export entirely have always been dropped silently; only
+	 * both-endpoints-shared edges are surprising losses.)
+	 */
+	private static int countCrossSectionEdges(List<List<Goal>> sectionGoals)
+	{
+		// goal id → index of the exported section it lives in
+		java.util.Map<String, Integer> home = new java.util.HashMap<>();
+		for (int i = 0; i < sectionGoals.size(); i++)
+		{
+			for (Goal g : sectionGoals.get(i))
+			{
+				if (g.getId() != null)
+				{
+					home.put(g.getId(), i);
+				}
+			}
+		}
+		int dropped = 0;
+		for (int i = 0; i < sectionGoals.size(); i++)
+		{
+			for (Goal g : sectionGoals.get(i))
+			{
+				List<String> edges = new ArrayList<>(g.getRequiredGoalIds());
+				edges.addAll(g.getOrRequiredGoalIds());
+				for (String target : edges)
+				{
+					Integer targetHome = home.get(target);
+					if (targetHome != null && targetHome != i)
+					{
+						dropped++;
+					}
+				}
+			}
+		}
+		return dropped;
 	}
 
 	/** Bundle of the given goals (in store order), or null if none resolve. */
