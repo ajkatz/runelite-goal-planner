@@ -6,7 +6,81 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
-## [0.2.0] — Unreleased
+## [0.3.0] — Unreleased
+
+Goal sharing release: share codes, party transport, the nested dependency
+"guide" view, per-section identity, and in-game Add Goal ▸ section menus.
+
+### Added
+- **Share codes.** Export a section, a goal selection, or every user
+  section as a paste-anywhere code (`GPSHARE1:` single-section,
+  `GPSHARE2:` multi-section — gzip+base64 over a versioned JSON wire).
+  Codes carry goal *definitions* only (types, targets, tags, relations);
+  progress always tracks against the recipient's own account. The invite
+  line degrades gracefully for players without the plugin, and import
+  tolerates surrounding chat/Discord text.
+- **Import.** Paste a code to import as a new section (name + colour
+  preserved) or loose goals; GPSHARE2 sections marked `targetDefault`
+  land in the default plan with reuse-dedup, so re-importing never
+  duplicates. Imported sections default to keep-inline (a checklist).
+  One undo reverses a whole import.
+- **Party + cross-plugin transport.** Share directly to your RuneLite
+  party (native chat notifications, queued import prompts), or feed codes
+  in from other plugins via the `goalplanner:import-share` PluginMessage.
+- **Nested dependency "guide" view.** Sections can indent goals beneath
+  the prerequisite they unlock (longest chain forms the spine, extra
+  prereqs surfaced via tooltip). Global "Indent dependencies" default
+  with a per-section tri-state override. Completed goals stay inline and
+  sink to the bottom; chains render *through* them.
+- **Add requirements ▸ section.** Seed a quest/diary goal's full
+  requirement tree into its section — shared transitive prereqs are
+  created once and reused; the "All" variant keeps already-met
+  requirements as inline cards.
+- **In-game Add Goal ▸ section menus.** Quest and diary (per-tier)
+  right-click menus offer Default or any user section in one gesture;
+  diaries gained a bare add (no prereq seeding) to match quests.
+- **Per-section identity.** Each section is its own namespace: dedup
+  guards, skill auto-linking, Move/Duplicate-to-Section, and a "Remove
+  duplicate goals" cleanup all operate per section, so the same goal can
+  live once in each plan.
+- **Auto-archive controls.** Global "auto-archive completed" default with
+  a per-section override; archived goals remember their home section and
+  flip back when it switches to keep-inline.
+- **Account metrics.** Collection Log Slots (live slot ceiling from the
+  client when synced) and Diary Tiers Completed (0–48) as ACCOUNT goals.
+
+### Changed
+- **Deleting a section now deletes its goals** — a section owns its
+  goals. The confirm dialog says so, offers an opt-out checkbox that
+  relocates them to Default (Incomplete/Completed) instead, and one undo
+  restores the section, its goals, and all dependency edges. Completed
+  goals previously archived out of the section are kept as history.
+- Completed goals are first-class: they can be moved, duplicated, and
+  customized, and may live inline in user sections (the old "guide mode"
+  was removed in favor of completion-in-place + per-section overrides).
+- Section right-click menus render through the same ColumnMenu drill-down
+  as goal menus.
+
+### Fixed
+- Multi-section exports now warn when dependency links between goals in
+  *different* sections can't be carried by the code (the wire scopes
+  relations per section); previously they were dropped silently.
+- A completed goal manually moved into a user section stays there —
+  reconcile no longer yanks it back to Completed on the next update.
+- The nested view keeps correct indentation for chains running through
+  completed goals instead of flattening the dependent to a root.
+- Party/import chat messages reported "0 goal(s)" for multi-section
+  codes; counts now sum across sections.
+- Adding a diary goal with prerequisites returned the area name instead
+  of the created goal's id (selection-after-add and API callers).
+- Prerequisite seeding: all seed types land in the parent goal's section
+  (not just quests); already-completed prerequisites are kept as inline
+  cards by "Add requirements → All"; skill/account goals sync immediately
+  on add instead of waiting for the next stat change.
+- Imported sections apply their shared colour and respect the 40-char
+  section-name cap.
+
+## [0.2.0] — 2026-06-02
 
 ### Added
 - **Configurable panel font (family + size).** An Appearance config
