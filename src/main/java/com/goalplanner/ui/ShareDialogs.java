@@ -152,7 +152,7 @@ public final class ShareDialogs
 		Supplier<String> playerName, List<String> goalIds)
 	{
 		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
-		if (bundle == null || bundle.getGoals().isEmpty())
+		if (bundle == null || bundle.totalGoalCount() == 0)
 		{
 			JOptionPane.showMessageDialog(parent, "Nothing to share.", "Share",
 				JOptionPane.INFORMATION_MESSAGE);
@@ -160,10 +160,22 @@ public final class ShareDialogs
 		}
 		String line = ShareText.invite(bundle, codec.encode(bundle));
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(line), null);
-		int n = bundle.getGoals().size();
+		int n = bundle.totalGoalCount();
+		// A selection spanning sections exports per-section (v2 wire).
+		String multiNote = bundle.needsV2()
+			? "\n(The selection spans sections, which are preserved — importing"
+				+ " needs a recent plugin version.)"
+			: "";
+		int dropped = bundle.getDroppedCrossSectionEdges();
+		String droppedNote = dropped > 0
+			? "\nNote: " + dropped + " dependency link" + (dropped == 1 ? "" : "s")
+				+ " between goals in different sections can't be carried by the code and "
+				+ (dropped == 1 ? "was" : "were") + " left out."
+			: "";
 		JOptionPane.showMessageDialog(parent,
 			"Copied a share code for " + n + " goal" + (n == 1 ? "" : "s") + " to your clipboard.\n"
-				+ "Paste it in Discord or chat — anyone with the plugin can import it.",
+				+ "Paste it in Discord or chat — anyone with the plugin can import it."
+				+ multiNote + droppedNote,
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
 
@@ -181,14 +193,14 @@ public final class ShareDialogs
 			return;
 		}
 		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
-		if (bundle == null || bundle.getGoals().isEmpty())
+		if (bundle == null || bundle.totalGoalCount() == 0)
 		{
 			JOptionPane.showMessageDialog(parent, "Nothing to share.", "Share to party",
 				JOptionPane.INFORMATION_MESSAGE);
 			return;
 		}
 		shareToParty.accept(bundle);
-		int n = bundle.getGoals().size();
+		int n = bundle.totalGoalCount();
 		JOptionPane.showMessageDialog(parent,
 			"Shared " + n + " goal" + (n == 1 ? "" : "s") + " to your party.",
 			"Share to party", JOptionPane.INFORMATION_MESSAGE);

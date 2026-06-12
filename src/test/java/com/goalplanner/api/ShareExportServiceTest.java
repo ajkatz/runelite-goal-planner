@@ -112,7 +112,7 @@ class ShareExportServiceTest
 	}
 
 	@Test
-	void exportGoalsBundleCoversExplicitIdsOnly()
+	void exportGoalsBundleCoversExplicitIdsOnlyAndKeepsTheSourceSection()
 	{
 		Env env = new Env();
 		String sectionId = seedInfernoSection(env);
@@ -123,12 +123,79 @@ class ShareExportServiceTest
 			java.util.Collections.singletonList(zuk.getId()), "Andrew");
 
 		assertNotNull(bundle);
-		assertEquals(ShareBundle.Kind.GOALS, bundle.getKind());
-		assertNull(bundle.getSectionName());
+		// A selection entirely inside one user section keeps that section's
+		// identity (still the v1 wire — older builds can import it).
+		assertEquals(ShareBundle.Kind.SECTION, bundle.getKind());
+		assertEquals("Inferno Prep", bundle.getSectionName());
 		assertEquals(1, bundle.getGoals().size());
 		assertEquals("TzKal-Zuk", bundle.getGoals().get(0).getName());
-		// The dropped Ranged goal means Zuk's requirement edge is dropped too.
+		// The unselected Ranged goal means Zuk's requirement edge is dropped.
 		assertTrue(bundle.getGoals().get(0).getRequires().isEmpty());
+	}
+
+	@Test
+	void exportGoalsFromDefaultPlanStaysALooseGoalsBundle()
+	{
+		Env env = new Env();
+		Goal loose = Goal.builder().type(GoalType.CUSTOM).name("Loose").build();
+		env.store.addGoal(loose); // lands in Incomplete
+
+		ShareBundle bundle = env.api.exportGoalsBundle(
+			java.util.Collections.singletonList(loose.getId()), "Andrew");
+
+		assertNotNull(bundle);
+		assertEquals(ShareBundle.Kind.GOALS, bundle.getKind());
+		assertNull(bundle.getSectionName());
+		assertFalse(bundle.needsV2());
+	}
+
+	@Test
+	void exportGoalsSpanningSectionsPreservesEachSourceSection()
+	{
+		Env env = new Env();
+		Section pvm = env.store.createUserSection("PvM");
+		env.store.findSection(pvm.getId()).setColorRgb(0x336699);
+		Section skills = env.store.createUserSection("Skills");
+		Goal zulrah = Goal.builder().type(GoalType.BOSS).name("Zulrah")
+			.bossName("Zulrah").targetValue(50).sectionId(pvm.getId()).build();
+		Goal agility = Goal.builder().type(GoalType.SKILL).name("Agility - Level 70")
+			.skillName("AGILITY").targetValue(737_627).sectionId(skills.getId()).build();
+		Goal loose = Goal.builder().type(GoalType.CUSTOM).name("Loose").build();
+		env.store.addGoal(zulrah);
+		env.store.addGoal(agility);
+		env.store.addGoal(loose);
+
+		ShareBundle bundle = env.api.exportGoalsBundle(
+			java.util.Arrays.asList(zulrah.getId(), agility.getId(), loose.getId()), "Andrew");
+
+		assertNotNull(bundle);
+		assertTrue(bundle.needsV2());
+		assertEquals(3, bundle.totalGoalCount());
+		java.util.List<com.goalplanner.share.SectionShareDto> secs = bundle.effectiveSections();
+		assertEquals(3, secs.size());
+		assertEquals("PvM", secs.get(0).getName());
+		assertEquals(0x336699, secs.get(0).getColorRgb());
+		assertEquals("Zulrah", secs.get(0).getGoals().get(0).getName());
+		assertEquals("Skills", secs.get(1).getName());
+		// The default-plan goal rides along as a targetDefault entry.
+		assertTrue(secs.get(2).isTargetDefault());
+		assertEquals("Loose", secs.get(2).getGoals().get(0).getName());
+
+		// Round-trip: the receiver gets BOTH sections back, not one blob.
+		// (Imported sections are suffixed "(from <sharer>)" by design.)
+		ShareCodec codec = new ShareCodec(new Gson());
+		Env receiver = new Env();
+		receiver.api.importShareBundle(codec.decode(codec.encode(bundle)));
+		assertNotNull(receiver.store.getSections().stream()
+			.filter(s -> s.getName() != null && s.getName().startsWith("PvM")).findFirst().orElse(null));
+		assertNotNull(receiver.store.getSections().stream()
+			.filter(s -> s.getName() != null && s.getName().startsWith("Skills")).findFirst().orElse(null));
+		Goal importedZulrah = receiver.store.getGoals().stream()
+			.filter(g -> "Zulrah".equals(g.getName())).findFirst().orElseThrow();
+		assertTrue(receiver.store.findSection(importedZulrah.getSectionId()).getName().startsWith("PvM"));
+		Goal importedLoose = receiver.store.getGoals().stream()
+			.filter(g -> "Loose".equals(g.getName())).findFirst().orElseThrow();
+		assertEquals(receiver.store.getIncompleteSection().getId(), importedLoose.getSectionId());
 	}
 
 	@Test

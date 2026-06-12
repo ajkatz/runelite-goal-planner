@@ -62,6 +62,12 @@ Goal sharing release: share codes, party transport, the nested dependency
   as goal menus.
 
 ### Fixed
+- Sharing a multi-select that spans sections preserves each goal's source
+  section: the code exports one section entry per source (name + colour),
+  with default-plan goals riding along as a default-target entry, instead
+  of flattening everything into one combined import. A selection entirely
+  within one user section keeps that section's identity; one entirely in
+  the default plan stays a legacy loose-goals code.
 - Multi-section exports now warn when dependency links between goals in
   *different* sections can't be carried by the code (the wire scopes
   relations per section); previously they were dropped silently.

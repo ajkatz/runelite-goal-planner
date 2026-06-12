@@ -128,7 +128,16 @@ class ShareExportService
 		return dropped;
 	}
 
-	/** Bundle of the given goals (in store order), or null if none resolve. */
+	/**
+	 * Bundle of the given goals (in store order), or null if none resolve.
+	 * The selection's SOURCE SECTIONS are preserved: goals from each user
+	 * section export as that section (name + colour), goals from the default
+	 * plan as a {@code targetDefault} entry. A selection entirely within the
+	 * default plan stays a legacy loose-goals bundle, and one entirely within
+	 * a single user section stays a legacy section bundle — both on the v1
+	 * wire so older plugin builds keep importing them; anything spanning
+	 * sections needs the v2 wire.
+	 */
 	ShareBundle exportGoals(List<String> goalIds, String sharedBy)
 	{
 		if (goalIds == null || goalIds.isEmpty())
@@ -136,19 +145,63 @@ class ShareExportService
 			return null;
 		}
 		Set<String> wanted = new HashSet<>(goalIds);
-		List<Goal> goals = new ArrayList<>();
+		// Group the selection by source section, in store (display) order;
+		// the two built-ins collapse into one "default plan" group.
+		List<Goal> defaultGroup = new ArrayList<>();
+		java.util.Map<String, List<Goal>> bySection = new java.util.LinkedHashMap<>();
 		for (Goal g : api.goalStore.getGoals())
 		{
-			if (g != null && wanted.contains(g.getId()))
+			if (g == null || !wanted.contains(g.getId()))
 			{
-				goals.add(g);
+				continue;
+			}
+			Section sec = api.goalStore.findSection(g.getSectionId());
+			if (sec == null || sec.isBuiltIn())
+			{
+				defaultGroup.add(g);
+			}
+			else
+			{
+				bySection.computeIfAbsent(sec.getId(), k -> new ArrayList<>()).add(g);
 			}
 		}
-		if (goals.isEmpty())
+		if (defaultGroup.isEmpty() && bySection.isEmpty())
 		{
 			return null;
 		}
-		return ShareMapper.toBundle(
-			ShareBundle.Kind.GOALS, null, -1, goals, api.goalStore::findTag, sharedBy);
+		if (bySection.isEmpty())
+		{
+			// Entirely from the default plan → legacy loose goals (v1 wire).
+			return ShareMapper.toBundle(
+				ShareBundle.Kind.GOALS, null, -1, defaultGroup, api.goalStore::findTag, sharedBy);
+		}
+		if (defaultGroup.isEmpty() && bySection.size() == 1)
+		{
+			// Entirely from one user section → legacy section bundle (v1 wire).
+			String sid = bySection.keySet().iterator().next();
+			Section sec = api.goalStore.findSection(sid);
+			return ShareMapper.toBundle(
+				ShareBundle.Kind.SECTION, sec.getName(), sec.getColorRgb(),
+				bySection.get(sid), api.goalStore::findTag, sharedBy);
+		}
+		// Spans sections → multi-section (v2) bundle preserving each source.
+		List<SectionShareDto> sections = new ArrayList<>();
+		List<List<Goal>> groups = new ArrayList<>();
+		for (java.util.Map.Entry<String, List<Goal>> e : bySection.entrySet())
+		{
+			Section sec = api.goalStore.findSection(e.getKey());
+			sections.add(ShareMapper.toSectionDto(
+				sec.getName(), sec.getColorRgb(), false, e.getValue(), api.goalStore::findTag));
+			groups.add(e.getValue());
+		}
+		if (!defaultGroup.isEmpty())
+		{
+			sections.add(ShareMapper.toSectionDto(
+				null, -1, true, defaultGroup, api.goalStore::findTag));
+			groups.add(defaultGroup);
+		}
+		ShareBundle bundle = ShareMapper.toMultiBundle(sections, sharedBy);
+		bundle.setDroppedCrossSectionEdges(countCrossSectionEdges(groups));
+		return bundle;
 	}
 }
