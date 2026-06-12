@@ -2101,34 +2101,62 @@ public class GoalStore
 	}
 
 	/**
-	 * Delete a user-defined section. All goals in the section are moved to the
-	 * end of the Incomplete section (then reconcile may pull completed ones to
-	 * Completed). Returns false on: not found or built-in.
+	 * Delete a user-defined section AND every goal in it — a section owns its
+	 * goals. Edges from surviving goals to the deleted ones are scrubbed
+	 * (plain {@link #removeGoal} semantics, no bypass bridging). Completed
+	 * goals previously archived OUT of this section live in Completed and are
+	 * kept — reconcile clears their stale home memory so they become genuine
+	 * default-completed history. Returns false on: not found or built-in.
 	 */
 	public boolean deleteUserSection(String sectionId)
 	{
 		Section section = findSection(sectionId);
 		if (section == null || section.isBuiltIn()) return false;
 
-		String incompleteId = getIncompleteSection().getId();
-		List<Goal> movedGoals = new ArrayList<>();
+		List<String> doomed = new ArrayList<>();
 		for (Goal g : goals)
 		{
-			if (sectionId.equals(g.getSectionId()))
-			{
-				g.setSectionId(incompleteId);
-				movedGoals.add(g);
-			}
+			if (sectionId.equals(g.getSectionId())) doomed.add(g.getId());
 		}
+		for (String id : doomed) removeGoal(id);
+
 		sections.removeIf(s -> sectionId.equals(s.getId()));
 		sectionIndex.remove(sectionId);
 		renumberUserSections();
 		normalizeOrder();
 		reconcileCompletedSection();
-		for (Goal g : movedGoals) saveGoalIfNotSuspended(g);
 		saveSectionsIfNotSuspended();
 		saveGoalOrderIfNotSuspended();
 		return true;
+	}
+
+	/**
+	 * Move every goal in the given section to the default Incomplete bucket
+	 * (reconcile then pulls completed ones on to Completed). The undo path for
+	 * "create section" uses this so reverting a section the user has already
+	 * filled relocates the goals instead of deleting them with the section.
+	 */
+	public int evacuateSectionToIncomplete(String sectionId)
+	{
+		String incompleteId = getIncompleteSection().getId();
+		List<Goal> moved = new ArrayList<>();
+		for (Goal g : goals)
+		{
+			if (sectionId.equals(g.getSectionId()))
+			{
+				g.setSectionId(incompleteId);
+				g.setArchivedFromSectionId(null);
+				moved.add(g);
+			}
+		}
+		if (!moved.isEmpty())
+		{
+			normalizeOrder();
+			reconcileCompletedSection();
+			for (Goal g : moved) saveGoalIfNotSuspended(g);
+			saveGoalOrderIfNotSuspended();
+		}
+		return moved.size();
 	}
 
 	/**

@@ -147,23 +147,52 @@ class GoalStoreTest
 	}
 
 	@Test
-	@DisplayName("deleteUserSection moves all goals to Incomplete and renumbers band")
-	void deleteUserSectionReassignsGoals()
+	@DisplayName("deleteUserSection deletes the section's goals and renumbers band")
+	void deleteUserSectionDeletesItsGoals()
 	{
 		Section a = store.createUserSection("Alpha");
 		Section b = store.createUserSection("Bravo");
 
 		Goal g1 = Goal.builder().type(GoalType.CUSTOM).name("g1").sectionId(a.getId()).build();
 		Goal g2 = Goal.builder().type(GoalType.CUSTOM).name("g2").sectionId(a.getId()).build();
+		Goal survivor = Goal.builder().type(GoalType.CUSTOM).name("outside")
+			.sectionId(b.getId()).build();
 		store.addGoal(g1);
 		store.addGoal(g2);
+		store.addGoal(survivor);
+		// A cross-section edge into the doomed section gets scrubbed, not dangled.
+		store.addRequirement(survivor.getId(), g1.getId());
 
 		assertTrue(store.deleteUserSection(a.getId()));
 		assertNull(store.findSection(a.getId()));
-		assertEquals(store.getIncompleteSection().getId(), g1.getSectionId());
-		assertEquals(store.getIncompleteSection().getId(), g2.getSectionId());
+		assertNull(store.findGoalById(g1.getId()));
+		assertNull(store.findGoalById(g2.getId()));
+		assertFalse(survivor.getRequiredGoalIds().contains(g1.getId()));
 		// Bravo should be renumbered to position 1
 		assertEquals(1, b.getOrder());
+	}
+
+	@Test
+	@DisplayName("deleteUserSection keeps the section's archived completed goals as plain history")
+	void deleteUserSectionKeepsArchivedCompletedGoals()
+	{
+		Section a = store.createUserSection("Alpha");
+		// Completed goal archived OUT of Alpha: lives in Completed, remembers home.
+		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(System.currentTimeMillis())
+			.status(GoalStatus.COMPLETE)
+			.sectionId(store.getCompletedSection().getId())
+			.archivedFromSectionId(a.getId())
+			.build();
+		store.addGoal(done);
+		done.setSectionId(store.getCompletedSection().getId());
+		done.setArchivedFromSectionId(a.getId());
+
+		assertTrue(store.deleteUserSection(a.getId()));
+		// Not deleted — but its home memory is cleared (genuine completed history).
+		assertNotNull(store.findGoalById(done.getId()));
+		assertEquals(store.getCompletedSection().getId(), done.getSectionId());
+		assertNull(done.getArchivedFromSectionId());
 	}
 
 	@Test

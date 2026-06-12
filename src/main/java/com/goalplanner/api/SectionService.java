@@ -41,6 +41,10 @@ class SectionService
 			}
 			@Override public boolean revert()
 			{
+				// Undoing "create" must not destroy goals the user has since
+				// put in the section — relocate them, then drop the (empty)
+				// section. deleteUserSection itself deletes a section's goals.
+				api.goalStore.evacuateSectionToIncomplete(sectionId);
 				return api.goalStore.deleteUserSection(sectionId);
 			}
 			@Override public String getDescription() { return "Add section: " + sectionName; }
@@ -64,41 +68,162 @@ class SectionService
 		});
 	}
 
-	boolean deleteSection(String sectionId)
+	boolean deleteSection(String sectionId, boolean moveGoalsToDefault)
 	{
-		log.debug("API.internal deleteSection(sectionId={})", sectionId);
+		log.debug("API.internal deleteSection(sectionId={}, moveGoalsToDefault={})",
+			sectionId, moveGoalsToDefault);
 		Section sec = api.goalStore.findSection(sectionId);
-		if (sec == null) return false;
+		if (sec == null || sec.isBuiltIn()) return false;
 		final String name = sec.getName();
 		final int order = sec.getOrder();
 		final int colorRgb = sec.getColorRgb();
-		// Snapshot which goals were in this section so revert can move them back.
-		final java.util.List<String> displacedGoalIds = new ArrayList<>();
+		final Boolean nestedOverride = sec.getNestedOverride();
+		final Boolean autoArchiveOverride = sec.getAutoArchiveOverride();
+		// Completed goals archived OUT of this section live in Completed and
+		// survive either path, but the delete clears their home memory —
+		// snapshot the ids so undo can restore the link.
+		final java.util.List<String> archivedOutIds = new ArrayList<>();
 		for (Goal g : api.goalStore.getGoals())
 		{
-			if (sectionId.equals(g.getSectionId())) displacedGoalIds.add(g.getId());
+			if (sectionId.equals(g.getArchivedFromSectionId())) archivedOutIds.add(g.getId());
+		}
+
+		if (moveGoalsToDefault)
+		{
+			// Opt-in sparing path: relocate the goals to the default buckets,
+			// then drop the (now empty) section.
+			final java.util.List<String> displacedGoalIds = new ArrayList<>();
+			for (Goal g : api.goalStore.getGoals())
+			{
+				if (sectionId.equals(g.getSectionId())) displacedGoalIds.add(g.getId());
+			}
+			return api.executeCommand(new com.goalplanner.command.Command()
+			{
+				@Override public boolean apply()
+				{
+					api.goalStore.evacuateSectionToIncomplete(sectionId);
+					return api.goalStore.deleteUserSection(sectionId);
+				}
+				@Override public boolean revert()
+				{
+					recreateSection(sectionId, name, order, colorRgb, nestedOverride, autoArchiveOverride);
+					// moveGoalToSection pins completed goals inline in the
+					// destination — matching their pre-delete placement.
+					for (String gid : displacedGoalIds)
+					{
+						api.goalStore.moveGoalToSection(gid, sectionId);
+					}
+					restoreArchivedHomes(archivedOutIds, sectionId);
+					api.goalStore.normalizeOrder();
+					return true;
+				}
+				@Override public String getDescription() { return "Delete section (keep goals): " + name; }
+			});
+		}
+
+		// Deleting a section deletes its goals, so revert must RESTORE them:
+		// the goal objects (ascending flat index, so positions come back), a
+		// copy of each one's outgoing edge lists (deletion scrubs doomed ids
+		// out of doomed peers' lists, mutating the very objects we keep), and
+		// the incoming edges from surviving goals (scrubbed by removeGoal).
+		final java.util.List<Goal> doomedGoals = new ArrayList<>();
+		final java.util.Map<String, Integer> originalIndex = new java.util.HashMap<>();
+		final java.util.Map<String, java.util.List<String>> savedRequires = new java.util.HashMap<>();
+		final java.util.Map<String, java.util.List<String>> savedOrRequires = new java.util.HashMap<>();
+		java.util.List<Goal> all = api.goalStore.getGoals();
+		for (int i = 0; i < all.size(); i++)
+		{
+			Goal g = all.get(i);
+			if (sectionId.equals(g.getSectionId()))
+			{
+				doomedGoals.add(g);
+				originalIndex.put(g.getId(), i);
+				savedRequires.put(g.getId(), new ArrayList<>(g.getRequiredGoalIds()));
+				savedOrRequires.put(g.getId(), new ArrayList<>(g.getOrRequiredGoalIds()));
+			}
+		}
+		final java.util.Set<String> doomedIds = originalIndex.keySet();
+		final java.util.List<String[]> survivorAndEdges = new ArrayList<>();
+		final java.util.List<String[]> survivorOrEdges = new ArrayList<>();
+		for (Goal g : all)
+		{
+			if (doomedIds.contains(g.getId())) continue;
+			for (String rid : g.getRequiredGoalIds())
+			{
+				if (doomedIds.contains(rid)) survivorAndEdges.add(new String[]{g.getId(), rid});
+			}
+			for (String rid : g.getOrRequiredGoalIds())
+			{
+				if (doomedIds.contains(rid)) survivorOrEdges.add(new String[]{g.getId(), rid});
+			}
 		}
 		return api.executeCommand(new com.goalplanner.command.Command()
 		{
-			@Override public boolean apply() { return api.goalStore.deleteUserSection(sectionId); }
+			@Override public boolean apply()
+			{
+				if (!api.goalStore.deleteUserSection(sectionId)) return false;
+				api.selectedGoalIds.removeAll(doomedIds);
+				return true;
+			}
 			@Override public boolean revert()
 			{
-				api.goalStore.recreateUserSection(sectionId, name);
-				Section restored = api.goalStore.findSection(sectionId);
-				if (restored != null)
+				recreateSection(sectionId, name, order, colorRgb, nestedOverride, autoArchiveOverride);
+				// Ascending original index so each goal lands back in place.
+				for (Goal g : doomedGoals)
 				{
-					restored.setOrder(order);
-					restored.setColorRgb(colorRgb);
+					g.setSectionId(sectionId);
+					api.goalStore.insertGoalAt(g, originalIndex.get(g.getId()));
 				}
-				for (String gid : displacedGoalIds)
+				// Re-add edges the delete scrubbed: doomed→doomed outgoing
+				// (from the pre-delete copies) and survivor→doomed incoming.
+				for (Goal g : doomedGoals)
 				{
-					api.goalStore.moveGoalToSection(gid, sectionId);
+					for (String rid : savedRequires.get(g.getId()))
+					{
+						if (!g.getRequiredGoalIds().contains(rid)) api.goalStore.addRequirement(g.getId(), rid);
+					}
+					for (String rid : savedOrRequires.get(g.getId()))
+					{
+						if (!g.getOrRequiredGoalIds().contains(rid)) api.goalStore.addOrRequirement(g.getId(), rid);
+					}
 				}
+				for (String[] e : survivorAndEdges) api.goalStore.addRequirement(e[0], e[1]);
+				for (String[] e : survivorOrEdges) api.goalStore.addOrRequirement(e[0], e[1]);
+				restoreArchivedHomes(archivedOutIds, sectionId);
 				api.goalStore.normalizeOrder();
 				return true;
 			}
 			@Override public String getDescription() { return "Delete section: " + name; }
 		});
+	}
+
+	/** Recreate a deleted user section with its remembered display properties. */
+	private void recreateSection(String sectionId, String name, int order, int colorRgb,
+		Boolean nestedOverride, Boolean autoArchiveOverride)
+	{
+		api.goalStore.recreateUserSection(sectionId, name);
+		Section restored = api.goalStore.findSection(sectionId);
+		if (restored != null)
+		{
+			restored.setOrder(order);
+			restored.setColorRgb(colorRgb);
+			restored.setNestedOverride(nestedOverride);
+			restored.setAutoArchiveOverride(autoArchiveOverride);
+		}
+	}
+
+	/** Re-link completed goals in Completed back to their deleted-then-restored home section. */
+	private void restoreArchivedHomes(java.util.List<String> goalIds, String sectionId)
+	{
+		for (String gid : goalIds)
+		{
+			Goal g = api.findGoal(gid);
+			if (g != null && g.getArchivedFromSectionId() == null)
+			{
+				g.setArchivedFromSectionId(sectionId);
+				api.goalStore.updateGoal(g);
+			}
+		}
 	}
 
 	boolean reorderSection(String sectionId, int newUserIndex)

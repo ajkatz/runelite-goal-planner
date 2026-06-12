@@ -1444,16 +1444,32 @@ class GoalContextMenuBuilder
 
 			JMenuItem delete = new JMenuItem("Delete Section");
 			delete.addActionListener(e -> {
+				int goalCount = 0;
+				for (Goal g : goalStore.getGoals())
+				{
+					if (section.id.equals(g.getSectionId())) goalCount++;
+				}
+				String plural = goalCount == 1 ? "goal" : "goals";
+				javax.swing.JCheckBox moveInstead = new javax.swing.JCheckBox(
+					"Move " + (goalCount == 1 ? "it" : "them")
+						+ " to Default (Incomplete/Completed) instead");
+				Object[] message = goalCount > 0
+					? new Object[]{
+						"Delete section \"" + section.name + "\"?\n"
+							+ "This also deletes its " + goalCount + " " + plural
+							+ ". (Undo restores everything.)",
+						moveInstead}
+					: new Object[]{"Delete section \"" + section.name + "\"?"};
 				int confirm = JOptionPane.showConfirmDialog(
 					panel,
-					"Delete section \"" + section.name + "\"?\nGoals in it will be moved to Incomplete.",
+					message,
 					"Delete Section",
 					JOptionPane.YES_NO_OPTION,
 					JOptionPane.WARNING_MESSAGE
 				);
 				if (confirm == JOptionPane.YES_OPTION)
 				{
-					api.deleteSection(section.id);
+					api.deleteSection(section.id, moveInstead.isSelected());
 				}
 			});
 			menu.add(delete);

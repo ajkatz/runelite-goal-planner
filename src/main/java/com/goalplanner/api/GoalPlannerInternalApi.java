@@ -152,13 +152,24 @@ public interface GoalPlannerInternalApi
 	boolean renameSection(String sectionId, String newName);
 
 	/**
-	 * Delete a user-defined section. All goals in the section are reassigned to
-	 * the end of Incomplete (then reconcile may pull completed ones to
-	 * Completed). Built-in sections cannot be deleted.
+	 * Delete a user-defined section AND the goals in it (a section owns its
+	 * goals). Completed goals previously archived out of the section are kept
+	 * as plain history. Built-in sections cannot be deleted. Undoable — one
+	 * undo restores the section, its goals, and their dependency edges.
 	 *
 	 * @return true if deleted, false if not found or built-in
 	 */
 	boolean deleteSection(String sectionId);
+
+	/**
+	 * Delete a user-defined section, optionally sparing its goals.
+	 *
+	 * @param moveGoalsToDefault true relocates the section's goals to the
+	 *        default Incomplete/Completed buckets instead of deleting them
+	 *        (the pre-deletion behavior); false deletes them with the section
+	 * @return true if deleted, false if not found or built-in
+	 */
+	boolean deleteSection(String sectionId, boolean moveGoalsToDefault);
 
 	/**
 	 * Reorder a user-defined section to a new position WITHIN the user-section

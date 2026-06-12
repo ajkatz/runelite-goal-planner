@@ -444,6 +444,83 @@ class GoalPlannerApiImplTest
 	}
 
 	@Test
+	@DisplayName("deleteSection deletes the section's goals; one undo restores goals, edges, and cross-section dependents")
+	void deleteSectionDeletesGoalsAndUndoRestoresThem()
+	{
+		String section = api.createSection("Doomed");
+		Goal x = Goal.builder().type(GoalType.CUSTOM).name("x").sectionId(section).build();
+		Goal y = Goal.builder().type(GoalType.CUSTOM).name("y").sectionId(section).build();
+		Goal outside = Goal.builder().type(GoalType.CUSTOM).name("outside").build();
+		store.addGoal(x);
+		store.addGoal(y);
+		store.addGoal(outside);
+		store.addRequirement(y.getId(), x.getId());       // internal: y requires x
+		store.addRequirement(outside.getId(), y.getId()); // survivor: outside requires y
+
+		assertTrue(api.deleteSection(section));
+		assertNull(store.findSection(section));
+		assertNull(api.findGoal(x.getId()));
+		assertNull(api.findGoal(y.getId()));
+		// The survivor's edge into the deleted section is scrubbed, not dangling.
+		assertNotNull(api.findGoal(outside.getId()));
+		assertFalse(outside.getRequiredGoalIds().contains(y.getId()));
+
+		api.undo();
+		assertNotNull(store.findSection(section));
+		Goal rx = api.findGoal(x.getId());
+		Goal ry = api.findGoal(y.getId());
+		assertNotNull(rx);
+		assertNotNull(ry);
+		assertEquals(section, rx.getSectionId());
+		assertEquals(section, ry.getSectionId());
+		// Both edge classes come back: internal and survivor→doomed.
+		assertTrue(ry.getRequiredGoalIds().contains(x.getId()));
+		assertTrue(api.findGoal(outside.getId()).getRequiredGoalIds().contains(y.getId()));
+	}
+
+	@Test
+	@DisplayName("deleteSection with moveGoalsToDefault spares the goals, routing them to the default buckets; undoable")
+	void deleteSectionMoveGoalsToDefault()
+	{
+		String section = api.createSection("Spared");
+		store.setSectionAutoArchiveOverride(section, false); // keep completed inline
+		Goal todo = Goal.builder().type(GoalType.CUSTOM).name("todo").sectionId(section).build();
+		Goal done = Goal.builder().type(GoalType.CUSTOM).name("done")
+			.completedAt(123L).status(GoalStatus.COMPLETE).sectionId(section).build();
+		store.addGoal(todo);
+		store.addGoal(done);
+
+		assertTrue(api.deleteSection(section, true));
+		assertNull(store.findSection(section));
+		// Spared: incomplete → Incomplete, complete → Completed.
+		assertNotNull(api.findGoal(todo.getId()));
+		assertNotNull(api.findGoal(done.getId()));
+		assertEquals(store.getIncompleteSection().getId(), todo.getSectionId());
+		assertEquals(store.getCompletedSection().getId(), done.getSectionId());
+
+		api.undo();
+		assertNotNull(store.findSection(section));
+		assertEquals(section, todo.getSectionId());
+		assertEquals(section, done.getSectionId());
+	}
+
+	@Test
+	@DisplayName("undoing 'create section' relocates its goals to the default bucket instead of deleting them")
+	void undoCreateSectionEvacuatesGoals()
+	{
+		String section = api.createSection("Fresh");
+		Goal kept = Goal.builder().type(GoalType.CUSTOM).name("kept").sectionId(section).build();
+		store.addGoal(kept);
+		assertEquals(section, kept.getSectionId());
+
+		api.undo(); // undo the section creation
+		assertNull(store.findSection(section));
+		// The goal survives, evacuated to the default Incomplete bucket.
+		assertNotNull(api.findGoal(kept.getId()));
+		assertEquals(store.getIncompleteSection().getId(), kept.getSectionId());
+	}
+
+	@Test
 	@DisplayName("setSectionAutoArchiveOverride to archive sweeps existing completed goals out; undoable")
 	void setSectionAutoArchiveOverrideArchives()
 	{
@@ -545,8 +622,8 @@ class GoalPlannerApiImplTest
 		}
 
 		@Test
-		@DisplayName("deleteSection reassigns goals to Incomplete")
-		void deleteSectionReassignsGoals()
+		@DisplayName("deleteSection deletes the section's goals with it")
+		void deleteSectionDeletesGoals()
 		{
 			String sectionId = api.createSection("Boss Tasks");
 			String goalId = api.addCustomGoal("Test", "");
@@ -554,8 +631,8 @@ class GoalPlannerApiImplTest
 
 			assertTrue(api.deleteSection(sectionId));
 			assertNull(store.findSection(sectionId));
-			Goal g = store.getGoals().get(0);
-			assertEquals(store.getIncompleteSection().getId(), g.getSectionId());
+			// A section owns its goals — deleting it deletes them too.
+			assertNull(api.findGoal(goalId));
 		}
 
 		@Test
@@ -1752,7 +1829,7 @@ class GoalPlannerApiImplTest
 		}
 
 		@Test
-		@DisplayName("deleteSection undo restores section + moves orphaned goals back")
+		@DisplayName("deleteSection undo restores the section AND its deleted goals")
 		void deleteSectionRoundTrip()
 		{
 			String secId = api.createSection("Temp");
@@ -1763,10 +1840,8 @@ class GoalPlannerApiImplTest
 
 			api.deleteSection(secId);
 			assertNull(store.findSection(secId));
-			// Goal should now be in some other section (Incomplete)
-			Goal orphaned = store.getGoals().stream()
-				.filter(g -> goalId.equals(g.getId())).findFirst().orElseThrow();
-			assertNotEquals(secId, orphaned.getSectionId());
+			// The section's goal is deleted with it.
+			assertNull(api.findGoal(goalId));
 
 			api.undo();
 			assertNotNull(store.findSection(secId));
