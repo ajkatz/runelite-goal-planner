@@ -153,6 +153,44 @@ public final class AchievementDiaryData
 	}
 
 	/**
+	 * All 12 diary area keys, normalized as used in the varbit map. Every
+	 * (area key, tier) pair has a tracking spec, so this enumerates all
+	 * {@link #TOTAL_TIER_COUNT} tiers.
+	 */
+	public static final String[] AREA_KEYS = {
+		"ARDOUGNE", "DESERT", "FALADOR", "FREMENNIK", "KANDARIN", "KARAMJA",
+		"KOUREND", "LUMBRIDGE", "MORYTANIA", "VARROCK", "WESTERN", "WILDERNESS"
+	};
+
+	/** Total diary tiers across all areas (12 areas x 4 tiers = 48). */
+	public static final int TOTAL_TIER_COUNT = AREA_KEYS.length * Tier.values().length;
+
+	/**
+	 * Count completed diary tiers (0..{@link #TOTAL_TIER_COUNT}) by reading
+	 * each tier's tracking varbit through the supplied reader (typically
+	 * {@code client::getVarbitValue}). A tier counts as complete when the
+	 * varbit has reached the tracking spec's required value — 1 for boolean
+	 * COMPLETE varbits, the tier task total for Karamja Easy/Medium/Hard
+	 * count varbits.
+	 */
+	public static int countCompletedTiers(java.util.function.IntUnaryOperator varbitReader)
+	{
+		int completed = 0;
+		for (String area : AREA_KEYS)
+		{
+			for (Tier tier : Tier.values())
+			{
+				Tracking t = tracking(area, tier);
+				if (t != null && varbitReader.applyAsInt(t.varbitId) >= t.requiredValue)
+				{
+					completed++;
+				}
+			}
+		}
+		return completed;
+	}
+
+	/**
 	 * Look up the tracking spec (varbit + required value) for a given area
 	 * and tier. Returns null when neither a boolean COMPLETE varbit nor a
 	 * Karamja count varbit is available (in which case the goal is manual).

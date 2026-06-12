@@ -1771,9 +1771,19 @@ class GoalCreationService
 			log.warn("addAccountGoal: unknown metric {}", metricName);
 			return null;
 		}
-		// Clamp to valid range
+		// Clamp to valid range. For collection log slots the true ceiling
+		// grows with game updates — prefer the live slot total from the
+		// client (VarPlayer COLLECTION_COUNT_MAX) over the static fallback
+		// when it's available (>0 once the account's log count has synced).
+		int maxTarget = metric.getMaxTarget();
+		if (metric == AccountMetric.COLLECTION_LOG_SLOTS && api.client != null)
+		{
+			int liveMax = api.client.getVarpValue(
+				net.runelite.api.gameval.VarPlayerID.COLLECTION_COUNT_MAX);
+			if (liveMax > 0) maxTarget = liveMax;
+		}
 		int clampedTarget = Math.max(metric.getMinTarget(),
-			Math.min(metric.getMaxTarget(), target));
+			Math.min(maxTarget, target));
 		api.clearGoalSelection();
 
 		// Duplicate guard: same metric + target in the default namespace.

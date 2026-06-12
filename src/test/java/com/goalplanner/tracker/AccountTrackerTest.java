@@ -1,5 +1,6 @@
 package com.goalplanner.tracker;
 
+import com.goalplanner.data.AchievementDiaryData;
 import com.goalplanner.model.AccountMetric;
 import com.goalplanner.model.Goal;
 import com.goalplanner.model.GoalType;
@@ -164,6 +165,143 @@ class AccountTrackerTest
 
 			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
 			assertEquals(153, goal.getCurrentValue());
+		}
+	}
+
+	@Nested
+	@DisplayName("Collection Log Slots")
+	class CollectionLogSlotTests
+	{
+		@Test
+		@DisplayName("reads obtained slot count from VarPlayer")
+		void readsSlotCount()
+		{
+			MockGameState state = new MockGameState()
+				.varp(VarPlayerID.COLLECTION_COUNT, 432);
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.COLLECTION_LOG_SLOTS, 600);
+			h.store().addGoal(goal);
+
+			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
+			assertEquals(432, goal.getCurrentValue());
+		}
+
+		@Test
+		@DisplayName("skips a zero read (unsynced log) instead of clobbering stored progress")
+		void skipsUnsyncedZeroRead()
+		{
+			MockGameState synced = new MockGameState()
+				.varp(VarPlayerID.COLLECTION_COUNT, 432);
+			MockGameState unsynced = new MockGameState(); // varp reads 0
+
+			var h = TrackerTestHarness.forAccount(synced);
+			Goal goal = makeAccountGoal(AccountMetric.COLLECTION_LOG_SLOTS, 600);
+			h.store().addGoal(goal);
+			h.tracker().checkGoals(h.store().getGoals());
+			assertEquals(432, goal.getCurrentValue());
+
+			h = h.withNewState(unsynced);
+			assertFalse(h.tracker().checkGoals(h.store().getGoals()));
+			assertEquals(432, goal.getCurrentValue());
+		}
+
+		@Test
+		@DisplayName("completes the goal when the obtained count reaches the target")
+		void completesAtTarget()
+		{
+			MockGameState state = new MockGameState()
+				.varp(VarPlayerID.COLLECTION_COUNT, 600);
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.COLLECTION_LOG_SLOTS, 600);
+			h.store().addGoal(goal);
+
+			h.tracker().checkGoals(h.store().getGoals());
+			assertTrue(goal.isComplete());
+		}
+	}
+
+	@Nested
+	@DisplayName("Diary Tiers")
+	class DiaryTierTests
+	{
+		@Test
+		@DisplayName("counts completed tiers across boolean and Karamja count varbits")
+		void countsMixedTrackingModes()
+		{
+			MockGameState state = new MockGameState()
+				.diaryComplete("Ardougne", AchievementDiaryData.Tier.EASY)
+				.diaryComplete("Lumbridge", AchievementDiaryData.Tier.ELITE)
+				.diaryComplete("Karamja", AchievementDiaryData.Tier.MEDIUM)
+				.diaryComplete("Karamja", AchievementDiaryData.Tier.ELITE);
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.DIARY_TIERS_COMPLETED, 48);
+			h.store().addGoal(goal);
+
+			assertTrue(h.tracker().checkGoals(h.store().getGoals()));
+			assertEquals(4, goal.getCurrentValue());
+		}
+
+		@Test
+		@DisplayName("reads 0 tiers on a fresh account")
+		void zeroOnFreshAccount()
+		{
+			MockGameState state = new MockGameState();
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.DIARY_TIERS_COMPLETED, 48);
+			h.store().addGoal(goal);
+
+			h.tracker().checkGoals(h.store().getGoals());
+			assertEquals(0, goal.getCurrentValue());
+			assertFalse(goal.isComplete());
+		}
+
+		@Test
+		@DisplayName("completes a 48-tier goal when every diary tier is done")
+		void completesDiaryCape()
+		{
+			MockGameState state = new MockGameState();
+			for (String area : AchievementDiaryData.AREA_KEYS)
+			{
+				for (AchievementDiaryData.Tier tier : AchievementDiaryData.Tier.values())
+				{
+					state.diaryComplete(area, tier);
+				}
+			}
+
+			var h = TrackerTestHarness.forAccount(state);
+			Goal goal = makeAccountGoal(AccountMetric.DIARY_TIERS_COMPLETED, 48);
+			h.store().addGoal(goal);
+
+			h.tracker().checkGoals(h.store().getGoals());
+			assertEquals(48, goal.getCurrentValue());
+			assertTrue(goal.isComplete());
+		}
+
+		@Test
+		@DisplayName("detects tier completion between snapshots")
+		void detectsTierIncrease()
+		{
+			MockGameState before = new MockGameState()
+				.diaryComplete("Varrock", AchievementDiaryData.Tier.EASY);
+			MockGameState after = before.copy()
+				.diaryComplete("Varrock", AchievementDiaryData.Tier.MEDIUM);
+
+			var h = TrackerTestHarness.forAccount(before);
+			Goal goal = makeAccountGoal(AccountMetric.DIARY_TIERS_COMPLETED, 2);
+			h.store().addGoal(goal);
+
+			h.tracker().checkGoals(h.store().getGoals());
+			assertEquals(1, goal.getCurrentValue());
+			assertFalse(goal.isComplete());
+
+			h = h.withNewState(after);
+			h.tracker().checkGoals(h.store().getGoals());
+			assertEquals(2, goal.getCurrentValue());
+			assertTrue(goal.isComplete());
 		}
 	}
 

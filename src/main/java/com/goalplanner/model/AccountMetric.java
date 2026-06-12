@@ -31,6 +31,24 @@ public enum AccountMetric
 	/** Doom of Mokhaiotl deepest delve level reached (1–8+). */
 	DOM_DEEPEST_LEVEL("DoM Deepest Level", new Color(80, 40, 120), 0, null, 1, 8),
 	/**
+	 * Collection log unique slots obtained (VarPlayer COLLECTION_COUNT,
+	 * transmitted on login since the Jan 2025 collection log update; reads 0
+	 * until the account has synced by opening the collection log once).
+	 * maxTarget is a static fallback for the slot total — goal creation
+	 * prefers the live total from VarPlayer COLLECTION_COUNT_MAX, which
+	 * grows as new slots are added to the game.
+	 */
+	COLLECTION_LOG_SLOTS("Collection Log Slots", new Color(181, 137, 60), 0,
+		"item:" + net.runelite.api.ItemID.COLLECTION_LOG, 1, 1701),
+	/**
+	 * Achievement diary tiers completed across all 12 areas and 4 tiers
+	 * (0–48). Summed from the same per-tier completion varbit refdata that
+	 * DIARY goals use (AchievementDiaryData), including the Karamja
+	 * Easy/Medium/Hard task-count varbits.
+	 * Icon: SpriteID.AchievementDiaryIcons.GREEN_ACHIEVEMENT_DIARIES.
+	 */
+	DIARY_TIERS_COMPLETED("Diary Tiers", new Color(76, 175, 80), 836, null, 1, 48),
+	/**
 	 * League Points — lifetime points earned during the active OSRS Leagues
 	 * event (VarPlayer LEAGUE_POINTS_COMPLETED). Only increments; spending
 	 * currency does not affect this counter. Reads 0 outside a leagues world.

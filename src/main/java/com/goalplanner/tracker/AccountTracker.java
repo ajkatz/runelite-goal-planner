@@ -101,6 +101,19 @@ public class AccountTracker extends AbstractTracker
 				return client.getVarpValue(VarPlayerID.COLOSSEUM_GLORY);
 			case DOM_DEEPEST_LEVEL:
 				return client.getVarpValue(VarPlayerID.DOM_DEEPEST_LEVEL);
+			case COLLECTION_LOG_SLOTS:
+			{
+				// Varp 2943, transmitted on login since Jan 2025. Reads 0 until
+				// the account's count has synced (the log must have been opened
+				// once since server-side tracking began — the "?" state in the
+				// Character Summary). Skip on 0 rather than clobber stored
+				// progress with a transient/unsynced read.
+				int slots = client.getVarpValue(VarPlayerID.COLLECTION_COUNT);
+				return slots > 0 ? slots : -1;
+			}
+			case DIARY_TIERS_COMPLETED:
+				return com.goalplanner.data.AchievementDiaryData
+					.countCompletedTiers(client::getVarbitValue);
 			case LEAGUE_POINTS:
 				// Lifetime league points earned from task completion. Spending
 				// currency (LEAGUE_POINTS_CURRENCY = 2613) does not reduce this.

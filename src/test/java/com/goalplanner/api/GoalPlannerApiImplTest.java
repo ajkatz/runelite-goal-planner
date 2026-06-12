@@ -67,6 +67,73 @@ class GoalPlannerApiImplTest
 	}
 
 	// ====================================================================
+	// Public API: addAccountGoal target clamping
+	// ====================================================================
+
+	@Nested
+	@DisplayName("addAccountGoal")
+	class AddAccountGoalTests
+	{
+		@Test
+		@DisplayName("creates a diary tiers goal clamped to the 48-tier maximum")
+		void clampsDiaryTiersToMax()
+		{
+			String id = api.addAccountGoal(
+				com.goalplanner.model.AccountMetric.DIARY_TIERS_COMPLETED.name(), 100);
+
+			Goal goal = api.findGoal(id);
+			assertNotNull(goal);
+			assertEquals(48, goal.getTargetValue());
+			assertEquals("48 Diary Tiers", goal.getName());
+		}
+
+		@Test
+		@DisplayName("clamps collection log targets to the static fallback max without a client")
+		void clampsCollectionLogToStaticMax()
+		{
+			String id = api.addAccountGoal(
+				com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.name(), 5000);
+
+			Goal goal = api.findGoal(id);
+			assertNotNull(goal);
+			assertEquals(com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.getMaxTarget(),
+				goal.getTargetValue());
+		}
+
+		@Test
+		@DisplayName("prefers the live in-game slot total over the static max when synced")
+		void prefersLiveSlotTotal()
+		{
+			net.runelite.api.Client client = mock(net.runelite.api.Client.class);
+			when(client.getVarpValue(net.runelite.api.gameval.VarPlayerID.COLLECTION_COUNT_MAX))
+				.thenReturn(1750);
+			GoalPlannerApiImpl liveApi = new GoalPlannerApiImpl(
+				store, new GoalReorderingService(store), mock(ItemManager.class),
+				mock(WikiCaRepository.class), client);
+
+			String id = liveApi.addAccountGoal(
+				com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.name(), 5000);
+
+			Goal goal = liveApi.findGoal(id);
+			assertNotNull(goal);
+			assertEquals(1750, goal.getTargetValue());
+		}
+
+		@Test
+		@DisplayName("keeps an in-range collection log target unchanged")
+		void keepsInRangeTarget()
+		{
+			String id = api.addAccountGoal(
+				com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.name(), 600);
+
+			Goal goal = api.findGoal(id);
+			assertNotNull(goal);
+			assertEquals(600, goal.getTargetValue());
+			assertEquals("600 Collection Log Slots", goal.getName());
+		}
+	}
+
+	// ====================================================================
 	// Public API: addSkillGoal / addCustomGoal
 	// ====================================================================
 
