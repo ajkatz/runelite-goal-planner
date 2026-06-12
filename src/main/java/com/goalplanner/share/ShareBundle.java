@@ -80,13 +80,11 @@ public class ShareBundle
 	}
 
 	/**
-	 * Export-side metadata: requires/orRequires edges between goals in
-	 * DIFFERENT sections of this bundle that the wire format cannot carry
-	 * (relation refs are section-scoped) and were therefore dropped.
-	 * {@code transient} — never serialized; only meaningful on a bundle fresh
-	 * from {@code ShareExportService}, so the export UI can warn the sharer.
+	 * v2 payloads: dependency edges between goals in DIFFERENT sections,
+	 * which the per-section {@code requires}/{@code orRequires} refs cannot
+	 * express. {@code null} on the v1 wire and when no edges cross sections.
 	 */
-	private transient int droppedCrossSectionEdges;
+	private List<CrossEdgeDto> crossEdges;
 
 	/** Total goals across all sections, version-neutral (v1 or v2 shape). */
 	public int totalGoalCount()

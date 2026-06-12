@@ -64,7 +64,8 @@ public final class ShareMapper
 
 	/**
 	 * Build one v2 section entry. Relation refs are scoped to this section's
-	 * goal list (cross-section edges are dropped by {@code remap}).
+	 * goal list ({@code remap} skips out-of-section edges — the bundle-level
+	 * {@link #crossEdges} pass carries those).
 	 */
 	public static SectionShareDto toSectionDto(
 		String name,
@@ -88,6 +89,72 @@ public final class ShareMapper
 		bundle.setSharedBy(sharedBy);
 		bundle.setSections(sections != null ? sections : new ArrayList<>());
 		return bundle;
+	}
+
+	/**
+	 * Build the cross-section dependency edges for a multi-section bundle:
+	 * every requires/orRequires edge whose endpoints live in two DIFFERENT
+	 * groups. {@code groups} must be the same goal lists, in the same order,
+	 * that produced the bundle's section entries — refs are the per-section
+	 * list indices {@link #toDtos} assigned. Edges to goals outside the
+	 * bundle entirely are not representable and remain dropped.
+	 */
+	public static List<CrossEdgeDto> crossEdges(List<List<Goal>> groups)
+	{
+		// goal id → (section index, ref) across the whole bundle.
+		Map<String, int[]> at = new HashMap<>();
+		for (int s = 0; s < groups.size(); s++)
+		{
+			List<Goal> goals = groups.get(s);
+			for (int r = 0; r < goals.size(); r++)
+			{
+				Goal g = goals.get(r);
+				if (g != null && g.getId() != null)
+				{
+					at.put(g.getId(), new int[]{s, r});
+				}
+			}
+		}
+		List<CrossEdgeDto> out = new ArrayList<>();
+		for (int s = 0; s < groups.size(); s++)
+		{
+			List<Goal> goals = groups.get(s);
+			for (int r = 0; r < goals.size(); r++)
+			{
+				Goal g = goals.get(r);
+				if (g == null)
+				{
+					continue;
+				}
+				addCrossEdges(out, at, s, r, g.getRequiredGoalIds(), false);
+				addCrossEdges(out, at, s, r, g.getOrRequiredGoalIds(), true);
+			}
+		}
+		return out;
+	}
+
+	private static void addCrossEdges(List<CrossEdgeDto> out, Map<String, int[]> at,
+		int fromSection, int fromRef, List<String> targetIds, boolean or)
+	{
+		if (targetIds == null)
+		{
+			return;
+		}
+		for (String id : targetIds)
+		{
+			int[] target = at.get(id);
+			if (target == null || target[0] == fromSection)
+			{
+				continue;   // outside the bundle, or section-local (carried on the dto)
+			}
+			CrossEdgeDto edge = new CrossEdgeDto();
+			edge.setFromSection(fromSection);
+			edge.setFromRef(fromRef);
+			edge.setToSection(target[0]);
+			edge.setToRef(target[1]);
+			edge.setOr(or);
+			out.add(edge);
+		}
 	}
 
 	private static List<GoalShareDto> toDtos(List<Goal> goals, Function<String, Tag> tagLookup)

@@ -8,8 +8,8 @@ import lombok.Data;
  * One section's worth of shared goals inside a {@link ShareBundle} (schema v2).
  * A v2 bundle carries a list of these, so one share code can import several
  * sections at once. Relation {@code ref} indices on {@link GoalShareDto} are
- * scoped to the section that contains them — cross-section requirements are
- * not part of the format.
+ * scoped to the section that contains them — edges BETWEEN sections travel on
+ * the bundle's {@link ShareBundle#getCrossEdges() crossEdges} list instead.
  */
 @Data
 public class SectionShareDto

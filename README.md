@@ -113,9 +113,11 @@ what single-section shares still emit, so any plugin build imports them.
 `GPSHARE2:` carries **multiple sections in one code** — each imports as its own
 section, in one undo — and a section can be marked `targetDefault`, landing its
 goals in your **Default plan** instead: existing equivalent goals are reused
-(the same dedup as in-game adds), so re-importing never duplicates. "Copy share
-code (all sections)" in the section right-click menu exports every user section
-as one `GPSHARE2:` code.
+(the same dedup as in-game adds), so re-importing never duplicates. Dependency
+links **between** sections travel on a bundle-level cross-edge list (per-goal
+relation refs stay section-scoped) and are rewired on import. "Copy share code
+(all sections)" in the section right-click menu exports every user section as
+one `GPSHARE2:` code; a multi-select spanning sections also exports per-section.
 
 ## Testing
 

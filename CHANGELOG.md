@@ -68,9 +68,10 @@ Goal sharing release: share codes, party transport, the nested dependency
   of flattening everything into one combined import. A selection entirely
   within one user section keeps that section's identity; one entirely in
   the default plan stays a legacy loose-goals code.
-- Multi-section exports now warn when dependency links between goals in
-  *different* sections can't be carried by the code (the wire scopes
-  relations per section); previously they were dropped silently.
+- Dependency links between goals in *different* sections are carried by
+  multi-section codes (a bundle-level cross-edge list alongside the
+  section-scoped relation refs) and rewired on import; previously they
+  were dropped silently.
 - A completed goal manually moved into a user section stays there —
   reconcile no longer yanks it back to Completed on the next update.
 - The nested view keeps correct indentation for chains running through

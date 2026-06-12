@@ -79,6 +79,8 @@ public final class ShareCodec
 			wire.setSectionName(null);
 			wire.setGoals(null);
 			wire.setSections(secs);
+			wire.setCrossEdges(bundle.getCrossEdges() != null && !bundle.getCrossEdges().isEmpty()
+				? bundle.getCrossEdges() : null);
 			return wire;
 		}
 		SectionShareDto only = secs.get(0);
@@ -88,6 +90,7 @@ public final class ShareCodec
 		wire.setSectionColorRgb(only.getColorRgb());
 		wire.setGoals(only.getGoals());
 		wire.setSections(null);
+		wire.setCrossEdges(null); // single section — nothing to cross
 		return wire;
 	}
 

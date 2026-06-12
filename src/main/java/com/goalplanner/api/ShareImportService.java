@@ -59,8 +59,12 @@ class ShareImportService
 		{
 			return null;
 		}
+		// One canonical section list for the whole import — effectiveSections()
+		// builds fresh wrapper instances per call for legacy bundles, and the
+		// cross-edge pass needs stable bundle-position indices.
+		final List<SectionShareDto> bundleSections = bundle.effectiveSections();
 		final List<SectionShareDto> sections = new ArrayList<>();
-		for (SectionShareDto s : bundle.effectiveSections())
+		for (SectionShareDto s : bundleSections)
 		{
 			if (s != null && s.getGoals() != null && !s.getGoals().isEmpty())
 			{
@@ -99,6 +103,10 @@ class ShareImportService
 				addedOrRequires.clear();
 				landedSectionId[0] = null;
 				boolean importedAnything = false;
+				// Per-section ref → created/reused goal id, keyed by the
+				// section's position in the BUNDLE's section list — cross-edge
+				// entries reference sections by that index.
+				final Map<Integer, Map<Integer, String>> refMaps = new HashMap<>();
 
 				for (SectionShareDto shared : sections)
 				{
@@ -188,6 +196,40 @@ class ShareImportService
 							{
 								addedOrRequires.add(new String[]{fromId, toId});
 							}
+						}
+					}
+					refMaps.put(bundleSections.indexOf(shared), refToId);
+				}
+
+				// Third pass: cross-section edges — (section index, ref) pairs
+				// resolved through the per-section maps. Unresolvable entries
+				// (skipped goal/section, malformed indices) are dropped.
+				if (bundle.getCrossEdges() != null)
+				{
+					for (com.goalplanner.share.CrossEdgeDto edge : bundle.getCrossEdges())
+					{
+						if (edge == null)
+						{
+							continue;
+						}
+						Map<Integer, String> fromMap = refMaps.get(edge.getFromSection());
+						Map<Integer, String> toMap = refMaps.get(edge.getToSection());
+						String fromId = fromMap != null ? fromMap.get(edge.getFromRef()) : null;
+						String toId = toMap != null ? toMap.get(edge.getToRef()) : null;
+						if (fromId == null || toId == null)
+						{
+							continue;
+						}
+						if (edge.isOr())
+						{
+							if (api.goalStore.addOrRequirement(fromId, toId))
+							{
+								addedOrRequires.add(new String[]{fromId, toId});
+							}
+						}
+						else if (api.goalStore.addRequirement(fromId, toId))
+						{
+							addedRequires.add(new String[]{fromId, toId});
 						}
 					}
 				}

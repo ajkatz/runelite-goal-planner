@@ -164,6 +164,8 @@ class ShareExportServiceTest
 		env.store.addGoal(zulrah);
 		env.store.addGoal(agility);
 		env.store.addGoal(loose);
+		// Dependency across the selection's sections — must survive the trip.
+		env.store.addRequirement(zulrah.getId(), agility.getId());
 
 		ShareBundle bundle = env.api.exportGoalsBundle(
 			java.util.Arrays.asList(zulrah.getId(), agility.getId(), loose.getId()), "Andrew");
@@ -196,6 +198,10 @@ class ShareExportServiceTest
 		Goal importedLoose = receiver.store.getGoals().stream()
 			.filter(g -> "Loose".equals(g.getName())).findFirst().orElseThrow();
 		assertEquals(receiver.store.getIncompleteSection().getId(), importedLoose.getSectionId());
+		// The cross-section dependency came back, rewired to fresh ids.
+		Goal importedAgility = receiver.store.getGoals().stream()
+			.filter(g -> "Agility - Level 70".equals(g.getName())).findFirst().orElseThrow();
+		assertTrue(importedZulrah.getRequiredGoalIds().contains(importedAgility.getId()));
 	}
 
 	@Test
@@ -206,7 +212,7 @@ class ShareExportServiceTest
 	}
 
 	@Test
-	void exportAllSectionsCountsDroppedCrossSectionEdges()
+	void exportAllSectionsCarriesCrossSectionEdgesAndImportRestoresThem()
 	{
 		Env env = new Env();
 		Section skills = env.store.createUserSection("Skills");
@@ -218,22 +224,34 @@ class ShareExportServiceTest
 			.questName("SONG_OF_THE_ELVES").sectionId(quests.getId()).build();
 		env.store.addGoal(agility);
 		env.store.addGoal(sote);
-		// Cross-section dependency: the wire format can't carry it.
+		// Cross-section dependency: rides on the bundle's crossEdges list.
 		env.store.addRequirement(sote.getId(), agility.getId());
 
 		ShareBundle bundle = env.api.exportAllSectionsBundle("Andrew");
 
 		assertNotNull(bundle);
 		assertEquals(2, bundle.totalGoalCount());
-		assertEquals(1, bundle.getDroppedCrossSectionEdges());
-		// The edge really is absent from the wire payload.
+		assertEquals(1, bundle.getCrossEdges().size());
+		// Section-scoped refs stay clean — the edge is NOT in the per-goal lists.
 		assertTrue(bundle.effectiveSections().stream()
 			.flatMap(s -> s.getGoals().stream())
 			.allMatch(g -> g.getRequires().isEmpty() && g.getOrRequires().isEmpty()));
+
+		// Round-trip through the codec into a second store: the dependency
+		// comes back, rewired to the receiver's fresh ids across sections.
+		ShareCodec codec = new ShareCodec(new Gson());
+		Env receiver = new Env();
+		receiver.api.importShareBundle(codec.decode(codec.encode(bundle)));
+		Goal importedSote = receiver.store.getGoals().stream()
+			.filter(g -> "Song of the Elves".equals(g.getName())).findFirst().orElseThrow();
+		Goal importedAgility = receiver.store.getGoals().stream()
+			.filter(g -> "Agility - Level 70".equals(g.getName())).findFirst().orElseThrow();
+		assertNotEquals(importedSote.getSectionId(), importedAgility.getSectionId());
+		assertTrue(importedSote.getRequiredGoalIds().contains(importedAgility.getId()));
 	}
 
 	@Test
-	void exportAllSectionsReportsZeroDroppedEdgesWhenRelationsAreSectionLocal()
+	void exportAllSectionsHasNoCrossEdgesWhenRelationsAreSectionLocal()
 	{
 		Env env = new Env();
 		seedInfernoSection(env); // Zuk requires Ranged, both in one section
@@ -241,7 +259,7 @@ class ShareExportServiceTest
 		ShareBundle bundle = env.api.exportAllSectionsBundle("Andrew");
 
 		assertNotNull(bundle);
-		assertEquals(0, bundle.getDroppedCrossSectionEdges());
+		assertTrue(bundle.getCrossEdges().isEmpty());
 		assertEquals(2, bundle.totalGoalCount());
 	}
 }
