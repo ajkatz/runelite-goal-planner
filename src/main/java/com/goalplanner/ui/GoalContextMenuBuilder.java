@@ -1176,7 +1176,8 @@ class GoalContextMenuBuilder
 				moveMenu.add(moveDown);
 			}
 
-			if (!destinations.isEmpty() || !allInDefault)
+			// Always offered: even with no user sections and an all-default
+			// selection, "New Section…" is a valid target.
 			{
 				JMenu moveToSection = new JMenu("Move to Section");
 				if (!allInDefault)
@@ -1200,6 +1201,25 @@ class GoalContextMenuBuilder
 					});
 					moveToSection.add(item);
 				}
+				if (moveToSection.getMenuComponentCount() > 0)
+				{
+					moveToSection.addSeparator();
+				}
+				JMenuItem moveNewSection = new JMenuItem("Move to New Section…");
+				moveNewSection.addActionListener(e -> {
+					String input = JOptionPane.showInputDialog(panel, "New section name:", "");
+					if (input != null && !input.trim().isEmpty())
+					{
+						String newId = api.createSection(input.trim());
+						if (newId != null)
+						{
+							LinkedHashSet<String> ids = new LinkedHashSet<>();
+							for (Goal g : selectedGoals) ids.add(g.getId());
+							api.bulkMoveGoalsToSection(ids, newId);
+						}
+					}
+				});
+				moveToSection.add(moveNewSection);
 				moveMenu.add(moveToSection);
 
 				// Bulk Duplicate to Section — independent copies, in-set
@@ -1227,6 +1247,25 @@ class GoalContextMenuBuilder
 					});
 					dupToSection.add(item);
 				}
+				if (dupToSection.getMenuComponentCount() > 0)
+				{
+					dupToSection.addSeparator();
+				}
+				JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
+				dupNewSection.addActionListener(e -> {
+					String input = JOptionPane.showInputDialog(panel, "New section name:", "");
+					if (input != null && !input.trim().isEmpty())
+					{
+						String newId = api.createSection(input.trim());
+						if (newId != null)
+						{
+							LinkedHashSet<String> ids = new LinkedHashSet<>();
+							for (Goal g : selectedGoals) ids.add(g.getId());
+							api.duplicateGoalsToSection(ids, newId);
+						}
+					}
+				});
+				dupToSection.add(dupNewSection);
 				moveMenu.add(dupToSection);
 			}
 

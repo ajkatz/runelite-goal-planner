@@ -86,6 +86,10 @@ Goal sharing release: share codes, party transport, the nested dependency
   on add instead of waiting for the next stat change.
 - Imported sections apply their shared colour and respect the 40-char
   section-name cap.
+- Bulk (multi-select) menus: "Move to Section" no longer disappears when
+  the selection sits in the default list with no user sections, and both
+  bulk Move/Duplicate to Section gained the "… to New Section…" entry the
+  single-goal menu already had.
 
 ## [0.2.0] — 2026-06-02
 
