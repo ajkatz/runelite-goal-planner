@@ -30,7 +30,6 @@ import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -305,15 +304,13 @@ public class IconPickerDialog extends JDialog
 	}
 
 	/**
-	 * Discover bundled icon keys by listing /icons/ on the classpath.
-	 * Java's classloader doesn't expose directory listings reliably, so
-	 * this returns an empty list for now — bundled icon support is wired
-	 * but no icons are currently bundled. Future work can replace this
-	 * with a proper resource scanner or a hardcoded manifest.
+	 * Bundled icon keys — a hardcoded manifest of src/main/resources/icons/
+	 * (Java's classloader doesn't expose directory listings reliably).
+	 * Keep in step with the files actually shipped there.
 	 */
 	private List<String> listBundledIconKeys()
 	{
-		return new ArrayList<>();
+		return List.of("lamp");
 	}
 
 	/**

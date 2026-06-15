@@ -33,20 +33,4 @@ public final class RelativeTargetResolver
 		return (int) Math.min((long) MAX_SKILL_XP, sum);
 	}
 
-	/**
-	 * Resolve a "gain N items" delta against the player's current item count.
-	 * Negative or zero deltas are returned as -1 (invalid). Capped at
-	 * Integer.MAX_VALUE to avoid overflow on absurd inputs.
-	 *
-	 * @param currentCount the player's current count across all known
-	 *                     containers (>= 0)
-	 * @param deltaCount the additional items the user wants
-	 * @return resolved absolute item target, or -1 if delta is non-positive
-	 */
-	public static int resolveItemCount(int currentCount, int deltaCount)
-	{
-		if (deltaCount <= 0) return -1;
-		long sum = (long) Math.max(0, currentCount) + (long) deltaCount;
-		return (int) Math.min((long) Integer.MAX_VALUE, sum);
-	}
 }

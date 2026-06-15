@@ -13,7 +13,7 @@ import static org.junit.Assert.fail;
 
 /**
  * Round-trip and rejection behaviour for the share-code codec — the
- * compress/uncompress layer that both the Party transport and copy/paste
+ * compress/uncompress layer that the copy/paste
  * export sit on top of.
  */
 public class ShareCodecTest

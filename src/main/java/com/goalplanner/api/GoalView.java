@@ -104,16 +104,6 @@ public class GoalView
 			this.optional = optional;
 		}
 	}
-	/** Topological tier within this goal's section, assigned by
-	 *  {@link com.goalplanner.api.GoalPlannerInternalApi#queryGoalsTopologicallySorted}.
-	 *  Leaves (nothing required in-section) are tier 0; each subsequent
-	 *  tier consists of goals whose in-section requirements are all in
-	 *  earlier tiers. -1 when the view was not produced by the topo-sort
-	 *  query (e.g. from {@code queryAllGoals}). Used by the panel to
-	 *  enable/disable the up/down arrows based on whether the visually
-	 *  adjacent card is in the same tier. */
-	public int topoTier = -1;
-
 	// ----- type-specific extras -----
 
 	public Map<String, Object> attributes = new HashMap<>();

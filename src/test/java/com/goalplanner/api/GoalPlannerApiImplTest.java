@@ -75,48 +75,41 @@ class GoalPlannerApiImplTest
 	class AddAccountGoalTests
 	{
 		@Test
-		@DisplayName("creates a diary tiers goal clamped to the 48-tier maximum")
-		void clampsDiaryTiersToMax()
+		@DisplayName("allows a target above the metric max — ceilings grow with game updates")
+		void allowsTargetAboveMax()
 		{
 			String id = api.addAccountGoal(
 				com.goalplanner.model.AccountMetric.DIARY_TIERS_COMPLETED.name(), 100);
 
 			Goal goal = api.findGoal(id);
 			assertNotNull(goal);
-			assertEquals(48, goal.getTargetValue());
-			assertEquals("48 Diary Tiers", goal.getName());
+			assertEquals(100, goal.getTargetValue());
+			assertEquals("100 Diary Tiers", goal.getName());
 		}
 
 		@Test
-		@DisplayName("clamps collection log targets to the static fallback max without a client")
-		void clampsCollectionLogToStaticMax()
+		@DisplayName("allows an over-max collection log target without a client")
+		void allowsOverMaxCollectionLogTarget()
 		{
 			String id = api.addAccountGoal(
 				com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.name(), 5000);
 
 			Goal goal = api.findGoal(id);
 			assertNotNull(goal);
-			assertEquals(com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.getMaxTarget(),
-				goal.getTargetValue());
+			assertEquals(5000, goal.getTargetValue());
 		}
 
 		@Test
-		@DisplayName("prefers the live in-game slot total over the static max when synced")
-		void prefersLiveSlotTotal()
+		@DisplayName("clamps a below-minimum target up to the metric's floor")
+		void clampsBelowMinTargetToFloor()
 		{
-			net.runelite.api.Client client = mock(net.runelite.api.Client.class);
-			when(client.getVarpValue(net.runelite.api.gameval.VarPlayerID.COLLECTION_COUNT_MAX))
-				.thenReturn(1750);
-			GoalPlannerApiImpl liveApi = new GoalPlannerApiImpl(
-				store, new GoalReorderingService(store), mock(ItemManager.class),
-				mock(WikiCaRepository.class), client);
+			// COMBAT_LEVEL's minimum is 3 — a target of 1 is not a real state.
+			String id = api.addAccountGoal(
+				com.goalplanner.model.AccountMetric.COMBAT_LEVEL.name(), 1);
 
-			String id = liveApi.addAccountGoal(
-				com.goalplanner.model.AccountMetric.COLLECTION_LOG_SLOTS.name(), 5000);
-
-			Goal goal = liveApi.findGoal(id);
+			Goal goal = api.findGoal(id);
 			assertNotNull(goal);
-			assertEquals(1750, goal.getTargetValue());
+			assertEquals(3, goal.getTargetValue());
 		}
 
 		@Test
@@ -261,6 +254,29 @@ class GoalPlannerApiImplTest
 
 		api.removeGoal(id);
 		assertFalse(api.getSelectedGoalIds().contains(id));
+	}
+
+	@Test
+	@DisplayName("undoing a compound add prunes the now-deleted goals from the selection")
+	void undoPrunesStaleSelection()
+	{
+		// Mirrors "Add requirements" then undo: a compound creates goals and
+		// the gesture selects them directly; undo removes the goals but the
+		// selection must not keep their dead ids (the stale "N selected" bug).
+		api.beginCompound("seed-like gesture");
+		String a = api.addCustomGoal("Prereq A", "");
+		String b = api.addCustomGoal("Prereq B", "");
+		api.endCompound();
+		api.addToGoalSelection(a);
+		api.addToGoalSelection(b);
+		assertEquals(2, api.getSelectedGoalIds().size());
+
+		api.undo();
+
+		assertTrue(api.getSelectedGoalIds().isEmpty(),
+			"selection should drop ids whose goals were removed by undo");
+		assertNull(api.findGoal(a));
+		assertNull(api.findGoal(b));
 	}
 
 	@Test
@@ -986,6 +1002,121 @@ class GoalPlannerApiImplTest
 				.questName("DRAGON_SLAYER_II").targetValue(1).build();
 			store.addGoal(quest);
 			assertFalse(api.changeTarget(quest.getId(), 2));
+		}
+	}
+
+	// ====================================================================
+	// changeTarget completion re-evaluation (completed goals are retargetable)
+	// ====================================================================
+
+	@Nested
+	@DisplayName("changeTarget completion re-evaluation")
+	class ChangeTargetCompletionTests
+	{
+		private Goal completedItemGoal(int current, int target)
+		{
+			Goal g = Goal.builder().type(GoalType.ITEM_GRIND).name("Cannonballs")
+				.itemId(2).currentValue(current).targetValue(target)
+				.description(target + " total").build();
+			g.setStatus(GoalStatus.COMPLETE);
+			g.setCompletedAt(123_456_789L);
+			store.addGoal(g);
+			store.reconcileCompletedSection(); // archive into Completed like the live flow
+			return g;
+		}
+
+		@Test
+		@DisplayName("raising the target past the recorded progress reopens a completed goal")
+		void raisingTargetReopens()
+		{
+			Goal g = completedItemGoal(100, 100);
+			assertEquals(store.getCompletedSection().getId(), g.getSectionId());
+
+			assertTrue(api.changeTarget(g.getId(), 200));
+			assertEquals(GoalStatus.ACTIVE, g.getStatus());
+			assertEquals(0, g.getCompletedAt());
+			assertEquals(store.getIncompleteSection().getId(), g.getSectionId(),
+				"reopened goal leaves the Completed section");
+		}
+
+		@Test
+		@DisplayName("lowering the target to the recorded progress completes an active goal")
+		void loweringTargetCompletes()
+		{
+			Goal g = Goal.builder().type(GoalType.ITEM_GRIND).name("Cannonballs")
+				.itemId(2).currentValue(80).targetValue(100)
+				.description("100 total").build();
+			store.addGoal(g);
+
+			assertTrue(api.changeTarget(g.getId(), 50));
+			assertEquals(GoalStatus.COMPLETE, g.getStatus());
+			assertTrue(g.getCompletedAt() > 0);
+			assertEquals(store.getCompletedSection().getId(), g.getSectionId(),
+				"newly-met goal archives into Completed");
+		}
+
+		@Test
+		@DisplayName("undo restores the prior completion state and section")
+		void undoRestoresCompletion()
+		{
+			Goal g = completedItemGoal(100, 100);
+			api.changeTarget(g.getId(), 200);
+			assertEquals(GoalStatus.ACTIVE, g.getStatus());
+
+			api.undo();
+			assertEquals(GoalStatus.COMPLETE, g.getStatus());
+			assertEquals(123_456_789L, g.getCompletedAt(), "original completion timestamp survives");
+			assertEquals(100, g.getTargetValue());
+			assertEquals(store.getCompletedSection().getId(), g.getSectionId());
+		}
+
+		@Test
+		@DisplayName("re-typing the same target is a no-op and keeps a manual completion")
+		void sameTargetIsNoOp()
+		{
+			// Manually-completed goal whose recorded progress is below target —
+			// re-evaluating it would reopen it, so a same-value change must not.
+			Goal g = completedItemGoal(0, 1);
+			assertFalse(api.changeTarget(g.getId(), 1));
+			assertEquals(GoalStatus.COMPLETE, g.getStatus());
+		}
+
+		@Test
+		@DisplayName("an ACCOUNT goal without a persisted sprite renders the metric's sprite")
+		void importedAccountGoalGetsMetricSprite()
+		{
+			// Built like a share import: accountMetric set, spriteId left 0.
+			Goal g = Goal.builder().type(GoalType.ACCOUNT).name("Quest Points")
+				.accountMetric("QUEST_POINTS").targetValue(335).build();
+			store.addGoal(g);
+			assertEquals(com.goalplanner.model.AccountMetric.QUEST_POINTS.getSpriteId(),
+				api.queryGoalView(g.getId()).spriteId,
+				"icon derives from the metric at query time, not the creation path");
+		}
+
+		@Test
+		@DisplayName("a persisted sprite on an ACCOUNT goal is never overridden")
+		void persistedSpriteWins()
+		{
+			Goal g = Goal.builder().type(GoalType.ACCOUNT).name("QP")
+				.accountMetric("QUEST_POINTS").targetValue(335).spriteId(1234).build();
+			store.addGoal(g);
+			assertEquals(1234, api.queryGoalView(g.getId()).spriteId);
+		}
+
+		@Test
+		@DisplayName("reopens a completed SKILL goal when the XP target is raised")
+		void skillGoalReopens()
+		{
+			String id = api.addSkillGoal(Skill.PRAYER, 1000);
+			api.recordGoalProgress(id, 1000); // tracker-style completion
+			Goal g = api.findGoal(id);
+			assertEquals(GoalStatus.COMPLETE, g.getStatus());
+
+			assertTrue(api.changeTarget(id, 50_000));
+			assertEquals(GoalStatus.ACTIVE, g.getStatus());
+			assertEquals("Prayer - Level " + net.runelite.api.Experience.getLevelForXp(50_000),
+				g.getName(), "name regenerates alongside the re-evaluation");
 		}
 	}
 

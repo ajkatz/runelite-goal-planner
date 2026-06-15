@@ -109,7 +109,12 @@ public final class QuestRequirementResolver
 			{
 				net.runelite.api.Player p = client.getLocalPlayer();
 				return p != null ? p.getCombatLevel() : 0;
-			});
+			},
+			// Live current values for the hard account-metric requirements, so
+			// "Incomplete only" doesn't seed a QP/combat/Kudos goal the player
+			// already meets (it would auto-complete on the next tick — the bug
+			// this closes). currentValue covers every metric generically.
+			metric -> metric.currentValue(client));
 	}
 
 	/**
@@ -146,6 +151,27 @@ public final class QuestRequirementResolver
 		ToIntFunction<Skill> skillLevelLookup,
 		Function<Quest, QuestState> questStateLookup,
 		IntSupplier combatLevelLookup)
+	{
+		// Default account lookup = "nothing met" (0), so the floor-based "All"
+		// path and existing tests emit every account requirement. The live
+		// (client) path supplies real current values to pre-filter met ones.
+		return resolve(quest, skillLevelLookup, questStateLookup, combatLevelLookup,
+			metric -> 0);
+	}
+
+	/**
+	 * Core overload with an account-metric current-value lookup, used to
+	 * pre-filter hard QP / combat / Kudos requirements the player already
+	 * meets (mirrors the skill/quest pre-filtering). {@code accountValueLookup}
+	 * returns the player's current value for a metric, or 0 to treat it as
+	 * unmet (emit the requirement).
+	 */
+	public static Resolved resolve(
+		Quest quest,
+		ToIntFunction<Skill> skillLevelLookup,
+		Function<Quest, QuestState> questStateLookup,
+		IntSupplier combatLevelLookup,
+		ToIntFunction<com.goalplanner.model.AccountMetric> accountValueLookup)
 	{
 		QuestRequirements.Reqs reqs = QuestRequirements.lookup(quest);
 		if (reqs == null)
@@ -203,9 +229,13 @@ public final class QuestRequirementResolver
 				.build());
 		}
 
-		// Account-wide requirements: QP and combat level are now real
-		// ACCOUNT goal templates instead of stubs.
-		if (reqs.questPoints > 0)
+		// Account-wide requirements: QP, combat level, and Kudos as real ACCOUNT
+		// goal templates. Pre-filtered against the player's current value (like
+		// skills/quests above) so "Incomplete only" never seeds an already-met
+		// account requirement that would auto-complete on the next tracker tick.
+		// The "All" / test paths pass a 0-lookup, so nothing is filtered there.
+		if (reqs.questPoints > 0
+			&& accountValueLookup.applyAsInt(com.goalplanner.model.AccountMetric.QUEST_POINTS) < reqs.questPoints)
 		{
 			templates.add(Goal.builder()
 				.type(GoalType.ACCOUNT)
@@ -214,7 +244,12 @@ public final class QuestRequirementResolver
 				.targetValue(reqs.questPoints)
 				.build());
 		}
-		if (reqs.combatLevel > 0)
+		// Hard combat gate. Filtered via the ACCOUNT lookup (not combatLevelLookup),
+		// so the floor/"All" path — which passes a 0-lookup — always emits it
+		// (a hard gate stays visible), while the live "Incomplete only" path,
+		// which supplies the real combat level, skips it once met.
+		if (reqs.combatLevel > 0
+			&& accountValueLookup.applyAsInt(com.goalplanner.model.AccountMetric.COMBAT_LEVEL) < reqs.combatLevel)
 		{
 			templates.add(Goal.builder()
 				.type(GoalType.ACCOUNT)
@@ -223,7 +258,8 @@ public final class QuestRequirementResolver
 				.targetValue(reqs.combatLevel)
 				.build());
 		}
-		if (reqs.kudos > 0)
+		if (reqs.kudos > 0
+			&& accountValueLookup.applyAsInt(com.goalplanner.model.AccountMetric.KUDOS) < reqs.kudos)
 		{
 			templates.add(Goal.builder()
 				.type(GoalType.ACCOUNT)

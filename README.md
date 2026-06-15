@@ -1,145 +1,207 @@
-# OSRS Goal Planner — RuneLite Plugin
+# OSRS Goal Planner
 
 [![Discord](https://img.shields.io/discord/1494572077448040588?label=discord&logo=discord&logoColor=white&color=5865F2)](https://discord.gg/CFQsA3fmh7)
 [![License](https://img.shields.io/github/license/ajkatz/runelite-goal-planner)](LICENSE)
 [![Release](https://img.shields.io/github/v/release/ajkatz/runelite-goal-planner)](https://github.com/ajkatz/runelite-goal-planner/releases)
 
-> ⚠️ **Experimental v0.1.1** — Early public cut. Persistence
-> format and the public Java API may change in breaking ways before a
-> stable 1.0 tag. If you track goals with this today, expect to
-> re-create them if you upgrade across a breaking change. See
-> [CHANGELOG.md](CHANGELOG.md) for what's in this release.
-
-A RuneLite sidebar plugin that tracks Old School RuneScape goals and
-grinds. Cards auto-update from game state, support sections + colors +
-tags + multi-select bulk actions + undo/redo, and expose a public Java
-API so other plugins can read and create goals programmatically.
+A RuneLite sidebar plugin that plans and tracks your Old School RuneScape
+goals — skills, quests, diaries, combat achievements, bosses, item grinds,
+and account milestones. Cards **update themselves from the game** as you
+play, organize into colored sections, nest into quest-guide-style outlines,
+and share as paste-anywhere codes.
 
 <p align="center">
-  <img src="assets/sidebar-overview.png" alt="Goal Planner sidebar showing Incomplete and Completed sections with skill, quest, and league-points goals" width="280">
+  <img src="docs/img/importing.gif" alt="Importing a multi-section plan — colored sections appear in the panel" width="360">
 </p>
+
+> ⚠️ **Experimental.** The save format may still change before a stable 1.0;
+> if you upgrade across a breaking change you may need to re-create goals.
+> See [CHANGELOG.md](CHANGELOG.md) for what's in the current release.
+
+## Install
+
+Open RuneLite → **Configuration** (wrench) → **Plugin Hub** → search
+**Goal Planner** → *Install*. The plugin adds a target icon to your sidebar.
+
+Building from source? See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 
 ## Goal types
 
-| Type                    | Auto-tracked | Notes |
-|-------------------------|--------------|-------|
-| **Skill**               | Yes (XP)     | Target by Level (1–99) or raw XP up to 200M. Same-skill goals auto-order lower-target above higher-target within their section. |
-| **Quest**               | Yes          | Binary: complete when `Quest.getState(client) == FINISHED`. Adding a quest can seed its full prereq chain (skills, prior quests, recommended combat). |
-| **Achievement Diary**   | Yes (varbits) | One goal per (area, tier). All 11 areas with verified requirements. Karamja Easy/Med/Hard lack named varbits and stay manual. |
-| **Combat Achievement**  | Yes (varplayers) | Bit-packed across 20 `CA_TASK_COMPLETED` varplayers. 640 task slots covered. Wiki data + tier sword icons. |
-| **Boss Kill Count**     | Yes (varps)  | 89 bosses/activities incl. GWD, slayer, wilderness, DT2 (+ awakened), raids, Perilous Moons, Fortis Colosseum, Doom of Mokhaiotl (per-level), Brutus, Gauntlet, Barrows, etc. Prereqs auto-seed with transitive quest chaining. |
-| **Item / Resource Grind** | Yes        | Counts inventory + bank. Manually markable when you want to call it done. |
-| **Account Metric**      | Yes          | Quest Points, Combat Level, Total Level, CA Points, Slayer Points, Museum Kudos, Combined Att+Str, Misc Approval, Tears of Guthix PB, Chompy Kills, Colosseum Glory, DoM Deepest Level, League Points, League Tasks. |
-| **Custom**              | Manual       | Free-text. User-set name, description, color, tags. |
+| Type | Auto-tracked | Notes |
+|------|--------------|-------|
+| **Skill** | ✓ XP | Target by level (1–99) or raw XP up to 200M. Same-skill goals auto-order lowest-target first. |
+| **Quest** | ✓ | Done when the quest is complete. Adding one can seed its whole prerequisite chain. |
+| **Achievement Diary** | ✓ | One goal per area + tier, all areas with verified requirements. |
+| **Combat Achievement** | ✓ | All 640 task slots, with tier-sword icons. |
+| **Boss Kill Count** | ✓ | 89 bosses/activities — GWD, slayer, wilderness, DT2, raids, Colosseum, and more. Groups like "GWD" fan out into one goal per boss. |
+| **Item / Resource Grind** | ✓ | Counts inventory + bank. Sets and loadouts ("full masori + tbow") fan out into a goal per piece. |
+| **Account Metric** | ✓ | Quest Points, Combat/Total Level, CA & Slayer Points, Kudos, Collection Log Slots, Diary Tiers, Tears of Guthix PB, and more. Leagues metrics appear only on leagues profiles. |
+| **Custom** | manual | Free-text checklist items with their own name, color, and tags. |
 
-## Features
+---
 
-- **Sections are independent buckets** — built-in **Incomplete + Completed** are the *default* home (a goal with no user section auto-sorts between them on completion), plus user-defined sections in the middle band. A user section keeps its own goals. By default, completing one **graduates out to the Completed list** — the global **Auto-archive completed** setting (on by default, in config). Turn it off to keep completed goals **inline as a checklist** (sinking to the bottom of their section as a ✓). Each section can also **override** the global default: right-click the header → **Completed goals** → *Use default / Auto-archive / Keep inline*. Sections can be renamed, recolored, reordered, and right-clicked for bulk operations.
-- **Add to Section** — quests, diaries, and CA tasks are only addable from the in-game right-click; use **Add to Section** there to drop one (even an already-completed one) straight into a user section, instead of it auto-routing to the default Incomplete/Completed. Shared sets you import land in their own user section, so you instantly see what you've already done versus what's left as an inline checklist.
-- **Move or Duplicate across sections** — right-click a goal (or a multi-selection) → **Move to Section** or **Duplicate to Section**. Identity is **per-section**: the same goal can live once in each section. Duplicating makes an independent copy (relations among a duplicated selection are preserved); you can't move/duplicate a goal into a section that already holds it; and adding a goal in-game that already sits in a user section creates a fresh default-tracked instance rather than reusing it.
-- **Dependency nesting ("guide" view)** — turn on **Indent dependencies by default** (Appearance config) to render sections as an outline: each goal indents under the prerequisite it requires, with a thin file-tree guide. A goal with several prerequisites nests under its deepest one and lists the rest on hover. Override it per section via the header right-click → **Dependency nesting** → *Use default / Always nested / Never nested*. In a nested section, completed goals stay inline and **sink to the bottom as cards** (un-completing returns one to its place in the tree) rather than graduating to the Completed list — so a guide keeps its finished steps visible.
-- **Colors** — every section, goal, and tag has a default color and an optional user override. Curated 12-swatch palette + JColorChooser escape hatch. Section header backgrounds are darkened to keep light text readable.
-- **Multi-select + bulk actions** — click to select, cmd/ctrl-click to multi-select. Right-click a multi-selection for bulk Move to Section, Add Tag, Change Color, Mark Complete (CUSTOM only), Remove. Selection state is ephemeral.
-- **Undo / Redo** — Ctrl-Z / Ctrl-Shift-Z (or Cmd on macOS) reverses every user mutation: adds, removes, edits, reorders, bulk actions, section changes, color + tag edits.
-- **Right-click menus** — goal/section context menus built lazily on each show. Tags can be recolored, moved, hidden; goals can be marked complete/incomplete, removed, moved to sections; sections restore their default tags.
-- **In-game integration** — right-click any skill in the Stats tab → Add Goal → enter Level/XP. Right-click any quest, diary row, CA task, boss/activity entry in the collection log, or inventory/bank/CA item → Add Goal as well. For quests and diary rows the **Add Goal** menu drills into your sections (quest: *Add Goal ▸ Default / &lt;section&gt;*; diary: *Add Goal ▸ &lt;tier&gt; ▸ Default / &lt;section&gt;*) so you can drop the goal straight into a section.
-- **Prereq seeding** — adding a quest/boss goal that has its own requirements seeds the whole AND-linked prereq tree (skills, child quests, item requirements, account metrics, boss-kill prereqs, and OR-alternatives where defined). Diary goals add **bare** in-game (no auto-seed) — seed them after the fact. You can seed requirements onto an **existing** quest **or diary** goal at any time: right-click it → **Add requirements to this section** → *Incomplete only* (just what you still need) or *All* (the whole tree, kept inline as cards so met requirements show as ✓ rather than archiving away). Seeded prereqs land in the goal's own section, and a prereq shared across paths is reused rather than duplicated.
-- **Public API** — other RuneLite plugins can declare `@PluginDependency(GoalPlannerPlugin.class)` and inject `GoalPlannerApi` to read goals + sections + tags and create new ones. See [API.md](API.md).
-- **Local persistence** — every goal, section, color, and tag round-trips through `ConfigManager`. Survives client restarts. Schema migrations for built-in section ordering and boss-goal section reconciliation.
-- **Readable fonts** — the panel font is configurable: a family picker (Default / Sans-serif / Serif) and a size scale (Small → Larger) under the *Appearance* config section, applied live across the whole panel for readability on large or high-DPI displays. An **Indent dependencies by default** toggle turns on the nested dependency "guide" view described above (overridable per section).
+# Feature guide
 
-## Install (development)
+**Creating goals:** [Panel dialog](#add-a-goal-from-the-panel) · [In-game right-click](#add-goals-from-the-game) · [Requirement seeding](#automatic-requirement-trees) · [Add requirements later](#add-requirements-to-an-existing-goal)
+**Tracking:** [Auto-tracking](#auto-tracking) · [Account metrics](#account-metrics) · [Change Amount](#change-amount--retargeting) · [Manual completion](#manual-completion)
+**Organizing:** [Sections](#sections) · [Completed-goal handling](#completed-goal-handling) · [Move & duplicate](#move--duplicate-across-sections) · [Dependency nesting](#dependency-nesting-guide-view) · [Tags](#tags) · [Colors](#colors) · [Search](#search)
+**Selection & safety:** [Multi-select](#multi-select--section-select-all) · [Bulk actions](#bulk-actions) · [Undo / redo](#undo--redo)
+**Sharing:** [Share codes](#share-codes) · [Importing](#importing) · [Cross-section dependencies](#cross-section-dependencies) · [Crafting codes with AI](#crafting-codes-with-ai)
 
-```bash
-export JAVA_HOME=/path/to/jdk-21
-./gradlew run
-```
+## Creating goals
 
-Requires JDK 21 (Zulu recommended on macOS for FlatLaf compatibility).
-The `run` task launches RuneLite in developer mode with the plugin
-loaded. Public plugin-hub install flow will follow in a future release.
+### Add a goal from the panel
 
-## Architecture
+Right-click any section header → **Add Goal** → *At Top/Bottom of Section* (or right-click an existing card for *Above/Below This Goal*). Pick a type — Skill, Quest, Diary, Combat Achievement, Boss, Item, Account, or Custom — fill the target, done. Typed goals start tracking immediately.
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full module + data flow
-walkthrough.
+![Adding a skill goal from the panel](docs/img/add-goal-dialog.gif)
 
-Quick map:
+### Add goals from the game
 
-```
-src/main/java/com/goalplanner/
-├── GoalPlannerPlugin.java        # Plugin lifecycle, event handlers, MenuEntry injection
-├── GoalPlannerConfig.java        # RuneLite plugin settings
-├── api/                          # Public + internal API impl (GoalPlannerApi, DTOs, services)
-├── command/                      # Undo/redo command pattern (Command, CompositeCommand, CommandHistory)
-├── data/                         # Quest / diary / CA / boss requirement tables + resolvers
-├── model/                        # Persisted entities (Goal, Section, ItemTag, enums)
-├── persistence/
-│   └── GoalStore.java            # ConfigManager-backed JSON + migrations + reconcile
-├── service/
-│   └── GoalReorderingService.java  # Skill-chain + section-aware ordering rules
-├── tracker/                      # 8 trackers: Skill / Quest / Diary / CA / Item / Boss / Account / base
-├── ui/                           # 14 Swing components: panel, cards, dialogs, pickers, icons
-└── util/                         # Formatting helpers
-```
+Right-click where you already are: a skill in the **Stats tab**, a quest in the **Quest list**, an **Achievement Diary** area (one entry per tier: *Add Goal Easy ▸ … Elite ▸*), a boss or item in the **Collection log**, an item in your **inventory/bank**, or a **CA task** — every menu drills straight into your sections, so the goal lands where it belongs in one gesture.
 
-## Cross-plugin API
+![Adding a diary goal from the in-game diary tab](docs/img/add-goal-ingame.gif)
 
-Other plugins in the same client can hand Goal Planner a share bundle to import
-by posting a RuneLite `PluginMessage` — no dependency on Goal Planner required
-(the same convention shortest-path / quest-helper use to interop):
+### Automatic requirement trees
 
-| field | value |
-|---|---|
-| **namespace** | `goalplanner` |
-| **name** | `import-share` |
-| **data** | `{ "code": "<a Goal Planner share code, e.g. GPSHARE1:…>" }` |
+Adding a quest or boss goal seeds its full prerequisite tree — skills, prior quests, items, account metrics, boss-kill prereqs, and OR-alternatives — AND-linked into the same section. Shared prerequisites are created once and reused. Already-met requirements are skipped, checked against your live account.
 
-```java
-eventBus.post(new PluginMessage(
-    "goalplanner", "import-share",
-    java.util.Map.of("code", shareCode)));
-```
+> 🎥 *Clip coming soon.*
 
-Goal Planner decodes the code and imports the goals into their own new user
-section. Because user sections keep their completed goals inline, you immediately
-see the shared set as a checklist against your own account — requirements you
-already meet show ticked off. Get a share code from the "Copy share code"
-right-click menu, or build one with the `ShareCodec` / `ShareBundle` classes in
-`com.goalplanner.share`.
+### Add requirements to an existing goal
 
-Two wire versions exist. `GPSHARE1:` carries one section (or loose goals) and is
-what single-section shares still emit, so any plugin build imports them.
-`GPSHARE2:` carries **multiple sections in one code** — each imports as its own
-section, in one undo — and a section can be marked `targetDefault`, landing its
-goals in your **Default plan** instead: existing equivalent goals are reused
-(the same dedup as in-game adds), so re-importing never duplicates. Dependency
-links **between** sections travel on a bundle-level cross-edge list (per-goal
-relation refs stay section-scoped) and are rewired on import. "Copy share code
-(all sections)" in the section right-click menu exports every user section as
-one `GPSHARE2:` code; a multi-select spanning sections also exports per-section.
+Already have the goal? Right-click it → **Add requirements to this section** → *Incomplete only* (just what you still need) or *All* (the whole tree, met requirements kept inline as ✓ cards). Works for quests and diaries.
 
-## Testing
+![Seeding requirements onto an existing diary goal](docs/img/add-requirements.gif)
 
-```bash
-./gradlew test
-```
+## Tracking
 
-399 tests covering the API impl, persistence + migrations, all 8
-trackers, the reordering service, requirement resolvers, OR-group
-seeding, and integration flows that cover deep prereq chains. New code
-that adds public API methods ships with tests in the same change. See
-[TESTING.md](TESTING.md) for the fixture pattern, mock-vs-fake rules,
-and the MockClient thread-affinity caveat.
+### Auto-tracking
 
-## Documentation
+Cards update from game state on their own: skills by XP, quests by completion state, diaries by varbit, CA tasks bit-by-bit, bosses by kill count, items by inventory + bank count, account metrics by their varps. No check-offs — play the game and the bars move.
 
-- [CHANGELOG.md](CHANGELOG.md) — release notes
-- [API.md](API.md) — public API reference for external plugin consumers
-- [ARCHITECTURE.md](ARCHITECTURE.md) — module map, data flow, key invariants
-- [ROADMAP.md](ROADMAP.md) — planned future work
-- [CONTRIBUTING.md](CONTRIBUTING.md) — commit style, test-first rule, known pitfalls
-- [TESTING.md](TESTING.md) — test fixtures, mock-vs-fake rules
+> 🎥 *Clip coming soon.*
+
+### Account metrics
+
+Sixteen account-wide metrics — Quest Points, Total/Combat Level, CA Points, Slayer Points, Kudos, Collection Log Slots, Diary Tiers, Tears of Guthix PB, and more. The Collection Log ceiling is read **live from the client** (it grows as slots are added); Quest Points / ToG PB use a wiki-authoritative max (335). Targets *above* the max are allowed — they keep tracking until the game catches up. League metrics only appear on leagues profiles.
+
+![Account goal dialog with a Max shortcut](docs/img/account-metrics.gif)
+
+### Change Amount / retargeting
+
+Right-click a skill or item goal → **Change Amount**. Works on *completed* goals too: raise the target past your recorded progress and the goal reopens with tracking resumed; lower an active goal's target to something you've already met and it completes on the spot. Undo restores everything, original completion date included.
+
+![Retargeting a completed goal reopens it](docs/img/change-amount.gif)
+
+### Manual completion
+
+Custom and item goals can be marked complete or incomplete by hand from the right-click menu — for the "I'll call that done" moments auto-tracking can't see.
+
+![Marking a custom goal complete](docs/img/manual-complete.gif)
+
+## Organizing
+
+### Sections
+
+Sections are independent buckets with their own name, color, and goals. Create them from any header's right-click (*Add Section*), rename, recolor, reorder, or delete (a confirm offers to relocate the goals instead). Built-in **Incomplete** and **Completed** hold everything that isn't in a section of yours.
+
+![Creating and recoloring a section](docs/img/sections.gif)
+
+### Completed-goal handling
+
+By default a completed goal graduates to the **Completed** list. Flip a section to *keep inline* (header right-click → **Completed goals**) and finished goals stay as ✓ cards at the bottom instead — a checklist that remembers what you've done. Global default + per-section override.
+
+![Keep-inline section retaining its finished goals](docs/img/completed-inline.gif)
+
+### Move & duplicate across sections
+
+Right-click a goal (or selection) → **Move to Section** or **Duplicate to Section**. Identity is per-section: the same goal can live once in *each* plan, and duplicates are independent copies (relations within a duplicated selection are preserved).
+
+![Moving goals between sections](docs/img/move-duplicate.gif)
+
+### Dependency nesting (guide view)
+
+Turn a section into an outline: each goal indents under the prerequisite it unlocks, with a thin file-tree guide — your plan reads top-to-bottom like a quest guide. Per section: header right-click → **Dependency nesting** → *Nested / Not nested* (or set the global default in config). Completed steps stay visible in place.
+
+![A nested section rendering its dependency tree](docs/img/nesting.gif)
+
+### Tags
+
+Goals carry colored tags (Slayer, Quest, F2P, boss names…) — seeded automatically for known content, manageable from the panel's tag button: recolor, rename, hide, or icon any tag, and bulk-apply via multi-select.
+
+![Tag management dialog](docs/img/tags.gif)
+
+### Colors
+
+Every section, goal, and tag takes a color override — curated 12-swatch palette with a full picker behind it. Section headers darken your pick automatically so the text stays readable.
+
+![Recoloring a goal](docs/img/colors.gif)
+
+### Search
+
+The search box filters live across name, description, tag, category, type, and section — empty sections hide while a filter is active.
+
+![Filtering goals by search](docs/img/search.gif)
+
+## Selection & safety
+
+### Multi-select + section select-all
+
+Click to select, **⌘/Ctrl-click** to add, **Shift-click** for ranges — or hit the checkbox on a section header to select/unselect the whole section at once (it ticks when everything's in).
+
+![Section select-all checkbox](docs/img/select-all.gif)
+
+### Bulk actions
+
+Right-click any multi-selection: Move/Duplicate to Section, Add/Remove Tag, Change Color, Mark Complete, Remove — one gesture, the whole selection, one undo.
+
+![Bulk action on a multi-selection](docs/img/bulk-actions.gif)
+
+### Undo / redo
+
+**⌘Z / ⌘⇧Z** (Ctrl on Windows) reverses *every* mutation — adds, removes, retargets, moves, imports, bulk actions, section deletes. The ↺ ↻ buttons at the panel top show what's next in the stack on hover.
+
+![Deleting a goal and undoing it](docs/img/undo-redo.gif)
+
+## Sharing
+
+### Share codes
+
+Right-click a section header (or a multi-selection) → **Share** → *Copy share code*. You get a compact `GPSHARE…` string that carries the goal *definitions* — types, targets, colors, tags, relations — never your progress. Paste it anywhere: Discord, clan chat, a wiki page.
+
+![Copying a section's share code](docs/img/share-codes.gif)
+
+### Importing
+
+Panel **⋯ → Import shared goals…**, paste, done: sections arrive with their names and colors, goals start tracking against *your* account immediately, and one **⌘Z** reverses the entire import. Re-importing a default-target code never duplicates — existing equivalent goals are reused.
+
+![Importing a multi-section code](docs/img/importing.gif)
+
+### Cross-section dependencies
+
+Multi-section codes carry dependency links *between* sections — "TzKal-Zuk needs the Imbued heart from your Slayer plan" survives the trip and rewires on import, so a shared multi-plan keeps its structure.
+
+![A cross-section prerequisite after import](docs/img/cross-section.png)
+
+### Crafting codes with AI
+
+The [goalplanner-share-mcp](https://github.com/ajkatz/goalplanner-share-mcp) server lets an AI assistant build import codes from plain English — *"make me an Inferno prep plan with the slayer unlocks I need"* → a previewed, validated share code with every goal auto-tracking. Every code in this guide was generated by it.
+
+---
+
+## Also worth knowing
+
+- **Local & private** — every goal, section, color, and tag is saved on your own client and survives restarts. Leagues worlds get an isolated profile, so seasonal progress never touches your main plans.
+- **Readable fonts** — pick a panel font family and size scale under the *Appearance* config section; it applies live.
+- **Plays well with other plugins** — Goal Planner exposes a public Java API and a cross-plugin import message, so other RuneLite plugins can read your goals or hand you a plan to import. See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md).
+
+## For developers
+
+Building from source, the architecture, the public API, and how the docs
+stay in sync all live under **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)** —
+plus [API.md](API.md), [ARCHITECTURE.md](ARCHITECTURE.md),
+[CONTRIBUTING.md](CONTRIBUTING.md), and [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 

@@ -6,10 +6,11 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
-## [0.3.0] — Unreleased
+## [0.3.0] — 2026-06-15
 
-Goal sharing release: share codes, party transport, the nested dependency
-"guide" view, per-section identity, and in-game Add Goal ▸ section menus.
+Goal sharing release: share codes, cross-plugin transport, the nested
+dependency "guide" view, per-section identity, and in-game Add Goal ▸
+section menus.
 
 ### Added
 - **Share codes.** Export a section, a goal selection, or every user
@@ -24,9 +25,9 @@ Goal sharing release: share codes, party transport, the nested dependency
   land in the default plan with reuse-dedup, so re-importing never
   duplicates. Imported sections default to keep-inline (a checklist).
   One undo reverses a whole import.
-- **Party + cross-plugin transport.** Share directly to your RuneLite
-  party (native chat notifications, queued import prompts), or feed codes
-  in from other plugins via the `goalplanner:import-share` PluginMessage.
+- **Cross-plugin transport.** Other plugins can feed codes in via the
+  `goalplanner:import-share` PluginMessage — no dependency on Goal
+  Planner required.
 - **Nested dependency "guide" view.** Sections can indent goals beneath
   the prerequisite they unlock (longest chain forms the spine, extra
   prereqs surfaced via tooltip). Global "Indent dependencies" default
@@ -36,9 +37,20 @@ Goal sharing release: share codes, party transport, the nested dependency
   requirement tree into its section — shared transitive prereqs are
   created once and reused; the "All" variant keeps already-met
   requirements as inline cards.
-- **In-game Add Goal ▸ section menus.** Quest and diary (per-tier)
-  right-click menus offer Default or any user section in one gesture;
-  diaries gained a bare add (no prereq seeding) to match quests.
+- **In-game Add Goal ▸ section menus.** Quest right-click menus offer
+  Default or any user section in one gesture; diary rows get one
+  top-level entry per tier (*Add Goal Easy/Medium/Hard/Elite ▸*) that
+  opens straight into the section list — no nested tier hop. Diaries
+  gained a bare add (no prereq seeding) to match quests.
+- **Section header select-all.** A checkbox glyph on the right edge of
+  every section header selects/unselects all goals in that section in
+  one click (empty box = select all, ticked = unselect all), staying in
+  sync with the context menu's Select All and shift-click ranges.
+- **Quest-point ceiling → 335** (The Red Reef), with Tears of Guthix PB
+  sharing it (tear collection is capped by quest points). Wiki-authoritative
+  static, bumped per release — an earlier live quest-DB-table sum was tried
+  but over-counted, so the static is the reliable source. Collection Log
+  Slots still reads its live ceiling from the client.
 - **Per-section identity.** Each section is its own namespace: dedup
   guards, skill auto-linking, Move/Duplicate-to-Section, and a "Remove
   duplicate goals" cleanup all operate per section, so the same goal can
@@ -58,10 +70,55 @@ Goal sharing release: share codes, party transport, the nested dependency
 - Completed goals are first-class: they can be moved, duplicated, and
   customized, and may live inline in user sections (the old "guide mode"
   was removed in favor of completion-in-place + per-section overrides).
+  **Change Amount** now works on completed SKILL/ITEM goals — the new
+  target re-evaluates completion both ways (raising it past the recorded
+  progress reopens the goal and trackers resume; lowering it to met
+  progress completes it, archived/restored sections and undo included).
+  **Add Goal** (Top/Bottom/Above/Below) is available from completed
+  cards too — only the Completed built-in itself is excluded.
+- Account goal targets above the metric's max are allowed — ceilings
+  grow with game updates, so an over-max goal simply tracks until the
+  game catches up. The Max button and in-game prompt still *suggest*
+  the current (live) ceiling; they no longer enforce it.
+- League Points / League Tasks are hidden from the Add Goal metric
+  picker and the card context menu's Leagues shortcut on non-leagues
+  profiles — on a main account those goals could never track.
+- The Lumbridge & Draynor Elite seeded quest-point requirement follows
+  the new 335 maximum.
 - Section right-click menus render through the same ColumnMenu drill-down
   as goal menus.
 
+### Removed
+- The **Show Overlay** / **Max Overlay Goals** settings — they configured
+  an in-game overlay that was never built, so they did nothing. (Found in
+  a dead-code audit that also dropped a handful of unused internals.)
+
 ### Fixed
+- The selection count went stale after undo: seeding requirements (or
+  importing) selects the goals it creates, and undoing removed those goals
+  from the plan but left their dead ids in the selection, so the header
+  still read "N selected" for goals that no longer existed. The selection
+  is now pruned to existing goals whenever the goal set changes (undo,
+  redo, removal).
+- "Add requirements → Incomplete only" seeded account requirements the
+  player had already met — quest points / Kudos / combat gates, and the
+  diary OR-unlocks like the Warriors' Guild entry (130 Att+Str OR 99 Attack
+  OR 99 Strength), which seeded the whole OR-block and auto-completed even
+  when a player already had 99 Attack. Account requirements (including each
+  arm of an OR-unlock) are now pre-filtered against the player's live value
+  via a shared `AccountMetric.currentValue`; an unlock whose alternative is
+  already satisfied is skipped entirely. The "All" variant still shows the
+  full tree.
+- "Add requirements → Incomplete only" did nothing (while "All" worked):
+  it resolved against live skill/quest state on the EDT, which asserts the
+  client thread and silently threw. Both the Max button on the account-goal
+  dialog and the requirement seeder now hop to the client thread for live
+  reads; `AccountMetric.effectiveMaxTarget` also swallows an off-thread
+  read defensively, degrading to the static ceiling instead of dying.
+- Imported (and API-created) account goals now show their metric's icon —
+  sprites resolve from the metric at query time instead of relying on a
+  spriteId persisted at creation, so a shared Quest Points goal renders
+  the same quest book a locally-created one does.
 - Sharing a multi-select that spans sections preserves each goal's source
   section: the code exports one section entry per source (name + colour),
   with default-plan goals riding along as a default-target entry, instead
@@ -76,8 +133,8 @@ Goal sharing release: share codes, party transport, the nested dependency
   reconcile no longer yanks it back to Completed on the next update.
 - The nested view keeps correct indentation for chains running through
   completed goals instead of flattening the dependent to a root.
-- Party/import chat messages reported "0 goal(s)" for multi-section
-  codes; counts now sum across sections.
+- Import chat messages reported "0 goal(s)" for multi-section codes;
+  counts now sum across sections.
 - Adding a diary goal with prerequisites returned the area name instead
   of the created goal's id (selection-after-add and API callers).
 - Prerequisite seeding: all seed types land in the parent goal's section

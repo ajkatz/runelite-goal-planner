@@ -879,7 +879,9 @@ public final class DiaryRequirements
 			List.of(), // no boss kills
 			List.of(), // no item reqs
 			List.of(
-				new AccountReq("QUEST_POINTS", 333)));
+				// Quest point cape = ALL quest points (335 as of The Red
+				// Reef, 2026-06; keep in step with AccountMetric.QUEST_POINTS).
+				new AccountReq("QUEST_POINTS", 335)));
 	}
 
 	// ============================================================

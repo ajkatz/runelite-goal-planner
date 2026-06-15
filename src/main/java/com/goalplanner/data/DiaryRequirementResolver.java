@@ -149,17 +149,38 @@ public final class DiaryRequirementResolver
 				{
 					return null;
 				}
-			});
+			},
+			// Live account-metric values, so "Incomplete only" doesn't seed an
+			// already-met account requirement (e.g. Warriors' Guild entry =
+			// ATT_STR_COMBINED 130) that would auto-complete on the next tick.
+			metric -> metric.currentValue(client));
 	}
 
 	/**
-	 * Core overload with injected lookups (testable without a Client).
+	 * Core overload with injected lookups (testable without a Client). Defaults
+	 * the account lookup to "nothing met" (0), so the floor/"All" path and tests
+	 * emit every account requirement.
 	 */
 	public static Resolved resolve(
 		String area,
 		AchievementDiaryData.Tier tier,
 		ToIntFunction<Skill> skillLevelLookup,
 		Function<Quest, QuestState> questStateLookup)
+	{
+		return resolve(area, tier, skillLevelLookup, questStateLookup, metric -> 0);
+	}
+
+	/**
+	 * Core overload with an account-metric current-value lookup, used to
+	 * pre-filter account requirements the player already meets (mirrors the
+	 * skill/quest pre-filtering).
+	 */
+	public static Resolved resolve(
+		String area,
+		AchievementDiaryData.Tier tier,
+		ToIntFunction<Skill> skillLevelLookup,
+		Function<Quest, QuestState> questStateLookup,
+		ToIntFunction<com.goalplanner.model.AccountMetric> accountValueLookup)
 	{
 		DiaryRequirements.Reqs reqs = DiaryRequirements.lookup(area, tier);
 		if (reqs == null)
@@ -222,9 +243,21 @@ public final class DiaryRequirementResolver
 		// Prepare boss req list early so account reqs can add to it too.
 		List<ResolvedBossReq> resolvedBossReqs = new ArrayList<>();
 
-		// Account metric requirements (e.g. combined Att+Str 130).
+		// Account metric requirements (e.g. combined Att+Str 130 for the
+		// Warriors' Guild). Pre-filter against the player's live value so
+		// "Incomplete only" skips an already-met one (the floor/"All" path
+		// passes a 0-lookup, so it still emits everything). Skipping a met
+		// metric also drops its quest prereqs — correct, since meeting the
+		// metric implies those prereqs are done.
 		for (DiaryRequirements.AccountReq accountReq : reqs.accountReqs)
 		{
+			com.goalplanner.model.AccountMetric metric =
+				com.goalplanner.model.AccountMetric.parse(accountReq.metricName);
+			if (metric != null && accountValueLookup.applyAsInt(metric) >= accountReq.target)
+			{
+				continue;
+			}
+
 			Goal accountTemplate = Goal.builder()
 				.type(GoalType.ACCOUNT)
 				.name(accountReq.metricName)
@@ -339,8 +372,15 @@ public final class DiaryRequirementResolver
 			List<Goal> unlockAccountTemplates = new ArrayList<>();
 			for (DiaryRequirements.AccountReq accountReq : unlock.prereqAccounts)
 			{
-				// Account reqs are always seeded (no live value check — that
-				// happens at tracker runtime via AccountTracker).
+				// Pre-filter against the live value (floor/"All" path passes a
+				// 0-lookup, so it still seeds). A met direct account req no
+				// longer forces the unlock to seed.
+				com.goalplanner.model.AccountMetric m =
+					com.goalplanner.model.AccountMetric.parse(accountReq.metricName);
+				if (m != null && accountValueLookup.applyAsInt(m) >= accountReq.target)
+				{
+					continue;
+				}
 				allMet = false;
 				unlockAccountTemplates.add(Goal.builder()
 					.type(GoalType.ACCOUNT)
@@ -349,46 +389,74 @@ public final class DiaryRequirementResolver
 					.targetValue(accountReq.target)
 					.build());
 			}
-			// Alternatives: each is an OR-option. If any alternatives exist,
-			// the unlock is not met until at least one alternative is satisfied.
+			// Alternatives: each is an OR-option. The unlock's alternative gate
+			// is satisfied once ANY single alternative is fully met by live
+			// state — so a player who already has e.g. 99 Attack for the
+			// Warriors' Guild doesn't get the whole OR-block seeded. Boss-KC
+			// alternatives can't be checked live, so they never auto-satisfy
+			// (seeded conservatively). The floor/"All" path satisfies none, so
+			// it seeds every alternative as before.
 			List<ResolvedAlternative> resolvedAlternatives = new ArrayList<>();
+			boolean anyAltSatisfied = false;
 			for (DiaryRequirements.Alternative alt : unlock.alternatives)
 			{
-				List<Goal> altSkills = new ArrayList<>();
+				boolean altMet = alt.bosses.isEmpty();
 				for (DiaryRequirements.SkillReq sr : alt.skills)
 				{
-					int targetXp = Experience.getXpForLevel(sr.level);
-					altSkills.add(Goal.builder()
-						.type(GoalType.SKILL)
-						.name(sr.skill.getName() + " - Level " + sr.level)
-						.skillName(sr.skill.name())
-						.targetValue(targetXp)
-						.build());
+					if (skillLevelLookup.applyAsInt(sr.skill) < sr.level) altMet = false;
 				}
-				List<Goal> altAccounts = new ArrayList<>();
 				for (DiaryRequirements.AccountReq ar : alt.accounts)
 				{
-					altAccounts.add(Goal.builder()
-						.type(GoalType.ACCOUNT)
-						.name(ar.metricName)
-						.accountMetric(ar.metricName)
-						.targetValue(ar.target)
-						.build());
+					com.goalplanner.model.AccountMetric m =
+						com.goalplanner.model.AccountMetric.parse(ar.metricName);
+					if (m == null || accountValueLookup.applyAsInt(m) < ar.target) altMet = false;
 				}
-				List<Goal> altBosses = new ArrayList<>();
-				for (DiaryRequirements.BossReq br : alt.bosses)
+				if (altMet)
 				{
-					altBosses.add(Goal.builder()
-						.type(GoalType.BOSS)
-						.name(br.bossName)
-						.description(br.killCount + " kills")
-						.bossName(br.bossName)
-						.targetValue(br.killCount)
-						.itemId(BossKillData.getPetItemId(br.bossName))
-						.build());
+					anyAltSatisfied = true;
 				}
-				resolvedAlternatives.add(new ResolvedAlternative(alt.label, altSkills, altAccounts, altBosses));
-				allMet = false; // alternatives always need seeding
+			}
+			if (!unlock.alternatives.isEmpty() && !anyAltSatisfied)
+			{
+				// No alternative met yet — seed them all as OR-options.
+				allMet = false;
+				for (DiaryRequirements.Alternative alt : unlock.alternatives)
+				{
+					List<Goal> altSkills = new ArrayList<>();
+					for (DiaryRequirements.SkillReq sr : alt.skills)
+					{
+						int targetXp = Experience.getXpForLevel(sr.level);
+						altSkills.add(Goal.builder()
+							.type(GoalType.SKILL)
+							.name(sr.skill.getName() + " - Level " + sr.level)
+							.skillName(sr.skill.name())
+							.targetValue(targetXp)
+							.build());
+					}
+					List<Goal> altAccounts = new ArrayList<>();
+					for (DiaryRequirements.AccountReq ar : alt.accounts)
+					{
+						altAccounts.add(Goal.builder()
+							.type(GoalType.ACCOUNT)
+							.name(ar.metricName)
+							.accountMetric(ar.metricName)
+							.targetValue(ar.target)
+							.build());
+					}
+					List<Goal> altBosses = new ArrayList<>();
+					for (DiaryRequirements.BossReq br : alt.bosses)
+					{
+						altBosses.add(Goal.builder()
+							.type(GoalType.BOSS)
+							.name(br.bossName)
+							.description(br.killCount + " kills")
+							.bossName(br.bossName)
+							.targetValue(br.killCount)
+							.itemId(BossKillData.getPetItemId(br.bossName))
+							.build());
+					}
+					resolvedAlternatives.add(new ResolvedAlternative(alt.label, altSkills, altAccounts, altBosses));
+				}
 			}
 			if (!allMet)
 			{

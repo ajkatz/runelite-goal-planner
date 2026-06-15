@@ -457,8 +457,7 @@ class TagService
 		{
 			Tag tag = api.goalStore.findTag(e.getKey());
 			if (tag == null) continue;
-			out.add(new GoalPlannerInternalApi.TagRemovalOption(tag.getId(), tag.getLabel(),
-				tag.getCategory() != null ? tag.getCategory().name() : "OTHER", e.getValue()));
+			out.add(new GoalPlannerInternalApi.TagRemovalOption(tag.getId(), tag.getLabel(), e.getValue()));
 		}
 		// Sort: count desc, then label asc (case-insensitive)
 		out.sort((a, b) -> {

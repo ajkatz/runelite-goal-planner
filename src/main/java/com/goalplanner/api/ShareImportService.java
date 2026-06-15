@@ -17,7 +17,7 @@ import java.util.Map;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Applies a decoded {@link ShareBundle} (received over the Party transport, or
+ * Applies a decoded {@link ShareBundle} (from a pasted share code, or
  * pasted as a share code) into the store: a new user section, fresh goals with
  * find-or-created tags and remapped relations, all in one undo-compound so a
  * single {@code undo()} reverses the whole import.

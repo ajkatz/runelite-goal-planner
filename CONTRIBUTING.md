@@ -88,12 +88,29 @@ Jagex's internal codenames sometimes survive into
 When searching for a boss's varp, do a broad `strings | grep _KILLS`
 dump rather than a narrow regex on the surface name.
 
+## Feature registry (documentation stays in lockstep)
+
+[`docs/features.json`](docs/features.json) is the central library of every
+user-facing feature: its guide section in
+the README feature guide, its demo clip in `docs/img/`, the
+code that implements it, and the tests that cover it.
+
+**Any PR that adds or changes a feature updates the registry in the same
+PR** — new entry (or `notes` + version bump on the existing one), a guide
+section with a capture script comment, and a CHANGELOG line.
+`./gradlew checkDocs` audits the registry: structural drift (guide section
+missing, dead code/test paths, unclaimed media) fails; unrecorded clips and
+untested features print as the running documentation-gap report. Run it
+before review and treat its STRUCTURAL section like a failing test.
+
 ## Pull requests
 
 - One focused change per PR. If you find an unrelated fix along the
   way, open a separate PR for it. Reviewer's context window matters.
 - Build green before requesting review: `./gradlew build` must pass.
-- Screenshots or a short recording for any user-visible UI change.
+- Screenshots or a short recording for any user-visible UI change —
+  feature work records the clip named by its registry entry.
+- Feature PRs update `docs/features.json` + `docs/FEATURES.md` (see above).
 
 ## Filing issues
 

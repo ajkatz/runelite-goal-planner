@@ -348,6 +348,42 @@ class QuestRequirementsTest
 		}
 
 		@Test
+		@DisplayName("a met QP requirement is pre-filtered out (5-arg account lookup)")
+		void metQuestPointsRequirementSkipped()
+		{
+			// DS2 needs 200 QP. A player already at 250 QP, everything else met:
+			// the QP template must NOT be emitted (it would auto-complete and
+			// show as a freshly-seeded completed card — the bug this guards).
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+			java.util.function.ToIntFunction<com.goalplanner.model.AccountMetric> have250Qp =
+				m -> m == com.goalplanner.model.AccountMetric.QUEST_POINTS ? 250 : 0;
+
+			QuestRequirementResolver.Resolved out = QuestRequirementResolver.resolve(
+				Quest.DRAGON_SLAYER_II, maxed, allFinished, () -> 126, have250Qp);
+
+			assertTrue(out.templates.stream().noneMatch(g -> "QUEST_POINTS".equals(g.getAccountMetric())),
+				"already-met QP requirement should be skipped");
+		}
+
+		@Test
+		@DisplayName("an unmet QP requirement is still emitted (5-arg account lookup)")
+		void unmetQuestPointsRequirementEmitted()
+		{
+			ToIntFunction<Skill> maxed = s -> 99;
+			Function<Quest, QuestState> allFinished = q -> QuestState.FINISHED;
+			java.util.function.ToIntFunction<com.goalplanner.model.AccountMetric> have10Qp =
+				m -> m == com.goalplanner.model.AccountMetric.QUEST_POINTS ? 10 : 0;
+
+			QuestRequirementResolver.Resolved out = QuestRequirementResolver.resolve(
+				Quest.DRAGON_SLAYER_II, maxed, allFinished, () -> 126, have10Qp);
+
+			assertTrue(out.templates.stream().anyMatch(g ->
+					"QUEST_POINTS".equals(g.getAccountMetric()) && g.getTargetValue() == 200),
+				"unmet QP requirement should still be emitted");
+		}
+
+		@Test
 		@DisplayName("null quest-state lookup result is treated as NOT_STARTED")
 		void nullStateIsNotStarted()
 		{

@@ -10,7 +10,12 @@ import java.awt.Color;
  */
 public enum AccountMetric
 {
-	QUEST_POINTS("Quest Points", new Color(65, 155, 222), 899, null, 1, 333),
+	/**
+	 * maxTarget is a static fallback (335 as of The Red Reef, 2026-06) —
+	 * goal creation prefers the live sum of the client's quest DB table via
+	 * {@link #effectiveMaxTarget}, which grows as new quests release.
+	 */
+	QUEST_POINTS("Quest Points", new Color(65, 155, 222), 899, null, 1, 335),
 	COMBAT_LEVEL("Combat Level", new Color(200, 60, 60), 168, null, 3, 126),
 	TOTAL_LEVEL("Total Level", new Color(76, 175, 80), 898, null, 1, 2376),
 	// MUSIC_TRACKS deferred — no reliable bulk API for counting unlocked tracks
@@ -21,8 +26,13 @@ public enum AccountMetric
 	ATT_STR_COMBINED("Att + Str", new Color(46, 125, 50), 0, "item:8850", 2, 198),
 	/** Kingdom of Miscellania approval rating (0-127, where 127 = 100%). */
 	MISC_APPROVAL("Misc. Approval", new Color(200, 170, 50), 0, null, 1, 127),
-	/** Tears of Guthix personal best (max tears collected in a single game). */
-	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 300),
+	/**
+	 * Tears of Guthix personal best (max tears collected in a single game).
+	 * Collection time in the minigame is capped by quest points, so this
+	 * ceiling IS the quest-point maximum — the static fallback matches
+	 * QUEST_POINTS and {@link #effectiveMaxTarget} shares its live read.
+	 */
+	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 335),
 	/** Chompy bird kill count. */
 	CHOMPY_KILLS("Chompy Kills", new Color(139, 69, 19), 0, "item:" + net.runelite.api.ItemID.RAW_CHOMPY, 1, 4000),
 	/** Fortis Colosseum personal best glory (highest single-run glory). */
@@ -89,6 +99,125 @@ public enum AccountMetric
 	public Color getColor() { return color; }
 	public int getMinTarget() { return minTarget; }
 	public int getMaxTarget() { return maxTarget; }
+
+	/**
+	 * Effective maximum target. For COLLECTION_LOG_SLOTS the true ceiling grows
+	 * with the game, so prefer the live slot total transmitted to the client
+	 * (VarPlayer COLLECTION_COUNT_MAX); every other metric uses the shipped
+	 * static {@link #getMaxTarget()}.
+	 *
+	 * <p>QUEST_POINTS / TOG_MAX_TEARS deliberately stay static: a quest-DB-table
+	 * sum was tried and over-counted (miniquest / multi-part rows the wiki
+	 * doesn't count toward the cap), so the wiki-authoritative static (bumped
+	 * per release) is the reliable source.
+	 */
+	public int effectiveMaxTarget(net.runelite.api.Client client)
+	{
+		if (client == null || this != COLLECTION_LOG_SLOTS)
+		{
+			return maxTarget;
+		}
+		// getVarpValue is a client-thread op; off the client thread the dev
+		// build (-ea) raises AssertionError. Callers SHOULD invoke this on the
+		// client thread, but catch Throwable defensively so a stray off-thread
+		// call degrades to the static instead of killing the calling UI action.
+		try
+		{
+			int live = client.getVarpValue(net.runelite.api.gameval.VarPlayerID.COLLECTION_COUNT_MAX);
+			return live > 0 ? live : maxTarget;
+		}
+		catch (Throwable t)
+		{
+			return maxTarget;
+		}
+	}
+
+	/**
+	 * The player's current live value for this metric, read from the client, or
+	 * -1 if unreadable. Single source of truth shared by the AccountTracker and
+	 * the requirement resolvers (which pre-filter already-met account
+	 * requirements). Reads are client-thread operations; callers invoke on the
+	 * client thread (the catch is defensive against a stray off-thread call).
+	 *
+	 * <p>Note: no leagues-world guard here — that's tracker policy and lives in
+	 * {@link com.goalplanner.tracker.AccountTracker}.
+	 */
+	public int currentValue(net.runelite.api.Client client)
+	{
+		if (client == null)
+		{
+			return -1;
+		}
+		try
+		{
+			switch (this)
+			{
+				case QUEST_POINTS:
+					return client.getVarpValue(net.runelite.api.gameval.VarPlayerID.QP);
+				case COMBAT_LEVEL:
+				{
+					net.runelite.api.Player p = client.getLocalPlayer();
+					return p != null ? p.getCombatLevel() : -1;
+				}
+				case TOTAL_LEVEL:
+					return client.getTotalLevel();
+				case CA_POINTS:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.CA_POINTS);
+				case SLAYER_POINTS:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.SLAYER_POINTS);
+				case KUDOS:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.VM_KUDOS);
+				case ATT_STR_COMBINED:
+					return client.getRealSkillLevel(net.runelite.api.Skill.ATTACK)
+						+ client.getRealSkillLevel(net.runelite.api.Skill.STRENGTH);
+				case MISC_APPROVAL:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.MISC_APPROVAL);
+				case TOG_MAX_TEARS:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.TOG_MAX_TEARS_COLLECTED);
+				case CHOMPY_KILLS:
+					return client.getVarpValue(net.runelite.api.gameval.VarPlayerID.CHOMPYBIRD);
+				case COLOSSEUM_GLORY:
+					return client.getVarpValue(net.runelite.api.gameval.VarPlayerID.COLOSSEUM_GLORY);
+				case DOM_DEEPEST_LEVEL:
+					return client.getVarpValue(net.runelite.api.gameval.VarPlayerID.DOM_DEEPEST_LEVEL);
+				case COLLECTION_LOG_SLOTS:
+				{
+					int slots = client.getVarpValue(net.runelite.api.gameval.VarPlayerID.COLLECTION_COUNT);
+					return slots > 0 ? slots : -1;
+				}
+				case DIARY_TIERS_COMPLETED:
+					return com.goalplanner.data.AchievementDiaryData
+						.countCompletedTiers(client::getVarbitValue);
+				case LEAGUE_POINTS:
+					return client.getVarpValue(net.runelite.api.gameval.VarPlayerID.LEAGUE_POINTS_COMPLETED);
+				case LEAGUE_TASKS:
+					return client.getVarbitValue(net.runelite.api.gameval.VarbitID.LEAGUE_TOTAL_TASKS_COMPLETED);
+				default:
+					return -1;
+			}
+		}
+		catch (Throwable t)
+		{
+			return -1;
+		}
+	}
+
+	/** Parse an enum-constant name to its {@link AccountMetric}, or null. */
+	public static AccountMetric parse(String name)
+	{
+		if (name == null)
+		{
+			return null;
+		}
+		try
+		{
+			return valueOf(name);
+		}
+		catch (IllegalArgumentException e)
+		{
+			return null;
+		}
+	}
 
 	/**
 	 * Whether this metric is scoped to the OSRS Leagues short-lived event.

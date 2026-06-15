@@ -137,7 +137,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	public String addCustomGoal(String name, String description) { return creationService.addCustomGoal(name, description); }
 
 	/**
-	 * Import a shared bundle (from the Party transport or a pasted share code)
+	 * Import a shared bundle (from a pasted share code or the cross-plugin API)
 	 * into a new section. Not part of the published API — plugin-internal.
 	 * Returns the new section id, or null if nothing was importable.
 	 */
@@ -265,13 +265,29 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	 */
 	void fireIfNotInCompound()
 	{
-		if (!commandHistory.isInCompound()) onGoalsChanged.run();
+		if (!commandHistory.isInCompound()) pruneSelectionThenFireGoalsChanged();
 	}
 
 	/** Fire the UI refresh callback (goes through the debounce timer). */
 	public void fireGoalsChanged()
 	{
+		pruneSelectionThenFireGoalsChanged();
+	}
+
+	/**
+	 * Drop selected ids whose goal no longer exists, then fire the goals-changed
+	 * refresh (and a selection-changed refresh if the prune removed anything).
+	 * The seed/import gestures select the goals they create directly on
+	 * {@link #selectedGoalIds}; undoing one removes those goals from the store
+	 * but not the selection, leaving a stale "N selected" count of ids that no
+	 * longer exist. Reconciling here keeps the selection honest after any
+	 * goal-set change (undo, redo, removal).
+	 */
+	private void pruneSelectionThenFireGoalsChanged()
+	{
+		boolean selectionChanged = selectedGoalIds.removeIf(id -> goalStore.findGoalById(id) == null);
 		onGoalsChanged.run();
+		if (selectionChanged) onSelectionChanged.run();
 	}
 
 	@Override public boolean canUndo() { return commandHistory.canUndo(); }
@@ -285,7 +301,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		goalStore.suspendSave();
 		boolean ok = commandHistory.undo();
 		goalStore.resumeSave();
-		if (ok) onGoalsChanged.run();
+		if (ok) pruneSelectionThenFireGoalsChanged();
 		return ok;
 	}
 
@@ -295,7 +311,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		goalStore.suspendSave();
 		boolean ok = commandHistory.redo();
 		goalStore.resumeSave();
-		if (ok) onGoalsChanged.run();
+		if (ok) pruneSelectionThenFireGoalsChanged();
 		return ok;
 	}
 
@@ -310,7 +326,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		if (!commandHistory.isInCompound())
 		{
 			goalStore.resumeSave();
-			onGoalsChanged.run();
+			pruneSelectionThenFireGoalsChanged();
 		}
 	}
 

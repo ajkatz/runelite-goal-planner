@@ -68,6 +68,9 @@ public class GoalPanel extends PluginPanel
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
+	/** Section header rows by section id — selection changes refresh their
+	 *  select-all toggle without a full rebuild (mirrors cardMap). */
+	private final java.util.List<SectionHeaderRow> headerRows = new java.util.ArrayList<>();
 	/** Free-text filter applied to the goal list. Empty = show all. */
 	private String searchFilter = "";
 	/** Most recent simple-click goal id, used as the anchor for shift-click range
@@ -104,10 +107,6 @@ public class GoalPanel extends PluginPanel
 	// setClient). Null until then; the Options menu omits share entries if unset.
 	private com.goalplanner.share.ShareCodec shareCodec;
 	private java.util.function.Supplier<String> playerNameSupplier;
-	private java.util.function.BooleanSupplier inPartySupplier;
-	private java.util.function.Consumer<com.goalplanner.share.ShareBundle> shareToParty;
-	private java.util.function.IntSupplier pendingShareCount;
-	private Runnable importNextPendingShare;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
 					 net.runelite.client.game.SpriteManager spriteManager,
@@ -167,16 +166,6 @@ public class GoalPanel extends PluginPanel
 			if (shareCodec != null)
 			{
 				popup.addSeparator();
-
-				// Party shares waiting to be imported (from the game-chat notice).
-				if (pendingShareCount != null && importNextPendingShare != null
-					&& pendingShareCount.getAsInt() > 0)
-				{
-					JMenuItem importReceived = new JMenuItem(
-						"Import received (" + pendingShareCount.getAsInt() + ")");
-					importReceived.addActionListener(ev -> importNextPendingShare.run());
-					popup.add(importReceived);
-				}
 
 				JMenuItem importShare = new JMenuItem("Import shared goals…");
 				importShare.addActionListener(ev ->
@@ -359,40 +348,42 @@ public class GoalPanel extends PluginPanel
 
 	/**
 	 * Inject the share/import support used by the Options menu. Called once at
-	 * plugin start-up. {@code shareToParty} broadcasts a bundle to the party;
-	 * {@code inParty} reports party membership; {@code playerName} supplies the
-	 * local RSN for the "shared by" label.
+	 * plugin start-up. {@code playerName} supplies the local RSN for the
+	 * "shared by" label.
 	 */
 	public void setShareSupport(
 		com.goalplanner.share.ShareCodec shareCodec,
-		java.util.function.Supplier<String> playerName,
-		java.util.function.BooleanSupplier inParty,
-		java.util.function.Consumer<com.goalplanner.share.ShareBundle> shareToParty)
+		java.util.function.Supplier<String> playerName)
 	{
 		this.shareCodec = shareCodec;
 		this.playerNameSupplier = playerName;
-		this.inPartySupplier = inParty;
-		this.shareToParty = shareToParty;
 	}
 
-	/** Wire the received-share queue: {@code pendingCount} reports how many
-	 *  party shares await import, {@code importNext} imports the oldest. */
-	public void setReceivedShareSupport(java.util.function.IntSupplier pendingCount, Runnable importNext)
+	/** Runs an action on the RuneLite client thread. Defaults to synchronous
+	 *  (direct run) until the plugin wires the real client-thread executor, so
+	 *  panels constructed in tests still function. Used by context-menu /
+	 *  dialog actions that read live Client state (skill levels, quest states,
+	 *  the quest DB table) — those reads ASSERT the client thread and silently
+	 *  die on the EDT (see CONTRIBUTING "EDT vs client thread"). */
+	private java.util.function.Consumer<Runnable> clientThreadExec = Runnable::run;
+
+	/** Wire the client-thread executor (plugin: {@code clientThread::invokeLater}). */
+	public void setClientThreadExecutor(java.util.function.Consumer<Runnable> exec)
 	{
-		this.pendingShareCount = pendingCount;
-		this.importNextPendingShare = importNext;
+		this.clientThreadExec = exec != null ? exec : Runnable::run;
+		dialogFactory.setClientThreadExecutor(this.clientThreadExec);
+	}
+
+	/** Run {@code r} on the client thread (for live Client-state reads). */
+	public void runOnClientThread(Runnable r)
+	{
+		clientThreadExec.accept(r);
 	}
 
 	/** Whether share/import support is wired (used to gate share menu entries). */
 	public boolean isShareAvailable()
 	{
 		return shareCodec != null;
-	}
-
-	/** Whether sharing to a RuneLite party is available. */
-	public boolean isPartyShareAvailable()
-	{
-		return shareToParty != null && inPartySupplier != null;
 	}
 
 	/** Copy a share code for the given goals to the clipboard. */
@@ -403,16 +394,6 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 		ShareDialogs.copyGoals(this, api, shareCodec, playerNameSupplier, goalIds);
-	}
-
-	/** Share the given goals to the current RuneLite party. */
-	public void shareGoalsToParty(java.util.List<String> goalIds)
-	{
-		if (shareToParty == null || inPartySupplier == null)
-		{
-			return;
-		}
-		ShareDialogs.shareGoalsToParty(this, api, playerNameSupplier, inPartySupplier, shareToParty, goalIds);
 	}
 
 	/** Copy a share code for a whole section to the clipboard. */
@@ -433,16 +414,6 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 		ShareDialogs.copyAllSections(this, api, shareCodec, playerNameSupplier);
-	}
-
-	/** Share a whole section to the current RuneLite party. */
-	public void shareSectionToParty(String sectionId)
-	{
-		if (shareToParty == null || inPartySupplier == null)
-		{
-			return;
-		}
-		ShareDialogs.shareSectionToParty(this, api, playerNameSupplier, inPartySupplier, shareToParty, sectionId);
 	}
 
 	/**
@@ -485,7 +456,30 @@ public class GoalPanel extends PluginPanel
 		{
 			entry.getValue().setSelected(selected.contains(entry.getKey()));
 		}
+		for (SectionHeaderRow row : headerRows)
+		{
+			row.refreshSelectToggle();
+		}
 		refreshUndoRedoButtons();
+	}
+
+	/** True when the section has goals and every one of them is selected. */
+	private boolean isAllSelectedInSection(String sectionId)
+	{
+		java.util.Set<String> selected = api.getSelectedGoalIds();
+		boolean any = false;
+		for (com.goalplanner.api.GoalView v : api.queryAllGoals())
+		{
+			if (sectionId.equals(v.sectionId))
+			{
+				any = true;
+				if (!selected.contains(v.id))
+				{
+					return false;
+				}
+			}
+		}
+		return any;
 	}
 
 	public void rebuild()
@@ -493,6 +487,7 @@ public class GoalPanel extends PluginPanel
 		long start = System.currentTimeMillis();
 		goalListPanel.removeAll();
 		cardMap.clear();
+		headerRows.clear();
 		refreshUndoRedoButtons();
 
 		// Read path goes through the public API — the panel is now a consumer of
@@ -600,7 +595,20 @@ public class GoalPanel extends PluginPanel
 				}
 				api.toggleSectionCollapsed(sectionIdRef);
 				// API callback rebuilds the panel.
-			});
+			},
+				// Select-all/unselect-all toggle on the right edge of the header.
+				() -> isAllSelectedInSection(sectionIdRef),
+				() -> {
+					if (isAllSelectedInSection(sectionIdRef))
+					{
+						api.deselectAllInSection(sectionIdRef);
+					}
+					else
+					{
+						api.selectAllInSection(sectionIdRef);
+					}
+				});
+			headerRows.add(headerRow);
 			// All sections get a right-click menu. User sections get the full
 			// rename/move/delete/color menu; built-ins get only Change Color.
 			contextMenuBuilder.attachSectionContextMenu(headerRow, section, sectionViews);

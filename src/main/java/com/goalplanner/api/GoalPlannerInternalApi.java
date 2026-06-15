@@ -457,14 +457,12 @@ public interface GoalPlannerInternalApi
 	{
 		public final String tagId;
 		public final String label;
-		public final String category;
 		public final int count;
 
-		public TagRemovalOption(String tagId, String label, String category, int count)
+		public TagRemovalOption(String tagId, String label, int count)
 		{
 			this.tagId = tagId;
 			this.label = label;
-			this.category = category;
 			this.count = count;
 		}
 	}

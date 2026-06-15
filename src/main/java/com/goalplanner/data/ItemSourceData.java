@@ -25,11 +25,6 @@ public final class ItemSourceData
 		return SOURCES.getOrDefault(itemId, Collections.emptyList());
 	}
 
-	public static boolean hasSource(int itemId)
-	{
-		return SOURCES.containsKey(itemId);
-	}
-
 	private static void source(int itemId, String label, TagCategory category)
 	{
 		SOURCES.computeIfAbsent(itemId, k -> new ArrayList<>()).add(new ItemTag(label, category));

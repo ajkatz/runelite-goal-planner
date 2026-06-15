@@ -86,3 +86,12 @@ tasks.register('shadowJar', Jar) {
 	archiveClassifier.set('shadow')
 	archiveFileName.set("${rootProject.name}-${project.version}-all.jar")
 }
+
+// Documentation-gap audit: cross-checks docs/features.json against
+// FEATURES.md, docs/img/, and the source tree. Structural drift fails the
+// task; unrecorded media / missing tests print as a tracked gap report.
+tasks.register('checkDocs', Exec) {
+	group = 'verification'
+	description = 'Audit the feature registry against the README guide, media, and source tree.'
+	commandLine 'python3', 'scripts/check_docs.py'
+}

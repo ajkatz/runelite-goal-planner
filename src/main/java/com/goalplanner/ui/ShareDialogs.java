@@ -9,14 +9,12 @@ import java.awt.Component;
 import java.awt.Toolkit;
 import java.awt.datatransfer.StringSelection;
 import java.util.List;
-import java.util.function.BooleanSupplier;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.swing.JOptionPane;
 
 /**
  * Swing dialogs for sharing/importing goals (export to clipboard, paste-import,
- * share-to-party). EDT-only and interactive, so there are no unit tests — these
+ * copy-code flows). EDT-only and interactive, so there are no unit tests — these
  * are verified in-client. The non-interactive engine they drive (export, codec,
  * import) is covered by tests in the api/share packages.
  */
@@ -115,32 +113,6 @@ public final class ShareDialogs
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
 
-	/** Broadcast a section to the current RuneLite party. */
-	public static void shareSectionToParty(Component parent, GoalPlannerApiImpl api,
-		Supplier<String> playerName, BooleanSupplier inParty, Consumer<ShareBundle> shareToParty,
-		String sectionId)
-	{
-		if (!inParty.getAsBoolean())
-		{
-			JOptionPane.showMessageDialog(parent,
-				"You're not in a RuneLite party.\n"
-					+ "Open the Party panel and create or join one, then try again.",
-				"Share to party", JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
-		ShareBundle bundle = api.exportSectionBundle(sectionId, safeName(playerName));
-		if (bundle == null || bundle.getGoals().isEmpty())
-		{
-			JOptionPane.showMessageDialog(parent, "That section has no goals to share.",
-				"Share to party", JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
-		shareToParty.accept(bundle);
-		JOptionPane.showMessageDialog(parent,
-			"Shared \"" + bundle.getSectionName() + "\" to your party.",
-			"Share to party", JOptionPane.INFORMATION_MESSAGE);
-	}
-
 	/** Copy a paste-ready share line for the given goals to the clipboard. */
 	public static void copyGoals(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
 		Supplier<String> playerName, List<String> goalIds)
@@ -165,33 +137,6 @@ public final class ShareDialogs
 				+ "Paste it in Discord or chat — anyone with the plugin can import it."
 				+ multiNote,
 			"Share", JOptionPane.INFORMATION_MESSAGE);
-	}
-
-	/** Broadcast the given goals to the current RuneLite party. */
-	public static void shareGoalsToParty(Component parent, GoalPlannerApiImpl api,
-		Supplier<String> playerName, BooleanSupplier inParty, Consumer<ShareBundle> shareToParty,
-		List<String> goalIds)
-	{
-		if (!inParty.getAsBoolean())
-		{
-			JOptionPane.showMessageDialog(parent,
-				"You're not in a RuneLite party.\n"
-					+ "Open the Party panel and create or join one, then try again.",
-				"Share to party", JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
-		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
-		if (bundle == null || bundle.totalGoalCount() == 0)
-		{
-			JOptionPane.showMessageDialog(parent, "Nothing to share.", "Share to party",
-				JOptionPane.INFORMATION_MESSAGE);
-			return;
-		}
-		shareToParty.accept(bundle);
-		int n = bundle.totalGoalCount();
-		JOptionPane.showMessageDialog(parent,
-			"Shared " + n + " goal" + (n == 1 ? "" : "s") + " to your party.",
-			"Share to party", JOptionPane.INFORMATION_MESSAGE);
 	}
 
 	private static String safeName(Supplier<String> playerName)

@@ -36,7 +36,6 @@ import net.runelite.api.events.MenuOpened;
 import net.runelite.api.events.StatChanged;
 import net.runelite.api.events.VarbitChanged;
 import com.google.gson.Gson;
-import com.goalplanner.share.GoalSharePartyMessage;
 import com.goalplanner.share.ShareBundle;
 import com.goalplanner.share.ShareCodec;
 import net.runelite.api.ChatMessageType;
@@ -45,8 +44,6 @@ import net.runelite.client.chat.ChatMessageBuilder;
 import net.runelite.client.chat.ChatMessageManager;
 import net.runelite.client.chat.QueuedMessage;
 import net.runelite.client.events.PluginMessage;
-import net.runelite.client.party.PartyService;
-import net.runelite.client.party.WSClient;
 import net.runelite.api.gameval.InterfaceID;
 import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
@@ -67,8 +64,9 @@ import java.awt.image.BufferedImage;
 @Slf4j
 @PluginDescriptor(
 	name = "Goal Planner",
-	description = "Track and manage OSRS goals with a visual priority list",
-	tags = {"goals", "tracker", "progress", "skills", "quests"}
+	description = "Plan and track OSRS goals that auto-update from game state — "
+		+ "skills, quests, diaries, bosses, items; organize into sections and share as codes",
+	tags = {"goals", "tracker", "progress", "skills", "quests", "diary", "bosses", "achievement", "share", "plan"}
 )
 public class GoalPlannerPlugin extends Plugin
 {
@@ -136,22 +134,10 @@ public class GoalPlannerPlugin extends Plugin
 	private Gson gson;
 
 	@Inject
-	private PartyService partyService;
-
-	@Inject
-	private WSClient wsClient;
-
-	@Inject
 	private ChatMessageManager chatMessageManager;
 
 	/** Share-code codec, built from the injected Gson at start-up. */
 	private ShareCodec shareCodec;
-
-	/** Bundles received from party members, awaiting the user's import. Drained
-	 *  via the Options menu. Thread-safe: added on the receive thread, polled on
-	 *  the EDT. */
-	private final java.util.concurrent.ConcurrentLinkedDeque<ShareBundle> pendingShares =
-		new java.util.concurrent.ConcurrentLinkedDeque<>();
 
 	/** Local player's display name, cached on the client thread (onGameTick)
 	 *  so the share UI can read it off the EDT. */
@@ -193,14 +179,14 @@ public class GoalPlannerPlugin extends Plugin
 		panel = new GoalPanel(goalStore, skillIconManager, itemManager, spriteManager,
 			goalTrackerApi, reorderingService, this::openItemSearch, config);
 		panel.setClient(client);
+		// Context-menu / dialog actions that read live Client state must run on
+		// the client thread (skill levels, quest states, the quest DB table all
+		// assert it — off the EDT they throw and the action silently no-ops).
+		panel.setClientThreadExecutor(clientThread::invokeLater);
 
-		// Share support: codec + party transport. Register the party message so
-		// incoming shares deserialize; wire the Options-menu share/import actions.
+		// Share support: codec + the Options-menu share/import actions.
 		shareCodec = new ShareCodec(gson);
-		wsClient.registerMessage(GoalSharePartyMessage.class);
-		panel.setShareSupport(shareCodec, () -> localPlayerName,
-			partyService::isInParty, this::shareBundleToParty);
-		panel.setReceivedShareSupport(this::pendingShareCount, this::importNextPendingShare);
+		panel.setShareSupport(shareCodec, () -> localPlayerName);
 
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
@@ -245,80 +231,10 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		log.info("Goal Planner stopped");
 		goalStore.saveNow();
-		wsClient.unregisterMessage(GoalSharePartyMessage.class);
 		if (navButton != null)
 		{
 			clientToolbar.removeNavigation(navButton);
 		}
-	}
-
-	/**
-	 * Broadcast a share bundle to the current RuneLite party. Encoded to a
-	 * GPSHARE code and sent as a {@link GoalSharePartyMessage}; party members
-	 * receive it in {@link #onGoalSharePartyMessage}. Best-effort — never throws
-	 * into the caller.
-	 */
-	private void shareBundleToParty(ShareBundle bundle)
-	{
-		if (bundle == null)
-		{
-			return;
-		}
-		final int count = bundle.totalGoalCount();
-		clientThread.invokeLater(() ->
-		{
-			try
-			{
-				if (!partyService.isInParty())
-				{
-					return;
-				}
-				partyService.send(new GoalSharePartyMessage(shareCodec.encode(bundle)));
-				postGameMessage(new ChatMessageBuilder()
-					.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
-					.append(ChatColorType.NORMAL).append("Shared " + count + " goal(s) with your party.")
-					.build());
-			}
-			catch (RuntimeException e)
-			{
-				log.warn("Failed to share goals to party", e);
-			}
-		});
-	}
-
-	/**
-	 * Receive a shared bundle from a party member. Ignores our own broadcast,
-	 * decodes + queues it, and posts a game-chat notification — the user imports
-	 * it from the Options menu when ready, so nothing pops over the game (mirrors
-	 * how collection-log / drop plugins notify via local game messages).
-	 */
-	@Subscribe
-	public void onGoalSharePartyMessage(GoalSharePartyMessage event)
-	{
-		net.runelite.client.party.PartyMember local = partyService.getLocalMember();
-		if (local != null && event.getMemberId() == local.getMemberId())
-		{
-			return;   // our own message echoed back
-		}
-		final ShareBundle bundle;
-		try
-		{
-			bundle = shareCodec.decode(event.getCode());
-		}
-		catch (RuntimeException e)
-		{
-			log.debug("Ignoring unreadable party share message", e);
-			return;
-		}
-		String sharer = bundle.getSharedBy() != null && !bundle.getSharedBy().isEmpty()
-			? bundle.getSharedBy() : "A party member";
-		int count = bundle.totalGoalCount();
-		pendingShares.addLast(bundle);
-		postGameMessage(new ChatMessageBuilder()
-			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
-			.append(ChatColorType.NORMAL).append(sharer + " shared " + count + " goal(s). ")
-			.append(ChatColorType.HIGHLIGHT).append("Open Goal Planner → Options → Import received.")
-			.build());
 	}
 
 	/**
@@ -387,33 +303,6 @@ public class GoalPlannerPlugin extends Plugin
 			.type(ChatMessageType.GAMEMESSAGE)
 			.runeLiteFormattedMessage(runeLiteFormattedMessage)
 			.build()));
-	}
-
-	/** Number of received shares awaiting import (read by the Options menu). */
-	private int pendingShareCount()
-	{
-		return pendingShares.size();
-	}
-
-	/**
-	 * Import the oldest received share — user-initiated from the Options menu, so
-	 * no extra confirm. Runs on the EDT; the store mutation is thread-safe and
-	 * the rebuild is EDT.
-	 */
-	private void importNextPendingShare()
-	{
-		ShareBundle bundle = pendingShares.pollFirst();
-		if (bundle == null)
-		{
-			return;
-		}
-		goalTrackerApi.importShareBundle(bundle);
-		panel.rebuild();
-		int count = bundle.totalGoalCount();
-		postGameMessage(new ChatMessageBuilder()
-			.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")
-			.append(ChatColorType.NORMAL).append("Imported " + count + " shared goal(s).")
-			.build());
 	}
 
 	/**
@@ -938,7 +827,7 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			// Other metrics: target input with max hint
 			String input = javax.swing.JOptionPane.showInputDialog(panel,
-				"Target " + metric.getDisplayName() + " (max " + metric.getMaxTarget() + "):",
+				"Target " + metric.getDisplayName() + " (max " + metric.effectiveMaxTarget(client) + "):",
 				"Add " + metric.getDisplayName() + " Goal",
 				javax.swing.JOptionPane.PLAIN_MESSAGE);
 			if (input == null || input.trim().isEmpty()) return;
@@ -1290,17 +1179,13 @@ public class GoalPlannerPlugin extends Plugin
 				}
 				final String diaryMenuTarget = "<col=ff9040>" + areaDisplayName + "</col>";
 
-				// "Add Goal" submenu with one entry per tier; each tier is itself a
-				// submenu of [Default + each user section]. Every leaf does a BARE add
-				// (no prereq auto-seeding) — organising/seeding is left to the panel's
-				// "Add requirements to this section". Mirrors the quest Add Goal ▸ section
-				// menu (addGoalSectionItems), one level deeper for the tier.
-				final net.runelite.api.Menu addGoalSub = client.createMenuEntry(1)
-					.setOption("Add Goal")
-					.setTarget(diaryMenuTarget)
-					.setType(MenuAction.RUNELITE)
-					.createSubMenu();
-
+				// One TOP-LEVEL "Add Goal <Tier>" entry per tier, each opening
+				// straight into [Default + each user section] — one hover instead
+				// of the old Add Goal ▸ Tier ▸ section double hop. Every leaf does
+				// a BARE add (no prereq auto-seeding) — organising/seeding is left
+				// to the panel's "Add requirements to this section". Inserting
+				// EASY→ELITE at index 1 stacks them Easy/Medium/Hard/Elite top to
+				// bottom, below the vanilla Open/Wiki entries.
 				for (final AchievementDiaryData.Tier tier : AchievementDiaryData.Tier.values())
 				{
 					final GoalPlannerApi.DiaryTier apiTier;
@@ -1312,9 +1197,10 @@ public class GoalPlannerPlugin extends Plugin
 						case ELITE:  apiTier = GoalPlannerApi.DiaryTier.ELITE; break;
 						default:     continue;
 					}
-					// Add Goal ▸ <Tier> ▸ [Default + each user section].
-					final net.runelite.api.Menu tierSub = addGoalSub.createMenuEntry(0)
-						.setOption(tier.getDisplayName())
+					// Add Goal <Tier> ▸ [Default + each user section].
+					final net.runelite.api.Menu tierSub = client.createMenuEntry(1)
+						.setOption("Add Goal " + tier.getDisplayName())
+						.setTarget(diaryMenuTarget)
 						.setType(MenuAction.RUNELITE)
 						.createSubMenu();
 					// Dedup probe matching insertDiaryGoal's identity (name=area,

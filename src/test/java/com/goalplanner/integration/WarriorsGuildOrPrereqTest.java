@@ -105,6 +105,41 @@ class WarriorsGuildOrPrereqTest
 	// ================================================================
 
 	@Test
+	@DisplayName("an already-satisfied OR-alternative (99 Attack) skips the whole unlock")
+	void satisfiedAlternativeSkipsUnlock()
+	{
+		// "Incomplete only" against a player with 99 Attack: the Warriors Guild
+		// unlock's OR-block is satisfied, so it must NOT be seeded at all (the
+		// bug — it was always seeded and auto-completed). Other Falador Hard
+		// requirements may still resolve; we only assert the WG unlock is gone.
+		java.util.function.ToIntFunction<Skill> has99Attack =
+			s -> s == Skill.ATTACK ? 99 : 1;
+
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			has99Attack,
+			quest -> QuestState.NOT_STARTED,
+			metric -> 0);
+
+		assertTrue(resolved.unlocks.stream().noneMatch(u -> "Warriors Guild Entry".equals(u.name)),
+			"unlock should be skipped when an alternative is already met");
+	}
+
+	@Test
+	@DisplayName("with no alternative met (all stats low) the unlock is still seeded")
+	void unmetAlternativesStillSeedUnlock()
+	{
+		DiaryRequirementResolver.Resolved resolved = DiaryRequirementResolver.resolve(
+			"Falador", AchievementDiaryData.Tier.HARD,
+			skill -> 1,
+			quest -> QuestState.NOT_STARTED,
+			metric -> 0);
+
+		assertTrue(resolved.unlocks.stream().anyMatch(u -> "Warriors Guild Entry".equals(u.name)),
+			"unlock should seed when no alternative is met");
+	}
+
+	@Test
 	@DisplayName("seeding creates exactly 4 Warriors Guild goals: unlock + 3 OR-alternatives")
 	void seedsAll4Goals()
 	{

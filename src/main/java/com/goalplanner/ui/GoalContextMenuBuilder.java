@@ -189,7 +189,7 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
-		// Share this goal — copy a share code or send it to the party.
+		// Share this goal — copy a paste-anywhere share code.
 		if (panel.isShareAvailable())
 		{
 			final java.util.List<String> shareIds = java.util.Collections.singletonList(goal.getId());
@@ -197,12 +197,6 @@ class GoalContextMenuBuilder
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
-			if (panel.isPartyShareAvailable())
-			{
-				JMenuItem toParty = new JMenuItem("Share to party");
-				toParty.addActionListener(e -> panel.shareGoalsToParty(shareIds));
-				shareMenu.add(toParty);
-			}
 			menu.add(shareMenu);
 			menu.addSeparator();
 		}
@@ -211,8 +205,15 @@ class GoalContextMenuBuilder
 		// up/down arrow buttons on the card itself (see GoalCard.createArrowButton).
 
 		// Add Goal submenu — Top/Bottom of section, Above/Below
-		// the right-clicked card. Above/Below grayed at section boundaries.
-		if (!goal.isComplete() && goal.getSectionId() != null)
+		// the right-clicked card. Available on completed goals too (completed
+		// goals are first-class); only the Completed BUILT-IN is excluded —
+		// new goals are incomplete, so reconcile would immediately bounce
+		// them back out of it.
+		com.goalplanner.model.Section goalSection = goal.getSectionId() != null
+			? goalStore.findSection(goal.getSectionId()) : null;
+		boolean inCompletedBuiltIn = goalSection != null
+			&& goalSection.getBuiltInKind() == com.goalplanner.model.Section.BuiltInKind.COMPLETED;
+		if (goal.getSectionId() != null && !inCompletedBuiltIn)
 		{
 			final String secId = goal.getSectionId();
 			final int posInSection = index - sectionStart;
@@ -253,33 +254,38 @@ class GoalContextMenuBuilder
 			// Leagues shortcut — direct-create both goal types at the tier/area
 			// milestones without opening the dialog. Lands just below the
 			// right-clicked card so the user can rapidly stack related leagues
-			// goals next to each other.
-			addGoalMenu.addSeparator();
-			JMenu leaguesMenu = new JMenu("Leagues Goal");
-
-			JMenu pointsMenu = new JMenu("League Points");
-			for (int i = 0; i < com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES.length; i++)
+			// goals next to each other. Leagues profile only — on a main
+			// account these goals could never track.
+			if (com.goalplanner.persistence.GoalStore.PROFILE_LEAGUES
+				.equals(goalStore.getActiveProfile()))
 			{
-				final int target = com.goalplanner.model.AccountMetric.LEAGUE_TIER_VALUES[i];
-				JMenuItem item = new JMenuItem(com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES[i]);
-				item.addActionListener(e -> createLeaguesShortcut(
-					com.goalplanner.model.AccountMetric.LEAGUE_POINTS, target, secId, posInSection + 1));
-				pointsMenu.add(item);
-			}
-			leaguesMenu.add(pointsMenu);
+				addGoalMenu.addSeparator();
+				JMenu leaguesMenu = new JMenu("Leagues Goal");
 
-			JMenu tasksMenu = new JMenu("Leagues Tasks");
-			for (int i = 0; i < com.goalplanner.model.AccountMetric.LEAGUE_AREA_NAMES.length; i++)
-			{
-				final int target = com.goalplanner.model.AccountMetric.LEAGUE_AREA_VALUES[i];
-				JMenuItem item = new JMenuItem(com.goalplanner.model.AccountMetric.LEAGUE_AREA_NAMES[i]);
-				item.addActionListener(e -> createLeaguesShortcut(
-					com.goalplanner.model.AccountMetric.LEAGUE_TASKS, target, secId, posInSection + 1));
-				tasksMenu.add(item);
-			}
-			leaguesMenu.add(tasksMenu);
+				JMenu pointsMenu = new JMenu("League Points");
+				for (int i = 0; i < com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES.length; i++)
+				{
+					final int target = com.goalplanner.model.AccountMetric.LEAGUE_TIER_VALUES[i];
+					JMenuItem item = new JMenuItem(com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES[i]);
+					item.addActionListener(e -> createLeaguesShortcut(
+						com.goalplanner.model.AccountMetric.LEAGUE_POINTS, target, secId, posInSection + 1));
+					pointsMenu.add(item);
+				}
+				leaguesMenu.add(pointsMenu);
 
-			addGoalMenu.add(leaguesMenu);
+				JMenu tasksMenu = new JMenu("Leagues Tasks");
+				for (int i = 0; i < com.goalplanner.model.AccountMetric.LEAGUE_AREA_NAMES.length; i++)
+				{
+					final int target = com.goalplanner.model.AccountMetric.LEAGUE_AREA_VALUES[i];
+					JMenuItem item = new JMenuItem(com.goalplanner.model.AccountMetric.LEAGUE_AREA_NAMES[i]);
+					item.addActionListener(e -> createLeaguesShortcut(
+						com.goalplanner.model.AccountMetric.LEAGUE_TASKS, target, secId, posInSection + 1));
+					tasksMenu.add(item);
+				}
+				leaguesMenu.add(tasksMenu);
+
+				addGoalMenu.add(leaguesMenu);
+			}
 
 			menu.add(addGoalMenu);
 		}
@@ -361,16 +367,19 @@ class GoalContextMenuBuilder
 		changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
 		customizeMenu.add(changeGoalColor);
 
-		// Skill-specific options
-		if (goal.getType() == GoalType.SKILL && !goal.isComplete())
+		// Skill-specific options. Available on completed goals too — completed
+		// and active goals are equivalent under retargeting: the new target
+		// re-evaluates completion (raising it past the progress reopens the
+		// goal, trackers resume).
+		if (goal.getType() == GoalType.SKILL)
 		{
 			JMenuItem editLevel = new JMenuItem("Change Amount");
 			editLevel.addActionListener(e -> dialogFactory.showChangeSkillTargetDialog(goal));
 			menu.add(editLevel);
 		}
 
-		// Item-specific options
-		if (goal.getType() == GoalType.ITEM_GRIND && !goal.isComplete())
+		// Item-specific options (completed goals included — same re-evaluation).
+		if (goal.getType() == GoalType.ITEM_GRIND)
 		{
 			JMenuItem editQty = new JMenuItem("Change Amount");
 			editQty.addActionListener(e -> {
@@ -790,7 +799,7 @@ class GoalContextMenuBuilder
 		header.setEnabled(false);
 		menu.add(header);
 
-		// Share the selected goals (copy a code or send to the party).
+		// Share the selected goals as one copy-paste code.
 		if (panel.isShareAvailable())
 		{
 			final List<String> shareIds = new ArrayList<>(selectedIds);
@@ -799,12 +808,6 @@ class GoalContextMenuBuilder
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
-			if (panel.isPartyShareAvailable())
-			{
-				JMenuItem toParty = new JMenuItem("Share to party");
-				toParty.addActionListener(e -> panel.shareGoalsToParty(shareIds));
-				shareMenu.add(toParty);
-			}
 			menu.add(shareMenu);
 		}
 
@@ -1377,7 +1380,7 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
-		// Share this whole section — copy a code or send it to the party.
+		// Share this whole section as a copy-paste code.
 		// Mirrors the goal-card Share submenu so sections and goals are
 		// consistent. Only shown when the section actually has goals.
 		if (panel.isShareAvailable() && !sectionGoalIds.isEmpty())
@@ -1390,12 +1393,6 @@ class GoalContextMenuBuilder
 			JMenuItem copyAll = new JMenuItem("Copy share code (all sections)");
 			copyAll.addActionListener(e -> panel.copyAllSectionsShareCode());
 			shareMenu.add(copyAll);
-			if (panel.isPartyShareAvailable())
-			{
-				JMenuItem toParty = new JMenuItem("Share to party");
-				toParty.addActionListener(e -> panel.shareSectionToParty(shareSectionId));
-				shareMenu.add(toParty);
-			}
 			menu.add(shareMenu);
 			menu.addSeparator();
 		}
@@ -1407,23 +1404,23 @@ class GoalContextMenuBuilder
 		// (The underlying flag/API is still named railView — internal rename to
 		// nestedView is a tracked follow-up.)
 		// Dependency nesting — per-section override of the global "Indent
-		// dependencies by default" setting: inherit (Use default), always nested,
-		// or never nested. Mirrors the auto-archive override above.
+		// dependencies by default" setting: inherit (Use default), nested,
+		// or not nested. Mirrors the auto-archive override above.
 		boolean indentDefault = config.showDependenciesIndented();
 		Boolean nestedOverride = section.nestedOverride;
 		JMenu nestMenu = new JMenu("Dependency nesting");
 		javax.swing.JRadioButtonMenuItem nestDefault = new javax.swing.JRadioButtonMenuItem(
-			"Use default (" + (indentDefault ? "nested" : "flat") + ")", nestedOverride == null);
+			"Use default (" + (indentDefault ? "nested" : "not nested") + ")", nestedOverride == null);
 		nestDefault.addActionListener(e -> api.setSectionNestedOverride(section.id, null));
 		nestMenu.add(nestDefault);
 
 		javax.swing.JRadioButtonMenuItem nestOn = new javax.swing.JRadioButtonMenuItem(
-			"Always nested", Boolean.TRUE.equals(nestedOverride));
+			"Nested", Boolean.TRUE.equals(nestedOverride));
 		nestOn.addActionListener(e -> api.setSectionNestedOverride(section.id, Boolean.TRUE));
 		nestMenu.add(nestOn);
 
 		javax.swing.JRadioButtonMenuItem nestOff = new javax.swing.JRadioButtonMenuItem(
-			"Never nested", Boolean.FALSE.equals(nestedOverride));
+			"Not nested", Boolean.FALSE.equals(nestedOverride));
 		nestOff.addActionListener(e -> api.setSectionNestedOverride(section.id, Boolean.FALSE));
 		nestMenu.add(nestOff);
 
@@ -1671,14 +1668,22 @@ class GoalContextMenuBuilder
 	/** Route "Add requirements" to the quest or diary seeder. */
 	private void seedReqs(String goalId, boolean includeMet, boolean isDiary)
 	{
-		if (isDiary)
-		{
-			api.seedDiaryRequirementsForGoal(goalId, includeMet);
-		}
-		else
-		{
-			api.seedRequirementsForGoal(goalId, includeMet);
-		}
+		// The "Incomplete only" variant resolves against LIVE player state
+		// (getRealSkillLevel / Quest.getState), which asserts the client thread
+		// — run on it. ("All" uses pure floor lookups and is thread-agnostic,
+		// but routing both keeps one path.) Store mutation on the client thread
+		// is fine (trackers already mutate there); the resulting onGoalsChanged
+		// marshals the rebuild back to the EDT.
+		panel.runOnClientThread(() -> {
+			if (isDiary)
+			{
+				api.seedDiaryRequirementsForGoal(goalId, includeMet);
+			}
+			else
+			{
+				api.seedRequirementsForGoal(goalId, includeMet);
+			}
+		});
 	}
 
 	/** Internal diary tier from a diary goal's "&lt;Tier&gt; Achievement Diary" description, or null. */

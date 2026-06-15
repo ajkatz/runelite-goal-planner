@@ -19,7 +19,9 @@ import java.awt.event.MouseEvent;
 /**
  * A row rendered as a section header in the goal panel.
  * Click anywhere on the row to toggle collapse/expand. The chevron on the left
- * indicates current state (▼ expanded, ▶ collapsed).
+ * indicates current state (▼ expanded, ▶ collapsed). When the section has
+ * goals, a checkbox glyph on the right edge selects/unselects all of them in
+ * one click (mirrors the context menu's "Select All in Section").
  */
 public class SectionHeaderRow extends JPanel
 {
@@ -28,6 +30,7 @@ public class SectionHeaderRow extends JPanel
 	private static final Color CHEVRON_COLOR = new Color(160, 160, 160);
 	private static final int ROW_HEIGHT = 22;
 	private static final int CHEVRON_WIDTH = 14;
+	private static final int CHECKBOX_SIZE = 10;
 
 	/**
 	 * Multiplier applied to each RGB channel of a user-picked section color so
@@ -41,7 +44,24 @@ public class SectionHeaderRow extends JPanel
 	private final boolean hasColor;
 	private final Color darkenedFill;
 
+	/** Select-all toggle state — null when the section has no goals (no glyph shown). */
+	private final java.util.function.BooleanSupplier allSelectedState;
+	private final JLabel selectToggle;
+
 	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle)
+	{
+		this(section, goalCount, onToggle, null, null);
+	}
+
+	/**
+	 * @param allSelectedState true when every goal in the section is currently
+	 *                         selected (drives the glyph + tooltip); null hides
+	 *                         the select-all toggle entirely.
+	 * @param onToggleSelectAll runs on glyph click — select all when not all
+	 *                          selected, unselect all otherwise.
+	 */
+	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle,
+		java.util.function.BooleanSupplier allSelectedState, Runnable onToggleSelectAll)
 	{
 		setLayout(new BorderLayout());
 
@@ -86,14 +106,46 @@ public class SectionHeaderRow extends JPanel
 		nameLabel.setForeground(TEXT_COLOR);
 		nameLabel.setFont(PanelFonts.derive(Font.BOLD, 10f));
 
-		// Spacer of equal width on the right so the centered name visually stays
-		// centered despite the chevron occupying the left edge.
-		JLabel spacer = new JLabel();
-		spacer.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
+		// Right edge: the select-all/unselect-all checkbox when the section has
+		// goals, otherwise an empty spacer of equal width so the centered name
+		// stays visually centered despite the chevron on the left edge.
+		this.allSelectedState = allSelectedState;
+		if (allSelectedState != null && onToggleSelectAll != null && goalCount > 0)
+		{
+			this.selectToggle = new JLabel();
+			// A few px wider than the chevron column: the glyph is a small
+			// target, so give the hit area some slack.
+			selectToggle.setPreferredSize(new Dimension(CHEVRON_WIDTH + 6, ROW_HEIGHT));
+			selectToggle.setHorizontalAlignment(SwingConstants.CENTER);
+			refreshSelectToggle();
+			selectToggle.addMouseListener(new MouseAdapter()
+			{
+				@Override
+				public void mousePressed(MouseEvent e)
+				{
+					// mousePressed, not mouseClicked: clicked only fires when
+					// press and release land on the same pixel, so rapid
+					// repeat clicks (which drift slightly) get swallowed.
+					// Swing doesn't bubble child events to the row, so this
+					// never also triggers the collapse toggle.
+					if (e.getButton() == MouseEvent.BUTTON1)
+					{
+						onToggleSelectAll.run();
+					}
+				}
+			});
+			add(selectToggle, BorderLayout.EAST);
+		}
+		else
+		{
+			this.selectToggle = null;
+			JLabel spacer = new JLabel();
+			spacer.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
+			add(spacer, BorderLayout.EAST);
+		}
 
 		add(chevron, BorderLayout.WEST);
 		add(nameLabel, BorderLayout.CENTER);
-		add(spacer, BorderLayout.EAST);
 
 		addMouseListener(new MouseAdapter()
 		{
@@ -108,6 +160,26 @@ public class SectionHeaderRow extends JPanel
 				}
 			}
 		});
+	}
+
+	/**
+	 * Re-read the selection state and update the checkbox glyph + tooltip.
+	 * Called by the panel whenever the goal selection changes (the header rows
+	 * themselves aren't rebuilt on selection-only updates).
+	 */
+	public void refreshSelectToggle()
+	{
+		if (selectToggle == null || allSelectedState == null)
+		{
+			return;
+		}
+		boolean allSelected = allSelectedState.getAsBoolean();
+		selectToggle.setIcon(allSelected
+			? ShapeIcons.checkboxChecked(CHECKBOX_SIZE, CHEVRON_COLOR)
+			: ShapeIcons.checkboxEmpty(CHECKBOX_SIZE, CHEVRON_COLOR));
+		selectToggle.setToolTipText(allSelected
+			? "Unselect all in section"
+			: "Select all in section");
 	}
 
 	@Override

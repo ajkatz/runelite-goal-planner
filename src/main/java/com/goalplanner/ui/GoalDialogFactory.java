@@ -62,6 +62,17 @@ class GoalDialogFactory
 		this.client = client;
 	}
 
+	/** Runs a task on the client thread; defaults to synchronous until the
+	 *  plugin wires {@code clientThread::invokeLater}. The Max button reads the
+	 *  live account-metric ceiling (quest DB table / collection-log varp),
+	 *  which asserts the client thread. */
+	private java.util.function.Consumer<Runnable> clientThreadExec = Runnable::run;
+
+	void setClientThreadExecutor(java.util.function.Consumer<Runnable> exec)
+	{
+		this.clientThreadExec = exec != null ? exec : Runnable::run;
+	}
+
 	/**
 	 * Re-target dialog — opens a modal with a
 	 * SkillTargetForm with synced Level/XP fields plus a Mode toggle so the
@@ -328,8 +339,17 @@ class GoalDialogFactory
 		JTextField nameField = new JTextField(15);
 		JTextField itemQtyField = new JTextField("1", 15);
 
-		// Account metric combo
-		com.goalplanner.model.AccountMetric[] metrics = com.goalplanner.model.AccountMetric.values();
+		// Account metric combo. Leagues-scoped metrics (League Points/Tasks)
+		// only exist on a leagues profile — offering them on a main account
+		// would create goals that can never track, so hide them there. The
+		// league tier/area shortcut combos key off the selected metric, so
+		// filtering the list hides those too.
+		boolean leaguesProfile = com.goalplanner.persistence.GoalStore.PROFILE_LEAGUES
+			.equals(goalStore.getActiveProfile());
+		com.goalplanner.model.AccountMetric[] metrics =
+			java.util.Arrays.stream(com.goalplanner.model.AccountMetric.values())
+				.filter(m -> leaguesProfile || !m.isLeagues())
+				.toArray(com.goalplanner.model.AccountMetric[]::new);
 		JComboBox<com.goalplanner.model.AccountMetric> metricCombo = new JComboBox<>(metrics);
 		metricCombo.setRenderer(new DefaultListCellRenderer()
 		{
@@ -461,15 +481,24 @@ class GoalDialogFactory
 			}
 		});
 
-		// Max button — fills target with the metric's max value
+		// Max button — fills target with the metric's max value (live ceiling
+		// for collection log / quest points / ToG PB when the client has it).
+		// The live read asserts the client thread, so resolve there and set the
+		// field back on the EDT; without the hop the read throws on the EDT and
+		// the button silently does nothing (the bug this replaced).
 		javax.swing.JButton maxButton = new javax.swing.JButton("Max");
 		maxButton.addActionListener(e -> {
 			com.goalplanner.model.AccountMetric m =
 				(com.goalplanner.model.AccountMetric) metricCombo.getSelectedItem();
-			if (m != null)
+			if (m == null)
 			{
-				accountTargetField.setText(String.valueOf(m.getMaxTarget()));
+				return;
 			}
+			clientThreadExec.accept(() -> {
+				int max = m.effectiveMaxTarget(client);
+				javax.swing.SwingUtilities.invokeLater(() ->
+					accountTargetField.setText(String.valueOf(max)));
+			});
 		});
 
 		JPanel shortcutRow = new JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 4, 0));

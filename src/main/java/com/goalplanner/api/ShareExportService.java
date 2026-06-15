@@ -14,7 +14,7 @@ import java.util.Set;
  * Builds a {@link ShareBundle} from goals currently in the store (export side).
  * Thin wrapper over {@code ShareMapper} that gathers the goals for a section (or
  * an explicit id set) and supplies the tag lookup. The encode-to-string,
- * clipboard, and party-send steps live in the UI/plugin layer.
+ * clipboard steps live in the UI/plugin layer.
  */
 class ShareExportService
 {

@@ -78,12 +78,4 @@ public final class TagOptions
 		return OPTIONS.getOrDefault(category, new String[]{});
 	}
 
-	/**
-	 * Whether this category uses a dropdown (true) or freeform text (false).
-	 */
-	public static boolean hasDropdown(TagCategory category)
-	{
-		String[] opts = getOptions(category);
-		return opts.length > 0;
-	}
 }

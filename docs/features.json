@@ -1,0 +1,351 @@
+{
+  "$comment": "Central feature registry. One entry per user-facing feature. Every code change that adds/alters a feature updates its entry (and the README feature guide + CHANGELOG) in the same PR. `./gradlew checkDocs` audits this file against README.md, docs/img/, and the source tree, and prints the documentation-gap report.",
+  "features": [
+    {
+      "id": "add-goal-dialog",
+      "title": "Add a goal from the panel",
+      "group": "Creating goals",
+      "anchor": "add-a-goal-from-the-panel",
+      "media": "docs/img/add-goal-dialog.gif",
+      "code": [
+        "ui/GoalDialogFactory.java",
+        "ui/GoalContextMenuBuilder.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "add-goal-ingame",
+      "title": "Add goals from the game",
+      "group": "Creating goals",
+      "anchor": "add-goals-from-the-game",
+      "media": "docs/img/add-goal-ingame.gif",
+      "code": [
+        "GoalPlannerPlugin.java"
+      ],
+      "tests": [],
+      "since": "0.1.0",
+      "notes": "onMenuOpened wiring has no automated coverage (needs mocked Client) — verified manually per release."
+    },
+    {
+      "id": "prereq-seeding",
+      "title": "Automatic requirement trees",
+      "group": "Creating goals",
+      "anchor": "automatic-requirement-trees",
+      "media": "docs/img/prereq-seeding.gif",
+      "code": [
+        "api/GoalCreationService.java",
+        "data/QuestRequirementResolver.java",
+        "data/DiaryRequirementResolver.java",
+        "data/BossKillData.java"
+      ],
+      "tests": [
+        "api/AddQuestGoalWithPrereqsTest.java"
+      ],
+      "since": "0.1.0",
+      "capture": "Quest list → right-click Dragon Slayer II → Add Goal → Default → watch the chain seed. ~8s."
+    },
+    {
+      "id": "add-requirements",
+      "title": "Add requirements to an existing goal",
+      "group": "Creating goals",
+      "anchor": "add-requirements-to-an-existing-goal",
+      "media": "docs/img/add-requirements.gif",
+      "code": [
+        "api/GoalCreationService.java",
+        "data/QuestRequirementResolver.java",
+        "data/DiaryRequirementResolver.java",
+        "model/AccountMetric.java",
+        "ui/GoalContextMenuBuilder.java",
+        "ui/GoalPanel.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java",
+        "data/QuestRequirementsTest.java",
+        "integration/WarriorsGuildOrPrereqTest.java"
+      ],
+      "since": "0.3.0",
+      "notes": "Incomplete-only resolves live state on the client thread (0.3.0); account reqs (incl. OR-unlock arms) pre-filtered via AccountMetric.currentValue."
+    },
+    {
+      "id": "auto-tracking",
+      "title": "Auto-tracking",
+      "group": "Tracking",
+      "anchor": "auto-tracking",
+      "media": "docs/img/auto-tracking.gif",
+      "code": [
+        "tracker/AbstractTracker.java",
+        "tracker/SkillTracker.java",
+        "tracker/ItemTracker.java",
+        "tracker/AccountTracker.java",
+        "tracker/DiaryTracker.java"
+      ],
+      "tests": [
+        "tracker/ItemTrackerTest.java"
+      ],
+      "since": "0.1.0",
+      "capture": "Panel visible while gaining XP toward a skill goal (chop a tree). Bar/numbers tick. ~6s."
+    },
+    {
+      "id": "account-metrics",
+      "title": "Account metrics",
+      "group": "Tracking",
+      "anchor": "account-metrics",
+      "media": "docs/img/account-metrics.gif",
+      "code": [
+        "model/AccountMetric.java",
+        "api/GoalCreationService.java",
+        "ui/GoalDialogFactory.java"
+      ],
+      "tests": [
+        "model/AccountMetricMaxTest.java",
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0",
+      "notes": "Live ceilings (quest DB sum, collection-log varp) since 0.3.0; over-max targets allowed since 0.3.0; leagues metrics hidden off-profile since 0.3.0."
+    },
+    {
+      "id": "change-amount",
+      "title": "Change Amount / retargeting",
+      "group": "Tracking",
+      "anchor": "change-amount--retargeting",
+      "media": "docs/img/change-amount.gif",
+      "code": [
+        "api/GoalMutationService.java",
+        "ui/GoalContextMenuBuilder.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0",
+      "notes": "Completed-goal retargeting with completion re-evaluation since 0.3.0."
+    },
+    {
+      "id": "manual-complete",
+      "title": "Manual completion",
+      "group": "Tracking",
+      "anchor": "manual-completion",
+      "media": "docs/img/manual-complete.gif",
+      "code": [
+        "api/GoalMutationService.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "sections",
+      "title": "Sections",
+      "group": "Organizing",
+      "anchor": "sections",
+      "media": "docs/img/sections.gif",
+      "code": [
+        "persistence/GoalStore.java",
+        "ui/GoalContextMenuBuilder.java",
+        "ui/SectionHeaderRow.java"
+      ],
+      "tests": [
+        "persistence/GoalStoreTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "completed-inline",
+      "title": "Completed-goal handling",
+      "group": "Organizing",
+      "anchor": "completed-goal-handling",
+      "media": "docs/img/completed-inline.gif",
+      "code": [
+        "persistence/GoalStore.java"
+      ],
+      "tests": [
+        "persistence/GoalStoreTest.java"
+      ],
+      "since": "0.3.0"
+    },
+    {
+      "id": "move-duplicate",
+      "title": "Move & duplicate across sections",
+      "group": "Organizing",
+      "anchor": "move--duplicate-across-sections",
+      "media": "docs/img/move-duplicate.gif",
+      "code": [
+        "api/GoalMutationService.java",
+        "persistence/GoalStore.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.3.0"
+    },
+    {
+      "id": "nesting",
+      "title": "Dependency nesting (guide view)",
+      "group": "Organizing",
+      "anchor": "dependency-nesting-guide-view",
+      "media": "docs/img/nesting.gif",
+      "code": [
+        "ui/GoalPanel.java",
+        "ui/GoalContextMenuBuilder.java"
+      ],
+      "tests": [],
+      "since": "0.3.0",
+      "notes": "Renderer is Swing-only — no automated coverage; topo-order math covered via GoalQueryService tests."
+    },
+    {
+      "id": "tags",
+      "title": "Tags",
+      "group": "Organizing",
+      "anchor": "tags",
+      "media": "docs/img/tags.gif",
+      "code": [
+        "api/TagService.java",
+        "ui/TagManagementDialog.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "colors",
+      "title": "Colors",
+      "group": "Organizing",
+      "anchor": "colors",
+      "media": "docs/img/colors.gif",
+      "code": [
+        "ui/GoalDialogFactory.java",
+        "ui/SectionHeaderRow.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "search",
+      "title": "Search",
+      "group": "Organizing",
+      "anchor": "search",
+      "media": "docs/img/search.gif",
+      "code": [
+        "ui/GoalPanel.java",
+        "api/GoalQueryService.java"
+      ],
+      "tests": [],
+      "since": "0.1.1",
+      "notes": "searchGoals has no dedicated test class — gap."
+    },
+    {
+      "id": "select-all",
+      "title": "Multi-select + section select-all",
+      "group": "Selection & safety",
+      "anchor": "multi-select--section-select-all",
+      "media": "docs/img/select-all.gif",
+      "code": [
+        "ui/SectionHeaderRow.java",
+        "ui/GoalPanel.java",
+        "api/GoalPlannerApiImpl.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.1",
+      "notes": "Header checkbox glyph since 0.3.0."
+    },
+    {
+      "id": "bulk-actions",
+      "title": "Bulk actions",
+      "group": "Selection & safety",
+      "anchor": "bulk-actions",
+      "media": "docs/img/bulk-actions.gif",
+      "code": [
+        "ui/GoalContextMenuBuilder.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.1"
+    },
+    {
+      "id": "undo-redo",
+      "title": "Undo / redo",
+      "group": "Selection & safety",
+      "anchor": "undo--redo",
+      "media": "docs/img/undo-redo.gif",
+      "code": [
+        "command/CommandHistory.java",
+        "command/Command.java",
+        "command/CompositeCommand.java"
+      ],
+      "tests": [
+        "command/CommandHistoryTest.java",
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.1.0"
+    },
+    {
+      "id": "share-codes",
+      "title": "Share codes",
+      "group": "Sharing",
+      "anchor": "share-codes",
+      "media": "docs/img/share-codes.gif",
+      "code": [
+        "share/ShareCodec.java",
+        "share/ShareMapper.java",
+        "api/ShareExportService.java"
+      ],
+      "tests": [
+        "share/ShareCodecTest.java",
+        "share/ShareCodecV2Test.java",
+        "api/ShareExportServiceTest.java"
+      ],
+      "since": "0.3.0"
+    },
+    {
+      "id": "importing",
+      "title": "Importing",
+      "group": "Sharing",
+      "anchor": "importing",
+      "media": "docs/img/importing.gif",
+      "code": [
+        "api/ShareImportService.java"
+      ],
+      "tests": [
+        "api/ShareImportServiceTest.java"
+      ],
+      "since": "0.3.0"
+    },
+    {
+      "id": "cross-section",
+      "title": "Cross-section dependencies",
+      "group": "Sharing",
+      "anchor": "cross-section-dependencies",
+      "media": "docs/img/cross-section.png",
+      "code": [
+        "share/CrossEdgeDto.java",
+        "share/ShareMapper.java",
+        "api/ShareImportService.java"
+      ],
+      "tests": [
+        "share/ShareMapperTest.java",
+        "api/ShareImportServiceTest.java"
+      ],
+      "since": "0.3.0"
+    },
+    {
+      "id": "ai-crafting",
+      "title": "Crafting codes with AI",
+      "group": "Sharing",
+      "anchor": "crafting-codes-with-ai",
+      "media": null,
+      "code": [],
+      "tests": [],
+      "since": "0.3.0",
+      "notes": "Lives in the goalplanner-share-mcp repo; its parity tests decode real plugin codes both directions."
+    }
+  ]
+}

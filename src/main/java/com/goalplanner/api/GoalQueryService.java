@@ -335,6 +335,14 @@ class GoalQueryService
 						{
 							v.attributes.put("iconKey", resolvedIconKey);
 						}
+						// Icons derive from the METRIC, not the creation path:
+						// goals that arrived without a persisted sprite (share
+						// imports, API callers) render the same icon a
+						// plugin-created goal would.
+						if (v.spriteId == 0)
+						{
+							v.spriteId = m.resolveSpriteForTarget(g.getTargetValue());
+						}
 					}
 					catch (IllegalArgumentException ignored) {}
 				}

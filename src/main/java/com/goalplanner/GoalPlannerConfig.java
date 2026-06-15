@@ -35,26 +35,6 @@ public interface GoalPlannerConfig extends Config
 	String appearanceSection = "appearance";
 
 	@ConfigItem(
-		keyName = "showOverlay",
-		name = "Show Overlay",
-		description = "Show compact goal progress overlay in-game"
-	)
-	default boolean showOverlay()
-	{
-		return true;
-	}
-
-	@ConfigItem(
-		keyName = "maxOverlayGoals",
-		name = "Max Overlay Goals",
-		description = "Maximum number of goals shown in the overlay"
-	)
-	default int maxOverlayGoals()
-	{
-		return 3;
-	}
-
-	@ConfigItem(
 		keyName = "fontFamily",
 		name = "Panel font",
 		description = "Side-panel font family. Try Sans-serif if the default is hard to read.",
@@ -82,8 +62,8 @@ public interface GoalPlannerConfig extends Config
 		keyName = "showDependenciesIndented",
 		name = "Indent dependencies by default",
 		description = "Default for every section: show goals nested under the goals they require, "
-			+ "indented with a faint guide. Each section can override this (Always nested / Never "
-			+ "nested / Use default) from its right-click menu.",
+			+ "indented with a faint guide. Each section can override this (Nested / Not nested "
+			+ "/ Use default) from its right-click menu.",
 		section = appearanceSection,
 		position = 3
 	)

@@ -84,6 +84,18 @@ public final class ShapeIcons
 		return new MoreDotsIcon(size, color);
 	}
 
+	/** Empty checkbox outline — "select all" affordance. */
+	public static Icon checkboxEmpty(int size, Color color)
+	{
+		return new CheckboxIcon(size, color, false);
+	}
+
+	/** Ticked checkbox — "unselect all" affordance (everything already selected). */
+	public static Icon checkboxChecked(int size, Color color)
+	{
+		return new CheckboxIcon(size, color, true);
+	}
+
 	private enum Direction { UP, DOWN, RIGHT }
 
 	// ----- color helpers -----
@@ -567,6 +579,81 @@ public final class ShapeIcons
 				g2.fillOval(cx1, cy, dot, dot);
 				g2.fillOval(cx2, cy, dot, dot);
 				g2.fillOval(cx3, cy, dot, dot);
+			}
+			finally
+			{
+				g2.dispose();
+			}
+		}
+
+		@Override public int getIconWidth() { return size + 1; }
+		@Override public int getIconHeight() { return size + 1; }
+	}
+	/**
+	 * Square checkbox, empty or ticked — same four-tone bevel treatment as the
+	 * other glyphs. Used as the section-header select-all/unselect-all toggle.
+	 */
+	private static final class CheckboxIcon implements Icon
+	{
+		private final int size;
+		private final Color color;
+		private final boolean checked;
+
+		CheckboxIcon(int size, Color color, boolean checked)
+		{
+			this.size = size;
+			this.color = color;
+			this.checked = checked;
+		}
+
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			try
+			{
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				int pad = 1;
+				int x1 = x + pad, y1 = y + pad;
+				int box = size - 2 * pad;
+
+				// Drop shadow
+				g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(new Color(0, 0, 0, 110));
+				g2.drawRect(x1 + 1, y1 + 1, box, box);
+
+				// Outline
+				g2.setColor(darken(color, 100));
+				g2.drawRect(x1, y1, box, box);
+
+				// Base color box
+				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(color);
+				g2.drawRect(x1, y1, box, box);
+
+				// Highlight along the top edge
+				g2.setStroke(new BasicStroke(0.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(lighten(color, 80));
+				g2.drawLine(x1 + 1, y1 + 1, x1 + box - 1, y1 + 1);
+
+				if (checked)
+				{
+					// Tick: short down-stroke then long up-stroke, inset in the box.
+					int tx1 = x1 + box / 5;
+					int ty1 = y1 + box / 2;
+					int tx2 = x1 + (int) (box * 0.42);
+					int ty2 = y1 + box - box / 4;
+					int tx3 = x1 + box - box / 6;
+					int ty3 = y1 + box / 5;
+					g2.setStroke(new BasicStroke(1.8f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+					g2.setColor(darken(color, 100));
+					g2.drawLine(tx1 + 1, ty1 + 1, tx2 + 1, ty2 + 1);
+					g2.drawLine(tx2 + 1, ty2 + 1, tx3 + 1, ty3 + 1);
+					g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+					g2.setColor(lighten(color, 60));
+					g2.drawLine(tx1, ty1, tx2, ty2);
+					g2.drawLine(tx2, ty2, tx3, ty3);
+				}
 			}
 			finally
 			{

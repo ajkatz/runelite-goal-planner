@@ -18,10 +18,10 @@ import java.util.zip.GZIPOutputStream;
  * <p>The {@code GPSHARE&lt;n&gt;:} prefix is a magic marker + schema version: it
  * lets {@link #decode(String)} reject arbitrary pasted text and incompatible
  * versions before doing any work. The same encoded string is the payload for
- * both the in-client Party transport and a copy/paste export.
+ * a copy/paste export.
  *
  * <p>Gzip matters because goal data is highly repetitive (enum names, level
- * targets) and the Party WebSocket caps message size — compression keeps a
+ * targets) and chat clients cap message size — compression keeps a
  * typical section inside a single message.
  *
  * <p>Takes an injected {@link Gson}; the plugin hub rejects {@code new Gson()},

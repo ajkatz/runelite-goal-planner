@@ -234,9 +234,15 @@ class GoalMutationService
 		{
 			return false; // CA/quest/diary targets are immutable
 		}
+		if (newTarget == g.getTargetValue())
+		{
+			return false; // no-op — also keeps a re-typed value from re-evaluating a manual completion
+		}
 		final int prevTarget = g.getTargetValue();
 		final String prevName = g.getName();
 		final String prevDescription = g.getDescription();
+		final com.goalplanner.model.GoalStatus prevStatus = g.getStatus();
+		final long prevCompletedAt = g.getCompletedAt();
 		final String label = g.getName();
 		return api.executeCommand(new com.goalplanner.command.Command()
 		{
@@ -248,7 +254,14 @@ class GoalMutationService
 				cg.setTargetValue(prevTarget);
 				cg.setName(prevName);
 				cg.setDescription(prevDescription);
+				boolean statusChanged = cg.getStatus() != prevStatus;
+				cg.setStatus(prevStatus);
+				cg.setCompletedAt(prevCompletedAt);
 				api.goalStore.updateGoal(cg);
+				if (statusChanged)
+				{
+					api.goalStore.reconcileCompletedSection();
+				}
 				return true;
 			}
 			@Override public String getDescription() { return "Change target: " + label; }
@@ -274,7 +287,38 @@ class GoalMutationService
 		{
 			g.setDescription(com.goalplanner.util.FormatUtil.formatNumber(newTarget) + " total");
 		}
+
+		// Re-evaluate completion against the new target so completed and
+		// active goals stay equivalent under retargeting: raising the target
+		// past the recorded progress reopens the goal (trackers resume —
+		// COMPLETE is only terminal while it stands); lowering it to or below
+		// the progress completes it, with the same OR-prereq cascade a
+		// tracker-driven completion runs. Note the recorded progress can lag
+		// the game for a reopened goal (trackers skip COMPLETE goals); the
+		// post-command refresh resyncs and re-completes it if warranted.
+		boolean meets = g.meetsTarget();
+		boolean statusChanged = false;
+		if (g.isComplete() && !meets)
+		{
+			g.setCompletedAt(0);
+			g.setStatus(com.goalplanner.model.GoalStatus.ACTIVE);
+			statusChanged = true;
+			log.info("API.internal changeTarget: goal reopened {} ({})", g.getId(), g.getName());
+		}
+		else if (!g.isComplete() && meets)
+		{
+			g.setCompletedAt(System.currentTimeMillis());
+			g.setStatus(com.goalplanner.model.GoalStatus.COMPLETE);
+			statusChanged = true;
+			log.info("API.internal changeTarget: goal complete {} ({})", g.getId(), g.getName());
+			checkOrPrereqCompletion(goalId);
+		}
+
 		api.goalStore.updateGoal(g);
+		if (statusChanged)
+		{
+			api.goalStore.reconcileCompletedSection();
+		}
 		return true;
 	}
 

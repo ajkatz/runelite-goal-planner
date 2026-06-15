@@ -62,45 +62,4 @@ class RelativeTargetResolverTest
 		}
 	}
 
-	@Nested
-	@DisplayName("resolveItemCount")
-	class ItemCount
-	{
-		@Test
-		@DisplayName("adds delta to current count")
-		void simpleAdd()
-		{
-			assertEquals(150, RelativeTargetResolver.resolveItemCount(50, 100));
-		}
-
-		@Test
-		@DisplayName("zero current count is fine")
-		void zeroCurrent()
-		{
-			assertEquals(100, RelativeTargetResolver.resolveItemCount(0, 100));
-		}
-
-		@Test
-		@DisplayName("zero delta returns -1 (invalid)")
-		void zeroDeltaInvalid()
-		{
-			assertEquals(-1, RelativeTargetResolver.resolveItemCount(50, 0));
-		}
-
-		@Test
-		@DisplayName("negative delta returns -1 (invalid)")
-		void negativeDeltaInvalid()
-		{
-			assertEquals(-1, RelativeTargetResolver.resolveItemCount(50, -10));
-		}
-
-		@Test
-		@DisplayName("does not overflow on huge inputs")
-		void noOverflow()
-		{
-			int result = RelativeTargetResolver.resolveItemCount(
-				Integer.MAX_VALUE - 10, 100);
-			assertEquals(Integer.MAX_VALUE, result);
-		}
-	}
 }
