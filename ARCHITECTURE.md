@@ -185,7 +185,7 @@ Each tracker is wired to a different RuneLite event:
 
 **BossKillTracker** reads `VarPlayerID.TOTAL_X_KILLS` / per-level
 completion counters via `BossKillData.getVarpId(bossName)`. 89 bosses
-and activities mapped as of v0.1.0.
+and activities mapped.
 
 **AccountTracker** reads account-wide metrics via a switch over the
 `AccountMetric` enum: quest points, combat level, total level, CA
@@ -580,7 +580,7 @@ src/test/java/com/goalplanner/
 └── util/                                 # Number formatting
 ```
 
-399 tests as of v0.1.0. All 8 trackers have smoke tests; transitive
+564 tests. All 8 trackers have smoke tests; transitive
 prereq chaining has integration coverage at Gauntlet → SotE depth;
 OR-alternative seeding is validated via a synthetic `BossPrereqs`
 injected through `BossKillData.swapPrereqsForTest` (package-private

@@ -2,9 +2,9 @@
 
 Planned future work. Not committed to an order; items are picked up
 as appetite allows. See [CHANGELOG.md](CHANGELOG.md) for work that has
-shipped in v0.1.0.
+already shipped.
 
-> ⚠️ **Experimental v0.1.1** — Persistence format and the public API
+> ⚠️ **Experimental** — Persistence format and the public API
 > may change in breaking ways before a stable 1.0 tag. Items below
 > may become higher-priority if a breaking change is staged.
 
@@ -161,7 +161,7 @@ panel's progress-indicator code.
 ### Plugin Hub submission
 All of: screenshots, a README suitable for the hub listing, a license,
 a CHANGELOG, and a PR to `runelite/plugin-hub` with the manifest
-entry. Docs are now in place as of v0.1.0; this is the next
+entry. Docs are now in place; this is the next
 user-visible step.
 
 ### Stable 1.0 API tag

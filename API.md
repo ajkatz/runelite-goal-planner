@@ -1,6 +1,6 @@
 # Goal Planner Plugin API
 
-> ⚠️ **Experimental v0.1.1** — The public API may change in breaking ways
+> ⚠️ **Experimental** — The public API may change in breaking ways
 > before a stable 1.0 tag. Method signatures, DTO shapes, and return
 > semantics are not yet committed. Pin a specific plugin version if you
 > ship a consumer against this API, and expect to update across our
@@ -241,7 +241,7 @@ via OR-edges. See ARCHITECTURE.md §Requirement resolvers.
 
 - `bossName` — display name as registered in `BossKillData.BOSSES`.
   Use `BossKillData.getBossNames()` (internal) to enumerate the
-  89 supported entries as of v0.1.0. Case-sensitive.
+  89 supported entries. Case-sensitive.
 - `targetKills` — target count (must be &gt; 0).
 
 Returns `null` if the boss name is not registered.
@@ -255,7 +255,7 @@ String addAccountGoal(String metricName, int target);
 Add an account-wide metric goal. Auto-tracks via `AccountTracker`.
 
 - `metricName` — one of the `AccountMetric` enum names. Supported
-  values in v0.1.0: `QUEST_POINTS`, `COMBAT_LEVEL`, `TOTAL_LEVEL`,
+  values: `QUEST_POINTS`, `COMBAT_LEVEL`, `TOTAL_LEVEL`,
   `CA_POINTS`, `SLAYER_POINTS`, `KUDOS`, `ATT_STR_COMBINED`,
   `MISC_APPROVAL`, `TOG_MAX_TEARS`, `CHOMPY_KILLS`, `COLOSSEUM_GLORY`,
   `DOM_DEEPEST_LEVEL`, `LEAGUE_POINTS`, `LEAGUE_TASKS`.
@@ -499,7 +499,7 @@ would spam rebuilds.
 
 ## Versioning and stability
 
-The API is currently **v0.1.1 (experimental)**. Until we cut a stable 1.0
+The API is currently **experimental (0.x)**. Until we cut a stable 1.0
 tag, existing method signatures and return semantics may change in
 breaking ways between releases. Additions will keep backwards
 compatibility where feasible, but breaking changes (renamed methods,
@@ -509,7 +509,7 @@ series.
 What's planned for 1.0:
 - Locking down the current method set and DTOs (no more removals).
 - Stable metric names on `AccountMetric` (the enum is not guaranteed
-  stable at 0.1.0 — new metrics may land; renames are possible).
+  stable during 0.x — new metrics may land; renames are possible).
 - Stable boss names in `BossKillData` (new bosses may be added; names
   should not churn).
 - A `queryAllTags()` public accessor (currently internal only).

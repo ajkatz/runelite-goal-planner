@@ -12,7 +12,7 @@ This doc covers the fixture pattern, mock-vs-fake rules, and the
 ./gradlew test --tests "*OrSeedingTest"               # Glob
 ```
 
-As of v0.1.0: 399 tests across 9 packages. Target for 1.0: full
+564 tests across the API, persistence, trackers, resolvers, and integration flows. Target for 1.0: full
 coverage of every tracker's edge cases, property-based tests on
 the reordering rules, and UI dialog smoke tests via the Swing
 testing framework.
