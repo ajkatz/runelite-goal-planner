@@ -1,0 +1,879 @@
+{
+  "Nex": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "Kree\u0027arra",
+        "killCount": 1
+      },
+      {
+        "bossName": "General Graardor",
+        "killCount": 1
+      },
+      {
+        "bossName": "Commander Zilyana",
+        "killCount": 1
+      },
+      {
+        "bossName": "K\u0027ril Tsutsaroth",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Fortis Colosseum (Waves)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "CHILDREN_OF_THE_SUN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L7)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L8+)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "General Graardor": {
+    "skills": [
+      {
+        "skill": "STRENGTH",
+        "level": 70
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L3)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToB": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "A_TASTE_OF_HOPE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToA": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "BENEATH_CURSED_SANDS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Vardorvis (Awake)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [
+      {
+        "itemId": 28334,
+        "displayName": "Awakener\u0027s orb",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "Vardorvis",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Vardorvis": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Shellbane Gryphon": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "TROUBLED_TORTUGANS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Kree\u0027arra": {
+    "skills": [
+      {
+        "skill": "RANGED",
+        "level": 70
+      }
+    ],
+    "unlocks": [
+      {
+        "name": "Mith Grapple",
+        "itemId": 9418,
+        "optionalSkills": [
+          {
+            "skill": "FLETCHING",
+            "level": 59
+          },
+          {
+            "skill": "SMITHING",
+            "level": 59
+          }
+        ]
+      }
+    ],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Yama": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "A_KINGDOM_DIVIDED"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Phosani\u0027s Nightmare": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PRIEST_IN_PERIL"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "The Nightmare",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Tempoross": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 35
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Blue Moon": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PERILOUS_MOONS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Duke (Awake)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [
+      {
+        "itemId": 28334,
+        "displayName": "Awakener\u0027s orb",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "Duke Sucellus",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Amoxliatl": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_HEART_OF_DARKNESS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Araxxor": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 92
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Deranged Arch.": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "BONE_VOYAGE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L6)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L2)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Obor": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [
+      {
+        "itemId": 20754,
+        "displayName": "Giant key",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Zalcano": {
+    "skills": [
+      {
+        "skill": "MINING",
+        "level": 70
+      },
+      {
+        "skill": "SMITHING",
+        "level": 70
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 70
+      }
+    ],
+    "unlocks": [],
+    "quests": [
+      "SONG_OF_THE_ELVES"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Kraken": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 87
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "TzKal-Zuk": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "TzTok-Jad",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Vorkath": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DRAGON_SLAYER_II"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToB (HM)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "A_TASTE_OF_HOPE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "ToB",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Zulrah": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "REGICIDE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Duke Sucellus": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Leviathan (Awake)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [
+      {
+        "itemId": 28334,
+        "displayName": "Awakener\u0027s orb",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "The Leviathan",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Wintertodt": {
+    "skills": [
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToA (Entry)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "BENEATH_CURSED_SANDS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L5)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "The Nightmare": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PRIEST_IN_PERIL"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "GotR": {
+    "skills": [
+      {
+        "skill": "RUNECRAFT",
+        "level": 27
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L1)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Demonic Brutus": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DEFENDER_OF_VARROCK"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "Brutus",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Corrupted Gauntlet": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "SONG_OF_THE_ELVES"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "The Gauntlet",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Hespori": {
+    "skills": [
+      {
+        "skill": "FARMING",
+        "level": 65
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [
+      {
+        "itemId": 22875,
+        "displayName": "Hespori seed",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Grotesque Guardians": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 75
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [
+      {
+        "itemId": 21724,
+        "displayName": "Brittle key",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToA (Expert)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "BENEATH_CURSED_SANDS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "The Whisperer": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Phantom Muspah": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "SECRETS_OF_THE_NORTH"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Cerberus": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 91
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Alchemical Hydra": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 95
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "ToB (Story)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "A_TASTE_OF_HOPE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Perilous Moons Chests": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PERILOUS_MOONS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L4)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "CoX (CM)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "CoX",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Bryophyta": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [
+      {
+        "itemId": 22372,
+        "displayName": "Bryophyta\u0027s essence",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "K\u0027ril Tsutsaroth": {
+    "skills": [
+      {
+        "skill": "HITPOINTS",
+        "level": 70
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Eclipse Moon": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PERILOUS_MOONS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Thermy": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 93
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Doom of Mokhaiotl (L8)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "THE_FINAL_DAWN"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Skotizo": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [
+      {
+        "itemId": 19685,
+        "displayName": "Dark totem",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Whisperer (Awake)": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [
+      {
+        "itemId": 28334,
+        "displayName": "Awakener\u0027s orb",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [],
+    "bossKills": [
+      {
+        "bossName": "The Whisperer",
+        "killCount": 1
+      }
+    ],
+    "alternatives": []
+  },
+  "Commander Zilyana": {
+    "skills": [
+      {
+        "skill": "AGILITY",
+        "level": 70
+      }
+    ],
+    "unlocks": [],
+    "quests": [],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Brutus": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DEFENDER_OF_VARROCK"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Abyssal Sire": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 85
+      }
+    ],
+    "unlocks": [],
+    "quests": [
+      "ENTER_THE_ABYSS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "The Leviathan": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "DESERT_TREASURE_II__THE_FALLEN_EMPIRE"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "Blood Moon": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "PERILOUS_MOONS"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  },
+  "The Gauntlet": {
+    "skills": [],
+    "unlocks": [],
+    "quests": [
+      "SONG_OF_THE_ELVES"
+    ],
+    "itemReqs": [],
+    "accountReqs": [],
+    "bossKills": [],
+    "alternatives": []
+  }
+}

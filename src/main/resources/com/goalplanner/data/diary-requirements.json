@@ -1,0 +1,2631 @@
+{
+  "Varrock|ELITE": {
+    "skills": [
+      {
+        "skill": "COOKING",
+        "level": 95
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 90
+      },
+      {
+        "skill": "SMITHING",
+        "level": 89
+      },
+      {
+        "skill": "MAGIC",
+        "level": 86
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 81
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 78
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 61
+      },
+      {
+        "skill": "MINING",
+        "level": 60
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 40
+      }
+    ],
+    "prereqQuests": [
+      "DREAM_MENTOR",
+      "THE_TOURIST_TRAP"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Varrock|HARD": {
+    "skills": [
+      {
+        "skill": "FARMING",
+        "level": 68
+      },
+      {
+        "skill": "HUNTER",
+        "level": 66
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 60
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 60
+      },
+      {
+        "skill": "MAGIC",
+        "level": 54
+      },
+      {
+        "skill": "THIEVING",
+        "level": 53
+      },
+      {
+        "skill": "PRAYER",
+        "level": 52
+      },
+      {
+        "skill": "AGILITY",
+        "level": 51
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 50
+      },
+      {
+        "skill": "RANGED",
+        "level": 40
+      },
+      {
+        "skill": "SMITHING",
+        "level": 20
+      }
+    ],
+    "prereqQuests": [
+      "DESERT_TREASURE_I"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [
+      {
+        "itemId": 21276,
+        "displayName": "Skull Sceptre (i)",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": [
+      {
+        "metricName": "KUDOS",
+        "target": 153,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Morytania|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 50
+      },
+      {
+        "skill": "SMITHING",
+        "level": 50
+      },
+      {
+        "skill": "PRAYER",
+        "level": 47
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 45
+      },
+      {
+        "skill": "AGILITY",
+        "level": 42
+      },
+      {
+        "skill": "SLAYER",
+        "level": 42
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 45
+      },
+      {
+        "skill": "COOKING",
+        "level": 40
+      },
+      {
+        "skill": "FARMING",
+        "level": 40
+      },
+      {
+        "skill": "RANGED",
+        "level": 40
+      },
+      {
+        "skill": "HUNTER",
+        "level": 29
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 22
+      },
+      {
+        "skill": "MINING",
+        "level": 15
+      }
+    ],
+    "prereqQuests": [
+      "CABIN_FEVER",
+      "DWARF_CANNON",
+      "GHOSTS_AHOY",
+      "IN_AID_OF_THE_MYREQUE",
+      "LAIR_OF_TARN_RAZORLOR"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Fremennik|HARD": {
+    "skills": [
+      {
+        "skill": "THIEVING",
+        "level": 75
+      },
+      {
+        "skill": "MAGIC",
+        "level": 72
+      },
+      {
+        "skill": "MINING",
+        "level": 70
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 66
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 61
+      },
+      {
+        "skill": "SMITHING",
+        "level": 60
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 56
+      },
+      {
+        "skill": "HUNTER",
+        "level": 55
+      },
+      {
+        "skill": "FISHING",
+        "level": 53
+      },
+      {
+        "skill": "COOKING",
+        "level": 53
+      },
+      {
+        "skill": "SLAYER",
+        "level": 50
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 49
+      }
+    ],
+    "prereqQuests": [
+      "EADGARS_RUSE",
+      "LUNAR_DIPLOMACY",
+      "THRONE_OF_MISCELLANIA",
+      "THE_FREMENNIK_ISLES",
+      "THE_GIANT_DWARF"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "MISC_APPROVAL",
+        "target": 127,
+        "prereqQuests": [
+          "THRONE_OF_MISCELLANIA"
+        ]
+      }
+    ]
+  },
+  "Falador|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FIREMAKING",
+        "level": 49
+      },
+      {
+        "skill": "AGILITY",
+        "level": 42
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 40
+      },
+      {
+        "skill": "MINING",
+        "level": 40
+      },
+      {
+        "skill": "THIEVING",
+        "level": 40
+      },
+      {
+        "skill": "MAGIC",
+        "level": 37
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 37
+      },
+      {
+        "skill": "SLAYER",
+        "level": 32
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 30
+      },
+      {
+        "skill": "FARMING",
+        "level": 23
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 20
+      },
+      {
+        "skill": "RANGED",
+        "level": 19
+      },
+      {
+        "skill": "PRAYER",
+        "level": 10
+      }
+    ],
+    "prereqQuests": [
+      "SKIPPY_AND_THE_MOGRES",
+      "RECRUITMENT_DRIVE",
+      "RATCATCHERS"
+    ],
+    "unlocks": [
+      {
+        "name": "Mith Grapple",
+        "prereqQuests": [],
+        "prereqSkills": [
+          {
+            "skill": "FLETCHING",
+            "level": 59
+          },
+          {
+            "skill": "SMITHING",
+            "level": 59
+          }
+        ],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 9418
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [
+      {
+        "itemId": 989,
+        "displayName": "Crystal Key",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": []
+  },
+  "Kourend \u0026 Kebos|MEDIUM": {
+    "skills": [
+      {
+        "skill": "HUNTER",
+        "level": 53
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      },
+      {
+        "skill": "AGILITY",
+        "level": 49
+      },
+      {
+        "skill": "FARMING",
+        "level": 45
+      },
+      {
+        "skill": "FISHING",
+        "level": 43
+      },
+      {
+        "skill": "MINING",
+        "level": 42
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 31
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 30
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 16
+      }
+    ],
+    "prereqQuests": [
+      "EAGLES_PEAK",
+      "THE_ASCENT_OF_ARCEUUS",
+      "THE_DEPTHS_OF_DESPAIR",
+      "THE_FORSAKEN_TOWER",
+      "THE_QUEEN_OF_THIEVES",
+      "TALE_OF_THE_RIGHTEOUS"
+    ],
+    "unlocks": [
+      {
+        "name": "Fairy Rings Unlocked",
+        "prereqQuests": [
+          "FAIRYTALE_I__GROWING_PAINS",
+          "LOST_CITY"
+        ],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 772
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Ardougne|HARD": {
+    "skills": [
+      {
+        "skill": "THIEVING",
+        "level": 72
+      },
+      {
+        "skill": "FARMING",
+        "level": 70
+      },
+      {
+        "skill": "SMITHING",
+        "level": 68
+      },
+      {
+        "skill": "MAGIC",
+        "level": 66
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 65
+      },
+      {
+        "skill": "RANGED",
+        "level": 60
+      },
+      {
+        "skill": "HUNTER",
+        "level": 59
+      },
+      {
+        "skill": "AGILITY",
+        "level": 56
+      },
+      {
+        "skill": "FISHING",
+        "level": 53
+      },
+      {
+        "skill": "COOKING",
+        "level": 53
+      },
+      {
+        "skill": "MINING",
+        "level": 52
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 50
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 50
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 50
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 45
+      },
+      {
+        "skill": "PRAYER",
+        "level": 42
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "LEGENDS_QUEST",
+      "MONKEY_MADNESS_I",
+      "MOURNINGS_END_PART_II"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Wilderness|MEDIUM": {
+    "skills": [
+      {
+        "skill": "WOODCUTTING",
+        "level": 61
+      },
+      {
+        "skill": "MAGIC",
+        "level": 60
+      },
+      {
+        "skill": "MINING",
+        "level": 55
+      },
+      {
+        "skill": "AGILITY",
+        "level": 52
+      },
+      {
+        "skill": "SLAYER",
+        "level": 50
+      }
+    ],
+    "prereqQuests": [
+      "BETWEEN_A_ROCK"
+    ],
+    "unlocks": [
+      {
+        "name": "Wilderness GWD Entry",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "60 Agility",
+            "skills": [
+              {
+                "skill": "AGILITY",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          },
+          {
+            "label": "60 Strength",
+            "skills": [
+              {
+                "skill": "STRENGTH",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          }
+        ],
+        "itemId": 11942
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [
+      {
+        "itemId": 991,
+        "displayName": "Muddy Key",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": []
+  },
+  "Wilderness|ELITE": {
+    "skills": [
+      {
+        "skill": "MAGIC",
+        "level": 96
+      },
+      {
+        "skill": "COOKING",
+        "level": 90
+      },
+      {
+        "skill": "SMITHING",
+        "level": 90
+      },
+      {
+        "skill": "FISHING",
+        "level": 85
+      },
+      {
+        "skill": "MINING",
+        "level": 85
+      },
+      {
+        "skill": "THIEVING",
+        "level": 84
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 75
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 75
+      },
+      {
+        "skill": "SLAYER",
+        "level": 83
+      }
+    ],
+    "prereqQuests": [
+      "DESERT_TREASURE_I"
+    ],
+    "unlocks": [
+      {
+        "name": "Wilderness GWD Entry",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "60 Agility",
+            "skills": [
+              {
+                "skill": "AGILITY",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          },
+          {
+            "label": "60 Strength",
+            "skills": [
+              {
+                "skill": "STRENGTH",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          }
+        ],
+        "itemId": 11942
+      },
+      {
+        "name": "Bear Boss Kill",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "Artio",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Artio",
+                "killCount": 1
+              }
+            ]
+          },
+          {
+            "label": "Callisto",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Callisto",
+                "killCount": 1
+              }
+            ]
+          }
+        ],
+        "itemId": 13178
+      },
+      {
+        "name": "Spider Boss Kill",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "Spindel",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Spindel",
+                "killCount": 1
+              }
+            ]
+          },
+          {
+            "label": "Venenatis",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Venenatis",
+                "killCount": 1
+              }
+            ]
+          }
+        ],
+        "itemId": 13177
+      },
+      {
+        "name": "Skeleton Boss Kill",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "Calvar\u0027ion",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Calvar\u0027ion",
+                "killCount": 1
+              }
+            ]
+          },
+          {
+            "label": "Vet\u0027ion",
+            "skills": [],
+            "accounts": [],
+            "bosses": [
+              {
+                "bossName": "Vet\u0027ion",
+                "killCount": 1
+              }
+            ]
+          }
+        ],
+        "itemId": 13179
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Falador|EASY": {
+    "skills": [
+      {
+        "skill": "CONSTRUCTION",
+        "level": 16
+      },
+      {
+        "skill": "SMITHING",
+        "level": 13
+      },
+      {
+        "skill": "MINING",
+        "level": 10
+      },
+      {
+        "skill": "AGILITY",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "DORICS_QUEST",
+      "THE_KNIGHTS_SWORD",
+      "RUNE_MYSTERIES"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Fremennik|ELITE": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 83
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 82
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 80
+      },
+      {
+        "skill": "AGILITY",
+        "level": 80
+      },
+      {
+        "skill": "HITPOINTS",
+        "level": 70
+      },
+      {
+        "skill": "RANGED",
+        "level": 70
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 70
+      }
+    ],
+    "prereqQuests": [
+      "TROLL_STRONGHOLD",
+      "THE_FREMENNIK_ISLES",
+      "LUNAR_DIPLOMACY"
+    ],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "Kree\u0027arra",
+        "killCount": 1
+      },
+      {
+        "bossName": "General Graardor",
+        "killCount": 1
+      },
+      {
+        "bossName": "Commander Zilyana",
+        "killCount": 1
+      },
+      {
+        "bossName": "K\u0027ril Tsutsaroth",
+        "killCount": 1
+      },
+      {
+        "bossName": "Dagannoth Prime",
+        "killCount": 1
+      },
+      {
+        "bossName": "Dagannoth Rex",
+        "killCount": 1
+      },
+      {
+        "bossName": "Dagannoth Supreme",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Kandarin|EASY": {
+    "skills": [
+      {
+        "skill": "AGILITY",
+        "level": 20
+      },
+      {
+        "skill": "FISHING",
+        "level": 16
+      },
+      {
+        "skill": "FARMING",
+        "level": 13
+      }
+    ],
+    "prereqQuests": [
+      "ELEMENTAL_WORKSHOP_I"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Morytania|HARD": {
+    "skills": [
+      {
+        "skill": "AGILITY",
+        "level": 71
+      },
+      {
+        "skill": "PRAYER",
+        "level": 70
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 70
+      },
+      {
+        "skill": "MAGIC",
+        "level": 66
+      },
+      {
+        "skill": "SLAYER",
+        "level": 58
+      },
+      {
+        "skill": "MINING",
+        "level": 55
+      },
+      {
+        "skill": "FARMING",
+        "level": 53
+      },
+      {
+        "skill": "THIEVING",
+        "level": 53
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 50
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      }
+    ],
+    "prereqQuests": [
+      "DESERT_TREASURE_I",
+      "THE_GREAT_BRAIN_ROBBERY",
+      "KINGS_RANSOM"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Fremennik|MEDIUM": {
+    "skills": [
+      {
+        "skill": "SMITHING",
+        "level": 50
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      },
+      {
+        "skill": "SLAYER",
+        "level": 47
+      },
+      {
+        "skill": "THIEVING",
+        "level": 42
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 40
+      },
+      {
+        "skill": "MINING",
+        "level": 40
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 37
+      },
+      {
+        "skill": "AGILITY",
+        "level": 35
+      },
+      {
+        "skill": "HUNTER",
+        "level": 35
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 31
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 30
+      }
+    ],
+    "prereqQuests": [
+      "BETWEEN_A_ROCK",
+      "EAGLES_PEAK",
+      "HORROR_FROM_THE_DEEP",
+      "OLAFS_QUEST"
+    ],
+    "unlocks": [
+      {
+        "name": "Fairy Rings Unlocked",
+        "prereqQuests": [
+          "FAIRYTALE_I__GROWING_PAINS",
+          "LOST_CITY"
+        ],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 772
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Desert|EASY": {
+    "skills": [
+      {
+        "skill": "HUNTER",
+        "level": 5
+      },
+      {
+        "skill": "THIEVING",
+        "level": 21
+      }
+    ],
+    "prereqQuests": [
+      "ICTHLARINS_LITTLE_HELPER"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Kandarin|ELITE": {
+    "skills": [
+      {
+        "skill": "SMITHING",
+        "level": 90
+      },
+      {
+        "skill": "MAGIC",
+        "level": 87
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 86
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 85
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 85
+      },
+      {
+        "skill": "COOKING",
+        "level": 80
+      },
+      {
+        "skill": "FARMING",
+        "level": 79
+      },
+      {
+        "skill": "FISHING",
+        "level": 76
+      }
+    ],
+    "prereqQuests": [
+      "FAMILY_CREST",
+      "LUNAR_DIPLOMACY"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [
+      {
+        "itemId": 11338,
+        "displayName": "Chewed Bones",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": []
+  },
+  "Ardougne|EASY": {
+    "skills": [
+      {
+        "skill": "THIEVING",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "RUNE_MYSTERIES",
+      "BIOHAZARD"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Kandarin|HARD": {
+    "skills": [
+      {
+        "skill": "SMITHING",
+        "level": 75
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 70
+      },
+      {
+        "skill": "FISHING",
+        "level": 70
+      },
+      {
+        "skill": "PRAYER",
+        "level": 70
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 70
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 65
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 60
+      },
+      {
+        "skill": "AGILITY",
+        "level": 60
+      },
+      {
+        "skill": "MAGIC",
+        "level": 56
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 50
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 50
+      }
+    ],
+    "prereqQuests": [
+      "KINGS_RANSOM",
+      "DESERT_TREASURE_I"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Kourend \u0026 Kebos|EASY": {
+    "skills": [
+      {
+        "skill": "CONSTRUCTION",
+        "level": 25
+      },
+      {
+        "skill": "THIEVING",
+        "level": 25
+      },
+      {
+        "skill": "FISHING",
+        "level": 20
+      },
+      {
+        "skill": "MINING",
+        "level": 15
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 12
+      }
+    ],
+    "prereqQuests": [
+      "DRUIDIC_RITUAL"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Western Provinces|EASY": {
+    "skills": [
+      {
+        "skill": "FLETCHING",
+        "level": 20
+      },
+      {
+        "skill": "HUNTER",
+        "level": 9
+      }
+    ],
+    "prereqQuests": [
+      "BIG_CHOMPY_BIRD_HUNTING",
+      "RUNE_MYSTERIES"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "COMBAT_LEVEL",
+        "target": 40,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Karamja|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 65
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      },
+      {
+        "skill": "HUNTER",
+        "level": 41
+      },
+      {
+        "skill": "AGILITY",
+        "level": 32
+      },
+      {
+        "skill": "FARMING",
+        "level": 27
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 20
+      },
+      {
+        "skill": "COOKING",
+        "level": 16
+      }
+    ],
+    "prereqQuests": [
+      "DRAGON_SLAYER_I",
+      "JUNGLE_POTION",
+      "SHILO_VILLAGE",
+      "TAI_BWO_WANNAI_TRIO",
+      "THE_GRAND_TREE"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Karamja|ELITE": {
+    "skills": [
+      {
+        "skill": "RUNECRAFT",
+        "level": 91
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 87
+      },
+      {
+        "skill": "FARMING",
+        "level": 72
+      }
+    ],
+    "prereqQuests": [],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "TzTok-Jad",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Varrock|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FIREMAKING",
+        "level": 40
+      },
+      {
+        "skill": "FARMING",
+        "level": 30
+      },
+      {
+        "skill": "AGILITY",
+        "level": 30
+      },
+      {
+        "skill": "MAGIC",
+        "level": 25
+      },
+      {
+        "skill": "THIEVING",
+        "level": 25
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 10
+      }
+    ],
+    "prereqQuests": [
+      "A_SOULS_BANE",
+      "ENLIGHTENED_JOURNEY",
+      "GARDEN_OF_TRANQUILLITY",
+      "GERTRUDES_CAT",
+      "THE_DIG_SITE",
+      "TREE_GNOME_VILLAGE"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "COMBAT_LEVEL",
+        "target": 40,
+        "prereqQuests": []
+      },
+      {
+        "metricName": "QUEST_POINTS",
+        "target": 32,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Western Provinces|ELITE": {
+    "skills": [
+      {
+        "skill": "AGILITY",
+        "level": 85
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 85
+      },
+      {
+        "skill": "THIEVING",
+        "level": 85
+      },
+      {
+        "skill": "FARMING",
+        "level": 75
+      }
+    ],
+    "prereqQuests": [
+      "UNDERGROUND_PASS",
+      "MOURNINGS_END_PART_I"
+    ],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "Thermy",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "CHOMPY_KILLS",
+        "target": 1000,
+        "prereqQuests": [
+          "BIG_CHOMPY_BIRD_HUNTING"
+        ]
+      }
+    ]
+  },
+  "Lumbridge \u0026 Draynor|HARD": {
+    "skills": [
+      {
+        "skill": "COOKING",
+        "level": 70
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 70
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 65
+      },
+      {
+        "skill": "FARMING",
+        "level": 63
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 59
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 57
+      },
+      {
+        "skill": "FISHING",
+        "level": 53
+      },
+      {
+        "skill": "THIEVING",
+        "level": 53
+      },
+      {
+        "skill": "PRAYER",
+        "level": 52
+      },
+      {
+        "skill": "MINING",
+        "level": 50
+      },
+      {
+        "skill": "MAGIC",
+        "level": 60
+      },
+      {
+        "skill": "AGILITY",
+        "level": 46
+      }
+    ],
+    "prereqQuests": [
+      "ANOTHER_SLICE_OF_HAM",
+      "RECIPE_FOR_DISASTER__CULINAROMANCER",
+      "TEARS_OF_GUTHIX"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "TOG_MAX_TEARS",
+        "target": 100,
+        "prereqQuests": [
+          "TEARS_OF_GUTHIX"
+        ]
+      }
+    ]
+  },
+  "Kourend \u0026 Kebos|ELITE": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 95
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 90
+      },
+      {
+        "skill": "MAGIC",
+        "level": 90
+      },
+      {
+        "skill": "FARMING",
+        "level": 85
+      },
+      {
+        "skill": "COOKING",
+        "level": 84
+      },
+      {
+        "skill": "FISHING",
+        "level": 82
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 77
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 40
+      },
+      {
+        "skill": "MINING",
+        "level": 38
+      }
+    ],
+    "prereqQuests": [],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "CoX",
+        "killCount": 1
+      },
+      {
+        "bossName": "Skotizo",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Lumbridge \u0026 Draynor|MEDIUM": {
+    "skills": [
+      {
+        "skill": "RANGED",
+        "level": 50
+      },
+      {
+        "skill": "HUNTER",
+        "level": 42
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 38
+      },
+      {
+        "skill": "THIEVING",
+        "level": 38
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 36
+      },
+      {
+        "skill": "MAGIC",
+        "level": 31
+      },
+      {
+        "skill": "FISHING",
+        "level": 30
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 23
+      },
+      {
+        "skill": "AGILITY",
+        "level": 20
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 19
+      }
+    ],
+    "prereqQuests": [
+      "ANIMAL_MAGNETISM",
+      "LOST_CITY"
+    ],
+    "unlocks": [
+      {
+        "name": "Fairy Rings Unlocked",
+        "prereqQuests": [
+          "FAIRYTALE_I__GROWING_PAINS",
+          "LOST_CITY"
+        ],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 772
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "COMBAT_LEVEL",
+        "target": 70,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Western Provinces|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 46
+      },
+      {
+        "skill": "MAGIC",
+        "level": 46
+      },
+      {
+        "skill": "COOKING",
+        "level": 42
+      },
+      {
+        "skill": "MINING",
+        "level": 40
+      },
+      {
+        "skill": "AGILITY",
+        "level": 37
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 35
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 35
+      },
+      {
+        "skill": "HUNTER",
+        "level": 31
+      },
+      {
+        "skill": "RANGED",
+        "level": 30
+      },
+      {
+        "skill": "SMITHING",
+        "level": 30
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 25
+      }
+    ],
+    "prereqQuests": [
+      "EAGLES_PEAK",
+      "THE_EYES_OF_GLOUPHRIE",
+      "THE_GRAND_TREE",
+      "TREE_GNOME_VILLAGE",
+      "MONKEY_MADNESS_I",
+      "ONE_SMALL_FAVOUR"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "COMBAT_LEVEL",
+        "target": 70,
+        "prereqQuests": []
+      },
+      {
+        "metricName": "CHOMPY_KILLS",
+        "target": 125,
+        "prereqQuests": [
+          "BIG_CHOMPY_BIRD_HUNTING"
+        ]
+      }
+    ]
+  },
+  "Fremennik|EASY": {
+    "skills": [
+      {
+        "skill": "CRAFTING",
+        "level": 23
+      },
+      {
+        "skill": "MINING",
+        "level": 20
+      },
+      {
+        "skill": "SMITHING",
+        "level": 20
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 15
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 15
+      },
+      {
+        "skill": "HUNTER",
+        "level": 11
+      },
+      {
+        "skill": "THIEVING",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "THE_FREMENNIK_TRIALS",
+      "THE_GIANT_DWARF",
+      "DEATH_PLATEAU",
+      "TROLL_STRONGHOLD"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Desert|ELITE": {
+    "skills": [
+      {
+        "skill": "FLETCHING",
+        "level": 95
+      },
+      {
+        "skill": "MAGIC",
+        "level": 94
+      },
+      {
+        "skill": "THIEVING",
+        "level": 91
+      },
+      {
+        "skill": "COOKING",
+        "level": 85
+      },
+      {
+        "skill": "PRAYER",
+        "level": 85
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 78
+      }
+    ],
+    "prereqQuests": [
+      "DESERT_TREASURE_I",
+      "THE_TOURIST_TRAP",
+      "ICTHLARINS_LITTLE_HELPER",
+      "PRIEST_IN_PERIL"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [
+      {
+        "itemId": 7981,
+        "displayName": "KQ Head",
+        "quantity": 1
+      }
+    ],
+    "accountReqs": []
+  },
+  "Kandarin|MEDIUM": {
+    "skills": [
+      {
+        "skill": "FLETCHING",
+        "level": 50
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 48
+      },
+      {
+        "skill": "THIEVING",
+        "level": 47
+      },
+      {
+        "skill": "FISHING",
+        "level": 46
+      },
+      {
+        "skill": "MAGIC",
+        "level": 45
+      },
+      {
+        "skill": "COOKING",
+        "level": 43
+      },
+      {
+        "skill": "RANGED",
+        "level": 40
+      },
+      {
+        "skill": "AGILITY",
+        "level": 36
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 36
+      },
+      {
+        "skill": "MINING",
+        "level": 30
+      },
+      {
+        "skill": "FARMING",
+        "level": 26
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 22
+      }
+    ],
+    "prereqQuests": [
+      "ALFRED_GRIMHANDS_BARCRAWL",
+      "ELEMENTAL_WORKSHOP_II",
+      "WATERFALL_QUEST"
+    ],
+    "unlocks": [
+      {
+        "name": "Fairy Rings Unlocked",
+        "prereqQuests": [
+          "FAIRYTALE_I__GROWING_PAINS",
+          "LOST_CITY"
+        ],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 772
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Desert|HARD": {
+    "skills": [
+      {
+        "skill": "AGILITY",
+        "level": 70
+      },
+      {
+        "skill": "MAGIC",
+        "level": 68
+      },
+      {
+        "skill": "SMITHING",
+        "level": 68
+      },
+      {
+        "skill": "THIEVING",
+        "level": 65
+      },
+      {
+        "skill": "SLAYER",
+        "level": 65
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 61
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 60
+      },
+      {
+        "skill": "MINING",
+        "level": 60
+      },
+      {
+        "skill": "ATTACK",
+        "level": 50
+      },
+      {
+        "skill": "PRAYER",
+        "level": 43
+      },
+      {
+        "skill": "RANGED",
+        "level": 40
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 40
+      }
+    ],
+    "prereqQuests": [
+      "CONTACT",
+      "DESERT_TREASURE_I",
+      "DREAM_MENTOR",
+      "THE_FEUD"
+    ],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "Kalphite Queen",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Varrock|EASY": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 20
+      },
+      {
+        "skill": "MINING",
+        "level": 15
+      },
+      {
+        "skill": "AGILITY",
+        "level": 13
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 9
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 8
+      },
+      {
+        "skill": "THIEVING",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "RUNE_MYSTERIES"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "KUDOS",
+        "target": 50,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Ardougne|ELITE": {
+    "skills": [
+      {
+        "skill": "MAGIC",
+        "level": 94
+      },
+      {
+        "skill": "COOKING",
+        "level": 91
+      },
+      {
+        "skill": "SMITHING",
+        "level": 91
+      },
+      {
+        "skill": "AGILITY",
+        "level": 90
+      },
+      {
+        "skill": "FARMING",
+        "level": 85
+      },
+      {
+        "skill": "THIEVING",
+        "level": 82
+      },
+      {
+        "skill": "FISHING",
+        "level": 81
+      },
+      {
+        "skill": "FLETCHING",
+        "level": 69
+      }
+    ],
+    "prereqQuests": [
+      "DESERT_TREASURE_I",
+      "HAUNTED_MINE"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Desert|MEDIUM": {
+    "skills": [
+      {
+        "skill": "HUNTER",
+        "level": 47
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 36
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 35
+      },
+      {
+        "skill": "AGILITY",
+        "level": 30
+      },
+      {
+        "skill": "THIEVING",
+        "level": 25
+      },
+      {
+        "skill": "SLAYER",
+        "level": 22
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 20
+      }
+    ],
+    "prereqQuests": [
+      "EAGLES_PEAK",
+      "ENAKHRAS_LAMENT",
+      "THE_GOLEM",
+      "SPIRITS_OF_THE_ELID"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Karamja|HARD": {
+    "skills": [
+      {
+        "skill": "MAGIC",
+        "level": 59
+      },
+      {
+        "skill": "AGILITY",
+        "level": 53
+      },
+      {
+        "skill": "COOKING",
+        "level": 53
+      },
+      {
+        "skill": "MINING",
+        "level": 52
+      },
+      {
+        "skill": "THIEVING",
+        "level": 50
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 50
+      },
+      {
+        "skill": "SLAYER",
+        "level": 50
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 44
+      },
+      {
+        "skill": "RANGED",
+        "level": 42
+      }
+    ],
+    "prereqQuests": [
+      "LEGENDS_QUEST"
+    ],
+    "unlocks": [
+      {
+        "name": "Mith Grapple",
+        "prereqQuests": [],
+        "prereqSkills": [
+          {
+            "skill": "FLETCHING",
+            "level": 59
+          },
+          {
+            "skill": "SMITHING",
+            "level": 59
+          }
+        ],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 9418
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Western Provinces|HARD": {
+    "skills": [
+      {
+        "skill": "THIEVING",
+        "level": 75
+      },
+      {
+        "skill": "MINING",
+        "level": 70
+      },
+      {
+        "skill": "COOKING",
+        "level": 70
+      },
+      {
+        "skill": "RANGED",
+        "level": 70
+      },
+      {
+        "skill": "HUNTER",
+        "level": 69
+      },
+      {
+        "skill": "FARMING",
+        "level": 68
+      },
+      {
+        "skill": "MAGIC",
+        "level": 66
+      },
+      {
+        "skill": "CONSTRUCTION",
+        "level": 65
+      },
+      {
+        "skill": "FISHING",
+        "level": 62
+      },
+      {
+        "skill": "AGILITY",
+        "level": 56
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 50
+      },
+      {
+        "skill": "SMITHING",
+        "level": 45
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 40
+      }
+    ],
+    "prereqQuests": [
+      "ROVING_ELVES",
+      "SWAN_SONG",
+      "REGICIDE",
+      "RECIPE_FOR_DISASTER__KING_AWOWOGEI",
+      "MOURNINGS_END_PART_I"
+    ],
+    "unlocks": [],
+    "bossKills": [
+      {
+        "bossName": "Zulrah",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "COMBAT_LEVEL",
+        "target": 100,
+        "prereqQuests": []
+      },
+      {
+        "metricName": "CHOMPY_KILLS",
+        "target": 300,
+        "prereqQuests": [
+          "BIG_CHOMPY_BIRD_HUNTING"
+        ]
+      }
+    ]
+  },
+  "Wilderness|EASY": {
+    "skills": [
+      {
+        "skill": "MAGIC",
+        "level": 21
+      },
+      {
+        "skill": "AGILITY",
+        "level": 15
+      },
+      {
+        "skill": "MINING",
+        "level": 15
+      }
+    ],
+    "prereqQuests": [
+      "ENTER_THE_ABYSS"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Falador|ELITE": {
+    "skills": [
+      {
+        "skill": "FARMING",
+        "level": 91
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 88
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 81
+      },
+      {
+        "skill": "AGILITY",
+        "level": 80
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 75
+      }
+    ],
+    "prereqQuests": [
+      "WANTED"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Morytania|ELITE": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 96
+      },
+      {
+        "skill": "SLAYER",
+        "level": 85
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 84
+      },
+      {
+        "skill": "MAGIC",
+        "level": 83
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 80
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 76
+      }
+    ],
+    "prereqQuests": [
+      "LUNAR_DIPLOMACY",
+      "SHADES_OF_MORTTON",
+      "IN_AID_OF_THE_MYREQUE"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Lumbridge \u0026 Draynor|ELITE": {
+    "skills": [
+      {
+        "skill": "SMITHING",
+        "level": 88
+      },
+      {
+        "skill": "THIEVING",
+        "level": 78
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 76
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 75
+      },
+      {
+        "skill": "AGILITY",
+        "level": 70
+      },
+      {
+        "skill": "RANGED",
+        "level": 70
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 70
+      }
+    ],
+    "prereqQuests": [
+      "DEATH_TO_THE_DORGESHUUN"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": [
+      {
+        "metricName": "QUEST_POINTS",
+        "target": 335,
+        "prereqQuests": []
+      }
+    ]
+  },
+  "Lumbridge \u0026 Draynor|EASY": {
+    "skills": [
+      {
+        "skill": "FISHING",
+        "level": 15
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 15
+      },
+      {
+        "skill": "MINING",
+        "level": 15
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 15
+      },
+      {
+        "skill": "SLAYER",
+        "level": 7
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 5
+      }
+    ],
+    "prereqQuests": [
+      "COOKS_ASSISTANT",
+      "RUNE_MYSTERIES"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Morytania|EASY": {
+    "skills": [
+      {
+        "skill": "FARMING",
+        "level": 23
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 15
+      },
+      {
+        "skill": "SLAYER",
+        "level": 15
+      },
+      {
+        "skill": "COOKING",
+        "level": 12
+      }
+    ],
+    "prereqQuests": [
+      "NATURE_SPIRIT"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Ardougne|MEDIUM": {
+    "skills": [
+      {
+        "skill": "MAGIC",
+        "level": 51
+      },
+      {
+        "skill": "FIREMAKING",
+        "level": 50
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 49
+      },
+      {
+        "skill": "AGILITY",
+        "level": 39
+      },
+      {
+        "skill": "STRENGTH",
+        "level": 38
+      },
+      {
+        "skill": "THIEVING",
+        "level": 38
+      },
+      {
+        "skill": "FARMING",
+        "level": 31
+      },
+      {
+        "skill": "RANGED",
+        "level": 21
+      }
+    ],
+    "prereqQuests": [
+      "SEA_SLUG",
+      "WATCHTOWER",
+      "ENLIGHTENED_JOURNEY",
+      "THE_HAND_IN_THE_SAND",
+      "RUNE_MYSTERIES",
+      "TOWER_OF_LIFE",
+      "UNDERGROUND_PASS"
+    ],
+    "unlocks": [
+      {
+        "name": "Fairy Rings Unlocked",
+        "prereqQuests": [
+          "FAIRYTALE_I__GROWING_PAINS",
+          "LOST_CITY"
+        ],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [],
+        "itemId": 772
+      }
+    ],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Wilderness|HARD": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 68
+      },
+      {
+        "skill": "HUNTER",
+        "level": 67
+      },
+      {
+        "skill": "MAGIC",
+        "level": 66
+      },
+      {
+        "skill": "AGILITY",
+        "level": 64
+      },
+      {
+        "skill": "SMITHING",
+        "level": 75
+      },
+      {
+        "skill": "FISHING",
+        "level": 53
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 25
+      }
+    ],
+    "prereqQuests": [
+      "DEATH_PLATEAU",
+      "MAGE_ARENA_I"
+    ],
+    "unlocks": [
+      {
+        "name": "Wilderness GWD Entry",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "60 Agility",
+            "skills": [
+              {
+                "skill": "AGILITY",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          },
+          {
+            "label": "60 Strength",
+            "skills": [
+              {
+                "skill": "STRENGTH",
+                "level": 60
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          }
+        ],
+        "itemId": 11942
+      }
+    ],
+    "bossKills": [
+      {
+        "bossName": "Chaos Elemental",
+        "killCount": 1
+      },
+      {
+        "bossName": "Chaos Fanatic",
+        "killCount": 1
+      },
+      {
+        "bossName": "Crazy Archaeologist",
+        "killCount": 1
+      },
+      {
+        "bossName": "Scorpia",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Falador|HARD": {
+    "skills": [
+      {
+        "skill": "SLAYER",
+        "level": 72
+      },
+      {
+        "skill": "PRAYER",
+        "level": 70
+      },
+      {
+        "skill": "MINING",
+        "level": 60
+      },
+      {
+        "skill": "AGILITY",
+        "level": 59
+      },
+      {
+        "skill": "THIEVING",
+        "level": 58
+      },
+      {
+        "skill": "RUNECRAFT",
+        "level": 56
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 50
+      }
+    ],
+    "prereqQuests": [
+      "HEROES_QUEST",
+      "THE_SLUG_MENACE",
+      "GRIM_TALES"
+    ],
+    "unlocks": [
+      {
+        "name": "Warriors Guild Entry",
+        "prereqQuests": [],
+        "prereqSkills": [],
+        "prereqAccounts": [],
+        "alternatives": [
+          {
+            "label": "Att+Str Combined \u003e\u003d 130",
+            "skills": [],
+            "accounts": [
+              {
+                "metricName": "ATT_STR_COMBINED",
+                "target": 130,
+                "prereqQuests": []
+              }
+            ],
+            "bosses": []
+          },
+          {
+            "label": "99 Attack",
+            "skills": [
+              {
+                "skill": "ATTACK",
+                "level": 99
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          },
+          {
+            "label": "99 Strength",
+            "skills": [
+              {
+                "skill": "STRENGTH",
+                "level": 99
+              }
+            ],
+            "accounts": [],
+            "bosses": []
+          }
+        ],
+        "itemId": 8846
+      }
+    ],
+    "bossKills": [
+      {
+        "bossName": "Giant Mole",
+        "killCount": 1
+      }
+    ],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Karamja|EASY": {
+    "skills": [
+      {
+        "skill": "MINING",
+        "level": 40
+      },
+      {
+        "skill": "AGILITY",
+        "level": 15
+      }
+    ],
+    "prereqQuests": [],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  },
+  "Kourend \u0026 Kebos|HARD": {
+    "skills": [
+      {
+        "skill": "FARMING",
+        "level": 74
+      },
+      {
+        "skill": "SMITHING",
+        "level": 70
+      },
+      {
+        "skill": "MAGIC",
+        "level": 66
+      },
+      {
+        "skill": "MINING",
+        "level": 65
+      },
+      {
+        "skill": "SLAYER",
+        "level": 62
+      },
+      {
+        "skill": "CRAFTING",
+        "level": 61
+      },
+      {
+        "skill": "WOODCUTTING",
+        "level": 60
+      },
+      {
+        "skill": "THIEVING",
+        "level": 49
+      },
+      {
+        "skill": "DEFENCE",
+        "level": 40
+      },
+      {
+        "skill": "HERBLORE",
+        "level": 31
+      }
+    ],
+    "prereqQuests": [
+      "DREAM_MENTOR",
+      "THE_FORSAKEN_TOWER"
+    ],
+    "unlocks": [],
+    "bossKills": [],
+    "itemReqs": [],
+    "accountReqs": []
+  }
+}
