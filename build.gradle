@@ -95,3 +95,19 @@ tasks.register('checkDocs', Exec) {
 	description = 'Audit the feature registry against the README guide, media, and source tree.'
 	commandLine 'python3', 'scripts/check_docs.py'
 }
+
+// Plugin Hub source-size gate: the review bot caps main source at 200k tokens
+// (whole codebase, comments stripped, tests excluded). Run before submitting.
+tasks.register('checkTokens', Exec) {
+	group = 'verification'
+	description = 'Estimate the Plugin Hub review token count and flag if near/over the 200k cap.'
+	commandLine 'python3', 'scripts/check_tokens.py'
+}
+
+// One pre-submission gate: docs in sync AND source under the hub cap. Run this
+// before re-pinning the plugin-hub PR.
+tasks.register('preSubmit') {
+	group = 'verification'
+	description = 'Pre-submission checks for a Plugin Hub update (checkDocs + checkTokens + test).'
+	dependsOn 'test', 'checkDocs', 'checkTokens'
+}

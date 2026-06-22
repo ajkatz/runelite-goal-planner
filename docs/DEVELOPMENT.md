@@ -117,6 +117,34 @@ Recording clips: [Kap](https://getkap.co/) at panel width, exported as GIF,
 then optimized with `gifsicle -O3 --lossy --scale` to a uniform width. Name
 each file after its registry `media` entry and drop it in `docs/img/`.
 
+## Before submitting a Plugin Hub update
+
+The Plugin Hub's automated reviewer reads the plugin's **main source** (the
+whole codebase, comments stripped — **tests are not counted**) and refuses to
+review it above a hard **200,000-token** cap. This is a *release-time* concern,
+not a per-edit one, so it's a pre-submission gate rather than a commit hook.
+
+**Factor it into planning.** Large hardcoded data tables are the usual
+culprit (each ~3.6 chars/token). When a change adds a big static data set,
+plan to put the data in a **resource file** loaded at startup — TSV for flat
+tables, JSON (via Gson) for nested ones — not in compiled `.java`. Resources
+aren't counted (same as `docs/img/` and the README), and it's cleaner anyway.
+See the `*-requirements.*` / `item-sources.tsv` resources under
+`src/main/resources/com/goalplanner/data/` for the pattern.
+
+Run the gate before re-pinning the hub PR:
+
+```bash
+./gradlew preSubmit     # = test + checkDocs + checkTokens
+./gradlew checkTokens   # just the size estimate, anytime
+```
+
+`checkTokens` prefers `tiktoken` (`pip install tiktoken`) for an exact count
+and otherwise uses a calibrated char estimate that runs slightly high (fails
+safe). It passes comfortably, warns near the cap, and **fails the build** if a
+submission would breach it — with the largest files listed so you know what to
+externalize.
+
 ## More
 
 - [CHANGELOG.md](../CHANGELOG.md) — release notes
