@@ -655,6 +655,80 @@ class GoalCreationService
 	}
 
 	/**
+	 * Seed a boss goal's requirement tree into its section — the boss parallel
+	 * of {@link #seedRequirementsForGoal}. {@code includeMet=false} ("Incomplete
+	 * only") skips skill/quest/account requirements the player already meets;
+	 * {@code includeMet=true} ("All") seeds the whole tree. Returns the number of
+	 * goals newly created.
+	 */
+	int seedBossRequirementsForGoal(String goalId, boolean includeMet)
+	{
+		log.debug("API.internal seedBossRequirementsForGoal(goalId={}, includeMet={})", goalId, includeMet);
+		Goal g = api.findGoal(goalId);
+		if (g == null || g.getType() != GoalType.BOSS || g.getBossName() == null)
+		{
+			return 0;
+		}
+		String bossName = g.getBossName();
+		if (com.goalplanner.data.BossKillData.getPrereqs(bossName) == null)
+		{
+			return 0;
+		}
+
+		java.util.Set<String> before = new java.util.HashSet<>();
+		for (Goal x : api.goalStore.getGoals()) before.add(x.getId());
+
+		api.clearGoalSelection();
+		api.beginCompound((includeMet ? "Add all requirements: " : "Add requirements: ") + bossName);
+		try
+		{
+			// "All" keeps the section's completed prereqs inline (mirrors the
+			// quest/diary variants) instead of auto-archiving them to Completed.
+			if (includeMet)
+			{
+				api.setSectionAutoArchiveOverride(g.getSectionId(), Boolean.FALSE);
+			}
+			seedBossPrereqs(goalId, bossName, includeMet);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+
+		int added = 0;
+		for (Goal x : api.goalStore.getGoals()) if (!before.contains(x.getId())) added++;
+		return added;
+	}
+
+	/** True if the player has finished {@code q} (live client read; client-thread only). */
+	private boolean isQuestFinished(net.runelite.api.Quest q)
+	{
+		if (api.client == null) return false;
+		try
+		{
+			return q.getState(api.client) == net.runelite.api.QuestState.FINISHED;
+		}
+		catch (RuntimeException e)
+		{
+			return false;
+		}
+	}
+
+	/** True if the player's current value for {@code metricName} already meets {@code target}. */
+	private boolean isAccountMet(String metricName, int target)
+	{
+		if (api.client == null) return false;
+		try
+		{
+			return com.goalplanner.model.AccountMetric.valueOf(metricName).currentValue(api.client) >= target;
+		}
+		catch (RuntimeException e)
+		{
+			return false;
+		}
+	}
+
+	/**
 	 * Resolve a quest's FULL requirement tree, treating nothing as already met
 	 * (level 1, every prereq quest NOT_STARTED, combat 3), so the entire tree is
 	 * returned. Used by {@link #seedRequirementsForGoal} for the "All" variant.
@@ -1895,6 +1969,25 @@ class GoalCreationService
 			// Auto-tag with BOSS category.
 			api.addTagWithCategory(goalId, bossName, TagCategory.BOSS.name());
 
+			seedBossPrereqs(goalId, bossName, true);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+		log.info("addBossGoal created: {} ({} x {})", goalId, bossName, targetKills);
+		return goalId;
+	}
+
+	/**
+	 * Seed a boss's prerequisite tree (skills, quests, items, account metrics,
+	 * boss-kill prereqs, unlock subtrees, and OR-group alternatives) into the
+	 * goal's section. Shared by {@link #addBossGoal} (includeMet=true, the full
+	 * tree) and {@link #seedBossRequirementsForGoal} (includeMet=false filters
+	 * requirements the player already meets). Existing goals are reused.
+	 */
+	private void seedBossPrereqs(String goalId, String bossName, boolean includeMet)
+	{
 			// Auto-seed boss prereqs (e.g. 70 Ranged + Mith Grapple for Kree'arra).
 			com.goalplanner.data.BossKillData.BossPrereqs prereqs =
 				com.goalplanner.data.BossKillData.getPrereqs(bossName);
@@ -1918,6 +2011,13 @@ class GoalCreationService
 
 				for (com.goalplanner.data.BossKillData.SkillReq sr : prereqs.skills)
 				{
+					// "Incomplete only" (includeMet=false): skip a level the
+					// player already has, so it doesn't seed as a completed goal.
+					if (!includeMet && api.client != null
+						&& api.client.getRealSkillLevel(sr.skill) >= sr.level)
+					{
+						continue;
+					}
 					templates.add(Goal.builder()
 						.type(GoalType.SKILL)
 						.name(sr.skill.getName() + " - Level " + sr.level)
@@ -1927,6 +2027,10 @@ class GoalCreationService
 				}
 				for (net.runelite.api.Quest q : prereqs.quests)
 				{
+					if (!includeMet && isQuestFinished(q))
+					{
+						continue;
+					}
 					templates.add(Goal.builder()
 						.type(GoalType.QUEST)
 						.name(q.getName())
@@ -1947,6 +2051,10 @@ class GoalCreationService
 				}
 				for (com.goalplanner.data.BossKillData.AccountReq ar : prereqs.accountReqs)
 				{
+					if (!includeMet && isAccountMet(ar.metricName, ar.target))
+					{
+						continue;
+					}
 					templates.add(Goal.builder()
 						.type(GoalType.ACCOUNT)
 						.name(ar.metricName)
@@ -2110,13 +2218,6 @@ class GoalCreationService
 					}
 				}
 			}
-		}
-		finally
-		{
-			api.endCompound();
-		}
-		log.info("addBossGoal created: {} ({} x {})", goalId, bossName, targetKills);
-		return goalId;
 	}
 
 	String addCustomGoal(String name, String description)

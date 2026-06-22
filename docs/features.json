@@ -59,7 +59,8 @@
         "data/DiaryRequirementResolver.java",
         "model/AccountMetric.java",
         "ui/GoalContextMenuBuilder.java",
-        "ui/GoalPanel.java"
+        "ui/GoalPanel.java",
+        "data/BossKillData.java"
       ],
       "tests": [
         "api/GoalPlannerApiImplTest.java",
@@ -67,7 +68,7 @@
         "integration/WarriorsGuildOrPrereqTest.java"
       ],
       "since": "0.3.0",
-      "notes": "Incomplete-only resolves live state on the client thread (0.3.0); account reqs (incl. OR-unlock arms) pre-filtered via AccountMetric.currentValue."
+      "notes": "Quests/diaries since 0.3.0; bosses since 0.3.1. Incomplete-only reads live state on the client thread; account/skill/quest reqs pre-filtered."
     },
     {
       "id": "auto-tracking",

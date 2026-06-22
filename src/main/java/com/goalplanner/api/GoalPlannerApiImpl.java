@@ -131,6 +131,8 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	// Panel "Add requirements to this section" for an existing DIARY goal (parallel
 	// to seedRequirementsForGoal for quests).
 	public int seedDiaryRequirementsForGoal(String diaryGoalId, boolean includeMet) { return creationService.seedDiaryRequirementsForGoal(diaryGoalId, includeMet); }
+	// Panel "Add requirements to this section" for an existing BOSS goal.
+	public int seedBossRequirementsForGoal(String bossGoalId, boolean includeMet) { return creationService.seedBossRequirementsForGoal(bossGoalId, includeMet); }
 	@Override public String addCombatAchievementGoal(int caTaskId) { String id = creationService.addCombatAchievementGoal(caTaskId); selectAfterCreate(id); return id; }
 	@Override public String addBossGoal(String bossName, int targetKills) { String id = creationService.addBossGoal(bossName, targetKills); selectAfterCreate(id); return id; }
 	@Override public String addAccountGoal(String metricName, int target) { String id = creationService.addAccountGoal(metricName, target); selectAfterCreate(id); return id; }

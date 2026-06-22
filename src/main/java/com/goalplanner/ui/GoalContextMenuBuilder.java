@@ -596,16 +596,18 @@ class GoalContextMenuBuilder
 			diaryWithReqs = tier != null
 				&& com.goalplanner.data.DiaryRequirements.hasRequirements(goal.getName(), tier);
 		}
-		if (questWithReqs || diaryWithReqs)
+		boolean bossWithReqs = goal.getType() == GoalType.BOSS && goal.getBossName() != null
+			&& com.goalplanner.data.BossKillData.getPrereqs(goal.getBossName()) != null;
+		if (questWithReqs || diaryWithReqs || bossWithReqs)
 		{
-			final boolean isDiary = diaryWithReqs;
+			final ReqKind reqKind = diaryWithReqs ? ReqKind.DIARY : bossWithReqs ? ReqKind.BOSS : ReqKind.QUEST;
 			JMenu addReqs = new JMenu("Add requirements to this section");
 			JMenuItem reqsIncomplete = new JMenuItem("Incomplete only");
 			reqsIncomplete.setToolTipText("Add requirements you haven't met yet.");
-			reqsIncomplete.addActionListener(e -> seedReqs(goal.getId(), false, isDiary));
+			reqsIncomplete.addActionListener(e -> seedReqs(goal.getId(), false, reqKind));
 			JMenuItem reqsAll = new JMenuItem("All");
 			reqsAll.setToolTipText("Add the whole requirement tree, including ones already met.");
-			reqsAll.addActionListener(e -> seedReqs(goal.getId(), true, isDiary));
+			reqsAll.addActionListener(e -> seedReqs(goal.getId(), true, reqKind));
 			addReqs.add(reqsIncomplete);
 			addReqs.add(reqsAll);
 			menu.add(addReqs);
@@ -1666,22 +1668,28 @@ class GoalContextMenuBuilder
 	}
 
 	/** Route "Add requirements" to the quest or diary seeder. */
-	private void seedReqs(String goalId, boolean includeMet, boolean isDiary)
+	/** Which requirement source a goal's "Add requirements" menu seeds from. */
+	private enum ReqKind { QUEST, DIARY, BOSS }
+
+	private void seedReqs(String goalId, boolean includeMet, ReqKind kind)
 	{
 		// The "Incomplete only" variant resolves against LIVE player state
-		// (getRealSkillLevel / Quest.getState), which asserts the client thread
-		// — run on it. ("All" uses pure floor lookups and is thread-agnostic,
-		// but routing both keeps one path.) Store mutation on the client thread
-		// is fine (trackers already mutate there); the resulting onGoalsChanged
-		// marshals the rebuild back to the EDT.
+		// (getRealSkillLevel / Quest.getState / account metrics), which asserts
+		// the client thread — run on it. ("All" uses floor lookups and is
+		// thread-agnostic, but routing both keeps one path.) Store mutation on
+		// the client thread is fine (trackers already mutate there); the
+		// resulting onGoalsChanged marshals the rebuild back to the EDT.
 		panel.runOnClientThread(() -> {
-			if (isDiary)
+			switch (kind)
 			{
-				api.seedDiaryRequirementsForGoal(goalId, includeMet);
-			}
-			else
-			{
-				api.seedRequirementsForGoal(goalId, includeMet);
+				case DIARY:
+					api.seedDiaryRequirementsForGoal(goalId, includeMet);
+					break;
+				case BOSS:
+					api.seedBossRequirementsForGoal(goalId, includeMet);
+					break;
+				default:
+					api.seedRequirementsForGoal(goalId, includeMet);
 			}
 		});
 	}

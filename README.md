@@ -70,7 +70,7 @@ Adding a quest or boss goal seeds its full prerequisite tree — skills, prior q
 
 ### Add requirements to an existing goal
 
-Already have the goal? Right-click it → **Add requirements to this section** → *Incomplete only* (just what you still need) or *All* (the whole tree, met requirements kept inline as ✓ cards). Works for quests and diaries.
+Already have the goal? Right-click it → **Add requirements to this section** → *Incomplete only* (just what you still need) or *All* (the whole tree, met requirements kept inline as ✓ cards). Works for quests, diaries, and **bosses** (e.g. an Abyssal Sire goal seeds its 85 Slayer + Enter the Abyss requirements).
 
 ![Seeding requirements onto an existing diary goal](docs/img/add-requirements.gif)
 

@@ -279,6 +279,67 @@ class GoalPlannerApiImplTest
 		assertNull(api.findGoal(b));
 	}
 
+	@Nested
+	@DisplayName("seedBossRequirementsForGoal (boss Add requirements)")
+	class SeedBossRequirementsTests
+	{
+		private String bareBossGoal(String boss)
+		{
+			// A boss goal WITHOUT its prereqs seeded (e.g. an imported one).
+			Goal g = Goal.builder().type(GoalType.BOSS).name(boss).bossName(boss)
+				.description("1 kills").targetValue(1).build();
+			store.addGoal(g);
+			return g.getId();
+		}
+
+		@Test
+		@DisplayName("\"All\" seeds the boss's skill + quest requirements")
+		void seedsAllRequirements()
+		{
+			// Abyssal Sire: 85 Slayer + Enter the Abyss.
+			String id = bareBossGoal("Abyssal Sire");
+			int added = api.seedBossRequirementsForGoal(id, true);
+			assertTrue(added >= 2, "expected at least the Slayer + quest prereqs");
+			assertTrue(store.getGoals().stream().anyMatch(g ->
+					g.getType() == GoalType.SKILL && "SLAYER".equals(g.getSkillName())),
+				"Slayer requirement should be seeded");
+			assertTrue(store.getGoals().stream().anyMatch(g ->
+					g.getType() == GoalType.QUEST && "ENTER_THE_ABYSS".equals(g.getQuestName())),
+				"Enter the Abyss requirement should be seeded");
+		}
+
+		@Test
+		@DisplayName("\"Incomplete only\" skips a skill the player already has")
+		void incompleteOnlySkipsMetSkill()
+		{
+			net.runelite.api.Client client = mock(net.runelite.api.Client.class);
+			when(client.getRealSkillLevel(Skill.SLAYER)).thenReturn(99); // already past 85
+			GoalPlannerApiImpl liveApi = new GoalPlannerApiImpl(
+				store, new GoalReorderingService(store), mock(ItemManager.class),
+				mock(WikiCaRepository.class), client);
+
+			Goal g = Goal.builder().type(GoalType.BOSS).name("Abyssal Sire").bossName("Abyssal Sire")
+				.description("1 kills").targetValue(1).build();
+			store.addGoal(g);
+
+			liveApi.seedBossRequirementsForGoal(g.getId(), false);
+			assertTrue(store.getGoals().stream().noneMatch(x ->
+					x.getType() == GoalType.SKILL && "SLAYER".equals(x.getSkillName())),
+				"already-met Slayer level should be skipped");
+		}
+
+		@Test
+		@DisplayName("returns 0 for a non-boss goal or a boss with no prereqs")
+		void noOpCases()
+		{
+			String custom = api.addCustomGoal("not a boss", "");
+			assertEquals(0, api.seedBossRequirementsForGoal(custom, true));
+			// A boss with no defined prereqs.
+			String none = bareBossGoal("Giant Mole");
+			assertEquals(0, api.seedBossRequirementsForGoal(none, true));
+		}
+	}
+
 	@Test
 	@DisplayName("removeGoal returns false for unknown id")
 	void removeGoalUnknownId()
