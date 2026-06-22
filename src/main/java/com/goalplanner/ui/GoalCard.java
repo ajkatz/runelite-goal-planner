@@ -87,7 +87,7 @@ public class GoalCard extends JPanel
 	public GoalCard(GoalView view, ActionListener onMoveUp, ActionListener onMoveDown,
 					Runnable onMoveToTop, Runnable onMoveToBottom,
 					SkillIconManager skillIconManager, ItemManager itemManager,
-					SpriteManager spriteManager)
+					SpriteManager spriteManager, Runnable onAddMissingRequirements)
 	{
 		this.view = view;
 		this.skillIconManager = skillIconManager;
@@ -124,6 +124,40 @@ public class GoalCard extends JPanel
 		nameLabel.setFont(PanelFonts.derive(Font.BOLD, 12f));
 		nameLabel.setVerticalAlignment(SwingConstants.CENTER);
 		leftPanel.add(nameLabel, BorderLayout.CENTER);
+
+		// Blocked-by-prereqs badge: a small amber warning glyph when this goal
+		// has DIRECT requirements the player hasn't met and that aren't in the
+		// plan. Click = add them ("Incomplete only"). Hidden on completed goals.
+		if (!isComplete() && view.blockedRequirements != null && !view.blockedRequirements.isEmpty()
+			&& onAddMissingRequirements != null)
+		{
+			JLabel blockedBadge = new JLabel(ShapeIcons.warning(11, new Color(0xE0, 0x9A, 0x2B)));
+			blockedBadge.setPreferredSize(new Dimension(16, 18));
+			blockedBadge.setHorizontalAlignment(SwingConstants.CENTER);
+			blockedBadge.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			int n = view.blockedRequirements.size();
+			StringBuilder tip = new StringBuilder("<html><b>").append(n)
+				.append(n == 1 ? " requirement" : " requirements")
+				.append(" likely blocking this, not in your plan:</b><br>");
+			for (String r : view.blockedRequirements)
+			{
+				tip.append("&nbsp;• ").append(FormatUtil.escapeHtml(r)).append("<br>");
+			}
+			tip.append("<i>Click to add them to this section.</i></html>");
+			blockedBadge.setToolTipText(tip.toString());
+			blockedBadge.addMouseListener(new java.awt.event.MouseAdapter()
+			{
+				@Override
+				public void mousePressed(java.awt.event.MouseEvent e)
+				{
+					if (e.getButton() == java.awt.event.MouseEvent.BUTTON1)
+					{
+						onAddMissingRequirements.run();
+					}
+				}
+			});
+			leftPanel.add(blockedBadge, BorderLayout.EAST);
+		}
 
 		setToolTipText(buildTooltipHtml(view, skillIconManager));
 

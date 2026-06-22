@@ -74,6 +74,12 @@ Already have the goal? Right-click it → **Add requirements to this section** �
 
 ![Seeding requirements onto an existing diary goal](docs/img/add-requirements.gif)
 
+### Blocked-by-prerequisites badge
+
+When a quest, diary, or boss goal has a direct prerequisite you **haven't met** and that **isn't already in your plan**, the card shows a small ⚠ badge. Hover it to see exactly what's likely blocking you (e.g. *85 Slayer*, *Enter the Abyss*); **click it** to add those missing requirements to the section in one go. It uses the plugin's requirement data + your live account, so it surfaces blockers you might not have known were in the way — and a requirement you're already working toward (a higher-level skill goal) doesn't trip it.
+
+> 🎥 *Clip coming soon.*
+
 ## Tracking
 
 ### Auto-tracking

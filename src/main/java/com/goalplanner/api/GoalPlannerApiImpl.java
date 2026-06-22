@@ -53,6 +53,11 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		new com.goalplanner.command.CommandHistory();
 
 	private final GoalCreationService creationService;
+	// Blocked-prereqs indicator: goalId -> labels of unmet, not-in-plan DIRECT
+	// prerequisites. Recomputed on the client thread (reads live state) and read
+	// by the panel when building views. Replaced atomically; never mutated in place.
+	private volatile java.util.Map<String, java.util.List<String>> blockedByGoalId =
+		java.util.Collections.emptyMap();
 	final TagService tagService;
 	private final GoalMutationService mutationService;
 	private final GoalQueryService queryService;
@@ -133,6 +138,45 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	public int seedDiaryRequirementsForGoal(String diaryGoalId, boolean includeMet) { return creationService.seedDiaryRequirementsForGoal(diaryGoalId, includeMet); }
 	// Panel "Add requirements to this section" for an existing BOSS goal.
 	public int seedBossRequirementsForGoal(String bossGoalId, boolean includeMet) { return creationService.seedBossRequirementsForGoal(bossGoalId, includeMet); }
+
+	/** Cached missing-direct-prereq labels for a goal (empty if none / not yet computed). */
+	public java.util.List<String> blockedRequirements(String goalId)
+	{
+		return blockedByGoalId.getOrDefault(goalId, java.util.List.of());
+	}
+
+	/**
+	 * Recompute the blocked-prereqs map for active quest/diary/boss goals.
+	 * CLIENT-THREAD ONLY (reads live skill/quest/account state). Returns true if
+	 * the map changed, so the caller can refresh the panel; a no-op for plans
+	 * with no incomplete requirement-bearing goals.
+	 */
+	public boolean recomputeBlockedRequirements()
+	{
+		java.util.Map<String, java.util.List<String>> next = new java.util.HashMap<>();
+		for (Goal g : goalStore.getGoals())
+		{
+			if (g.isComplete()) continue;
+			com.goalplanner.model.GoalType t = g.getType();
+			if (t != com.goalplanner.model.GoalType.QUEST
+				&& t != com.goalplanner.model.GoalType.DIARY
+				&& t != com.goalplanner.model.GoalType.BOSS)
+			{
+				continue;
+			}
+			java.util.List<String> missing = creationService.missingDirectPrereqLabels(g);
+			if (!missing.isEmpty())
+			{
+				next.put(g.getId(), missing);
+			}
+		}
+		if (next.equals(blockedByGoalId))
+		{
+			return false;
+		}
+		blockedByGoalId = next;
+		return true;
+	}
 	@Override public String addCombatAchievementGoal(int caTaskId) { String id = creationService.addCombatAchievementGoal(caTaskId); selectAfterCreate(id); return id; }
 	@Override public String addBossGoal(String bossName, int targetKills) { String id = creationService.addBossGoal(bossName, targetKills); selectAfterCreate(id); return id; }
 	@Override public String addAccountGoal(String metricName, int target) { String id = creationService.addAccountGoal(metricName, target); selectAfterCreate(id); return id; }

@@ -55,6 +55,9 @@ public class GoalView
 	public boolean selected;
 	/** True when the user has marked this goal as optional. */
 	public boolean optional;
+	/** Labels of DIRECT prerequisites the player hasn't met and that aren't in
+	 *  the plan — drives the "blocked" badge. Empty = no badge. */
+	public List<String> blockedRequirements = java.util.Collections.emptyList();
 	/** Auto-generated tags from goal creation (boss/raid/tier/etc).
 	 *  Cannot be removed by the user; restored by Restore Defaults. */
 	public List<TagView> defaultTags;

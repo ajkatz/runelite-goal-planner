@@ -71,6 +71,27 @@
       "notes": "Quests/diaries since 0.3.0; bosses since 0.3.1. Incomplete-only reads live state on the client thread; account/skill/quest reqs pre-filtered."
     },
     {
+      "id": "blocked-prereqs",
+      "title": "Blocked-by-prerequisites badge",
+      "group": "Creating goals",
+      "anchor": "blocked-by-prerequisites-badge",
+      "media": "docs/img/blocked-prereqs.gif",
+      "code": [
+        "api/GoalCreationService.java",
+        "api/GoalPlannerApiImpl.java",
+        "api/GoalQueryService.java",
+        "ui/GoalCard.java",
+        "ui/GoalPanel.java",
+        "ui/ShapeIcons.java",
+        "GoalPlannerPlugin.java"
+      ],
+      "tests": [
+        "api/GoalPlannerApiImplTest.java"
+      ],
+      "since": "0.3.1",
+      "capture": "A boss/quest goal with the amber ⚠ badge; hover to show the tooltip listing missing reqs, then click to add them. ~8s."
+    },
+    {
       "id": "auto-tracking",
       "title": "Auto-tracking",
       "group": "Tracking",

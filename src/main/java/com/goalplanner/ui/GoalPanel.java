@@ -380,6 +380,29 @@ public class GoalPanel extends PluginPanel
 		clientThreadExec.accept(r);
 	}
 
+	/** Blocked-badge click: seed the goal's unmet, not-in-plan requirements
+	 *  ("Incomplete only"). Routes by type; runs on the client thread (live
+	 *  resolution), the resulting onGoalsChanged rebuilds the panel. */
+	void addMissingRequirements(com.goalplanner.api.GoalView view)
+	{
+		runOnClientThread(() -> {
+			switch (view.type)
+			{
+				case "DIARY":
+					api.seedDiaryRequirementsForGoal(view.id, false);
+					break;
+				case "BOSS":
+					api.seedBossRequirementsForGoal(view.id, false);
+					break;
+				case "QUEST":
+					api.seedRequirementsForGoal(view.id, false);
+					break;
+				default:
+					// no requirement source
+			}
+		});
+	}
+
 	/** Whether share/import support is wired (used to gate share menu entries). */
 	public boolean isShareAvailable()
 	{
@@ -729,7 +752,8 @@ public class GoalPanel extends PluginPanel
 					() -> reorderController.moveGoalTo(goalIdRef, secEnd),
 					skillIconManager,
 					itemManager,
-					spriteManager
+					spriteManager,
+					view.blockedRequirements.isEmpty() ? null : () -> addMissingRequirements(view)
 				);
 
 				// Completed section is read-only ordering — no reorder arrows.

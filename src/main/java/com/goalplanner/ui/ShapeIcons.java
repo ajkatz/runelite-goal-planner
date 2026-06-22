@@ -96,6 +96,12 @@ public final class ShapeIcons
 		return new CheckboxIcon(size, color, true);
 	}
 
+	/** Warning triangle with an exclamation — the "blocked by prereqs" badge. */
+	public static Icon warning(int size, Color color)
+	{
+		return new WarningIcon(size, color);
+	}
+
 	private enum Direction { UP, DOWN, RIGHT }
 
 	// ----- color helpers -----
@@ -663,5 +669,60 @@ public final class ShapeIcons
 
 		@Override public int getIconWidth() { return size + 1; }
 		@Override public int getIconHeight() { return size + 1; }
+	}
+
+	/** Rounded warning triangle with a beveled exclamation mark. */
+	private static final class WarningIcon implements Icon
+	{
+		private final int size;
+		private final Color color;
+
+		WarningIcon(int size, Color color)
+		{
+			this.size = size;
+			this.color = color;
+		}
+
+		@Override
+		public void paintIcon(Component c, Graphics g, int x, int y)
+		{
+			Graphics2D g2 = (Graphics2D) g.create();
+			try
+			{
+				g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+				Path2D tri = new Path2D.Float();
+				tri.moveTo(x + size / 2.0, y);
+				tri.lineTo(x + size, y + size);
+				tri.lineTo(x, y + size);
+				tri.closePath();
+
+				// Drop shadow
+				g2.setColor(new Color(0, 0, 0, 90));
+				g2.translate(1, 1);
+				g2.fill(tri);
+				g2.translate(-1, -1);
+
+				// Body + dark outline
+				g2.setColor(color);
+				g2.fill(tri);
+				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.setColor(darken(color, 110));
+				g2.draw(tri);
+
+				// Exclamation: short bar + dot, dark for contrast on the amber body.
+				int cx = x + size / 2;
+				g2.setColor(darken(color, 150));
+				g2.setStroke(new BasicStroke(Math.max(1.2f, size / 7f), BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+				g2.drawLine(cx, y + (int) (size * 0.40), cx, y + (int) (size * 0.66));
+				g2.fillOval(cx - 1, y + (int) (size * 0.74), 2, 2);
+			}
+			finally
+			{
+				g2.dispose();
+			}
+		}
+
+		@Override public int getIconWidth() { return size + 2; }
+		@Override public int getIconHeight() { return size + 2; }
 	}
 }

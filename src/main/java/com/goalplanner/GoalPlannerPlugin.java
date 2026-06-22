@@ -1572,6 +1572,13 @@ public class GoalPlannerPlugin extends Plugin
 			boolean updated = skillTracker.checkGoals(goals);
 			updated |= accountTracker.checkGoals(goals);
 			flushIfUpdated(updated);
+			// Recompute "blocked by prereqs" badges (live skill/quest/account
+			// reads — client thread). If the set changed, rebuild the panel so
+			// the badges update. Doesn't fire onGoalsChanged, so no refresh loop.
+			if (goalTrackerApi.recomputeBlockedRequirements())
+			{
+				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+			}
 		});
 	}
 

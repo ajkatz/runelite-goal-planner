@@ -340,6 +340,69 @@ class GoalPlannerApiImplTest
 		}
 	}
 
+	@Nested
+	@DisplayName("blocked-by-prereqs detection (recomputeBlockedRequirements)")
+	class BlockedPrereqsTests
+	{
+		private GoalPlannerApiImpl liveApi(net.runelite.api.Client client)
+		{
+			return new GoalPlannerApiImpl(store, new GoalReorderingService(store),
+				mock(ItemManager.class), mock(WikiCaRepository.class), client);
+		}
+
+		@Test
+		@DisplayName("flags an unmet, not-in-plan boss prereq (Abyssal Sire → 85 Slayer)")
+		void flagsUnmetMissingPrereq()
+		{
+			net.runelite.api.Client client = mock(net.runelite.api.Client.class);
+			when(client.getRealSkillLevel(Skill.SLAYER)).thenReturn(50); // below 85
+			GoalPlannerApiImpl live = liveApi(client);
+
+			Goal boss = Goal.builder().type(GoalType.BOSS).name("Abyssal Sire").bossName("Abyssal Sire")
+				.description("1 kills").targetValue(1).build();
+			store.addGoal(boss);
+
+			assertTrue(live.recomputeBlockedRequirements());
+			assertTrue(live.blockedRequirements(boss.getId()).stream()
+					.anyMatch(s -> s.contains("Slayer")),
+				"unmet 85 Slayer should be flagged as blocking");
+		}
+
+		@Test
+		@DisplayName("a prereq already covered by a plan goal is NOT flagged")
+		void coveredPrereqNotFlagged()
+		{
+			net.runelite.api.Client client = mock(net.runelite.api.Client.class);
+			when(client.getRealSkillLevel(Skill.SLAYER)).thenReturn(50);
+			GoalPlannerApiImpl live = liveApi(client);
+
+			Goal boss = Goal.builder().type(GoalType.BOSS).name("Abyssal Sire").bossName("Abyssal Sire")
+				.description("1 kills").targetValue(1).build();
+			store.addGoal(boss);
+			// A 99 Slayer goal in the plan covers the 85 requirement.
+			Goal slayer = Goal.builder().type(GoalType.SKILL).name("Slayer - Level 99")
+				.skillName("SLAYER").targetValue(net.runelite.api.Experience.getXpForLevel(99)).build();
+			store.addGoal(slayer);
+
+			live.recomputeBlockedRequirements();
+			assertTrue(live.blockedRequirements(boss.getId()).stream()
+					.noneMatch(s -> s.contains("Slayer")),
+				"a 99 Slayer goal in the plan covers the 85 requirement");
+		}
+
+		@Test
+		@DisplayName("no client → no badges (empty map)")
+		void noClientNoBadges()
+		{
+			Goal boss = Goal.builder().type(GoalType.BOSS).name("Abyssal Sire").bossName("Abyssal Sire")
+				.description("1 kills").targetValue(1).build();
+			store.addGoal(boss);
+			// `api` (the default field) has no client.
+			assertFalse(api.recomputeBlockedRequirements());
+			assertTrue(api.blockedRequirements(boss.getId()).isEmpty());
+		}
+	}
+
 	@Test
 	@DisplayName("removeGoal returns false for unknown id")
 	void removeGoalUnknownId()

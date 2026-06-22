@@ -729,6 +729,142 @@ class GoalCreationService
 	}
 
 	/**
+	 * Labels of a goal's DIRECT prerequisites that the player has NOT met AND
+	 * that aren't already represented anywhere in the plan — i.e. what's
+	 * "probably blocking" this goal. Empty for goals without requirement data
+	 * (or no client). Drives the card's blocked-prereqs badge; the badge's
+	 * click runs {@code seed*RequirementsForGoal(..., false)} to add them.
+	 *
+	 * <p>Client-thread only (reads live skill/quest/account state).
+	 */
+	java.util.List<String> missingDirectPrereqLabels(Goal goal)
+	{
+		if (goal == null || api.client == null || goal.getType() == null)
+		{
+			return java.util.List.of();
+		}
+		java.util.List<Goal> unmet;
+		switch (goal.getType())
+		{
+			case QUEST:
+			{
+				if (goal.getQuestName() == null) return java.util.List.of();
+				net.runelite.api.Quest q;
+				try { q = net.runelite.api.Quest.valueOf(goal.getQuestName()); }
+				catch (IllegalArgumentException e) { return java.util.List.of(); }
+				if (!com.goalplanner.data.QuestRequirements.hasRequirements(q)) return java.util.List.of();
+				com.goalplanner.data.QuestRequirementResolver.Resolved r = api.resolveQuestRequirements(q);
+				unmet = (r == null) ? java.util.List.of() : r.templates;
+				break;
+			}
+			case DIARY:
+			{
+				com.goalplanner.data.AchievementDiaryData.Tier tier =
+					parseTierFromDescription(goal.getDescription());
+				if (tier == null || goal.getName() == null
+					|| !com.goalplanner.data.DiaryRequirements.hasRequirements(goal.getName(), tier))
+				{
+					return java.util.List.of();
+				}
+				com.goalplanner.data.DiaryRequirementResolver.Resolved r =
+					com.goalplanner.data.DiaryRequirementResolver.resolve(goal.getName(), tier, api.client);
+				unmet = (r == null) ? java.util.List.of() : r.templates;
+				break;
+			}
+			case BOSS:
+			{
+				if (goal.getBossName() == null) return java.util.List.of();
+				unmet = unmetBossPrereqTemplates(goal.getBossName());
+				break;
+			}
+			default:
+				return java.util.List.of();
+		}
+
+		java.util.List<String> labels = new java.util.ArrayList<>();
+		for (Goal t : unmet)
+		{
+			if (!isInPlan(t) && t.getName() != null)
+			{
+				labels.add(t.getName());
+			}
+		}
+		return labels;
+	}
+
+	/** Direct, unmet boss skill/quest/account prereqs as goal templates. */
+	private java.util.List<Goal> unmetBossPrereqTemplates(String bossName)
+	{
+		com.goalplanner.data.BossKillData.BossPrereqs p =
+			com.goalplanner.data.BossKillData.getPrereqs(bossName);
+		if (p == null) return java.util.List.of();
+		java.util.List<Goal> out = new java.util.ArrayList<>();
+		for (com.goalplanner.data.BossKillData.SkillReq sr : p.skills)
+		{
+			if (api.client.getRealSkillLevel(sr.skill) >= sr.level) continue;
+			out.add(Goal.builder().type(GoalType.SKILL)
+				.name(sr.skill.getName() + " - Level " + sr.level)
+				.skillName(sr.skill.name())
+				.targetValue(net.runelite.api.Experience.getXpForLevel(sr.level)).build());
+		}
+		for (net.runelite.api.Quest q : p.quests)
+		{
+			if (isQuestFinished(q)) continue;
+			out.add(Goal.builder().type(GoalType.QUEST).name(q.getName())
+				.questName(q.name()).targetValue(1).build());
+		}
+		for (com.goalplanner.data.BossKillData.AccountReq ar : p.accountReqs)
+		{
+			if (isAccountMet(ar.metricName, ar.target)) continue;
+			String label;
+			try
+			{
+				label = ar.target + " " + com.goalplanner.model.AccountMetric.valueOf(ar.metricName).getDisplayName();
+			}
+			catch (RuntimeException e)
+			{
+				label = ar.metricName;
+			}
+			out.add(Goal.builder().type(GoalType.ACCOUNT).name(label)
+				.accountMetric(ar.metricName).targetValue(ar.target).build());
+		}
+		return out;
+	}
+
+	/** True if an existing goal already represents {@code template} (covers it),
+	 *  accounting for higher-target skill/item/account/boss goals. */
+	private boolean isInPlan(Goal template)
+	{
+		if (template.getType() == GoalType.ACCOUNT)
+		{
+			for (Goal g : api.goalStore.getGoals())
+			{
+				if (g.getType() == GoalType.ACCOUNT && template.getAccountMetric() != null
+					&& template.getAccountMetric().equals(g.getAccountMetric())
+					&& g.getTargetValue() >= template.getTargetValue())
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		if (template.getType() == GoalType.BOSS)
+		{
+			for (Goal g : api.goalStore.getGoals())
+			{
+				if (g.getType() == GoalType.BOSS && template.getBossName() != null
+					&& template.getBossName().equalsIgnoreCase(g.getBossName())
+					&& g.getTargetValue() >= template.getTargetValue())
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+		return api.goalStore.findMatchingGoal(template) != null;
+	}
+
+	/**
 	 * Resolve a quest's FULL requirement tree, treating nothing as already met
 	 * (level 1, every prereq quest NOT_STARTED, combat 3), so the entire tree is
 	 * returned. Used by {@link #seedRequirementsForGoal} for the "All" variant.

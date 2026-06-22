@@ -9,6 +9,12 @@ bumps.
 ## [0.3.1] — 2026-06-15
 
 ### Added
+- **Blocked-by-prerequisites badge.** Quest, diary, and boss goals show a
+  small ⚠ badge when they have a *direct* prerequisite you haven't met that
+  isn't already in your plan — using the plugin's requirement data + your live
+  account to surface blockers proactively. Hover lists what's in the way;
+  click adds the missing requirements to the section. A requirement covered by
+  a higher goal you already track (or already present) doesn't flag.
 - **"Add requirements" for boss goals.** Right-click a boss goal (e.g.
   Abyssal Sire) → *Add requirements to this section* → *Incomplete only* /
   *All*, matching quests and diaries. Seeds the boss's full prerequisite
