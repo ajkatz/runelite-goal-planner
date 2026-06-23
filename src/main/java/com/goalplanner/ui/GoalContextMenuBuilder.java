@@ -688,17 +688,8 @@ class GoalContextMenuBuilder
 				moveToSection.addSeparator();
 			}
 			JMenuItem newSectionItem = new JMenuItem("Move to New Section…");
-			newSectionItem.addActionListener(e -> {
-				String input = JOptionPane.showInputDialog(panel, "New section name:", "");
-				if (input != null && !input.trim().isEmpty())
-				{
-					String newId = api.createSection(input.trim());
-					if (newId != null)
-					{
-						api.moveGoalToSection(goal.getId(), newId);
-					}
-				}
-			});
+			newSectionItem.addActionListener(e ->
+				promptNewSection(newId -> api.moveGoalToSection(goal.getId(), newId)));
 			moveToSection.add(newSectionItem);
 
 			moveMenu.add(moveToSection);
@@ -728,18 +719,8 @@ class GoalContextMenuBuilder
 				dupToSection.addSeparator();
 			}
 			JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
-			dupNewSection.addActionListener(e -> {
-				String input = JOptionPane.showInputDialog(panel, "New section name:", "");
-				if (input != null && !input.trim().isEmpty())
-				{
-					String newId = api.createSection(input.trim());
-					if (newId != null)
-					{
-						api.duplicateGoalsToSection(
-							java.util.Collections.singletonList(goal.getId()), newId);
-					}
-				}
-			});
+			dupNewSection.addActionListener(e -> promptNewSection(newId ->
+				api.duplicateGoalsToSection(java.util.Collections.singletonList(goal.getId()), newId)));
 			dupToSection.add(dupNewSection);
 			moveMenu.add(dupToSection);
 
@@ -758,6 +739,24 @@ class GoalContextMenuBuilder
 	 * drop it into the given section at the given slot. Wrapped in a
 	 * compound so undo treats it as one step.
 	 */
+	/**
+	 * Prompt for a new section name; if the user confirms a non-blank name and
+	 * the section is created, run {@code action} with the new section id. Shared
+	 * by the Move/Duplicate "…to New Section…" menu items.
+	 */
+	private void promptNewSection(java.util.function.Consumer<String> action)
+	{
+		String input = JOptionPane.showInputDialog(panel, "New section name:", "");
+		if (input != null && !input.trim().isEmpty())
+		{
+			String newId = api.createSection(input.trim());
+			if (newId != null)
+			{
+				action.accept(newId);
+			}
+		}
+	}
+
 	private void createLeaguesShortcut(com.goalplanner.model.AccountMetric metric,
 									   int target, String sectionId, int positionInSection)
 	{
@@ -1211,19 +1210,11 @@ class GoalContextMenuBuilder
 					moveToSection.addSeparator();
 				}
 				JMenuItem moveNewSection = new JMenuItem("Move to New Section…");
-				moveNewSection.addActionListener(e -> {
-					String input = JOptionPane.showInputDialog(panel, "New section name:", "");
-					if (input != null && !input.trim().isEmpty())
-					{
-						String newId = api.createSection(input.trim());
-						if (newId != null)
-						{
-							LinkedHashSet<String> ids = new LinkedHashSet<>();
-							for (Goal g : selectedGoals) ids.add(g.getId());
-							api.bulkMoveGoalsToSection(ids, newId);
-						}
-					}
-				});
+				moveNewSection.addActionListener(e -> promptNewSection(newId -> {
+					LinkedHashSet<String> ids = new LinkedHashSet<>();
+					for (Goal g : selectedGoals) ids.add(g.getId());
+					api.bulkMoveGoalsToSection(ids, newId);
+				}));
 				moveToSection.add(moveNewSection);
 				moveMenu.add(moveToSection);
 
@@ -1257,19 +1248,11 @@ class GoalContextMenuBuilder
 					dupToSection.addSeparator();
 				}
 				JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
-				dupNewSection.addActionListener(e -> {
-					String input = JOptionPane.showInputDialog(panel, "New section name:", "");
-					if (input != null && !input.trim().isEmpty())
-					{
-						String newId = api.createSection(input.trim());
-						if (newId != null)
-						{
-							LinkedHashSet<String> ids = new LinkedHashSet<>();
-							for (Goal g : selectedGoals) ids.add(g.getId());
-							api.duplicateGoalsToSection(ids, newId);
-						}
-					}
-				});
+				dupNewSection.addActionListener(e -> promptNewSection(newId -> {
+					LinkedHashSet<String> ids = new LinkedHashSet<>();
+					for (Goal g : selectedGoals) ids.add(g.getId());
+					api.duplicateGoalsToSection(ids, newId);
+				}));
 				dupToSection.add(dupNewSection);
 				moveMenu.add(dupToSection);
 			}

@@ -6,6 +6,22 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
+## [0.3.2] — 2026-06-23
+
+### Changed
+- **Source-size reduction for Plugin Hub headroom.** No user-facing behavior
+  change — internal cleanup to stay well under the hub's 200k-token source
+  cap. Externalized the remaining hardcoded data tables to resource files
+  loaded at startup (quest XP/QP rewards, recommended skills/combat,
+  display-name overrides, and miniquest/F2P/lamp flags → extra columns in
+  `quest-requirements.tsv`; boss kill-count varps, pet icons and
+  collection-log aliases → `boss-killcount.tsv` / `boss-pets.tsv` /
+  `boss-cl-aliases.tsv`; diary completion varbits →
+  `diary-completion-varbits.tsv`), and de-duplicated the repeated "add goal"
+  command and "new section" menu boilerplate. Net: main source dropped from
+  ~183k to ~167k tokens (~33k headroom, up from ~17k). Full suite (572 tests)
+  green.
+
 ## [0.3.1] — 2026-06-15
 
 ### Added

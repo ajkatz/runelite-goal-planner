@@ -87,70 +87,30 @@ public final class AchievementDiaryData
 
 	static
 	{
-		put("ARDOUGNE", Tier.EASY,   VarbitID.ARDOUGNE_DIARY_EASY_COMPLETE);
-		put("ARDOUGNE", Tier.MEDIUM, VarbitID.ARDOUGNE_DIARY_MEDIUM_COMPLETE);
-		put("ARDOUGNE", Tier.HARD,   VarbitID.ARDOUGNE_DIARY_HARD_COMPLETE);
-		put("ARDOUGNE", Tier.ELITE,  VarbitID.ARDOUGNE_DIARY_ELITE_COMPLETE);
-
-		put("DESERT", Tier.EASY,   VarbitID.DESERT_DIARY_EASY_COMPLETE);
-		put("DESERT", Tier.MEDIUM, VarbitID.DESERT_DIARY_MEDIUM_COMPLETE);
-		put("DESERT", Tier.HARD,   VarbitID.DESERT_DIARY_HARD_COMPLETE);
-		put("DESERT", Tier.ELITE,  VarbitID.DESERT_DIARY_ELITE_COMPLETE);
-
-		put("FALADOR", Tier.EASY,   VarbitID.FALADOR_DIARY_EASY_COMPLETE);
-		put("FALADOR", Tier.MEDIUM, VarbitID.FALADOR_DIARY_MEDIUM_COMPLETE);
-		put("FALADOR", Tier.HARD,   VarbitID.FALADOR_DIARY_HARD_COMPLETE);
-		put("FALADOR", Tier.ELITE,  VarbitID.FALADOR_DIARY_ELITE_COMPLETE);
-
-		put("FREMENNIK", Tier.EASY,   VarbitID.FREMENNIK_DIARY_EASY_COMPLETE);
-		put("FREMENNIK", Tier.MEDIUM, VarbitID.FREMENNIK_DIARY_MEDIUM_COMPLETE);
-		put("FREMENNIK", Tier.HARD,   VarbitID.FREMENNIK_DIARY_HARD_COMPLETE);
-		put("FREMENNIK", Tier.ELITE,  VarbitID.FREMENNIK_DIARY_ELITE_COMPLETE);
-
-		put("KANDARIN", Tier.EASY,   VarbitID.KANDARIN_DIARY_EASY_COMPLETE);
-		put("KANDARIN", Tier.MEDIUM, VarbitID.KANDARIN_DIARY_MEDIUM_COMPLETE);
-		put("KANDARIN", Tier.HARD,   VarbitID.KANDARIN_DIARY_HARD_COMPLETE);
-		put("KANDARIN", Tier.ELITE,  VarbitID.KANDARIN_DIARY_ELITE_COMPLETE);
-
-		// Karamja: only Elite has a standard *_DIARY_*_COMPLETE varbit in runelite-api.
-		// Easy/Medium/Hard are tracked via KARAMJA_COUNT_VARBITS instead.
-		put("KARAMJA", Tier.ELITE, VarbitID.KARAMJA_DIARY_ELITE_COMPLETE);
-
-		put("KOUREND", Tier.EASY,   VarbitID.KOUREND_DIARY_EASY_COMPLETE);
-		put("KOUREND", Tier.MEDIUM, VarbitID.KOUREND_DIARY_MEDIUM_COMPLETE);
-		put("KOUREND", Tier.HARD,   VarbitID.KOUREND_DIARY_HARD_COMPLETE);
-		put("KOUREND", Tier.ELITE,  VarbitID.KOUREND_DIARY_ELITE_COMPLETE);
-
-		put("LUMBRIDGE", Tier.EASY,   VarbitID.LUMBRIDGE_DIARY_EASY_COMPLETE);
-		put("LUMBRIDGE", Tier.MEDIUM, VarbitID.LUMBRIDGE_DIARY_MEDIUM_COMPLETE);
-		put("LUMBRIDGE", Tier.HARD,   VarbitID.LUMBRIDGE_DIARY_HARD_COMPLETE);
-		put("LUMBRIDGE", Tier.ELITE,  VarbitID.LUMBRIDGE_DIARY_ELITE_COMPLETE);
-
-		put("MORYTANIA", Tier.EASY,   VarbitID.MORYTANIA_DIARY_EASY_COMPLETE);
-		put("MORYTANIA", Tier.MEDIUM, VarbitID.MORYTANIA_DIARY_MEDIUM_COMPLETE);
-		put("MORYTANIA", Tier.HARD,   VarbitID.MORYTANIA_DIARY_HARD_COMPLETE);
-		put("MORYTANIA", Tier.ELITE,  VarbitID.MORYTANIA_DIARY_ELITE_COMPLETE);
-
-		put("VARROCK", Tier.EASY,   VarbitID.VARROCK_DIARY_EASY_COMPLETE);
-		put("VARROCK", Tier.MEDIUM, VarbitID.VARROCK_DIARY_MEDIUM_COMPLETE);
-		put("VARROCK", Tier.HARD,   VarbitID.VARROCK_DIARY_HARD_COMPLETE);
-		put("VARROCK", Tier.ELITE,  VarbitID.VARROCK_DIARY_ELITE_COMPLETE);
-
-		put("WESTERN", Tier.EASY,   VarbitID.WESTERN_DIARY_EASY_COMPLETE);
-		put("WESTERN", Tier.MEDIUM, VarbitID.WESTERN_DIARY_MEDIUM_COMPLETE);
-		put("WESTERN", Tier.HARD,   VarbitID.WESTERN_DIARY_HARD_COMPLETE);
-		put("WESTERN", Tier.ELITE,  VarbitID.WESTERN_DIARY_ELITE_COMPLETE);
-
-		put("WILDERNESS", Tier.EASY,   VarbitID.WILDERNESS_DIARY_EASY_COMPLETE);
-		put("WILDERNESS", Tier.MEDIUM, VarbitID.WILDERNESS_DIARY_MEDIUM_COMPLETE);
-		put("WILDERNESS", Tier.HARD,   VarbitID.WILDERNESS_DIARY_HARD_COMPLETE);
-		put("WILDERNESS", Tier.ELITE,  VarbitID.WILDERNESS_DIARY_ELITE_COMPLETE);
+		try (java.io.InputStream in = AchievementDiaryData.class.getResourceAsStream("diary-completion-varbits.tsv"))
+		{
+			if (in == null)
+			{
+				throw new IllegalStateException("missing resource: diary-completion-varbits.tsv");
+			}
+			try (java.io.BufferedReader reader = new java.io.BufferedReader(
+				new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)))
+			{
+				String line;
+				while ((line = reader.readLine()) != null)
+				{
+					if (line.isEmpty()) continue;
+					int t = line.indexOf('\t');
+					COMPLETION_VARBITS.put(line.substring(0, t), Integer.parseInt(line.substring(t + 1)));
+				}
+			}
+		}
+		catch (java.io.IOException e)
+		{
+			throw new java.io.UncheckedIOException("failed to load diary-completion-varbits.tsv", e);
+		}
 	}
 
-	private static void put(String area, Tier tier, int varbitId)
-	{
-		COMPLETION_VARBITS.put(area + "|" + tier.name(), varbitId);
-	}
 
 	/**
 	 * All 12 diary area keys, normalized as used in the varbit map. Every

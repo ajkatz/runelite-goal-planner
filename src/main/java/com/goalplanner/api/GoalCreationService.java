@@ -85,22 +85,7 @@ class GoalCreationService
 		api.beginCompound("Add goal: " + displayName);
 		try
 		{
-			api.executeCommand(new com.goalplanner.command.Command()
-			{
-				@Override public boolean apply()
-				{
-					if (api.findGoal(goalId) != null) return false;
-					api.goalStore.addGoal(goal);
-					return true;
-				}
-				@Override public boolean revert()
-				{
-					api.goalStore.removeGoal(goalId);
-					api.selectedGoalIds.remove(goalId);
-					return true;
-				}
-				@Override public String getDescription() { return "Add goal: " + displayName; }
-			});
+			executeAddGoal(goal, goalId, "Add goal: " + displayName);
 			autoLinkSkillOrItemChain(goal);
 		}
 		finally
@@ -269,21 +254,7 @@ class GoalCreationService
 
 		final String goalId = goal.getId();
 		final String displayName = itemName;
-		api.executeCommand(new com.goalplanner.command.Command()
-		{
-			@Override public boolean apply()
-			{
-				if (api.findGoal(goalId) != null) return false;
-				api.goalStore.addGoal(goal);
-				return true;
-			}
-			@Override public boolean revert()
-			{
-				api.goalStore.removeGoal(goalId);
-				return true;
-			}
-			@Override public String getDescription() { return "Add item goal: " + displayName; }
-		});
+		executeAddGoal(goal, goalId, "Add item goal: " + displayName);
 		log.info("addItemGoal created: {} ({} x {})", goalId, targetQuantity, itemName);
 		return goalId;
 	}
@@ -343,17 +314,7 @@ class GoalCreationService
 		api.beginCompound("Add quest: " + displayName);
 		try
 		{
-			api.executeCommand(new com.goalplanner.command.Command()
-			{
-				@Override public boolean apply()
-				{
-					if (api.findGoal(goalId) != null) return false;
-					api.goalStore.addGoal(goal);
-					return true;
-				}
-				@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
-				@Override public String getDescription() { return "Add quest: " + displayName; }
-			});
+			executeAddGoal(goal, goalId, "Add quest: " + displayName);
 			// Auto-tag F2P quests with a gray "F2P" pill.
 			if (com.goalplanner.data.QuestRequirements.isF2P(quest))
 			{
@@ -1316,17 +1277,7 @@ class GoalCreationService
 		final String goalId = goal.getId();
 		final String displayName = goal.getName();
 		final String tierStr = internalTier.getDisplayName();
-		api.executeCommand(new com.goalplanner.command.Command()
-		{
-			@Override public boolean apply()
-			{
-				if (api.findGoal(goalId) != null) return false;
-				api.goalStore.addGoal(goal);
-				return true;
-			}
-			@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
-			@Override public String getDescription() { return "Add diary: " + displayName + " " + tierStr; }
-		});
+		executeAddGoal(goal, goalId, "Add diary: " + displayName + " " + tierStr);
 		log.info("insertDiaryGoal created: {} ({} {})", goalId, areaDisplayName, internalTier);
 		return goalId;
 	}
@@ -1937,17 +1888,7 @@ class GoalCreationService
 
 		final String goalId = goal.getId();
 		final String displayName = info.name;
-		api.executeCommand(new com.goalplanner.command.Command()
-		{
-			@Override public boolean apply()
-			{
-				if (api.findGoal(goalId) != null) return false;
-				api.goalStore.addGoal(goal);
-				return true;
-			}
-			@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
-			@Override public String getDescription() { return "Add CA: " + displayName; }
-		});
+		executeAddGoal(goal, goalId, "Add CA: " + displayName);
 		log.info("addCombatAchievementGoal created: {} ({})", goalId, info.name);
 		return goalId;
 	}
@@ -2032,17 +1973,7 @@ class GoalCreationService
 		api.beginCompound("Add goal: " + displayName);
 		try
 		{
-			api.executeCommand(new com.goalplanner.command.Command()
-			{
-				@Override public boolean apply()
-				{
-					if (api.findGoal(goalId) != null) return false;
-					api.goalStore.addGoal(goal);
-					return true;
-				}
-				@Override public boolean revert() { api.goalStore.removeGoal(goalId); return true; }
-				@Override public String getDescription() { return "Add account goal: " + displayName; }
-			});
+			executeAddGoal(goal, goalId, "Add account goal: " + displayName);
 			autoLinkSkillOrItemChain(goal);
 		}
 		finally
@@ -2087,21 +2018,7 @@ class GoalCreationService
 		api.beginCompound("Add boss goal: " + displayName);
 		try
 		{
-			api.executeCommand(new com.goalplanner.command.Command()
-			{
-				@Override public boolean apply()
-				{
-					if (api.findGoal(goalId) != null) return false;
-					api.goalStore.addGoal(goal);
-					return true;
-				}
-				@Override public boolean revert()
-				{
-					api.goalStore.removeGoal(goalId);
-					return true;
-				}
-				@Override public String getDescription() { return "Add boss goal: " + displayName; }
-			});
+			executeAddGoal(goal, goalId, "Add boss goal: " + displayName);
 			// Auto-tag with BOSS category.
 			api.addTagWithCategory(goalId, bossName, TagCategory.BOSS.name());
 
@@ -2379,22 +2296,7 @@ class GoalCreationService
 		// Goal entity (preserving id) so redo restores the exact same goal
 		// and any later commands referencing it still resolve.
 		final String goalId = goal.getId();
-		api.executeCommand(new com.goalplanner.command.Command()
-		{
-			@Override public boolean apply()
-			{
-				if (api.findGoal(goalId) != null) return false; // already there
-				api.goalStore.addGoal(goal);
-				return true;
-			}
-			@Override public boolean revert()
-			{
-				api.goalStore.removeGoal(goalId);
-				api.selectedGoalIds.remove(goalId);
-				return true;
-			}
-			@Override public String getDescription() { return "Add goal: " + trimmedName; }
-		});
+		executeAddGoal(goal, goalId, "Add goal: " + trimmedName);
 		log.info("addCustomGoal created: {} ({})", goalId, trimmedName);
 		return goalId;
 	}
@@ -2509,5 +2411,35 @@ class GoalCreationService
 			copy.setTagIds(new java.util.ArrayList<>(src.getTagIds()));
 		}
 		return copy;
+	}
+
+	/**
+	 * Execute the standard "add this goal" command: insert {@code goal} (a no-op
+	 * if a goal with its id already exists), reverting by removing it and clearing
+	 * it from the selection. {@code description} is the undo-stack label.
+	 */
+	private boolean executeAddGoal(Goal goal, String goalId, String description)
+	{
+		return api.executeCommand(new com.goalplanner.command.Command()
+		{
+			@Override
+			public boolean apply()
+			{
+				if (api.findGoal(goalId) != null) return false;
+				api.goalStore.addGoal(goal);
+				return true;
+			}
+
+			@Override
+			public boolean revert()
+			{
+				api.goalStore.removeGoal(goalId);
+				api.selectedGoalIds.remove(goalId);
+				return true;
+			}
+
+			@Override
+			public String getDescription() { return description; }
+		});
 	}
 }

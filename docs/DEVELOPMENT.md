@@ -129,8 +129,25 @@ culprit (each ~3.6 chars/token). When a change adds a big static data set,
 plan to put the data in a **resource file** loaded at startup — TSV for flat
 tables, JSON (via Gson) for nested ones — not in compiled `.java`. Resources
 aren't counted (same as `docs/img/` and the README), and it's cleaner anyway.
-See the `*-requirements.*` / `item-sources.tsv` resources under
-`src/main/resources/com/goalplanner/data/` for the pattern.
+The data resources under `src/main/resources/com/goalplanner/data/` are the
+pattern; each is loaded by a small static block (TSV via `BufferedReader`) or
+`init(Gson)` (JSON) in its owning `data/*` class:
+
+| Resource | Owner | Shape |
+|---|---|---|
+| `quest-requirements.tsv` | `QuestRequirements` | `quest ⇥ skills ⇥ prereqs ⇥ qpReq ⇥ cmbReq ⇥ xpRewards ⇥ qpReward ⇥ recSkills ⇥ recCombat ⇥ displayOverride ⇥ flags(M/F/L)` |
+| `item-sources.tsv` | `ItemSourceData` | itemId ⇥ display name |
+| `boss-killcount.tsv` | `BossKillData` | boss name ⇥ kill-count varp id |
+| `boss-pets.tsv` | `BossKillData` | boss name ⇥ pet item id |
+| `boss-cl-aliases.tsv` | `BossKillData` | collection-log name ⇥ `boss;boss;…` |
+| `boss-prereqs.json` | `BossKillData` | boss → nested prerequisite tree |
+| `diary-completion-varbits.tsv` | `AchievementDiaryData` | `AREA\|TIER` ⇥ completion varbit id |
+| `diary-requirements.json` | `DiaryRequirements` | area+tier → nested requirements |
+
+The integer-id TSVs (`boss-*`, `diary-completion-varbits`) were generated once
+from the symbolic `VarPlayerID`/`ItemID`/`VarbitID` constants by a throwaway
+test tool that dumped the resolved values — the TSV is now the source of truth,
+edited by hand.
 
 Run the gate before re-pinning the hub PR:
 
