@@ -265,26 +265,48 @@ public final class DiaryRequirements
 	}
 
 	// ============================================================
-	// Ardougne Diary (wiki-sourced 2026-04-11)
+	// Wiki-sourced diary requirements (2026-04-11), loaded from
+	// diary-requirements.json at plugin start-up via the injected
+	// client Gson — see GoalPlannerPlugin.startUp().
 	// ============================================================
 
-	static
+	private static volatile boolean loaded;
+
+	/**
+	 * Loads the diary requirement table from its bundled JSON resource.
+	 * Idempotent and thread-safe; the first caller wins and subsequent
+	 * calls are no-ops. Pass the client's injected {@link com.google.gson.Gson}
+	 * (the plugin must never create its own — the hub forbids it).
+	 */
+	public static void init(com.google.gson.Gson gson)
 	{
-		try (java.io.InputStream in = DiaryRequirements.class.getResourceAsStream("diary-requirements.json"))
+		if (loaded)
 		{
-			if (in == null)
-			{
-				throw new IllegalStateException("missing resource: diary-requirements.json");
-			}
-			try (java.io.Reader reader = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
-			{
-				TABLE.putAll(new com.google.gson.Gson().fromJson(reader,
-					new com.google.gson.reflect.TypeToken<java.util.Map<String, Reqs>>(){}.getType()));
-			}
+			return;
 		}
-		catch (java.io.IOException e)
+		synchronized (DiaryRequirements.class)
 		{
-			throw new java.io.UncheckedIOException("failed to load diary-requirements.json", e);
+			if (loaded)
+			{
+				return;
+			}
+			try (java.io.InputStream in = DiaryRequirements.class.getResourceAsStream("diary-requirements.json"))
+			{
+				if (in == null)
+				{
+					throw new IllegalStateException("missing resource: diary-requirements.json");
+				}
+				try (java.io.Reader reader = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
+				{
+					TABLE.putAll(gson.fromJson(reader,
+						new com.google.gson.reflect.TypeToken<java.util.Map<String, Reqs>>(){}.getType()));
+				}
+			}
+			catch (java.io.IOException e)
+			{
+				throw new java.io.UncheckedIOException("failed to load diary-requirements.json", e);
+			}
+			loaded = true;
 		}
 	}
 

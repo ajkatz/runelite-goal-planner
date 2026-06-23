@@ -162,6 +162,12 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		log.info("Goal Planner started");
 
+		// Load the bundled requirement tables using the client's injected Gson
+		// (the hub forbids plugins from constructing their own). Idempotent — safe
+		// across restarts. Must precede any requirement seeding / blocked-prereq scan.
+		com.goalplanner.data.DiaryRequirements.init(gson);
+		com.goalplanner.data.BossKillData.init(gson);
+
 		goalStore.load();
 		goalStore.setAutoArchiveDefault(config.autoArchiveCompleted());
 		goalStore.setIndentDependenciesDefault(config.showDependenciesIndented());

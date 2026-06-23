@@ -472,23 +472,43 @@ public final class BossKillData
 
 	private static final Map<String, BossPrereqs> BOSS_PREREQS = new HashMap<>();
 
-	static
+	private static volatile boolean prereqsLoaded;
+
+	/**
+	 * Loads the boss prerequisite table from its bundled JSON resource.
+	 * Idempotent and thread-safe; the first caller wins. Pass the client's
+	 * injected {@link com.google.gson.Gson} (the plugin must never create
+	 * its own — the hub forbids it). Called from GoalPlannerPlugin.startUp().
+	 */
+	public static void init(com.google.gson.Gson gson)
 	{
-		try (java.io.InputStream in = BossKillData.class.getResourceAsStream("boss-prereqs.json"))
+		if (prereqsLoaded)
 		{
-			if (in == null)
-			{
-				throw new IllegalStateException("missing resource: boss-prereqs.json");
-			}
-			try (java.io.Reader reader = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
-			{
-				BOSS_PREREQS.putAll(new com.google.gson.Gson().fromJson(reader,
-					new com.google.gson.reflect.TypeToken<Map<String, BossPrereqs>>(){}.getType()));
-			}
+			return;
 		}
-		catch (java.io.IOException e)
+		synchronized (BossKillData.class)
 		{
-			throw new java.io.UncheckedIOException("failed to load boss-prereqs.json", e);
+			if (prereqsLoaded)
+			{
+				return;
+			}
+			try (java.io.InputStream in = BossKillData.class.getResourceAsStream("boss-prereqs.json"))
+			{
+				if (in == null)
+				{
+					throw new IllegalStateException("missing resource: boss-prereqs.json");
+				}
+				try (java.io.Reader reader = new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8))
+				{
+					BOSS_PREREQS.putAll(gson.fromJson(reader,
+						new com.google.gson.reflect.TypeToken<Map<String, BossPrereqs>>(){}.getType()));
+				}
+			}
+			catch (java.io.IOException e)
+			{
+				throw new java.io.UncheckedIOException("failed to load boss-prereqs.json", e);
+			}
+			prereqsLoaded = true;
 		}
 	}
 
