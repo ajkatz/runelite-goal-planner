@@ -298,7 +298,7 @@ public class GoalPlannerPlugin extends Plugin
 			panel.rebuild();
 			log.info("Postie import-share: result sectionId={} (payload had {} goals)", sectionId, count);
 			String msg = sectionId != null
-				? "imported " + count + " shared goal(s) via Postie → section " + sectionId
+				? "imported " + count + " shared goal(s) via Postie to section " + sectionId
 				: "Postie import returned NO section (nothing added)";
 			postGameMessage(new ChatMessageBuilder()
 				.append(ChatColorType.HIGHLIGHT).append("[Goal Planner] ")

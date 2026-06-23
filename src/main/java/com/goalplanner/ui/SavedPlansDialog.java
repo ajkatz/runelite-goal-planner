@@ -90,7 +90,7 @@ public final class SavedPlansDialog extends JDialog
 		if (plans.isEmpty())
 		{
 			JLabel empty = new JLabel("<html><div style='width:340px'>No saved plans yet.<br><br>"
-				+ "Save a code from a section's <b>Share &rarr; Save share code…</b> menu, or choose "
+				+ "Save a code from a section's <b>Share &gt; Save share code…</b> menu, or choose "
 				+ "<b>Save for later</b> when importing a code.</div></html>");
 			empty.setBorder(new EmptyBorder(16, 8, 8, 8));
 			listPanel.add(empty);

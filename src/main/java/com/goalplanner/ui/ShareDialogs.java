@@ -117,7 +117,7 @@ public final class ShareDialogs
 		}
 		store.add(name, code, com.goalplanner.share.SavedPlanSections.sectionNamesOf(bundle));
 		JOptionPane.showMessageDialog(parent,
-			"Saved \"" + name + "\" to your plans.\nOpen ⋯ → Saved plans to import it later.",
+			"Saved \"" + name + "\" to your plans.\nImport it later from the panel menu (Saved plans).",
 			"Saved plans", JOptionPane.INFORMATION_MESSAGE);
 	}
 

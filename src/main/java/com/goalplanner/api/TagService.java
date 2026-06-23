@@ -266,7 +266,7 @@ class TagService
 		{
 			@Override public boolean apply() { return api.goalStore.renameTag(tagId, resolved); }
 			@Override public boolean revert() { return api.goalStore.renameTag(tagId, prevLabel); }
-			@Override public String getDescription() { return "Rename tag: " + prevLabel + " → " + resolved; }
+			@Override public String getDescription() { return "Rename tag: " + prevLabel + " -> " + resolved; }
 		});
 	}
 

@@ -64,7 +64,7 @@ class SectionService
 		{
 			@Override public boolean apply() { return api.goalStore.renameUserSection(sectionId, resolved); }
 			@Override public boolean revert() { return api.goalStore.renameUserSection(sectionId, prevName); }
-			@Override public String getDescription() { return "Rename section: " + prevName + " → " + resolved; }
+			@Override public String getDescription() { return "Rename section: " + prevName + " -> " + resolved; }
 		});
 	}
 

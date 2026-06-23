@@ -152,8 +152,9 @@ edited by hand.
 Run the gate before re-pinning the hub PR:
 
 ```bash
-./gradlew preSubmit     # = test + checkDocs + checkTokens
+./gradlew preSubmit     # = test + checkDocs + checkTokens + checkGlyphs
 ./gradlew checkTokens   # just the size estimate, anytime
+./gradlew checkGlyphs   # flag macOS-Tahoe tofu glyphs in UI/chat strings
 ```
 
 `checkTokens` prefers `tiktoken` (`pip install tiktoken`) for an exact count
