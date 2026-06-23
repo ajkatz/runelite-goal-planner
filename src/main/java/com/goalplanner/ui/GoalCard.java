@@ -141,7 +141,7 @@ public class GoalCard extends JPanel
 				.append(" likely blocking this, not in your plan:</b><br>");
 			for (String r : view.blockedRequirements)
 			{
-				tip.append("&nbsp;• ").append(FormatUtil.escapeHtml(r)).append("<br>");
+				tip.append("&nbsp;&nbsp;- ").append(FormatUtil.escapeHtml(r)).append("<br>");
 			}
 			tip.append("<i>Click to add them to this section.</i></html>");
 			blockedBadge.setToolTipText(tip.toString());
@@ -358,7 +358,7 @@ public class GoalCard extends JPanel
 			StringBuilder tooltip = new StringBuilder("<html>").append(tooltipVerb).append(":<br>");
 			for (TagView t : tags)
 			{
-				tooltip.append("• ").append(FormatUtil.escapeHtml(t.label)).append("<br>");
+				tooltip.append("- ").append(FormatUtil.escapeHtml(t.label)).append("<br>");
 			}
 			tooltip.append("</html>");
 			pill.setToolTipText(tooltip.toString());
