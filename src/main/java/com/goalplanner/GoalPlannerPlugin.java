@@ -9,6 +9,7 @@ import com.goalplanner.data.ItemSourceData;
 import com.goalplanner.data.SourceAttributes;
 import com.goalplanner.data.WikiCaRepository;
 import com.google.inject.Binder;
+import com.goalplanner.model.AccountMetric;
 import com.goalplanner.model.Goal;
 import com.goalplanner.model.GoalType;
 import com.goalplanner.model.ItemTag;
@@ -568,7 +569,73 @@ public class GoalPlannerPlugin extends Plugin
 			updated |= accountTracker.checkGoals(goals);
 			updated |= bossKillTracker.checkGoals(goals);
 			flushIfUpdated(updated);
+			maybeAutoAddMiscApprovalGoal();
 		});
+	}
+
+	/** Last Kingdom of Miscellania approval value seen this session (-1 = not yet
+	 *  read, so the first reading only establishes a baseline). Reset on login. */
+	private int lastMiscApproval = -1;
+
+	/** Approval increases observed since this login. The 1st increase is the
+	 *  login data-sync jump (0 -> real value), so only the 2nd+ counts as a real
+	 *  favour gain (see {@link com.goalplanner.tracker.MiscellaniaAutoGoal}).
+	 *  Reset on login. */
+	private int miscApprovalIncreases = 0;
+
+	/**
+	 * Auto-add a Miscellania 100% approval goal when the player raises their
+	 * approval (i.e. is actively managing the kingdom) and no such goal exists.
+	 * Client-thread only; called from {@link #onVarbitChanged}. Gated by the
+	 * config toggle and skipped while a Misc. Approval goal is already present —
+	 * so it re-adds whenever the goal is missing and approval rises again. The
+	 * added goal is a normal undoable account goal.
+	 */
+	private void maybeAutoAddMiscApprovalGoal()
+	{
+		int current = client.getVarbitValue(net.runelite.api.gameval.VarbitID.MISC_APPROVAL);
+		int previous = lastMiscApproval;
+		lastMiscApproval = current;
+
+		// First reading after login just establishes the baseline — never fires.
+		if (previous < 0)
+		{
+			return;
+		}
+		// Only an increase is interesting.
+		if (current <= previous)
+		{
+			return;
+		}
+
+		// Ignore the 1st increase (the login data-sync jump); act on the 2nd+.
+		miscApprovalIncreases++;
+		if (!com.goalplanner.tracker.MiscellaniaAutoGoal.shouldAdd(previous, current,
+			miscApprovalIncreases, config.autoTrackMiscellania(), hasMiscApprovalGoal()))
+		{
+			return;
+		}
+
+		String id = goalTrackerApi.addAccountGoal(AccountMetric.MISC_APPROVAL.name(),
+			com.goalplanner.tracker.MiscellaniaAutoGoal.FULL_APPROVAL);
+		if (id == null)
+		{
+			return;
+		}
+		log.debug("Auto-added Miscellania 100% approval goal {}", id);
+		postGameMessage(new ChatMessageBuilder()
+			.append("Goal Planner: added a Miscellania 100% approval goal. "
+				+ "You can turn this off in the plugin settings (Auto-track Miscellania).")
+			.build());
+	}
+
+	/** True if a Misc. Approval account goal already exists on this profile —
+	 *  active OR completed (getGoals/exists scan the full store), so we never
+	 *  auto-add a duplicate of a goal the player is already tracking or has
+	 *  finished. */
+	private boolean hasMiscApprovalGoal()
+	{
+		return goalStore.exists(g -> AccountMetric.MISC_APPROVAL.name().equals(g.getAccountMetric()));
 	}
 
 	/**
@@ -660,6 +727,7 @@ public class GoalPlannerPlugin extends Plugin
 				seedCanonicalSystemTags();
 				trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
 				lastAppliedProfile = now;
+				lastMiscApproval = -1;
 				profileSwitched = true;
 			}
 			boolean migrated = goalStore.migrateLegacyIntoActiveProfile();
@@ -684,6 +752,7 @@ public class GoalPlannerPlugin extends Plugin
 		seedCanonicalSystemTags();
 		trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
 		lastAppliedProfile = now;
+		lastMiscApproval = -1;
 		if (panel != null)
 		{
 			javax.swing.SwingUtilities.invokeLater(panel::rebuild);
@@ -708,6 +777,12 @@ public class GoalPlannerPlugin extends Plugin
 			// Re-arm the skill-sync gate: the stat block for this login has
 			// not arrived yet, so any prereq seeding must wait for it.
 			skillSyncGate.onLogin();
+			// Reset Miscellania favour-gain detection on EVERY login (checkProfile
+			// only fires on profile *changes*). The login approval-varbit sync
+			// shows up as the first increase and is ignored — see
+			// maybeAutoAddMiscApprovalGoal.
+			lastMiscApproval = -1;
+			miscApprovalIncreases = 0;
 			checkProfile();
 		}
 		else if (event.getGameState() == GameState.LOGIN_SCREEN

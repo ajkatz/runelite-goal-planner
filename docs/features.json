@@ -129,6 +129,24 @@
       "notes": "Live ceilings (quest DB sum, collection-log varp) since 0.3.0; over-max targets allowed since 0.3.0; leagues metrics hidden off-profile since 0.3.0."
     },
     {
+      "id": "misc-auto-track",
+      "title": "Auto-track Miscellania",
+      "group": "Tracking",
+      "anchor": "auto-track-miscellania",
+      "media": null,
+      "code": [
+        "tracker/MiscellaniaAutoGoal.java",
+        "GoalPlannerPlugin.java",
+        "GoalPlannerConfig.java",
+        "persistence/GoalStore.java"
+      ],
+      "tests": [
+        "tracker/MiscellaniaAutoGoalTest.java"
+      ],
+      "since": "0.4.0",
+      "notes": "Auto-adds a Misc. Approval 100% goal on a real in-session approval increase when none exists (re-adds whenever the goal is missing). Decision logic is unit-tested; the varbit-event wiring is verified in-client. Config toggle, default on; skipped while a Misc. Approval goal is present."
+    },
+    {
       "id": "change-amount",
       "title": "Change Amount / retargeting",
       "group": "Tracking",

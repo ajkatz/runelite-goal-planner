@@ -18,6 +18,12 @@ bumps.
   section is named on import), and Delete. The library is global (shared across
   all profiles, including leagues), since a share code carries goal definitions
   only.
+- **Auto-track Miscellania.** When you raise your Kingdom of Miscellania approval
+  (i.e. you're actively managing the kingdom), the plugin adds a *Misc. Approval
+  100%* goal to your default section — whenever you don't already have one. Undo
+  removes it, and deleting it isn't permanent: it returns next time approval
+  rises while the goal is missing. A chat line notes it can be turned off under
+  **Behaviour → Auto-track Miscellania** (on by default).
 
 ### Changed
 - **Source-size reduction for Plugin Hub headroom.** No user-facing behavior

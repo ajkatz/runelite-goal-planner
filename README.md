@@ -43,7 +43,7 @@ Building from source? See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 # Feature guide
 
 **Creating goals:** [Panel dialog](#add-a-goal-from-the-panel) · [In-game right-click](#add-goals-from-the-game) · [Requirement seeding](#automatic-requirement-trees) · [Add requirements later](#add-requirements-to-an-existing-goal)
-**Tracking:** [Auto-tracking](#auto-tracking) · [Account metrics](#account-metrics) · [Change Amount](#change-amount--retargeting) · [Manual completion](#manual-completion)
+**Tracking:** [Auto-tracking](#auto-tracking) · [Account metrics](#account-metrics) · [Auto-track Miscellania](#auto-track-miscellania) · [Change Amount](#change-amount--retargeting) · [Manual completion](#manual-completion)
 **Organizing:** [Sections](#sections) · [Completed-goal handling](#completed-goal-handling) · [Move & duplicate](#move--duplicate-across-sections) · [Dependency nesting](#dependency-nesting-guide-view) · [Tags](#tags) · [Colors](#colors) · [Search](#search)
 **Selection & safety:** [Multi-select](#multi-select--section-select-all) · [Bulk actions](#bulk-actions) · [Undo / redo](#undo--redo)
 **Sharing:** [Share codes](#share-codes) · [Importing](#importing) · [Saved plans](#saved-plans) · [Cross-section dependencies](#cross-section-dependencies) · [Crafting codes with AI](#crafting-codes-with-ai)
@@ -93,6 +93,10 @@ Cards update from game state on their own: skills by XP, quests by completion st
 Sixteen account-wide metrics — Quest Points, Total/Combat Level, CA Points, Slayer Points, Kudos, Collection Log Slots, Diary Tiers, Tears of Guthix PB, and more. The Collection Log ceiling is read **live from the client** (it grows as slots are added); Quest Points / ToG PB use a wiki-authoritative max (335). Targets *above* the max are allowed — they keep tracking until the game catches up. League metrics only appear on leagues profiles.
 
 ![Account goal dialog with a Max shortcut](docs/img/account-metrics.gif)
+
+### Auto-track Miscellania
+
+Kingdom of Miscellania approval decays if you ignore it, so it's a goal worth keeping at 100%. When the plugin sees your approval *rise* — you're actively managing the kingdom — and you don't already have the goal, it adds a **Misc. Approval 100%** goal to your default section for you. Deleting it isn't permanent: it returns the next time your approval climbs while the goal is missing. Don't want it at all? Turn it off under **Behaviour → Auto-track Miscellania** (on by default) — a chat line points you there the first time. It's a normal goal, so **⌘Z** removes it too.
 
 ### Change Amount / retargeting
 

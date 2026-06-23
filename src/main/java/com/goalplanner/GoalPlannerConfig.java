@@ -27,6 +27,20 @@ public interface GoalPlannerConfig extends Config
 		return true;
 	}
 
+	@ConfigItem(
+		keyName = "autoTrackMiscellania",
+		name = "Auto-track Miscellania",
+		description = "When you raise your Kingdom of Miscellania approval, automatically add a "
+			+ "Miscellania 100% approval goal to your default section (once). Turn off to never "
+			+ "auto-add it.",
+		section = behaviourSection,
+		position = 2
+	)
+	default boolean autoTrackMiscellania()
+	{
+		return true;
+	}
+
 	@ConfigSection(
 		name = "Appearance",
 		description = "Readability options (experimental). Report issues: discord.gg/CFQsA3fmh7",
