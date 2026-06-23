@@ -6,9 +6,9 @@ import lombok.Data;
 
 /**
  * A bookmarked share code ("Saved Plan"): a user-supplied {@code name}, the raw
- * {@code GPSHARE…} {@code code}, and per-section display-name overrides applied
+ * {@code GPSHARE...} {@code code}, and per-section display-name overrides applied
  * when the plan is imported. Stored globally (across profiles) by
- * {@link SavedPlanStore} — a share code carries goal definitions only, so the
+ * {@link SavedPlanStore} - a share code carries goal definitions only, so the
  * library is account-agnostic.
  */
 @Data

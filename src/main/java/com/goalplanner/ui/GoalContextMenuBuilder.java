@@ -62,9 +62,9 @@ class GoalContextMenuBuilder
 			JMenuItem add = new JMenuItem("Add");
 			add.addActionListener(e -> addAction.run());
 			submenu.add(add);
-			// "Remove…" — ellipsis because the action opens a multi-pick
+			// "Remove..." - ellipsis because the action opens a multi-pick
 			// dialog rather than removing immediately on click.
-			JMenuItem remove = new JMenuItem("Remove…");
+			JMenuItem remove = new JMenuItem("Remove...");
 			remove.addActionListener(e -> removeAction.run());
 			submenu.add(remove);
 			return submenu;
@@ -77,7 +77,7 @@ class GoalContextMenuBuilder
 		}
 		if (canRemove)
 		{
-			JMenuItem remove = new JMenuItem("Remove Tags…");
+			JMenuItem remove = new JMenuItem("Remove Tags...");
 			remove.addActionListener(e -> removeAction.run());
 			return remove;
 		}
@@ -109,7 +109,7 @@ class GoalContextMenuBuilder
 				if (!panel.pendingRelationSourceIds.isEmpty()) panel.exitRelationMode();
 				if (panel.pendingMoveSourceId != null) panel.exitMoveMode();
 				// Both single-item and bulk menus render through
-				// ColumnMenu now — click-driven, hover-stable single
+				// ColumnMenu now - click-driven, hover-stable single
 				// column with drill-down + back. The build code still
 				// produces JPopupMenu trees; MenuTreeAdapter walks them
 				// into MenuNode trees the ColumnMenu can render. The
@@ -166,7 +166,7 @@ class GoalContextMenuBuilder
 	{
 		JPopupMenu menu = new JPopupMenu();
 
-		// Selection toggle — first item so it's predictable. Label flips based on
+		// Selection toggle - first item so it's predictable. Label flips based on
 		// the goal's current selection state. Routes through the same internal API
 		// the click handler uses, so multi-select state stays consistent.
 		Set<String> selectedIds = api.getSelectedGoalIds();
@@ -189,7 +189,7 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
-		// Share this goal — copy a paste-anywhere share code.
+		// Share this goal - copy a paste-anywhere share code.
 		if (panel.isShareAvailable())
 		{
 			final java.util.List<String> shareIds = java.util.Collections.singletonList(goal.getId());
@@ -199,7 +199,7 @@ class GoalContextMenuBuilder
 			shareMenu.add(copyCode);
 			if (panel.isSavedPlansAvailable())
 			{
-				JMenuItem savePlan = new JMenuItem("Save share code…");
+				JMenuItem savePlan = new JMenuItem("Save share code...");
 				savePlan.addActionListener(e -> panel.saveGoalsPlan(shareIds));
 				shareMenu.add(savePlan);
 			}
@@ -210,9 +210,9 @@ class GoalContextMenuBuilder
 		// Move-to-Top / Move-to-Bottom are accessed via right-clicking the
 		// up/down arrow buttons on the card itself (see GoalCard.createArrowButton).
 
-		// Add Goal submenu — Top/Bottom of section, Above/Below
+		// Add Goal submenu - Top/Bottom of section, Above/Below
 		// the right-clicked card. Available on completed goals too (completed
-		// goals are first-class); only the Completed BUILT-IN is excluded —
+		// goals are first-class); only the Completed BUILT-IN is excluded -
 		// new goals are incomplete, so reconcile would immediately bounce
 		// them back out of it.
 		com.goalplanner.model.Section goalSection = goal.getSectionId() != null
@@ -240,7 +240,7 @@ class GoalContextMenuBuilder
 			addGoalMenu.add(addBottom);
 
 			// Above/Below are always valid: "above the first" lands at the
-			// top, "below the last" lands at the bottom — both equivalent to
+			// top, "below the last" lands at the bottom - both equivalent to
 			// the dedicated Top/Bottom items, but enabling them avoids the
 			// surprise of a greyed-out option on edge-of-section goals.
 			JMenuItem addAbove = new JMenuItem("Above This Goal");
@@ -257,10 +257,10 @@ class GoalContextMenuBuilder
 			});
 			addGoalMenu.add(addBelow);
 
-			// Leagues shortcut — direct-create both goal types at the tier/area
+			// Leagues shortcut - direct-create both goal types at the tier/area
 			// milestones without opening the dialog. Lands just below the
 			// right-clicked card so the user can rapidly stack related leagues
-			// goals next to each other. Leagues profile only — on a main
+			// goals next to each other. Leagues profile only - on a main
 			// account these goals could never track.
 			if (com.goalplanner.persistence.GoalStore.PROFILE_LEAGUES
 				.equals(goalStore.getActiveProfile()))
@@ -323,7 +323,7 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		// Customize submenu — groups general property edits (optional flag,
+		// Customize submenu - groups general property edits (optional flag,
 		// name/description for CUSTOM, color, tags, relations, restore defaults)
 		// under a single hover so the top-level menu stays scannable. Mark
 		// Complete/Incomplete and Change Amount stay top-level: completion is
@@ -331,7 +331,7 @@ class GoalContextMenuBuilder
 		// field for skill/item goals.
 		JMenu customizeMenu = new JMenu("Customize");
 
-		// Optional toggle — hidden on completed goals; the optional/required
+		// Optional toggle - hidden on completed goals; the optional/required
 		// distinction only affects how active goals are weighted/displayed,
 		// so it's noise on completed cards.
 		if (!goal.isComplete())
@@ -366,14 +366,14 @@ class GoalContextMenuBuilder
 			customizeMenu.add(editDesc);
 		}
 
-		// Change Color is available on all active goal types — override persists
+		// Change Color is available on all active goal types - override persists
 		// on the goal model so rebuilds don't clobber it. Hidden on completed
-		// goals included — completed goals are first-class, so recolouring is fine.
+		// goals included - completed goals are first-class, so recolouring is fine.
 		JMenuItem changeGoalColor = new JMenuItem("Change Color");
 		changeGoalColor.addActionListener(e -> dialogFactory.showGoalColorDialog(goal));
 		customizeMenu.add(changeGoalColor);
 
-		// Skill-specific options. Available on completed goals too — completed
+		// Skill-specific options. Available on completed goals too - completed
 		// and active goals are equivalent under retargeting: the new target
 		// re-evaluates completion (raising it past the progress reopens the
 		// goal, trackers resume).
@@ -384,7 +384,7 @@ class GoalContextMenuBuilder
 			menu.add(editLevel);
 		}
 
-		// Item-specific options (completed goals included — same re-evaluation).
+		// Item-specific options (completed goals included - same re-evaluation).
 		if (goal.getType() == GoalType.ITEM_GRIND)
 		{
 			JMenuItem editQty = new JMenuItem("Change Amount");
@@ -412,7 +412,7 @@ class GoalContextMenuBuilder
 			menu.add(editQty);
 		}
 
-		// Tag management — routes through the shared TagPickerDialog so the
+		// Tag management - routes through the shared TagPickerDialog so the
 		// single-item and bulk Add Tag flows stay in lockstep (category list,
 		// SKILLING lock, freeform/dropdown switch).
 		// Removable tags: for CUSTOM goals, anything. For everything else, only
@@ -465,7 +465,7 @@ class GoalContextMenuBuilder
 			}
 			finally { api.endCompound(); }
 		};
-		// Completed goals are first-class — allow tagging them too (their tags
+		// Completed goals are first-class - allow tagging them too (their tags
 		// render on the card, same as active goals).
 		JMenuItem tagEntry = buildTagMenuEntry(
 			true, addTagAction,
@@ -477,20 +477,20 @@ class GoalContextMenuBuilder
 		// and "Required by..." enter a click-mode where the user clicks
 		// another goal to link. The Remove children are direct pick-to-remove
 		// lists of the current edges. Hidden for completed goals: completed
-		// items are reference history, not active tracking — editing their
+		// items are reference history, not active tracking - editing their
 		// prerequisite graph adds noise with no behavioral payoff.
 		if (!goal.isComplete())
 		{
 			JMenu relationsMenu = new JMenu("Relations");
 
-			JMenuItem addRequirement = new JMenuItem("Requires\u2026");
+			JMenuItem addRequirement = new JMenuItem("Requires...");
 			addRequirement.setToolTipText(
 				"Click, then click another goal to mark it as a requirement of this one.");
 			addRequirement.addActionListener(e ->
 				panel.enterRelationMode(goal.getId(), /*sourceRequiresTarget=*/true));
 			relationsMenu.add(addRequirement);
 
-			JMenuItem addDependent = new JMenuItem("Required by\u2026");
+			JMenuItem addDependent = new JMenuItem("Required by...");
 			addDependent.setToolTipText(
 				"Click, then click another goal that should require this one.");
 			addDependent.addActionListener(e ->
@@ -504,14 +504,14 @@ class GoalContextMenuBuilder
 				relationsMenu.addSeparator();
 			}
 
-			// Remove Requirements... — opens a checkbox dialog so the user
+			// Remove Requirements... - opens a checkbox dialog so the user
 			// can drop several edges in one gesture instead of clicking a
 			// submenu item per edge. Submit removes the chosen subset
 			// inside one compound (one undo).
 			if (!currentRequirements.isEmpty())
 			{
 				final List<String> reqsSnapshot = new ArrayList<>(currentRequirements);
-				JMenuItem removeReqs = new JMenuItem("Remove Requirements…");
+				JMenuItem removeReqs = new JMenuItem("Remove Requirements...");
 				removeReqs.addActionListener(e -> {
 					List<MultiSelectDialog.Item> items = new ArrayList<>();
 					for (String reqId : reqsSnapshot)
@@ -532,11 +532,11 @@ class GoalContextMenuBuilder
 				relationsMenu.add(removeReqs);
 			}
 
-			// Remove Dependents... — same multi-pick pattern.
+			// Remove Dependents... - same multi-pick pattern.
 			if (!currentDependents.isEmpty())
 			{
 				final List<String> depsSnapshot = new ArrayList<>(currentDependents);
-				JMenuItem removeDeps = new JMenuItem("Remove Dependents…");
+				JMenuItem removeDeps = new JMenuItem("Remove Dependents...");
 				removeDeps.addActionListener(e -> {
 					List<MultiSelectDialog.Item> items = new ArrayList<>();
 					for (String depId : depsSnapshot)
@@ -560,7 +560,7 @@ class GoalContextMenuBuilder
 			customizeMenu.add(relationsMenu);
 		}
 
-		// Restore Defaults — gated on isGoalOverridden (tag drift
+		// Restore Defaults - gated on isGoalOverridden (tag drift
 		// OR color override). Routes through the bulk API so the single-item
 		// path resets BOTH tags and color in one shot.
 		if (api.isGoalOverridden(goal.getId()))
@@ -579,9 +579,9 @@ class GoalContextMenuBuilder
 			menu.add(customizeMenu);
 		}
 
-		// Add requirements to this section — for quest/diary goals with known
+		// Add requirements to this section - for quest/diary goals with known
 		// game-data requirements, seed the requirement tree (prior quests, skill
-		// levels, unlocks, …) into this goal's section so the nested guide is whole.
+		// levels, unlocks, ...) into this goal's section so the nested guide is whole.
 		// "Incomplete only" = unmet reqs (live state); "All" = the entire tree
 		// (floor lookups, deterministic). Existing goals in the section are reused.
 		boolean questWithReqs = false;
@@ -619,13 +619,13 @@ class GoalContextMenuBuilder
 			menu.add(addReqs);
 		}
 
-		// Move submenu — sibling of Customize. Collects all relocation actions
+		// Move submenu - sibling of Customize. Collects all relocation actions
 		// under one hover: Move to Top/Bottom reorder within the current
-		// section; Move to… enters click-mode; Move to Section ▶ lists every
+		// section; Move to... enters click-mode; Move to Section ▶ lists every
 		// other valid section plus a "New Section" option, so almost every
 		// incomplete goal has at least one valid destination. Completed goals
-		// are included now (first-class section members) — but the in-section
-		// REORDER items (Top/Bottom, Move to…) stay hidden on completed goals,
+		// are included now (first-class section members) - but the in-section
+		// REORDER items (Top/Bottom, Move to...) stay hidden on completed goals,
 		// which are force-sorted to the bottom, so reorder is a no-op there.
 		// Move to Section / Duplicate to Section still work on them.
 		{
@@ -647,7 +647,7 @@ class GoalContextMenuBuilder
 					moveMenu.add(moveToBottom);
 				}
 
-				JMenuItem moveToPicker = new JMenuItem("Move to…");
+				JMenuItem moveToPicker = new JMenuItem("Move to...");
 				moveToPicker.setToolTipText(
 					"Click, then click another goal to place this one above it, or click + New Section.");
 				moveToPicker.addActionListener(e -> panel.enterMoveMode(goal.getId()));
@@ -659,7 +659,7 @@ class GoalContextMenuBuilder
 			List<com.goalplanner.api.SectionView> allSections = api.queryAllSections();
 			List<com.goalplanner.api.SectionView> destinations = new ArrayList<>();
 			// The two built-ins are one logical "Default" bucket (auto-split by
-			// completion) — offered as a single "Default" entry below, not as
+			// completion) - offered as a single "Default" entry below, not as
 			// individual Incomplete/Completed destinations.
 			String defaultIncompleteId = null;
 			boolean goalInDefault = false;
@@ -693,14 +693,14 @@ class GoalContextMenuBuilder
 			{
 				moveToSection.addSeparator();
 			}
-			JMenuItem newSectionItem = new JMenuItem("Move to New Section…");
+			JMenuItem newSectionItem = new JMenuItem("Move to New Section...");
 			newSectionItem.addActionListener(e ->
 				promptNewSection(newId -> api.moveGoalToSection(goal.getId(), newId)));
 			moveToSection.add(newSectionItem);
 
 			moveMenu.add(moveToSection);
 
-			// Duplicate to Section — an independent copy in another section.
+			// Duplicate to Section - an independent copy in another section.
 			// Per-section identity: the same goal can live once per section.
 			JMenu dupToSection = new JMenu("Duplicate to Section");
 			if (!goalInDefault && defaultIncompleteId != null)
@@ -724,7 +724,7 @@ class GoalContextMenuBuilder
 			{
 				dupToSection.addSeparator();
 			}
-			JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
+			JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section...");
 			dupNewSection.addActionListener(e -> promptNewSection(newId ->
 				api.duplicateGoalsToSection(java.util.Collections.singletonList(goal.getId()), newId)));
 			dupToSection.add(dupNewSection);
@@ -748,7 +748,7 @@ class GoalContextMenuBuilder
 	/**
 	 * Prompt for a new section name; if the user confirms a non-blank name and
 	 * the section is created, run {@code action} with the new section id. Shared
-	 * by the Move/Duplicate "…to New Section…" menu items.
+	 * by the Move/Duplicate "...to New Section..." menu items.
 	 */
 	private void promptNewSection(java.util.function.Consumer<String> action)
 	{
@@ -817,7 +817,7 @@ class GoalContextMenuBuilder
 			shareMenu.add(copyCode);
 			if (panel.isSavedPlansAvailable())
 			{
-				JMenuItem savePlan = new JMenuItem("Save share code…");
+				JMenuItem savePlan = new JMenuItem("Save share code...");
 				savePlan.addActionListener(e -> panel.saveGoalsPlan(shareIds));
 				shareMenu.add(savePlan);
 			}
@@ -840,7 +840,7 @@ class GoalContextMenuBuilder
 		menu.add(deselectAll);
 		menu.addSeparator();
 
-		// Mark as Complete — top-level (mirrors single-item menu where
+		// Mark as Complete - top-level (mirrors single-item menu where
 		// Mark Complete/Incomplete is a primary lifecycle action). Only
 		// when ALL selected are CUSTOM (per locked design).
 		boolean allCustom = !selectedGoals.isEmpty();
@@ -862,13 +862,13 @@ class GoalContextMenuBuilder
 			menu.add(markComplete);
 		}
 
-		// Customize submenu — collects property-edit actions that apply to
+		// Customize submenu - collects property-edit actions that apply to
 		// the whole selection (optional flag, color, tags, restore defaults).
 		// Mirrors the single-item Customize submenu so the menu shape is the
 		// same whether the user has one or many cards selected.
 		JMenu customizeMenu = new JMenu("Customize");
 
-		// Mark Optional/Required — only applies to non-completed goals
+		// Mark Optional/Required - only applies to non-completed goals
 		// (matches single-item gating). When the selection is uniform
 		// (all required or all optional), show a single flip action;
 		// when mixed, show a submenu so the user can force either state.
@@ -929,7 +929,7 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		// Change Color — applies to every selected goal (completed included;
+		// Change Color - applies to every selected goal (completed included;
 		// matches the single-item menu, where completed goals are recolourable).
 		List<Goal> recolorTargets = new ArrayList<>(selectedGoals);
 		if (!recolorTargets.isEmpty())
@@ -939,7 +939,7 @@ class GoalContextMenuBuilder
 			customizeMenu.add(changeColor);
 		}
 
-		// Tag — Add applies to every selected goal (completed included, matching
+		// Tag - Add applies to every selected goal (completed included, matching
 		// the single-item menu); Remove still applies to any tagged goal.
 		List<Goal> tagAddTargets = new ArrayList<>(selectedGoals);
 		List<com.goalplanner.api.GoalPlannerInternalApi.TagRemovalOption> removableOpts =
@@ -951,10 +951,10 @@ class GoalContextMenuBuilder
 			() -> dialogFactory.showBulkRemoveTagDialog(selectedIds, removableOpts));
 		if (bulkTagEntry != null) customizeMenu.add(bulkTagEntry);
 
-		// Relations — bulk add only. Each selected non-completed goal
+		// Relations - bulk add only. Each selected non-completed goal
 		// gets the same edge to/from the click-mode target. Cycle and
 		// duplicate rejections fail open per source so a partial success
-		// still applies. Bulk relation removal is not yet exposed —
+		// still applies. Bulk relation removal is not yet exposed -
 		// per-goal edges remove via the single-item Relations submenu.
 		List<Goal> relationSources = new ArrayList<>();
 		for (Goal g : selectedGoals)
@@ -968,21 +968,21 @@ class GoalContextMenuBuilder
 			LinkedHashSet<String> relationSourceIds = new LinkedHashSet<>();
 			for (Goal g : relationSources) relationSourceIds.add(g.getId());
 
-			JMenuItem requires = new JMenuItem("Requires…");
+			JMenuItem requires = new JMenuItem("Requires...");
 			requires.setToolTipText(
 				"Click, then click another goal to mark as a requirement of every selected goal.");
 			requires.addActionListener(e ->
 				panel.enterRelationMode(relationSourceIds, /*sourceRequiresTarget=*/true));
 			relationsMenu.add(requires);
 
-			JMenuItem requiredBy = new JMenuItem("Required by…");
+			JMenuItem requiredBy = new JMenuItem("Required by...");
 			requiredBy.setToolTipText(
 				"Click, then click another goal that should require every selected goal.");
 			requiredBy.addActionListener(e ->
 				panel.enterRelationMode(relationSourceIds, /*sourceRequiresTarget=*/false));
 			relationsMenu.add(requiredBy);
 
-			// Compute intersections — an edge is "common" only if every
+			// Compute intersections - an edge is "common" only if every
 			// selected non-completed goal has it. Anything less would be
 			// ambiguous: removing a requirement that only some selected
 			// goals carry is better expressed via the single-item menu
@@ -999,7 +999,7 @@ class GoalContextMenuBuilder
 			{
 				final List<Goal> finalSources = relationSources;
 				final List<String> commonReqsSnapshot = new ArrayList<>(commonRequirements);
-				JMenuItem removeReqs = new JMenuItem("Remove Requirements…");
+				JMenuItem removeReqs = new JMenuItem("Remove Requirements...");
 				removeReqs.addActionListener(e -> {
 					List<MultiSelectDialog.Item> items = new ArrayList<>();
 					for (String reqId : commonReqsSnapshot)
@@ -1028,7 +1028,7 @@ class GoalContextMenuBuilder
 			{
 				final List<Goal> finalSources = relationSources;
 				final List<String> commonDepsSnapshot = new ArrayList<>(commonDependents);
-				JMenuItem removeDeps = new JMenuItem("Remove Dependents…");
+				JMenuItem removeDeps = new JMenuItem("Remove Dependents...");
 				removeDeps.addActionListener(e -> {
 					List<MultiSelectDialog.Item> items = new ArrayList<>();
 					for (String depId : commonDepsSnapshot)
@@ -1056,7 +1056,7 @@ class GoalContextMenuBuilder
 			customizeMenu.add(relationsMenu);
 		}
 
-		// Restore Defaults — show only if at least one selected goal is
+		// Restore Defaults - show only if at least one selected goal is
 		// overridden (tag drift OR color override).
 		boolean anyOverridden = false;
 		for (String id : selectedIds)
@@ -1079,7 +1079,7 @@ class GoalContextMenuBuilder
 			menu.add(customizeMenu);
 		}
 
-		// Move submenu — sibling of Customize (mirrors single-item menu).
+		// Move submenu - sibling of Customize (mirrors single-item menu).
 		// Available whenever there's a selection + a destination section
 		// (completed goals are movable/duplicable now).
 		boolean anyMovable = !selectedGoals.isEmpty();
@@ -1116,7 +1116,7 @@ class GoalContextMenuBuilder
 			}
 		}
 
-		// In-section bulk reordering — only when every selected goal is in
+		// In-section bulk reordering - only when every selected goal is in
 		// the same section and non-completed, and there's room to move
 		// (section has more goals than the selection). All four operations
 		// preserve the relative priority order of the selected block.
@@ -1158,7 +1158,7 @@ class GoalContextMenuBuilder
 				final int moveSectionStart = sectionStart;
 				final int moveSectionEnd = sectionEnd;
 
-				// Repeat-friendly actions — keep the column-menu popup open
+				// Repeat-friendly actions - keep the column-menu popup open
 				// after click so the user can nudge a selection up/down
 				// several rows without reopening the menu each time.
 				JMenuItem moveToTop = new JMenuItem("Move to Top");
@@ -1193,7 +1193,7 @@ class GoalContextMenuBuilder
 			}
 
 			// Always offered: even with no user sections and an all-default
-			// selection, "New Section…" is a valid target.
+			// selection, "New Section..." is a valid target.
 			{
 				JMenu moveToSection = new JMenu("Move to Section");
 				if (!allInDefault)
@@ -1221,7 +1221,7 @@ class GoalContextMenuBuilder
 				{
 					moveToSection.addSeparator();
 				}
-				JMenuItem moveNewSection = new JMenuItem("Move to New Section…");
+				JMenuItem moveNewSection = new JMenuItem("Move to New Section...");
 				moveNewSection.addActionListener(e -> promptNewSection(newId -> {
 					LinkedHashSet<String> ids = new LinkedHashSet<>();
 					for (Goal g : selectedGoals) ids.add(g.getId());
@@ -1230,7 +1230,7 @@ class GoalContextMenuBuilder
 				moveToSection.add(moveNewSection);
 				moveMenu.add(moveToSection);
 
-				// Bulk Duplicate to Section — independent copies, in-set
+				// Bulk Duplicate to Section - independent copies, in-set
 				// relations remapped, per-section dedup skips ones already there.
 				JMenu dupToSection = new JMenu("Duplicate to Section");
 				if (!allInDefault && defaultIncompleteId != null)
@@ -1259,7 +1259,7 @@ class GoalContextMenuBuilder
 				{
 					dupToSection.addSeparator();
 				}
-				JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section…");
+				JMenuItem dupNewSection = new JMenuItem("Duplicate to New Section...");
 				dupNewSection.addActionListener(e -> promptNewSection(newId -> {
 					LinkedHashSet<String> ids = new LinkedHashSet<>();
 					for (Goal g : selectedGoals) ids.add(g.getId());
@@ -1311,7 +1311,7 @@ class GoalContextMenuBuilder
 
 		JPopupMenu menu = new JPopupMenu();
 
-		// Add Goal submenu — Top of Section / Bottom of Section.
+		// Add Goal submenu - Top of Section / Bottom of Section.
 		// Hidden on Completed (auto-managed).
 		if (!"COMPLETED".equals(section.kind))
 		{
@@ -1354,7 +1354,7 @@ class GoalContextMenuBuilder
 
 		menu.addSeparator();
 
-		// Select / Deselect All in Section — label flips when every goal in the
+		// Select / Deselect All in Section - label flips when every goal in the
 		// section is already selected. Computed against the current selection
 		// snapshot at menu-build time.
 		Set<String> currentSel = api.getSelectedGoalIds();
@@ -1371,7 +1371,7 @@ class GoalContextMenuBuilder
 			if (allSelected) api.deselectAllInSection(section.id);
 			else api.selectAllInSection(section.id);
 		});
-		// Disable on empty sections — nothing to (de)select.
+		// Disable on empty sections - nothing to (de)select.
 		if (sectionGoalIds.isEmpty()) selectAll.setEnabled(false);
 		menu.add(selectAll);
 
@@ -1392,10 +1392,10 @@ class GoalContextMenuBuilder
 			shareMenu.add(copyAll);
 			if (panel.isSavedPlansAvailable())
 			{
-				JMenuItem savePlan = new JMenuItem("Save share code…");
+				JMenuItem savePlan = new JMenuItem("Save share code...");
 				savePlan.addActionListener(e -> panel.saveSectionPlan(shareSectionId));
 				shareMenu.add(savePlan);
-				JMenuItem saveAll = new JMenuItem("Save share code (all sections)…");
+				JMenuItem saveAll = new JMenuItem("Save share code (all sections)...");
 				saveAll.addActionListener(e -> panel.saveAllSectionsPlan());
 				shareMenu.add(saveAll);
 			}
@@ -1407,9 +1407,9 @@ class GoalContextMenuBuilder
 		// each goal by its in-section dependency depth with a faint file-tree
 		// guide. Available on every section, built-in or user. Rendered as a
 		// checkable row (left dot when active) via the ColumnMenu adapter.
-		// (The underlying flag/API is still named railView — internal rename to
+		// (The underlying flag/API is still named railView - internal rename to
 		// nestedView is a tracked follow-up.)
-		// Dependency nesting — per-section override of the global "Indent
+		// Dependency nesting - per-section override of the global "Indent
 		// dependencies by default" setting: inherit (Use default), nested,
 		// or not nested. Mirrors the auto-archive override above.
 		boolean indentDefault = config.showDependenciesIndented();
@@ -1444,7 +1444,7 @@ class GoalContextMenuBuilder
 			rename.addActionListener(e -> dialogFactory.showRenameSectionDialog(section));
 			menu.add(rename);
 
-			// Completed goals — per-section override of the global auto-archive
+			// Completed goals - per-section override of the global auto-archive
 			// default: inherit (Use default), always archive out to Completed, or
 			// always keep inline as a checklist.
 			boolean archiveDefault = api.isAutoArchiveDefault();
@@ -1550,7 +1550,7 @@ class GoalContextMenuBuilder
 	// selected block. The "iteration index as min/max bound" trick
 	// (target = max(currentRel - 1, i) for up; target = min(currentRel
 	// + 1, sectionSize - 1 - i) for down) prevents one move from
-	// displacing another selected goal — when the goal directly above
+	// displacing another selected goal - when the goal directly above
 	// (or below) is also selected, the bound clamps the move out and
 	// the relative order is preserved.
 
@@ -1654,7 +1654,7 @@ class GoalContextMenuBuilder
 		List<Integer> currentRels = new ArrayList<>();
 		for (Goal g : sorted) currentRels.add(g.getPriority() - sectionStart);
 		List<Integer> targets = planMoveDown(currentRels, sectionSize);
-		// Process desc so the bottommost goal moves first — it can't be
+		// Process desc so the bottommost goal moves first - it can't be
 		// blocked by a goal-being-moved sitting where it wants to land.
 		api.beginCompound("Move " + sorted.size() + " down");
 		try
@@ -1679,7 +1679,7 @@ class GoalContextMenuBuilder
 	{
 		// The "Incomplete only" variant resolves against LIVE player state
 		// (getRealSkillLevel / Quest.getState / account metrics), which asserts
-		// the client thread — run on it. ("All" uses floor lookups and is
+		// the client thread - run on it. ("All" uses floor lookups and is
 		// thread-agnostic, but routing both keeps one path.) Store mutation on
 		// the client thread is fine (trackers already mutate there); the
 		// resulting onGoalsChanged marshals the rebuild back to the EDT.

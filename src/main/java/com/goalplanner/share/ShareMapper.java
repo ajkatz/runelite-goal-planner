@@ -10,7 +10,7 @@ import java.util.function.Function;
 
 /**
  * Export-side mapping: live {@link Goal}/{@link Tag} model objects →
- * {@link ShareBundle}. Pure — takes a tag-lookup {@link Function} rather than a
+ * {@link ShareBundle}. Pure - takes a tag-lookup {@link Function} rather than a
  * store, so it's unit-testable without the client.
  *
  * <p>Three responsibilities:
@@ -19,7 +19,7 @@ import java.util.function.Function;
  *       copied; {@code id}, {@code status}, {@code currentValue},
  *       {@code completedAt}, {@code createdAt}, {@code priority} and
  *       {@code sectionId} are left behind (the {@link GoalShareDto} has no
- *       slots for them) — imported goals track against the recipient's own
+ *       slots for them) - imported goals track against the recipient's own
  *       account.</li>
  *   <li><b>Resolve tags.</b> A goal's {@code tagIds} are looked up and emitted
  *       as {label, category, colour} so the importer can find-or-create them;
@@ -64,7 +64,7 @@ public final class ShareMapper
 
 	/**
 	 * Build one v2 section entry. Relation refs are scoped to this section's
-	 * goal list ({@code remap} skips out-of-section edges — the bundle-level
+	 * goal list ({@code remap} skips out-of-section edges - the bundle-level
 	 * {@link #crossEdges} pass carries those).
 	 */
 	public static SectionShareDto toSectionDto(
@@ -95,7 +95,7 @@ public final class ShareMapper
 	 * Build the cross-section dependency edges for a multi-section bundle:
 	 * every requires/orRequires edge whose endpoints live in two DIFFERENT
 	 * groups. {@code groups} must be the same goal lists, in the same order,
-	 * that produced the bundle's section entries — refs are the per-section
+	 * that produced the bundle's section entries - refs are the per-section
 	 * list indices {@link #toDtos} assigned. Edges to goals outside the
 	 * bundle entirely are not representable and remain dropped.
 	 */
@@ -221,7 +221,7 @@ public final class ShareMapper
 			Tag tag = lookup.apply(id);
 			if (tag == null)
 			{
-				continue;   // dangling tag ref — drop
+				continue;   // dangling tag ref - drop
 			}
 			TagShareDto t = new TagShareDto();
 			t.setLabel(tag.getLabel());

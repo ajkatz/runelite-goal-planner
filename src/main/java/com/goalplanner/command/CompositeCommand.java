@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <p>Apply runs sub-commands in order; revert runs them in reverse order.
  * If any sub-command fails, the composite returns false but does NOT roll
- * back the partially-applied prefix — the {@link CommandHistory}
+ * back the partially-applied prefix - the {@link CommandHistory}
  * fail-open contract handles this by dropping the entry from history,
  * leaving the partial state in place.
  */

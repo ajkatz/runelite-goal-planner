@@ -61,7 +61,7 @@ public class SkillTargetForm extends JPanel
 		// Wire bidirectional sync via DocumentListeners. The `syncing` guard prevents
 		// the level→xp update from re-triggering xp→level (and vice versa).
 		// When relativeBaselineXp >= 0, both fields are interpreted
-		// as DELTAS — level field input = "+N levels", XP field input = "+N XP".
+		// as DELTAS - level field input = "+N levels", XP field input = "+N XP".
 		levelField.getDocument().addDocumentListener(new SimpleDocumentListener(() -> {
 			if (syncing) return;
 			Integer level = parseInt(levelField.getText());
@@ -131,7 +131,7 @@ public class SkillTargetForm extends JPanel
 	 */
 	public void setRelativeBaseline(int currentXp)
 	{
-		// No-op when nothing actually changes — callers (e.g., the Add Goal
+		// No-op when nothing actually changes - callers (e.g., the Add Goal
 		// dialog's updateLabels) re-invoke this on every type/mode tweak,
 		// and clearing/reseeding on a no-op wipes whatever the user typed.
 		if (currentXp == this.relativeBaselineXp) return;

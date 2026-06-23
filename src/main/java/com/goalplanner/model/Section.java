@@ -8,7 +8,7 @@ import lombok.Data;
  * A user-facing section in the goal panel. Sections group goals into visual
  * buckets with their own header row.
  *
- * All sections — built-in and user-defined — use UUID identifiers. The
+ * All sections - built-in and user-defined - use UUID identifiers. The
  * {@link #builtInKind} field identifies built-in sections (Incomplete / Completed)
  * without requiring magic string IDs in code; user sections have builtInKind = null.
  *
@@ -72,7 +72,7 @@ public class Section
 	/**
 	 * Per-section override for the "Indent dependencies" nested view:
 	 * {@code null} = follow the global default, {@code TRUE} = always nested,
-	 * {@code FALSE} = never nested. Purely a view preference — does not change
+	 * {@code FALSE} = never nested. Purely a view preference - does not change
 	 * goal data or ordering. Mirrors {@link #autoArchiveOverride}.
 	 */
 	private Boolean nestedOverride;

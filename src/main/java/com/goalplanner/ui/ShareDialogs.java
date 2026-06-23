@@ -14,7 +14,7 @@ import javax.swing.JOptionPane;
 
 /**
  * Swing dialogs for sharing/importing goals (export to clipboard, paste-import,
- * copy-code flows). EDT-only and interactive, so there are no unit tests — these
+ * copy-code flows). EDT-only and interactive, so there are no unit tests - these
  * are verified in-client. The non-interactive engine they drive (export, codec,
  * import) is covered by tests in the api/share packages.
  */
@@ -192,7 +192,7 @@ public final class ShareDialogs
 		JOptionPane.showMessageDialog(parent,
 			"Copied a share code for " + sections + " section" + (sections == 1 ? "" : "s")
 				+ " to your clipboard.\n"
-				+ "Paste it in Discord or chat — anyone with the plugin can import it.\n"
+				+ "Paste it in Discord or chat - anyone with the plugin can import it.\n"
 				+ "(Multi-section codes need a recent plugin version to import.)",
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
@@ -212,7 +212,7 @@ public final class ShareDialogs
 		Toolkit.getDefaultToolkit().getSystemClipboard().setContents(new StringSelection(line), null);
 		JOptionPane.showMessageDialog(parent,
 			"Copied a share code for \"" + bundle.getSectionName() + "\" to your clipboard.\n"
-				+ "Paste it in Discord or chat — anyone with the plugin can import it.",
+				+ "Paste it in Discord or chat - anyone with the plugin can import it.",
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}
 
@@ -232,12 +232,12 @@ public final class ShareDialogs
 		int n = bundle.totalGoalCount();
 		// A selection spanning sections exports per-section (v2 wire).
 		String multiNote = bundle.needsV2()
-			? "\n(The selection spans sections, which are preserved — importing"
+			? "\n(The selection spans sections, which are preserved - importing"
 				+ " needs a recent plugin version.)"
 			: "";
 		JOptionPane.showMessageDialog(parent,
 			"Copied a share code for " + n + " goal" + (n == 1 ? "" : "s") + " to your clipboard.\n"
-				+ "Paste it in Discord or chat — anyone with the plugin can import it."
+				+ "Paste it in Discord or chat - anyone with the plugin can import it."
 				+ multiNote,
 			"Share", JOptionPane.INFORMATION_MESSAGE);
 	}

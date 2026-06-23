@@ -40,14 +40,14 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 
 	/** Optional UI-refresh hook the plugin sets after the panel is constructed. */
 	Runnable onGoalsChanged = () -> {};
-	/** Lightweight selection-only refresh — avoids full rebuild for selection changes. */
+	/** Lightweight selection-only refresh - avoids full rebuild for selection changes. */
 	Runnable onSelectionChanged = () -> {};
 
-	/** Ephemeral selection set — not persisted, lost on plugin restart. */
+	/** Ephemeral selection set - not persisted, lost on plugin restart. */
 	final java.util.Set<String> selectedGoalIds = new java.util.LinkedHashSet<>();
 
 	/** Undo/redo history. Session-only. Tracker-driven mutations
-	 *  bypass this — only user actions routed through {@link #executeCommand}
+	 *  bypass this - only user actions routed through {@link #executeCommand}
 	 *  appear in history. */
 	private final com.goalplanner.command.CommandHistory commandHistory =
 		new com.goalplanner.command.CommandHistory();
@@ -123,14 +123,14 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public String addSkillGoalForLevel(Skill skill, int level) { String id = creationService.addSkillGoalForLevel(skill, level); selectAfterCreate(id); return id; }
 	@Override public String addItemGoal(int itemId, int targetQuantity) { String id = creationService.addItemGoal(itemId, targetQuantity); selectAfterCreate(id); return id; }
 	@Override public String addQuestGoal(Quest quest) { String id = creationService.addQuestGoal(quest); selectAfterCreate(id); return id; }
-	// Not part of the published GoalPlannerApi — the public addQuestGoal / addDiaryGoal
+	// Not part of the published GoalPlannerApi - the public addQuestGoal / addDiaryGoal
 	// now auto-resolve prereqs internally. Kept public on the impl for tests and
 	// internal callers that want to supply pre-computed templates directly.
 	public String addQuestGoalWithPrereqs(Quest quest, java.util.List<Goal> prereqTemplates) { return creationService.addQuestGoalWithPrereqs(quest, prereqTemplates); }
 	@Override public String addDiaryGoal(String areaDisplayName, DiaryTier tier) { String id = creationService.addDiaryGoal(areaDisplayName, tier); selectAfterCreate(id); return id; }
 	// Bare diary add: insert the diary goal ONLY, no prereq auto-seeding. Used by the
 	// in-game diary menu (organising/seeding is left to the panel's "Add requirements
-	// to this section"). Mirrors the bare-add intent of addQuestGoalWithPrereqs(…, []).
+	// to this section"). Mirrors the bare-add intent of addQuestGoalWithPrereqs(..., []).
 	public String addDiaryGoalNoPrereqs(String areaDisplayName, DiaryTier tier) { String id = creationService.insertDiaryGoal(areaDisplayName, tier); selectAfterCreate(id); return id; }
 	public String addDiaryGoalWithPrereqs(String areaDisplayName, DiaryTier tier, com.goalplanner.data.DiaryRequirementResolver.Resolved resolved) { return creationService.addDiaryGoalWithPrereqs(areaDisplayName, tier, resolved); }
 	// Panel "Add requirements to this section" for an existing DIARY goal (parallel
@@ -184,7 +184,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 
 	/**
 	 * Import a shared bundle (from a pasted share code or the cross-plugin API)
-	 * into a new section. Not part of the published API — plugin-internal.
+	 * into a new section. Not part of the published API - plugin-internal.
 	 * Returns the new section id, or null if nothing was importable.
 	 */
 	public String importShareBundle(com.goalplanner.share.ShareBundle bundle) { return shareImportService.importBundle(bundle); }
@@ -222,7 +222,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public int bulkRemoveGoals(java.util.Set<String> goalIds) { return mutationService.bulkRemoveGoals(goalIds); }
 	@Override public int bulkMoveGoalsToSection(java.util.Set<String> goalIds, String targetSectionId) { return mutationService.bulkMoveGoalsToSection(goalIds, targetSectionId); }
 	@Override public void removeAllGoals() { mutationService.removeAllGoals(); }
-	// Not part of the published GoalPlannerApi — UI "Remove duplicate goals" cleanup.
+	// Not part of the published GoalPlannerApi - UI "Remove duplicate goals" cleanup.
 	public int removeDuplicateGoals() { return mutationService.removeDuplicateGoals(); }
 	@Override public boolean moveGoal(String goalId, int newGlobalIndex) { autoDeselectIfNotMember(goalId); return mutationService.moveGoal(goalId, newGlobalIndex); }
 	@Override public boolean positionGoalInSection(String goalId, String sectionId, int positionInSection) { autoDeselectIfNotMember(goalId); return mutationService.positionGoalInSection(goalId, sectionId, positionInSection); }
@@ -262,9 +262,9 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	@Override public boolean deleteSection(String sectionId, boolean moveGoalsToDefault) { return sectionService.deleteSection(sectionId, moveGoalsToDefault); }
 	@Override public boolean reorderSection(String sectionId, int newUserIndex) { return sectionService.reorderSection(sectionId, newUserIndex); }
 	@Override public boolean moveGoalToSection(String goalId, String sectionId) { autoDeselectIfNotMember(goalId); return sectionService.moveGoalToSection(goalId, sectionId); }
-	// Not part of the published GoalPlannerApi — UI duplicate-to-section action.
+	// Not part of the published GoalPlannerApi - UI duplicate-to-section action.
 	public java.util.List<String> duplicateGoalsToSection(java.util.Collection<String> goalIds, String targetSectionId) { return creationService.duplicateGoalsToSection(goalIds, targetSectionId); }
-	// Not part of the published GoalPlannerApi — UI "Move to Default" action.
+	// Not part of the published GoalPlannerApi - UI "Move to Default" action.
 	public int moveGoalsToDefault(java.util.Collection<String> goalIds) { return mutationService.moveGoalsToDefault(goalIds); }
 	@Override public int removeAllUserSections() { return sectionService.removeAllUserSections(); }
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
@@ -377,7 +377,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	}
 
 	// =====================================================================
-	// Selection (Phase 5) — ephemeral, not persisted
+	// Selection (Phase 5) - ephemeral, not persisted
 	// =====================================================================
 
 	@Override
@@ -426,7 +426,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	/**
 	 * Auto-deselect rule: any single-target mutation on a goal that isn't
 	 * a member of the active multi-selection clears the selection first.
-	 * Keeps the user's "active set" coherent — acting on something outside
+	 * Keeps the user's "active set" coherent - acting on something outside
 	 * the current selection invalidates the prior selection. Called at the
 	 * top of every public single-target mutation. Skipped for: bulk
 	 * methods (Set<id>), two-id relation methods, recordGoalProgress
@@ -448,7 +448,7 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	 * parent goal alongside seeded prerequisite goals). The contains()
 	 * guard preserves those richer selections. Combined with the
 	 * auto-deselect rule, every "add a goal" gesture ends with the new
-	 * goal as part of the active selection — no stale prior selection
+	 * goal as part of the active selection - no stale prior selection
 	 * lingers, no need for callers to manage selection by hand.
 	 */
 	private void selectAfterCreate(String newGoalId)

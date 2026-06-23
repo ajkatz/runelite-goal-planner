@@ -34,7 +34,7 @@ import javax.swing.border.EmptyBorder;
  * Import / Copy / Edit / Delete actions. Edit lets the user rename the save and
  * change how each section will be named when imported.
  *
- * <p>Interactive and EDT-only — no unit tests; the store and the section-name
+ * <p>Interactive and EDT-only - no unit tests; the store and the section-name
  * override logic it drives are covered in the persistence/share packages.
  */
 public final class SavedPlansDialog extends JDialog
@@ -90,7 +90,7 @@ public final class SavedPlansDialog extends JDialog
 		if (plans.isEmpty())
 		{
 			JLabel empty = new JLabel("<html><div style='width:340px'>No saved plans yet.<br><br>"
-				+ "Save a code from a section's <b>Share &gt; Save share code…</b> menu, or choose "
+				+ "Save a code from a section's <b>Share &gt; Save share code...</b> menu, or choose "
 				+ "<b>Save for later</b> when importing a code.</div></html>");
 			empty.setBorder(new EmptyBorder(16, 8, 8, 8));
 			listPanel.add(empty);
@@ -143,7 +143,7 @@ public final class SavedPlansDialog extends JDialog
 		return b;
 	}
 
-	/** "3 goals · 2 sections", or "unreadable code" if the saved code won't decode. */
+	/** "3 goals - 2 sections", or "unreadable code" if the saved code won't decode. */
 	private String preview(SavedPlan plan)
 	{
 		try
@@ -152,7 +152,7 @@ public final class SavedPlansDialog extends JDialog
 			int n = b.totalGoalCount();
 			int secs = b.effectiveSections().size();
 			String s = n + " goal" + (n == 1 ? "" : "s");
-			return secs > 1 ? s + " · " + secs + " sections" : s;
+			return secs > 1 ? s + " - " + secs + " sections" : s;
 		}
 		catch (RuntimeException e)
 		{
@@ -169,7 +169,7 @@ public final class SavedPlansDialog extends JDialog
 		}
 		catch (RuntimeException e)
 		{
-			JOptionPane.showMessageDialog(this, "This saved code could not be read — it may be from an "
+			JOptionPane.showMessageDialog(this, "This saved code could not be read - it may be from an "
 				+ "incompatible plugin version.", "Saved plans", JOptionPane.WARNING_MESSAGE);
 			return;
 		}

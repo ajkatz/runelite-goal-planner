@@ -179,7 +179,7 @@ public final class DiaryRequirements
 	}
 
 	// ============================================================
-	// Predefined unlocks — reusable across multiple diary areas
+	// Predefined unlocks - reusable across multiple diary areas
 	// ============================================================
 
 	/** Fairy rings: requires Fairytale I + Lost City (NOT full Fairytale II). */
@@ -267,7 +267,7 @@ public final class DiaryRequirements
 	// ============================================================
 	// Wiki-sourced diary requirements (2026-04-11), loaded from
 	// diary-requirements.json at plugin start-up via the injected
-	// client Gson — see GoalPlannerPlugin.startUp().
+	// client Gson - see GoalPlannerPlugin.startUp().
 	// ============================================================
 
 	private static volatile boolean loaded;
@@ -276,7 +276,7 @@ public final class DiaryRequirements
 	 * Loads the diary requirement table from its bundled JSON resource.
 	 * Idempotent and thread-safe; the first caller wins and subsequent
 	 * calls are no-ops. Pass the client's injected {@link com.google.gson.Gson}
-	 * (the plugin must never create its own — the hub forbids it).
+	 * (the plugin must never create its own - the hub forbids it).
 	 */
 	public static void init(com.google.gson.Gson gson)
 	{

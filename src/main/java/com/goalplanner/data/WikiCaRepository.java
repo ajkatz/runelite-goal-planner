@@ -107,7 +107,7 @@ public class WikiCaRepository
 
 	/**
 	 * Look up a CA by its wiki/in-game task id. Returns null if not in the repository.
-	 * Linear scan over the loaded entries — fine for ~670 entries.
+	 * Linear scan over the loaded entries - fine for ~670 entries.
 	 */
 	public CaInfo getById(int id)
 	{

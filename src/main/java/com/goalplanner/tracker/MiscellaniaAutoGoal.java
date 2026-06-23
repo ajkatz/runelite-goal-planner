@@ -4,16 +4,16 @@ package com.goalplanner.tracker;
  * Decision logic for auto-adding a "Miscellania 100% approval" goal when the
  * player is actively managing their kingdom (the approval varbit rises).
  *
- * <p>Pure and testable — the plugin supplies the live varbit values, the count
+ * <p>Pure and testable - the plugin supplies the live varbit values, the count
  * of approval increases since login, and the current goal state; this class
  * only decides whether to act.
  *
  * <p>Guardrails: fire only when the toggle is on, no Misc. Approval goal already
  * exists, and approval has actually risen. The key trick: the approval varbit
  * syncs from 0 up to its real value right after login, which registers as the
- * <em>first</em> increase — so we ignore the first increase and only treat the
+ * <em>first</em> increase - so we ignore the first increase and only treat the
  * second and later increases as real in-play favour gains. This needs no timing
- * window. (Whenever the goal is missing and approval rises again it re-adds —
+ * window. (Whenever the goal is missing and approval rises again it re-adds -
  * deleting it is not permanent; the toggle is the off-switch.)
  */
 public final class MiscellaniaAutoGoal

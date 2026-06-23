@@ -12,10 +12,10 @@ import java.util.List;
  *   <li>Separator: a thin horizontal divider (no action, no children).</li>
  * </ul>
  *
- * <p>A leaf may also be <b>checkable</b> — part of a selectable group, which
+ * <p>A leaf may also be <b>checkable</b> - part of a selectable group, which
  * reserves a left gutter; the currently-selected one is rendered with a dot.
  *
- * <p>Built via the static factories — keeps the menu construction read like a
+ * <p>Built via the static factories - keeps the menu construction read like a
  * flat list rather than a tree of constructor calls.
  */
 public final class MenuNode
@@ -53,7 +53,7 @@ public final class MenuNode
 	}
 
 	/**
-	 * Leaf that runs its action but does NOT dismiss the menu — for
+	 * Leaf that runs its action but does NOT dismiss the menu - for
 	 * repeat-friendly actions like Move Up / Move Down / Move to Top /
 	 * Move to Bottom where the user typically clicks several times in a
 	 * row to nudge the selection into place.
@@ -92,7 +92,7 @@ public final class MenuNode
 	public boolean isLeaf() { return !separator && action != null; }
 	public boolean isSubmenu() { return !separator && !children.isEmpty() && action == null; }
 
-	/** Convenience builder for a flat list of items — wraps in an ArrayList so callers can append. */
+	/** Convenience builder for a flat list of items - wraps in an ArrayList so callers can append. */
 	public static List<MenuNode> list()
 	{
 		return new ArrayList<>();

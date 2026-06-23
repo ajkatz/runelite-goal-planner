@@ -2,7 +2,7 @@ package com.goalplanner.model;
 
 /**
  * The shared per-type definition of what makes two goals "the same objective"
- * — i.e. duplicates of each other, ignoring section, progress and completion.
+ * - i.e. duplicates of each other, ignoring section, progress and completion.
  *
  * <p>Centralizes the per-type identity checks that the creation layer used to
  * inline in each {@code addX} duplicate guard, so the no-duplicates rule can be
@@ -11,14 +11,14 @@ package com.goalplanner.model;
  *
  * <p>Conditions mirror the original global duplicate guards exactly:
  * <ul>
- *   <li><b>SKILL</b> — same skill name + same target XP</li>
- *   <li><b>ITEM_GRIND</b> — same item id (any quantity)</li>
- *   <li><b>QUEST</b> — same quest name</li>
- *   <li><b>DIARY</b> — same area name + same tier description (case-insensitive)</li>
- *   <li><b>COMBAT_ACHIEVEMENT</b> — same CA task id, or same name (case-insensitive)</li>
- *   <li><b>ACCOUNT</b> — same metric + same target</li>
- *   <li><b>BOSS</b> — same boss name</li>
- *   <li><b>CUSTOM</b> — same name (case-insensitive)</li>
+ *   <li><b>SKILL</b> - same skill name + same target XP</li>
+ *   <li><b>ITEM_GRIND</b> - same item id (any quantity)</li>
+ *   <li><b>QUEST</b> - same quest name</li>
+ *   <li><b>DIARY</b> - same area name + same tier description (case-insensitive)</li>
+ *   <li><b>COMBAT_ACHIEVEMENT</b> - same CA task id, or same name (case-insensitive)</li>
+ *   <li><b>ACCOUNT</b> - same metric + same target</li>
+ *   <li><b>BOSS</b> - same boss name</li>
+ *   <li><b>CUSTOM</b> - same name (case-insensitive)</li>
  * </ul>
  */
 public final class GoalIdentity

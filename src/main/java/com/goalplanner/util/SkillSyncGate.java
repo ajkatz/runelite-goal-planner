@@ -16,14 +16,14 @@ import java.util.function.LongSupplier;
  * received the server's stat block, so every skill reads as its default
  * (level 1). Already-met requirements then fail the skip check and seed
  * as spurious level-1 cards that only self-correct once {@code StatChanged}
- * fires — exactly the user-reported "Herblore/Farming added at level 1"
+ * fires - exactly the user-reported "Herblore/Farming added at level 1"
  * bug.
  *
  * <p><b>The gate.</b> Seeding actions are routed through
  * {@link #runWhenSynced(Runnable)}. While skills are unsynced the action
  * is queued; it runs once the post-login {@code StatChanged} burst has
  * arrived and settled. "Settled" means at least {@code settleTicks} game
- * ticks have elapsed with no further {@code StatChanged} — the stat block
+ * ticks have elapsed with no further {@code StatChanged} - the stat block
  * lands as a single burst, so a quiet tick after it means every skill is
  * in. A wall-clock fallback ({@code fallbackMs}) drains the queue anyway
  * if no {@code StatChanged} is ever observed (e.g. a freshly-created
@@ -36,7 +36,7 @@ import java.util.function.LongSupplier;
  * never sync, so a "all skills reported" predicate could never become
  * true. Burst-settle sidesteps that entirely.
  *
- * <p><b>Pure by design.</b> No RuneLite dependencies — the plugin injects
+ * <p><b>Pure by design.</b> No RuneLite dependencies - the plugin injects
  * a logged-in predicate and a clock and feeds lifecycle callbacks
  * ({@link #onLogin()}, {@link #onLogout()}, {@link #onStatChanged()},
  * {@link #onTick()}). This keeps the timing state machine unit-testable
@@ -131,7 +131,7 @@ public final class SkillSyncGate
 	/**
 	 * Run {@code action} immediately if skills are synced, otherwise queue
 	 * it to run once they are. Queued actions drain on a later {@link
-	 * #onTick()} (on the same thread that calls onTick — the client thread
+	 * #onTick()} (on the same thread that calls onTick - the client thread
 	 * in production).
 	 */
 	public void runWhenSynced(Runnable action)

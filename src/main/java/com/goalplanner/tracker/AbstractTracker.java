@@ -14,7 +14,7 @@ import net.runelite.api.Client;
  * the value-extraction logic.
  *
  * <p>Leagues/main goal isolation is handled at the persistence layer
- * via profile-scoped storage, not here — when on a leagues world, only
+ * via profile-scoped storage, not here - when on a leagues world, only
  * leagues-profile goals are loaded into memory, so this tracker only
  * ever sees the goals relevant to the current world.
  */
@@ -62,7 +62,7 @@ public abstract class AbstractTracker
 		// Skip goals that are already COMPLETE. For the types handled by
 		// AbstractTracker subclasses (QUEST, DIARY, COMBAT_ACHIEVEMENT,
 		// BOSS, ACCOUNT, SKILL) the backing varbit/varp/kc/xp is monotonic
-		// in-game — completion never regresses. A tracker read returning a
+		// in-game - completion never regresses. A tracker read returning a
 		// below-target value for a previously-complete goal therefore
 		// almost always means the backing value hasn't synced yet (pre-
 		// login window, profile switch, brief zero reads). Keeping COMPLETE

@@ -29,10 +29,10 @@ public class Goal
 	private int currentValue;
 
 	// Type-specific references (nullable)
-	private String skillName;     // For SKILL goals — matches net.runelite.api.Skill name
-	private String questName;     // For QUEST goals — matches net.runelite.api.Quest name
-	private String accountMetric; // For ACCOUNT goals — matches AccountMetric enum name
-	private String bossName;      // For BOSS goals — matches BossKillData display name
+	private String skillName;     // For SKILL goals - matches net.runelite.api.Skill name
+	private String questName;     // For QUEST goals - matches net.runelite.api.Quest name
+	private String accountMetric; // For ACCOUNT goals - matches AccountMetric enum name
+	private String bossName;      // For BOSS goals - matches BossKillData display name
 	private int varbitId;         // For DIARY/COMBAT_ACHIEVEMENT goals
 	private int itemId;           // For ITEM_GRIND goals
 	private int spriteId;         // Optional sprite icon (e.g. CA tier sword); 0 = unset
@@ -52,12 +52,12 @@ public class Goal
 	/**
 	 * User-set background color override packed as 0xRRGGBB. -1 means "use the
 	 * GoalType default color". Only custom goals can meaningfully set this
-	 * (enforced by API) — other types have category-driven colors.
+	 * (enforced by API) - other types have category-driven colors.
 	 */
 	@Builder.Default
 	private int customColorRgb = -1;
 
-	// Tag references — IDs into the GoalStore tag collection.
+	// Tag references - IDs into the GoalStore tag collection.
 	// Tags themselves are first-class entities; goals only carry references.
 	@Builder.Default
 	private List<String> tagIds = new ArrayList<>();
@@ -70,7 +70,7 @@ public class Goal
 	// Outgoing edges in the requires-DAG: IDs of other goals this one depends
 	// on. "Horror from the Deep requires 35 Agility" → HFTD's requiredGoalIds
 	// contains the Agility goal's id. Incoming edges ("required by") are NOT
-	// stored — they're derived at query time by scanning all goals.
+	// stored - they're derived at query time by scanning all goals.
 	//
 	// Cross-section references ARE allowed. Cycles are rejected by
 	// GoalStore.addRequirement; load-time cycle detection drops offending
@@ -118,7 +118,7 @@ public class Goal
 	 * A goal is complete iff it has a non-zero completion timestamp.
 	 * This is the canonical check used everywhere for completion state.
 	 * The {@link GoalStatus#COMPLETE} value is kept in sync by setters but is no
-	 * longer authoritative — completedAt is.
+	 * longer authoritative - completedAt is.
 	 */
 	public boolean isComplete()
 	{

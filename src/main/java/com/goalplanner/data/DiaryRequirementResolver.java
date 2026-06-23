@@ -247,7 +247,7 @@ public final class DiaryRequirementResolver
 		// Warriors' Guild). Pre-filter against the player's live value so
 		// "Incomplete only" skips an already-met one (the floor/"All" path
 		// passes a 0-lookup, so it still emits everything). Skipping a met
-		// metric also drops its quest prereqs — correct, since meeting the
+		// metric also drops its quest prereqs - correct, since meeting the
 		// metric implies those prereqs are done.
 		for (DiaryRequirements.AccountReq accountReq : reqs.accountReqs)
 		{
@@ -271,7 +271,7 @@ public final class DiaryRequirementResolver
 			}
 			else
 			{
-				// Account req with quest prereqs — treat like a boss req
+				// Account req with quest prereqs - treat like a boss req
 				List<Goal> questTemplates = new ArrayList<>();
 				for (Quest prereq : accountReq.prereqQuests)
 				{
@@ -391,7 +391,7 @@ public final class DiaryRequirementResolver
 			}
 			// Alternatives: each is an OR-option. The unlock's alternative gate
 			// is satisfied once ANY single alternative is fully met by live
-			// state — so a player who already has e.g. 99 Attack for the
+			// state - so a player who already has e.g. 99 Attack for the
 			// Warriors' Guild doesn't get the whole OR-block seeded. Boss-KC
 			// alternatives can't be checked live, so they never auto-satisfy
 			// (seeded conservatively). The floor/"All" path satisfies none, so
@@ -418,7 +418,7 @@ public final class DiaryRequirementResolver
 			}
 			if (!unlock.alternatives.isEmpty() && !anyAltSatisfied)
 			{
-				// No alternative met yet — seed them all as OR-options.
+				// No alternative met yet - seed them all as OR-options.
 				allMet = false;
 				for (DiaryRequirements.Alternative alt : unlock.alternatives)
 				{

@@ -18,7 +18,7 @@ import net.runelite.api.Skill;
  * templates, filtering out any requirement the player already meets.
  *
  * <p>Split from {@code GoalPlannerApiImpl} so the API layer stays free
- * of {@link Client} dependencies — the API receives pre-filtered
+ * of {@link Client} dependencies - the API receives pre-filtered
  * templates and doesn't know or care about live player state. The
  * resolver lives next to {@link QuestRequirements} because its output
  * shape is dictated by that data.
@@ -26,7 +26,7 @@ import net.runelite.api.Skill;
  * <p><b>Lookup injection.</b> The core {@link #resolve(Quest, ToIntFunction,
  * Function)} overload takes functional lookups so tests can fake
  * player state without mocking {@link Quest#getState(Client)} (which
- * is a final method reading a varp — painful to stub without
+ * is a final method reading a varp - painful to stub without
  * mockito-inline). Production code uses the {@link #resolve(Quest,
  * Client)} convenience overload which builds the lambdas from a live
  * {@link Client}.
@@ -46,7 +46,7 @@ import net.runelite.api.Skill;
 public final class QuestRequirementResolver
 {
 	/** Sprite id for the blue quest book icon. Mirrors
-	 *  {@code GoalPlannerApiImpl.QUEST_SPRITE_ID} — kept as a local
+	 *  {@code GoalPlannerApiImpl.QUEST_SPRITE_ID} - kept as a local
 	 *  constant to avoid a dependency on the api package. */
 	private static final int QUEST_SPRITE_ID = 899;
 
@@ -61,10 +61,10 @@ public final class QuestRequirementResolver
 		/** Count of quest prereqs skipped because the player already finished them. */
 		public final int skippedQuests;
 		/** Quest-point requirement from the data table (0 = none). Not turned
-		 *  into a template — stubbed until QP goals ship. */
+		 *  into a template - stubbed until QP goals ship. */
 		public final int stubbedQuestPoints;
 		/** Combat-level requirement from the data table (0 = none). Not turned
-		 *  into a template — stubbed until combat-level goals ship. */
+		 *  into a template - stubbed until combat-level goals ship. */
 		public final int stubbedCombatLevel;
 
 		public Resolved(List<Goal> templates, int skippedSkills, int skippedQuests,
@@ -77,7 +77,7 @@ public final class QuestRequirementResolver
 			this.stubbedCombatLevel = stubbedCombatLevel;
 		}
 
-		/** True iff there's nothing for the caller to do — no templates AND
+		/** True iff there's nothing for the caller to do - no templates AND
 		 *  no QP / combat-level stub. The secondary menu entry uses this
 		 *  to decide whether to render. */
 		public boolean isEmpty()
@@ -112,7 +112,7 @@ public final class QuestRequirementResolver
 			},
 			// Live current values for the hard account-metric requirements, so
 			// "Incomplete only" doesn't seed a QP/combat/Kudos goal the player
-			// already meets (it would auto-complete on the next tick — the bug
+			// already meets (it would auto-complete on the next tick - the bug
 			// this closes). currentValue covers every metric generically.
 			metric -> metric.currentValue(client));
 	}
@@ -120,7 +120,7 @@ public final class QuestRequirementResolver
 	/**
 	 * Backwards-compatible 3-arg overload for tests that don't care
 	 * about the recommended-combat-level filter. Defaults the combat
-	 * level to 3 (fresh account) — matches the semantic "no boosts,
+	 * level to 3 (fresh account) - matches the semantic "no boosts,
 	 * lowest plausible value". New tests that want to exercise the
 	 * recommended-combat pre-filter should use the 4-arg overload.
 	 */
@@ -245,7 +245,7 @@ public final class QuestRequirementResolver
 				.build());
 		}
 		// Hard combat gate. Filtered via the ACCOUNT lookup (not combatLevelLookup),
-		// so the floor/"All" path — which passes a 0-lookup — always emits it
+		// so the floor/"All" path - which passes a 0-lookup - always emits it
 		// (a hard gate stays visible), while the live "Incomplete only" path,
 		// which supplies the real combat level, skips it once met.
 		if (reqs.combatLevel > 0
@@ -269,13 +269,13 @@ public final class QuestRequirementResolver
 				.build());
 		}
 
-		// Recommended combat level (wiki suggestion) — seeded as optional.
+		// Recommended combat level (wiki suggestion) - seeded as optional.
 		// Only added when there's no hard combat level requirement (which
 		// takes precedence and is already added above as non-optional),
 		// AND the player's current combat level is below the recommendation.
 		// Pre-filtering here (rather than relying on isComplete after
 		// creation) prevents the "already-met recommendation ships as a
-		// pre-completed card" bug — a freshly-created ACCOUNT goal has
+		// pre-completed card" bug - a freshly-created ACCOUNT goal has
 		// currentValue=0 so the post-creation isComplete check misses.
 		if (reqs.combatLevel == 0)
 		{
@@ -292,7 +292,7 @@ public final class QuestRequirementResolver
 			}
 		}
 
-		// Recommended skills (wiki suggestions) — seeded as optional.
+		// Recommended skills (wiki suggestions) - seeded as optional.
 		// Only added for skills not already in the hard requirements.
 		java.util.Set<String> hardSkillNames = new java.util.HashSet<>();
 		for (QuestRequirements.SkillReq req : reqs.skills)

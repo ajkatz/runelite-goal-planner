@@ -15,11 +15,11 @@ import javax.swing.JPanel;
 /**
  * Renders one section's goals as a <em>subtly nested</em> list: each real
  * {@link com.goalplanner.ui.GoalCard} is stacked full-width (so every card
- * behaviour — menus, arrows, selection, progress — is preserved untouched) but
+ * behaviour - menus, arrows, selection, progress - is preserved untouched) but
  * left-indented by its dependency depth ({@link NestIndentAssigner}), with a
  * thin, low-contrast vertical guide drawn at each ancestor level (file-tree
  * style). This is the quiet alternative to the connector-rail view: no dots, no
- * S-curves — just indentation + a faint guide so the hierarchy is scannable.
+ * S-curves - just indentation + a faint guide so the hierarchy is scannable.
  */
 public final class SectionNestContainer extends JPanel
 {
@@ -38,7 +38,7 @@ public final class SectionNestContainer extends JPanel
 		}
 	}
 
-	// Faint, theme-friendly guide on the dark panel — low contrast on purpose.
+	// Faint, theme-friendly guide on the dark panel - low contrast on purpose.
 	private static final Color GUIDE = new Color(0x6a, 0x6a, 0x6a, 0x66);
 
 	private static final int LEFT_PAD    = 3;   // margin before level-0 cards

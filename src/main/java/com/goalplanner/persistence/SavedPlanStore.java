@@ -14,7 +14,7 @@ import net.runelite.client.config.ConfigManager;
  * Persists the user's library of saved share codes ("Saved Plans") via
  * RuneLite's {@link ConfigManager}.
  *
- * <p>Unlike goals, this library is <b>global</b> — it is not profile-scoped, so
+ * <p>Unlike goals, this library is <b>global</b> - it is not profile-scoped, so
  * the same set is visible on every account / leagues profile. A share code
  * carries goal <em>definitions</em> only (no account state), so a single
  * library is the right model.
@@ -24,7 +24,7 @@ import net.runelite.client.config.ConfigManager;
 public class SavedPlanStore
 {
 	private static final String CONFIG_GROUP = "goalplanner";
-	/** Global key — deliberately NOT prefixed with the active profile. */
+	/** Global key - deliberately NOT prefixed with the active profile. */
 	private static final String KEY = "savedPlans";
 
 	private final ConfigManager configManager;

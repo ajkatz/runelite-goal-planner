@@ -78,7 +78,7 @@ public class ItemTracker extends AbstractTracker
 				continue;
 			}
 
-			// Terminal once complete — dropping below target does NOT
+			// Terminal once complete - dropping below target does NOT
 			// auto-revert. User must manually mark incomplete.
 			if (goal.getStatus() == GoalStatus.COMPLETE)
 			{

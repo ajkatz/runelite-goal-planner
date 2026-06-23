@@ -39,7 +39,7 @@ public final class SourceAttributes
 	 * to. Used for slayer-monster drops whose source monster isn't currently
 	 * registered as a boss in {@link ItemSourceData} (e.g. Cockatrice,
 	 * Basilisk, Kurask, Gargoyles, Wyverns), and for drops that don't have
-	 * a single source at all (Imbued heart, Eternal gem — drop from any
+	 * a single source at all (Imbued heart, Eternal gem - drop from any
 	 * superior slayer creature).
 	 *
 	 * <p>Complements the source-based {@link #isSlayerTask(String)}
@@ -64,7 +64,7 @@ public final class SourceAttributes
 		// category in ItemSourceData). Every item below drops from a slayer
 		// monster or is otherwise a slayer-themed reward. Items whose boss
 		// source IS already a registered slayer task above will receive the
-		// SKILLING Slayer tag via inheritance — listing them here is
+		// SKILLING Slayer tag via inheritance - listing them here is
 		// harmless (idempotent) and serves as documentation.
 		slayerItem(7975);   // Crawling hand (item)
 		slayerItem(7976);   // Cockatrice head
@@ -123,7 +123,7 @@ public final class SourceAttributes
 		slayerItem(22971);  // Hydra's fang
 		slayerItem(22973);  // Hydra's eye
 		slayerItem(22969);  // Hydra's heart
-		slayerItem(4109);   // Mystic hat (light) — Dagannoth (non-king) / Fire giant
+		slayerItem(4109);   // Mystic hat (light) - Dagannoth (non-king) / Fire giant
 		slayerItem(4111);   // Mystic robe top (light)
 		slayerItem(4113);   // Mystic robe bottom (light)
 		slayerItem(4115);   // Mystic gloves (light)
@@ -152,7 +152,7 @@ public final class SourceAttributes
 		slayerItem(29084);  // Sulphur blades
 		slayerItem(29455);  // Teleport anchoring scroll
 		slayerItem(29806);  // Aranea boots (Araneas / Araxxor area)
-		slayerItem(29889);  // Glacial temotli (Amoxliatl — but also slayer)
+		slayerItem(29889);  // Glacial temotli (Amoxliatl - but also slayer)
 		slayerItem(29895);  // Frozen tear
 		slayerItem(30957);  // Earthbound tecpatl
 		slayerItem(31081);  // Antler guard

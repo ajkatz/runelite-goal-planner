@@ -14,7 +14,7 @@ import net.runelite.api.Experience;
 
 /**
  * Encapsulates goal/section query methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class GoalQueryService
@@ -460,7 +460,7 @@ class GoalQueryService
 		if (sectionGoals.isEmpty()) return out;
 
 		// Completed section: most-recently-completed at the top. Skip the topo
-		// machinery — every goal's prereqs are by definition already done, so
+		// machinery - every goal's prereqs are by definition already done, so
 		// DAG ordering carries no information; chronological order is what users
 		// actually want here. Tie-break by priority for stable rendering when
 		// two goals were completed in the same millisecond (e.g. cascading
@@ -519,7 +519,7 @@ class GoalQueryService
 		if (!converged)
 		{
 			log.warn("topoSortSection: local-repair hit iteration bound "
-				+ "in section {} — graph may contain a cycle", sectionId);
+				+ "in section {} - graph may contain a cycle", sectionId);
 		}
 
 		// Post-sort: group OR-prereqs immediately before their parent.
@@ -556,7 +556,7 @@ class GoalQueryService
 
 		// User sections keep their completed goals inline (only the built-in
 		// Incomplete/Completed default relocates on completion), so sink the
-		// completed ones to the bottom — incomplete requirements first,
+		// completed ones to the bottom - incomplete requirements first,
 		// ticked-off below, like a checklist. Stable partition preserves the
 		// topo/OR order within each group. (Built-in Completed is handled above.)
 		if (section != null && !section.isBuiltIn())

@@ -20,7 +20,7 @@ import net.runelite.api.Skill;
 
 /**
  * Encapsulates all goal-creation methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class GoalCreationService
@@ -77,7 +77,7 @@ class GoalCreationService
 		// edges that got added to existing same-skill goals).
 		//
 		// The old GoalReorderingService.findInsertionIndex + goalStore.reorder
-		// call that used to run here is gone — autoLinkSkillOrItemChain creates
+		// call that used to run here is gone - autoLinkSkillOrItemChain creates
 		// explicit requirement edges between same-skill goals, and the
 		// per-section topological sort in queryGoalsTopologicallySorted handles
 		// the visual ordering based on those edges. No more implicit
@@ -111,7 +111,7 @@ class GoalCreationService
 	 *
 	 * <p>Per-section: auto-link is scoped to the new goal's namespace (the
 	 * default Incomplete+Completed pair, or its user section). Same-skill
-	 * ladders are self-contained per section — a 50 Prayer goal in section A
+	 * ladders are self-contained per section - a 50 Prayer goal in section A
 	 * does not chain to a 90 Prayer goal in section B. (Each section is its
 	 * own bucket.)
 	 *
@@ -134,7 +134,7 @@ class GoalCreationService
 		// Per-section: only chain to same-namespace goals (each section is its
 		// own bucket; the default Incomplete+Completed pair is one namespace).
 		String newNs = api.goalStore.namespaceKey(newGoal.getSectionId());
-		// Copy the goal list so we're iterating a stable snapshot — addRequirement
+		// Copy the goal list so we're iterating a stable snapshot - addRequirement
 		// doesn't mutate the list but future code might, and copying is cheap.
 		List<Goal> snapshot = new ArrayList<>(api.goalStore.getGoals());
 		for (Goal other : snapshot)
@@ -396,7 +396,7 @@ class GoalCreationService
 			prereqTemplates = java.util.Collections.emptyList();
 		}
 
-		// Degenerate case — no templates means no compound is needed, just
+		// Degenerate case - no templates means no compound is needed, just
 		// delegate to the primitive single-goal path.
 		if (prereqTemplates.isEmpty())
 		{
@@ -417,7 +417,7 @@ class GoalCreationService
 			}
 
 			// Seed the prereq tree under the quest goal, assign priorities,
-			// promote leaf goals, and select the gesture — shared with the
+			// promote leaf goals, and select the gesture - shared with the
 			// "Add requirements to this section" action.
 			seedPrereqsAndPrioritize(questGoalId, quest, prereqTemplates, /*allMode=*/false);
 
@@ -431,7 +431,7 @@ class GoalCreationService
 
 	/**
 	 * Shared post-root seeding pass: BFS-seed {@code rootQuest}'s prereq templates
-	 * beneath {@code rootGoalId} (into its section — see {@link #seedPrereqsInto}),
+	 * beneath {@code rootGoalId} (into its section - see {@link #seedPrereqsInto}),
 	 * assign priorities for a clean topo render (leaf "do-first" quests on top,
 	 * then reversed creation order), promote leaf goals, and select the whole
 	 * gesture. Caller MUST already be inside a beginCompound/endCompound block and
@@ -480,7 +480,7 @@ class GoalCreationService
 		}
 
 		// Assign priorities so the topo sort renders correctly:
-		// 1. Zero-dependency QUEST goals at the very top (leaf quests — do first)
+		// 1. Zero-dependency QUEST goals at the very top (leaf quests - do first)
 		// 2. Everything else in reversed creation order (deepest leaves near top,
 		//    root at bottom)
 		java.util.Set<String> gestureSet = new java.util.HashSet<>(gestureGoalIds);
@@ -553,7 +553,7 @@ class GoalCreationService
 	 * Seed an EXISTING quest goal's requirement tree (prior quests, skill levels,
 	 * QP/combat) into that goal's own section, linked beneath it, as one undo.
 	 * Reuses the same BFS seeder as quest creation, rooted at the existing goal
-	 * (so prereqs land in its section — see {@link #seedPrereqsInto}).
+	 * (so prereqs land in its section - see {@link #seedPrereqsInto}).
 	 *
 	 * <p>{@code includeMet = false} seeds only requirements not yet satisfied
 	 * (the resolver's live default); {@code true} seeds the entire tree including
@@ -616,7 +616,7 @@ class GoalCreationService
 	}
 
 	/**
-	 * Seed a boss goal's requirement tree into its section — the boss parallel
+	 * Seed a boss goal's requirement tree into its section - the boss parallel
 	 * of {@link #seedRequirementsForGoal}. {@code includeMet=false} ("Incomplete
 	 * only") skips skill/quest/account requirements the player already meets;
 	 * {@code includeMet=true} ("All") seeds the whole tree. Returns the number of
@@ -691,7 +691,7 @@ class GoalCreationService
 
 	/**
 	 * Labels of a goal's DIRECT prerequisites that the player has NOT met AND
-	 * that aren't already represented anywhere in the plan — i.e. what's
+	 * that aren't already represented anywhere in the plan - i.e. what's
 	 * "probably blocking" this goal. Empty for goals without requirement data
 	 * (or no client). Drives the card's blocked-prereqs badge; the badge's
 	 * click runs {@code seed*RequirementsForGoal(..., false)} to add them.
@@ -883,7 +883,7 @@ class GoalCreationService
 	 * guard, future-proof). <b>SKILL templates</b> go through
 	 * {@link #findOrCreateSkillGoalForSeed} which reuses pre-existing
 	 * USER goals (non-{@code autoSeeded}) but always creates a new
-	 * goal for each distinct target — so "15 Agility" and "32 Agility"
+	 * goal for each distinct target - so "15 Agility" and "32 Agility"
 	 * in the same gesture both get their own card.
 	 *
 	 * <p>Caller must already be inside a {@code beginCompound}/
@@ -987,8 +987,8 @@ class GoalCreationService
 			Quest childQuestForNextLevel = null;
 
 			// Cross-section dedup: if an equivalent goal already lives in the TARGET
-			// section's namespace — e.g. a shared prerequisite reached via another
-			// path and created earlier in THIS gesture — reuse it instead of
+			// section's namespace - e.g. a shared prerequisite reached via another
+			// path and created earlier in THIS gesture - reuse it instead of
 			// creating a fresh copy. Without this, the per-type creators
 			// (insertQuestGoal/addAccountGoal/addBossGoal/addItemGoal/findOrCreate-
 			// SkillGoalForSeed→addSkillGoal) dedup only against the DEFAULT namespace,
@@ -1006,7 +1006,7 @@ class GoalCreationService
 			{
 				seedGoalId = reusableInSection.getId();
 				// A reused QUEST goal still needs its child tree walked (guarded by
-				// `visited` below — already-walked quests are skipped).
+				// `visited` below - already-walked quests are skipped).
 				if (template.getType() == GoalType.QUEST && template.getQuestName() != null)
 				{
 					try
@@ -1015,7 +1015,7 @@ class GoalCreationService
 					}
 					catch (IllegalArgumentException ignored)
 					{
-						// Unknown enum name — nothing to recurse into; keep the reused goal.
+						// Unknown enum name - nothing to recurse into; keep the reused goal.
 					}
 				}
 			}
@@ -1108,7 +1108,7 @@ class GoalCreationService
 
 			// Place newly-created seeds in the parent's section so they follow that
 			// section's rules (e.g. keep-inline) instead of stranding in the default
-			// Incomplete section — which ALWAYS archives completed goals to Completed,
+			// Incomplete section - which ALWAYS archives completed goals to Completed,
 			// ignoring the section's keep-inline override. Only QUEST seeds were moved
 			// above; SKILL/ACCOUNT/BOSS/ITEM create in the default section. Reused
 			// pre-existing goals stay where the user already has them.
@@ -1121,7 +1121,7 @@ class GoalCreationService
 				}
 			}
 
-			// Skip completed goals — they're already done, no need to link them as
+			// Skip completed goals - they're already done, no need to link them as
 			// requirements in the tree. EXCEPT in "All" mode (seedKeepCompleted),
 			// where the whole point is to show the full tree including the parts
 			// you've finished (they render as completed cards at the bottom).
@@ -1211,7 +1211,7 @@ class GoalCreationService
 	{
 		// 1. Check for a pre-existing USER goal (one that existed before
 		//    this gesture started) that satisfies the requirement. Goals
-		//    created during the same gesture are NOT eligible — otherwise
+		//    created during the same gesture are NOT eligible - otherwise
 		//    Lunar's "61 Crafting" would swallow Lost City's "31 Crafting",
 		//    making Lost City display the wrong requirement.
 		for (Goal g : api.goalStore.getGoals())
@@ -1225,7 +1225,7 @@ class GoalCreationService
 				return g.getId();
 			}
 		}
-		// 2. No match — create via the public API. addSkillGoal handles
+		// 2. No match - create via the public API. addSkillGoal handles
 		//    its own exact-target dedupe (same skill + same XP → returns
 		//    existing id) and auto-chains same-skill goals in the topo
 		//    sort. Its executeCommand calls join the active compound.
@@ -1324,8 +1324,8 @@ class GoalCreationService
 
 	/**
 	 * Reuse-or-create a diary sub-goal inside the diary goal's section. If an
-	 * equivalent goal already lives in {@code sectionId}'s namespace — a shared
-	 * prereq reached via another path this gesture, or a pre-existing user goal —
+	 * equivalent goal already lives in {@code sectionId}'s namespace - a shared
+	 * prereq reached via another path this gesture, or a pre-existing user goal -
 	 * reuse it; otherwise run {@code create} and move the freshly-made goal into
 	 * the section so it follows that section's rules instead of stranding in the
 	 * default Incomplete. Mirrors the cross-section dedup in {@link #seedPrereqsInto}
@@ -1381,10 +1381,10 @@ class GoalCreationService
 	/**
 	 * Core diary prereq seeder. When {@code existingDiaryGoalId} is null, inserts a
 	 * fresh diary goal (the in-game add path); otherwise seeds INTO that existing
-	 * goal (the panel "Add requirements to this section" path —
+	 * goal (the panel "Add requirements to this section" path -
 	 * {@link #seedDiaryRequirementsForGoal}). Seeds {@code resolved.templates} via
 	 * the shared section-aware {@link #seedPrereqsInto}, plus {@code resolved.bossReqs}
-	 * and {@code resolved.unlocks} (with their own sub-prereqs) — every sub-goal goes
+	 * and {@code resolved.unlocks} (with their own sub-prereqs) - every sub-goal goes
 	 * through {@link #reuseOrCreateInSection} so it lands in the diary goal's section
 	 * and a shared prereq is reused, never duplicated/stranded. {@code keepCompleted}
 	 * (the "All" variant) keeps already-met requirements linked as inline cards.
@@ -1724,7 +1724,7 @@ class GoalCreationService
 	}
 
 	/**
-	 * Panel "Add requirements to this section" for an existing DIARY goal — the
+	 * Panel "Add requirements to this section" for an existing DIARY goal - the
 	 * diary parallel of {@link #seedRequirementsForGoal}. Derives the area from the
 	 * goal's name and the tier from its description prefix ("Easy/Medium/Hard/Elite
 	 * Achievement Diary"), resolves the requirement tree, and seeds it INTO the
@@ -1758,7 +1758,7 @@ class GoalCreationService
 		}
 		GoalPlannerApi.DiaryTier apiTier = toApiTier(internalTier);
 
-		// "All" resolves the full tree with floor lookups (nothing met) — no Client
+		// "All" resolves the full tree with floor lookups (nothing met) - no Client
 		// needed, deterministic. "Incomplete only" uses live player state.
 		com.goalplanner.data.DiaryRequirementResolver.Resolved resolved = includeMet
 			? com.goalplanner.data.DiaryRequirementResolver.resolve(
@@ -1854,7 +1854,7 @@ class GoalCreationService
 			? ctier.getDisplayName() + " Combat Achievement"
 			: "Combat Achievement";
 		String tooltip = info.task != null && !info.task.isEmpty()
-			? info.name + " \u2014 " + info.task
+			? info.name + " - " + info.task
 			: null;
 
 		List<String> tagIds = new ArrayList<>();
@@ -1922,7 +1922,7 @@ class GoalCreationService
 			log.warn("addAccountGoal: unknown metric {}", metricName);
 			return null;
 		}
-		// Clamp the floor only. Targets ABOVE the metric's max are allowed —
+		// Clamp the floor only. Targets ABOVE the metric's max are allowed -
 		// ceilings grow with game updates (new quests, new log slots), so an
 		// over-max goal is a legitimate aspiration that simply tracks until
 		// the game catches up. The UI still SUGGESTS the current ceiling
@@ -2132,7 +2132,7 @@ class GoalCreationService
 				seedPrereqsInto(goalId, null, bossName, templates,
 					bossVisited, bossPreExistingGoalIds, bossGestureGoalIds);
 
-				// Unlock prereqs (e.g. Mith Grapple) — CUSTOM goals with an
+				// Unlock prereqs (e.g. Mith Grapple) - CUSTOM goals with an
 				// optional skill subtree; unique shape, not templated.
 				for (com.goalplanner.data.BossKillData.UnlockRef unlock : prereqs.unlocks)
 				{
@@ -2239,7 +2239,7 @@ class GoalCreationService
 							log.warn("addBossGoal: failed to tag alt boss: {}", e.getMessage());
 						}
 					}
-					// Quest alternatives — chain transitively like AND-quests
+					// Quest alternatives - chain transitively like AND-quests
 					for (net.runelite.api.Quest q : alt.quests)
 					{
 						if (!bossVisited.add(q)) continue;
@@ -2259,7 +2259,7 @@ class GoalCreationService
 						}
 						// Recursively seed this quest's own requirements
 						// via the AND-edge path (prereq chain inside an
-						// OR-branch is still AND-gated — you need the
+						// OR-branch is still AND-gated - you need the
 						// quest's own skills to do the quest).
 						com.goalplanner.data.QuestRequirementResolver.Resolved qr =
 							api.resolveQuestRequirements(q);
@@ -2306,7 +2306,7 @@ class GoalCreationService
 	 * progress). Relations AMONG the duplicated set are preserved (remapped to the
 	 * new ids); edges to goals outside the set are dropped. A source is skipped if
 	 * the target section's namespace already contains an equivalent (per-section
-	 * no-duplicates — each section is its own bucket). One undo reverses the whole
+	 * no-duplicates - each section is its own bucket). One undo reverses the whole
 	 * gesture.
 	 *
 	 * @return the new goal ids (empty if nothing was duplicated)
@@ -2380,7 +2380,7 @@ class GoalCreationService
 	/**
 	 * Build an independent copy of a goal placed in {@code sectionId}: same
 	 * definition fields + tags, but a fresh id and zeroed progress (the trackers
-	 * re-evaluate it against the account). Relations are NOT copied here — the
+	 * re-evaluate it against the account). Relations are NOT copied here - the
 	 * caller rewires them.
 	 */
 	private Goal copyGoalInto(Goal src, String sectionId)

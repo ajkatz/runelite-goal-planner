@@ -14,7 +14,7 @@ import lombok.Data;
  *
  * <p>Relations are encoded structurally: each goal carries a bundle-local
  * {@link #ref} index, and {@link #requires}/{@link #orRequires} reference those
- * indices rather than store ids — so they re-wire to fresh ids on import and
+ * indices rather than store ids - so they re-wire to fresh ids on import and
  * any edge pointing outside the bundle is simply dropped.
  */
 @Data
@@ -28,7 +28,7 @@ public class GoalShareDto
 	private String description;
 	private int targetValue;
 
-	// Type-specific references (nullable / sentinel) — mirror Goal.
+	// Type-specific references (nullable / sentinel) - mirror Goal.
 	private String skillName;
 	private String questName;
 	private String accountMetric;
@@ -44,7 +44,7 @@ public class GoalShareDto
 	private String wikiUrl;
 	private String inventorySetup;
 
-	/** Tags resolved to {label, category, colour} — store ids are meaningless
+	/** Tags resolved to {label, category, colour} - store ids are meaningless
 	 *  cross-client, so they re-resolve (findOrCreate) on import. */
 	private List<TagShareDto> tags = new ArrayList<>();
 

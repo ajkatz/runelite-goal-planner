@@ -20,12 +20,12 @@ import java.util.Deque;
  *       returns false the entry is dropped.
  * </ul>
  *
- * <p>The undo stack is bounded — once it exceeds {@link #CAP} entries, the
+ * <p>The undo stack is bounded - once it exceeds {@link #CAP} entries, the
  * oldest entries are dropped (the redo stack is implicitly bounded by what
  * the user has undone). Both stacks are session-only; they are never
  * persisted.
  *
- * <p>Not thread-safe — all calls must come from the EDT (or whichever
+ * <p>Not thread-safe - all calls must come from the EDT (or whichever
  * single thread owns the API impl).
  */
 @Slf4j
@@ -89,7 +89,7 @@ public class CommandHistory
 	public void beginCompound(String description)
 	{
 		compoundDepth++;
-		if (compoundBuffer != null) return; // already in a compound — just bump the depth
+		if (compoundBuffer != null) return; // already in a compound - just bump the depth
 		compoundBuffer = new java.util.ArrayList<>();
 		compoundDescription = description;
 	}
@@ -122,7 +122,7 @@ public class CommandHistory
 
 	/**
 	 * Pop the most recent undo entry and revert it. On success the entry
-	 * moves to the redo stack. On failure the entry is dropped — fail-open.
+	 * moves to the redo stack. On failure the entry is dropped - fail-open.
 	 *
 	 * @return true if an entry was reverted, false if the stack was empty
 	 *         or the revert failed

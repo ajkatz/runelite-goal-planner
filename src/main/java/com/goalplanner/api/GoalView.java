@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Public DTO for a goal — the canonical "render-friendly snapshot" returned by
+ * Public DTO for a goal - the canonical "render-friendly snapshot" returned by
  * {@link GoalPlannerApi#queryAllGoals()}.
  *
  * <p>Core fields are type-agnostic. Type-specific extras live in {@link #attributes}
@@ -15,10 +15,10 @@ import java.util.Map;
  *   <li><b>SKILL</b>: {@code skillName} (String, net.runelite.api.Skill enum name)</li>
  *   <li><b>QUEST</b>: {@code questName} (String, net.runelite.api.Quest enum name),
  *       {@code tooltip} (String, optional)</li>
- *   <li><b>DIARY</b>: {@code area} (String), {@code tier} (String — "EASY"/"MEDIUM"/"HARD"/"ELITE"),
+ *   <li><b>DIARY</b>: {@code area} (String), {@code tier} (String - "EASY"/"MEDIUM"/"HARD"/"ELITE"),
  *       {@code varbitId} (Integer), {@code tooltip} (String, optional)</li>
  *   <li><b>ITEM_GRIND</b>: {@code itemId} (Integer)</li>
- *   <li><b>COMBAT_ACHIEVEMENT</b>: {@code caTaskId} (Integer), {@code tier} (String — "EASY".."GRANDMASTER"),
+ *   <li><b>COMBAT_ACHIEVEMENT</b>: {@code caTaskId} (Integer), {@code tier} (String - "EASY".."GRANDMASTER"),
  *       {@code monster} (String), {@code tooltip} (String, optional)</li>
  *   <li><b>CUSTOM</b>: no extras</li>
  * </ul>
@@ -43,20 +43,20 @@ public class GoalView
 
 	/** RuneLite sprite id for the icon, or 0 if no sprite. */
 	public int spriteId;
-	/** Packed RGB color (0xRRGGBB) for the card background tint — override or default. */
+	/** Packed RGB color (0xRRGGBB) for the card background tint - override or default. */
 	public int backgroundColorRgb;
 	/** The type-default background color, even when an override is set. Lets
 	 *  the UI preview what "reset to default" would revert to. */
 	public int defaultBackgroundColorRgb;
 	/** True when {@link #backgroundColorRgb} is a user override (not the type default). */
 	public boolean backgroundColorOverridden;
-	/** Ephemeral UI selection state — true when this card is currently selected
+	/** Ephemeral UI selection state - true when this card is currently selected
 	 *  in the panel. Lost on plugin restart. */
 	public boolean selected;
 	/** True when the user has marked this goal as optional. */
 	public boolean optional;
 	/** Labels of DIRECT prerequisites the player hasn't met and that aren't in
-	 *  the plan — drives the "blocked" badge. Empty = no badge. */
+	 *  the plan - drives the "blocked" badge. Empty = no badge. */
 	public List<String> blockedRequirements = java.util.Collections.emptyList();
 	/** Auto-generated tags from goal creation (boss/raid/tier/etc).
 	 *  Cannot be removed by the user; restored by Restore Defaults. */
@@ -70,7 +70,7 @@ public class GoalView
 	/** Goals this one requires (outgoing edges), resolved at queryAllGoals
 	 *  time. Empty list if none. Used by the card hover tooltip to show
 	 *  the "Requires:" line. Implicit skill-chain edges (same skill,
-	 *  different level) are excluded — those are internal bookkeeping. */
+	 *  different level) are excluded - those are internal bookkeeping. */
 	public List<RelationView> requiresNames;
 	/** OR-prerequisite edges (any one completing satisfies the link).
 	 *  Empty if no OR-prereqs. Used by the card tooltip. */
@@ -91,7 +91,7 @@ public class GoalView
 	{
 		/** Display name of the related goal (fallback text). */
 		public String name;
-		/** Non-null for SKILL goals — the Skill enum name. Enables compact
+		/** Non-null for SKILL goals - the Skill enum name. Enables compact
 		 *  icon+level rendering in tooltips. */
 		public String skillName;
 		/** Target level for SKILL goals (used for compact display). */

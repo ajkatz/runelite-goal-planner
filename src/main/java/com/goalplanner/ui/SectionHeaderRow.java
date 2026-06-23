@@ -44,7 +44,7 @@ public class SectionHeaderRow extends JPanel
 	private final boolean hasColor;
 	private final Color darkenedFill;
 
-	/** Select-all toggle state — null when the section has no goals (no glyph shown). */
+	/** Select-all toggle state - null when the section has no goals (no glyph shown). */
 	private final java.util.function.BooleanSupplier allSelectedState;
 	private final JLabel selectToggle;
 
@@ -57,7 +57,7 @@ public class SectionHeaderRow extends JPanel
 	 * @param allSelectedState true when every goal in the section is currently
 	 *                         selected (drives the glyph + tooltip); null hides
 	 *                         the select-all toggle entirely.
-	 * @param onToggleSelectAll runs on glyph click — select all when not all
+	 * @param onToggleSelectAll runs on glyph click - select all when not all
 	 *                          selected, unselect all otherwise.
 	 */
 	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle,

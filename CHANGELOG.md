@@ -40,11 +40,12 @@ bumps.
   ~17k).
 
 ### Fixed
-- **macOS Tahoe tofu glyphs.** Replaced symbol glyphs (arrows, the midline
-  ellipsis) in dialogs, the Saved Plans empty state, undo labels, and a chat
-  message with plain ASCII — macOS Tahoe's Swing font fallback renders them as
-  empty boxes. A new `checkGlyphs` gate (part of `preSubmit`) flags any that
-  sneak back into UI/chat strings.
+- **macOS Tahoe tofu glyphs.** Swing's font fallback on macOS Tahoe renders
+  symbol/punctuation glyphs (bullets, arrows, the ellipsis, em/en dashes, the
+  middle dot) as empty boxes. Swept every UI/chat string — menus, dialogs,
+  tooltips, undo labels, the Saved Plans dialog, chat messages — to plain ASCII,
+  including `\uXXXX`-escaped forms (e.g. the Options tooltip, card truncation).
+  A new `checkGlyphs` gate (part of `preSubmit`) flags any that return.
 - **Plugin Hub listing showed a commit hash and a stale version.** The hub
   listing reads `runelite-plugin.properties`, which had no `version=` key (so
   the version corner fell back to the commit sha) and a `description` that began

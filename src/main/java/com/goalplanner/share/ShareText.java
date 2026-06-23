@@ -5,7 +5,7 @@ package com.goalplanner.share;
  * invite line. The point is graceful degradation: a player <em>without</em> the
  * plugin who sees the pasted line (Discord, PM, in-game chat) reads a plain
  * "get the plugin to import this" instruction, while a player <em>with</em> the
- * plugin can import it — {@link ShareCodec#decode(String)} extracts the code
+ * plugin can import it - {@link ShareCodec#decode(String)} extracts the code
  * from the surrounding text.
  *
  * <p>{@link #MARKER} doubles as the detection token for in-game chat
@@ -13,7 +13,7 @@ package com.goalplanner.share;
  */
 public final class ShareText
 {
-	/** Leading marker — human label + detection token for chat scanning. */
+	/** Leading marker - human label + detection token for chat scanning. */
 	public static final String MARKER = "[Goal Planner]";
 
 	private ShareText()
@@ -21,7 +21,7 @@ public final class ShareText
 	}
 
 	/**
-	 * Build an invite line: {@code [Goal Planner] <who> shared <what> — get the
+	 * Build an invite line: {@code [Goal Planner] <who> shared <what> - get the
 	 * Goal Planner RuneLite plugin to import it: <code>}.
 	 *
 	 * @param bundle the bundle being shared (for the sharer name + summary)
@@ -33,7 +33,7 @@ public final class ShareText
 			? bundle.getSharedBy().trim()
 			: "Someone";
 		return MARKER + " " + who + " shared " + describe(bundle)
-			+ " — get the Goal Planner RuneLite plugin to import it: "
+			+ " - get the Goal Planner RuneLite plugin to import it: "
 			+ (code != null ? code : "");
 	}
 

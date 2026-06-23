@@ -30,7 +30,7 @@ import java.util.List;
  * Dependent flows where the user benefits from picking several edges
  * to drop in one gesture rather than clicking a submenu item per edge.
  *
- * <p>Strictly a picker — returns the selected ids; callers are
+ * <p>Strictly a picker - returns the selected ids; callers are
  * responsible for the actual mutation and any compound-undo wrapping.
  */
 public final class MultiSelectDialog
@@ -123,7 +123,7 @@ public final class MultiSelectDialog
 		buttons.add(cancel);
 		buttons.add(submit);
 
-		// Header label — concise, no period; the title bar already
+		// Header label - concise, no period; the title bar already
 		// communicates the action.
 		JLabel header = new JLabel("Select items to " + submitLabel.toLowerCase() + ":");
 		header.setForeground(new java.awt.Color(0xE0, 0xE0, 0xE0));

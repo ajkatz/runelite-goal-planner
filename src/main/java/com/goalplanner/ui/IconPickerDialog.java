@@ -35,10 +35,10 @@ import java.util.List;
 /**
  * Modal icon picker dialog. Shows two grids:
  * <ul>
- *   <li>Skill icons — one per {@link Skill} enum value, rendered via
+ *   <li>Skill icons - one per {@link Skill} enum value, rendered via
  *       {@link SkillIconManager}. Selecting one returns the skill enum name
  *       (e.g. "ATTACK") as the iconKey.</li>
- *   <li>Bundled icons — anything in {@code src/main/resources/icons/*.png}.
+ *   <li>Bundled icons - anything in {@code src/main/resources/icons/*.png}.
  *       Selecting one returns the filename without extension as the iconKey.
  *       Currently the project ships zero bundled icons; this section shows a
  *       hint until icons are added.</li>
@@ -83,7 +83,7 @@ public class IconPickerDialog extends JDialog
 		content.setLayout(new BoxLayout(content, BoxLayout.Y_AXIS));
 		content.setBorder(new EmptyBorder(4, 8, 8, 8));
 
-		// Items section — search OSRS items by name and pick from results.
+		// Items section - search OSRS items by name and pick from results.
 		// Powered by ItemManager.search which returns up to 250 ItemPrices.
 		// Skills section removed: system skill tags already carry their icons
 		// from the seed, and users can only icon non-system tags, so the
@@ -131,7 +131,7 @@ public class IconPickerDialog extends JDialog
 		container.setLayout(new BoxLayout(container, BoxLayout.Y_AXIS));
 		container.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-		// Narrow content width — the dialog is wider for breathing room but
+		// Narrow content width - the dialog is wider for breathing room but
 		// the actual widgets stay compact on the left.
 		final int contentWidth = 280;
 
@@ -199,7 +199,7 @@ public class IconPickerDialog extends JDialog
 			placeholder.setAlignmentX(Component.LEFT_ALIGNMENT);
 			placeholder.setBorder(new EmptyBorder(4, 4, 4, 4));
 			JLabel hint = new JLabel("<html>No bundled icons yet. Drop PNG files into "
-				+ "<code>src/main/resources/icons/</code> and rebuild — the filename "
+				+ "<code>src/main/resources/icons/</code> and rebuild - the filename "
 				+ "(without .png) becomes the iconKey.</html>");
 			hint.setForeground(new Color(140, 140, 140));
 			placeholder.add(hint, BorderLayout.CENTER);
@@ -219,7 +219,7 @@ public class IconPickerDialog extends JDialog
 	/**
 	 * Build an item icon cell that handles {@link net.runelite.client.util.AsyncBufferedImage}
 	 * loading correctly. Uses {@code addTo(JLabel)} so the image populates
-	 * itself when the async load completes — no need to wait or scale.
+	 * itself when the async load completes - no need to wait or scale.
 	 */
 	private JPanel buildAsyncItemCell(int itemId, String tooltip)
 	{
@@ -304,7 +304,7 @@ public class IconPickerDialog extends JDialog
 	}
 
 	/**
-	 * Bundled icon keys — a hardcoded manifest of src/main/resources/icons/
+	 * Bundled icon keys - a hardcoded manifest of src/main/resources/icons/
 	 * (Java's classloader doesn't expose directory listings reliably).
 	 * Keep in step with the files actually shipped there.
 	 */

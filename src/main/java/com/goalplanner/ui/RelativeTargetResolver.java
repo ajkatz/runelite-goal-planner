@@ -4,7 +4,7 @@ package com.goalplanner.ui;
  * Pure helpers for resolving "gain X more" relative goal inputs into the
  * absolute target values stored on Goal entities.
  *
- * <p>Relative goals are an input convenience only — once resolved, the goal
+ * <p>Relative goals are an input convenience only - once resolved, the goal
  * is indistinguishable from one created with the same absolute target. The
  * math lives here so it can be unit-tested without spinning up Swing or the
  * RuneLite client.

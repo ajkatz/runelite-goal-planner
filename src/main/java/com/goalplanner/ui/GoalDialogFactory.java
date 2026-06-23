@@ -74,7 +74,7 @@ class GoalDialogFactory
 	}
 
 	/**
-	 * Re-target dialog — opens a modal with a
+	 * Re-target dialog - opens a modal with a
 	 * SkillTargetForm with synced Level/XP fields plus a Mode toggle so the
 	 * user can target an absolute level/XP OR a delta gain.
 	 */
@@ -170,7 +170,7 @@ class GoalDialogFactory
 		// Route through the internal API so the bulk path matches the single-item
 		// path. addTagWithCategory preserves the user-picked
 		// category (api.addTag would force OTHER). Each call fires onGoalsChanged,
-		// which fires N rebuilds for N selected goals — acceptable tradeoff for
+		// which fires N rebuilds for N selected goals - acceptable tradeoff for
 		// keeping the API the canonical mutation surface; the user clicks OK once
 		// so the cumulative work is bounded. Wrapping in a compound keeps the
 		// whole gesture as a single undo entry.
@@ -240,7 +240,7 @@ class GoalDialogFactory
 		int current = section.colorOverridden ? section.colorRgb : -1;
 		ColorPickerField picker = new ColorPickerField(current, section.defaultColorRgb);
 		int result = JOptionPane.showConfirmDialog(parentComponent, picker,
-			"Section Color — " + section.name,
+			"Section Color - " + section.name,
 			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result != JOptionPane.OK_OPTION) return;
 		api.setSectionColor(section.id, picker.getSelectedRgb());
@@ -253,7 +253,7 @@ class GoalDialogFactory
 		defaultRgb = (c.getRed() << 16) | (c.getGreen() << 8) | c.getBlue();
 		ColorPickerField picker = new ColorPickerField(goal.getCustomColorRgb(), defaultRgb);
 		int result = JOptionPane.showConfirmDialog(parentComponent, picker,
-			"Goal Color — " + goal.getName(),
+			"Goal Color - " + goal.getName(),
 			JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
 		if (result != JOptionPane.OK_OPTION) return;
 		api.setGoalColor(goal.getId(), picker.getSelectedRgb());
@@ -340,7 +340,7 @@ class GoalDialogFactory
 		JTextField itemQtyField = new JTextField("1", 15);
 
 		// Account metric combo. Leagues-scoped metrics (League Points/Tasks)
-		// only exist on a leagues profile — offering them on a main account
+		// only exist on a leagues profile - offering them on a main account
 		// would create goals that can never track, so hide them there. The
 		// league tier/area shortcut combos key off the selected metric, so
 		// filtering the list hides those too.
@@ -450,7 +450,7 @@ class GoalDialogFactory
 			}
 		});
 
-		// League tier dropdown — quick-pick point targets for LEAGUE_POINTS.
+		// League tier dropdown - quick-pick point targets for LEAGUE_POINTS.
 		String[] leagueTierOptions = new String[com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES.length + 1];
 		leagueTierOptions[0] = "-- Select tier --";
 		System.arraycopy(com.goalplanner.model.AccountMetric.LEAGUE_TIER_NAMES, 0, leagueTierOptions, 1,
@@ -465,7 +465,7 @@ class GoalDialogFactory
 			}
 		});
 
-		// League area milestone dropdown — quick-pick task-count targets
+		// League area milestone dropdown - quick-pick task-count targets
 		// for LEAGUE_TASKS (area-unlock thresholds: 80 / 200 / 300 / 450).
 		String[] leagueAreaOptions = new String[com.goalplanner.model.AccountMetric.LEAGUE_AREA_NAMES.length + 1];
 		leagueAreaOptions[0] = "-- Select area --";
@@ -481,7 +481,7 @@ class GoalDialogFactory
 			}
 		});
 
-		// Max button — fills target with the metric's max value (live ceiling
+		// Max button - fills target with the metric's max value (live ceiling
 		// for collection log / quest points / ToG PB when the client has it).
 		// The live read asserts the client thread, so resolve there and set the
 		// field back on the EDT; without the hop the read throws on the EDT and
@@ -727,8 +727,8 @@ class GoalDialogFactory
 		if (formValue < 0)
 		{
 			JOptionPane.showMessageDialog(parentComponent,
-				relative ? "Enter a valid XP delta (1–200,000,000)."
-					: "Enter a valid target level (1–99) or XP (0–200,000,000).",
+				relative ? "Enter a valid XP delta (1-200,000,000)."
+					: "Enter a valid target level (1-99) or XP (0-200,000,000).",
 				"Error", JOptionPane.ERROR_MESSAGE);
 			return;
 		}

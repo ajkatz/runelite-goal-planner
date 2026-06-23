@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Sidebar panel — priority list of goals with gradient cards and arrow reordering.
+ * Sidebar panel - priority list of goals with gradient cards and arrow reordering.
  */
 @Slf4j
 public class GoalPanel extends PluginPanel
@@ -49,7 +49,7 @@ public class GoalPanel extends PluginPanel
 	 * item search and create an item goal. The plugin owns the chatbox + the
 	 * client thread; the panel owns the section/position context. Passing
 	 * both pieces of state through the callback lets the plugin place the
-	 * created goal in the right slot — without this, item goals always
+	 * created goal in the right slot - without this, item goals always
 	 * landed in the default Incomplete section regardless of which section
 	 * the user right-clicked from.
 	 */
@@ -68,7 +68,7 @@ public class GoalPanel extends PluginPanel
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
-	/** Section header rows by section id — selection changes refresh their
+	/** Section header rows by section id - selection changes refresh their
 	 *  select-all toggle without a full rebuild (mirrors cardMap). */
 	private final java.util.List<SectionHeaderRow> headerRows = new java.util.ArrayList<>();
 	/** Free-text filter applied to the goal list. Empty = show all. */
@@ -77,8 +77,8 @@ public class GoalPanel extends PluginPanel
 	 *  selection. Cleared on rebuilds when the goal no longer exists. */
 	private String selectionAnchorId = null;
 	/** Source goal ids the user initiated a relation-pick from. Empty when
-	 *  not in relation-pick mode. The single-goal "Requires…"/"Required
-	 *  by…" path adds one id; the bulk Customize > Relations path adds
+	 *  not in relation-pick mode. The single-goal "Requires..."/"Required
+	 *  by..." path adds one id; the bulk Customize > Relations path adds
 	 *  every selected goal. Cleared on target click, cancel, or ESC. */
 	java.util.Set<String> pendingRelationSourceIds = new java.util.LinkedHashSet<>();
 	/** Direction flag for relation-pick mode. When true, each clicked
@@ -90,7 +90,7 @@ public class GoalPanel extends PluginPanel
 	 *  relation-pick mode is active. Hidden otherwise. */
 	private JPanel relationModeBanner;
 	private JLabel relationModeLabel;
-	/** Id of the goal the user is repositioning via the "Move to…"
+	/** Id of the goal the user is repositioning via the "Move to..."
 	 *  click-mode picker, or null when not in move mode. The next click on
 	 *  another goal card inserts the source above that target; clicking the
 	 *  in-mode "New Section" row creates a new section and moves there. */
@@ -103,7 +103,7 @@ public class GoalPanel extends PluginPanel
 	private JButton undoButton;
 	private JButton redoButton;
 
-	// Share support — injected via setShareSupport() after construction (like
+	// Share support - injected via setShareSupport() after construction (like
 	// setClient). Null until then; the Options menu omits share entries if unset.
 	private com.goalplanner.share.ShareCodec shareCodec;
 	private com.goalplanner.persistence.SavedPlanStore savedPlanStore;
@@ -149,13 +149,13 @@ public class GoalPanel extends PluginPanel
 		// + goal and + section buttons removed. Adding is now
 		// contextual via section header / goal card right-click menus.
 
-		// Options menu — opens a small popup with plugin-wide actions
+		// Options menu - opens a small popup with plugin-wide actions
 		// (Discord link, and future general options). Single-goal removal
 		// is still available via right-click context menu on each card;
 		// bulk / "remove all" entry points were dropped in v0.1.0 in
 		// favor of relying on right-click + undo/redo for reversibility.
 		JButton optionsButton = new JButton(ShapeIcons.moreDots(10, new Color(180, 180, 220)));
-		optionsButton.setToolTipText("Options\u2026");
+		optionsButton.setToolTipText("Options...");
 		optionsButton.setMargin(new Insets(3, 6, 3, 6));
 		optionsButton.addActionListener(e -> {
 			JPopupMenu popup = new JPopupMenu();
@@ -168,14 +168,14 @@ public class GoalPanel extends PluginPanel
 			{
 				popup.addSeparator();
 
-				JMenuItem importShare = new JMenuItem("Import shared goals…");
+				JMenuItem importShare = new JMenuItem("Import shared goals...");
 				importShare.addActionListener(ev ->
 					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, savedPlanStore, this::rebuild));
 				popup.add(importShare);
 
 				if (isSavedPlansAvailable())
 				{
-					JMenuItem savedPlans = new JMenuItem("Saved plans…");
+					JMenuItem savedPlans = new JMenuItem("Saved plans...");
 					savedPlans.addActionListener(ev -> openSavedPlans());
 					popup.add(savedPlans);
 				}
@@ -264,7 +264,7 @@ public class GoalPanel extends PluginPanel
 		relationModeLabel.setFont(PanelFonts.derive(11f));
 		relationModeBanner.add(relationModeLabel, BorderLayout.CENTER);
 		// Use ShapeIcons.closeX for the cancel glyph rather than the
-		// literal "\u2715" Unicode character \u2014 the latter renders inconsistently
+		// literal "\u2715" Unicode character - the latter renders inconsistently
 		// across platforms (macOS in particular shows it as a colored
 		// emoji on some default fonts).
 		JButton relationCancelBtn = new JButton(ShapeIcons.closeX(10, Color.WHITE));
@@ -279,7 +279,7 @@ public class GoalPanel extends PluginPanel
 
 		// Move-pick mode banner. Distinct blue background so it can't be
 		// confused with the relation banner. Shown when the user picks
-		// "Move to\u2026" from a goal's Customize > Move submenu.
+		// "Move to..." from a goal's Customize > Move submenu.
 		moveModeBanner = new JPanel(new BorderLayout());
 		moveModeBanner.setBackground(new Color(0x20, 0x60, 0xB8));
 		moveModeBanner.setBorder(new EmptyBorder(4, 8, 4, 8));
@@ -373,7 +373,7 @@ public class GoalPanel extends PluginPanel
 	 *  (direct run) until the plugin wires the real client-thread executor, so
 	 *  panels constructed in tests still function. Used by context-menu /
 	 *  dialog actions that read live Client state (skill levels, quest states,
-	 *  the quest DB table) — those reads ASSERT the client thread and silently
+	 *  the quest DB table) - those reads ASSERT the client thread and silently
 	 *  die on the EDT (see CONTRIBUTING "EDT vs client thread"). */
 	private java.util.function.Consumer<Runnable> clientThreadExec = Runnable::run;
 
@@ -496,13 +496,13 @@ public class GoalPanel extends PluginPanel
 	}
 
 	/**
-	 * Lightweight selection refresh — updates card borders without
+	 * Lightweight selection refresh - updates card borders without
 	 * rebuilding the entire panel. O(cards) repaint vs O(goals * sections)
 	 * full rebuild.
 	 */
 	/**
 	 * Incrementally update progress on specific cards without a full rebuild.
-	 * O(dirtyIds) — looks up each card in the map and refreshes its view.
+	 * O(dirtyIds) - looks up each card in the map and refreshes its view.
 	 * Falls back to full rebuild if a card isn't found (goal was added/removed).
 	 */
 	public void refreshProgress(java.util.Set<String> dirtyGoalIds)
@@ -513,14 +513,14 @@ public class GoalPanel extends PluginPanel
 			GoalCard card = cardMap.get(goalId);
 			if (card == null)
 			{
-				// Card not in map — goal was added/removed, need full rebuild
+				// Card not in map - goal was added/removed, need full rebuild
 				rebuild();
 				return;
 			}
 			com.goalplanner.api.GoalView view = api.queryGoalView(goalId);
 			if (view == null)
 			{
-				// Goal was removed — need full rebuild
+				// Goal was removed - need full rebuild
 				rebuild();
 				return;
 			}
@@ -569,7 +569,7 @@ public class GoalPanel extends PluginPanel
 		headerRows.clear();
 		refreshUndoRedoButtons();
 
-		// Read path goes through the public API — the panel is now a consumer of
+		// Read path goes through the public API - the panel is now a consumer of
 		// GoalPlannerApi just like external plugins would be.
 		//
 		// Search filter. When active, goalViews is the filtered flat
@@ -601,7 +601,7 @@ public class GoalPanel extends PluginPanel
 		java.util.Map<String, java.util.List<com.goalplanner.api.GoalView>> allTopoOrders =
 			api.queryAllGoalsTopologicallySorted();
 
-		// "New Section" drop target — only rendered while move-pick mode is
+		// "New Section" drop target - only rendered while move-pick mode is
 		// active. Sits above the first section header so the user always sees
 		// it without scrolling. Click prompts for a name, creates the
 		// section, and routes the move through handleMovePickToNewSection.
@@ -664,7 +664,7 @@ public class GoalPanel extends PluginPanel
 			final String sectionIdRef = section.id;
 			SectionHeaderRow headerRow = new SectionHeaderRow(section, sectionCount, () -> {
 				// In move-pick mode, the section title row acts as a drop
-				// target for the source goal — particularly useful for
+				// target for the source goal - particularly useful for
 				// empty sections, where there's no card to click. Falls
 				// through to the normal collapse toggle when not in mode.
 				if (pendingMoveSourceId != null)
@@ -698,7 +698,7 @@ public class GoalPanel extends PluginPanel
 			// the header, so a freshly created section doesn't look broken.
 			if (sectionCount == 0 && !section.builtIn && !section.collapsed)
 			{
-				JLabel placeholder = new JLabel("Empty — right-click goals to move them here");
+				JLabel placeholder = new JLabel("Empty - right-click goals to move them here");
 				placeholder.setForeground(new Color(120, 120, 120));
 				placeholder.setFont(PanelFonts.derive(Font.ITALIC, 10f));
 				placeholder.setAlignmentX(Component.CENTER_ALIGNMENT);
@@ -717,7 +717,7 @@ public class GoalPanel extends PluginPanel
 
 			boolean isCompletedSection = "COMPLETED".equals(section.kind);
 
-			// Nested view: when enabled (the section's railView flag — kept for
+			// Nested view: when enabled (the section's railView flag - kept for
 			// now; the renderer is the subtle indent+guide nesting, not the
 			// rejected connector rail), cards are collected into a nesting
 			// container that left-indents each card by its in-section dependency
@@ -751,7 +751,7 @@ public class GoalPanel extends PluginPanel
 					}
 					return edges;
 				};
-				// Completed goals sink to the bottom, not nested — but chains must
+				// Completed goals sink to the bottom, not nested - but chains must
 				// survive THROUGH them: A → B(done) → C still nests A under C.
 				java.util.function.Predicate<String> sunk = gid ->
 				{
@@ -774,7 +774,7 @@ public class GoalPanel extends PluginPanel
 			// Iterate topo-order for rendering, but resolve each
 			// goal's flat-priority index for the arrow buttons. Arrows target
 			// the VISUALLY adjacent card in the topo view, but only when that
-			// card is in the SAME topo tier — otherwise the move would fight
+			// card is in the SAME topo tier - otherwise the move would fight
 			// with the DAG constraint (topo sort would put the cards back).
 			// When the adjacent card is in a different tier, the arrow is
 			// hidden (via firstInList/lastInList).
@@ -798,7 +798,7 @@ public class GoalPanel extends PluginPanel
 				final String goalIdRef = view.id;
 				final String arrowSectionId = section.id;
 				// Arrow actions go through api.moveGoal, which enforces the
-				// auto-deselect-if-not-member rule at the API layer — no
+				// auto-deselect-if-not-member rule at the API layer - no
 				// UI-side wrapping needed.
 				GoalCard card = new GoalCard(
 					view,
@@ -812,7 +812,7 @@ public class GoalPanel extends PluginPanel
 					view.blockedRequirements.isEmpty() ? null : () -> addMissingRequirements(view)
 				);
 
-				// Completed section is read-only ordering — no reorder arrows.
+				// Completed section is read-only ordering - no reorder arrows.
 				// Otherwise arrows are visible at all non-edge positions; the
 				// handler itself decides whether a move is actually possible
 				// (e.g. a chain that already hits the top of the section is
@@ -841,7 +841,7 @@ public class GoalPanel extends PluginPanel
 					card.setBorder(javax.swing.BorderFactory.createLineBorder(
 						new Color(0xFF, 0x99, 0x33), 2));
 				}
-				// Move-pick source — distinct blue border so the user can
+				// Move-pick source - distinct blue border so the user can
 				// tell it apart from a relation pick at a glance.
 				else if (goal.getId().equals(pendingMoveSourceId))
 				{
@@ -998,7 +998,7 @@ public class GoalPanel extends PluginPanel
 	/**
 	 * Bulk variant: every source goal gets the same edge to/from the
 	 * clicked target on completion. Cycle / duplicate rejections fail
-	 * open per source \u2014 others still succeed.
+	 * open per source - others still succeed.
 	 */
 	void enterRelationMode(java.util.Set<String> sourceGoalIds, boolean sourceRequiresTarget)
 	{
@@ -1026,7 +1026,7 @@ public class GoalPanel extends PluginPanel
 				? "Click a goal to add as a requirement of " + n + " selected goals"
 				: "Click a goal that should require " + n + " selected goals";
 		}
-		relationModeLabel.setText("<html>" + banner + " &mdash; ESC to cancel</html>");
+		relationModeLabel.setText("<html>" + banner + " - ESC to cancel</html>");
 		relationModeBanner.setVisible(true);
 		// Rebuild so the orange source-card borders get applied.
 		rebuild();
@@ -1080,8 +1080,8 @@ public class GoalPanel extends PluginPanel
 		{
 			JOptionPane.showMessageDialog(this,
 				attempted == 1
-					? "Could not add relation \u2014 it may already exist or would create a cycle."
-					: "Could not add any of the " + attempted + " relations \u2014 each may already exist or would create a cycle.",
+					? "Could not add relation - it may already exist or would create a cycle."
+					: "Could not add any of the " + attempted + " relations - each may already exist or would create a cycle.",
 				"Add Relation", JOptionPane.WARNING_MESSAGE);
 		}
 	}
@@ -1101,13 +1101,13 @@ public class GoalPanel extends PluginPanel
 	void enterMoveMode(String sourceGoalId)
 	{
 		if (!pendingRelationSourceIds.isEmpty()) exitRelationMode();
-		// Same rule as enterRelationMode — pick mode is single-source, so
+		// Same rule as enterRelationMode - pick mode is single-source, so
 		// any existing multi-select highlight is visual noise.
 		api.clearGoalSelection();
 		pendingMoveSourceId = sourceGoalId;
 		String sourceName = reorderController.goalNameById(sourceGoalId);
 		moveModeLabel.setText("<html>Click a goal to place \"" + sourceName
-			+ "\" above it, or click + New Section &mdash; ESC to cancel</html>");
+			+ "\" above it, or click + New Section - ESC to cancel</html>");
 		moveModeBanner.setVisible(true);
 		// Rebuild so the blue source-card border + New Section row appear.
 		rebuild();
@@ -1179,7 +1179,7 @@ public class GoalPanel extends PluginPanel
 			exitMoveMode();
 			return;
 		}
-		// Skip COMPLETED — the menu's "Move to Section" filter excludes it
+		// Skip COMPLETED - the menu's "Move to Section" filter excludes it
 		// and we keep the click-mode behavior consistent.
 		for (com.goalplanner.api.SectionView sv : api.queryAllSections())
 		{
@@ -1215,7 +1215,7 @@ public class GoalPanel extends PluginPanel
 
 	/**
 	 * Attach a left-click MouseListener that routes selection clicks through
-	 * the API. Coexists with the existing right-click context menu — only
+	 * the API. Coexists with the existing right-click context menu - only
 	 * BUTTON1 events are handled here, BUTTON3 falls through to the popup.
 	 *
 	 * <p>Click semantics:
@@ -1295,7 +1295,7 @@ public class GoalPanel extends PluginPanel
 
 	/**
 	 * Open the Discord invite in the user's default browser. Falls back to
-	 * a no-op (with a log warning) if Desktop browse isn't supported — on
+	 * a no-op (with a log warning) if Desktop browse isn't supported - on
 	 * a headless system there's nothing useful we can do.
 	 */
 	private void openDiscordInvite()
@@ -1344,7 +1344,7 @@ public class GoalPanel extends PluginPanel
 	/**
 	 * Walk the canonical goal order from the API and return the slice of ids
 	 * between (and including) anchorId and clickedId. The order is the same
-	 * one used to render the panel — sections in section.order, goals within
+	 * one used to render the panel - sections in section.order, goals within
 	 * each section in priority order. Returns an empty set if either id is
 	 * missing from the canonical list (e.g. just deleted).
 	 */

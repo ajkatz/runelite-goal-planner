@@ -23,8 +23,8 @@ import java.awt.event.MouseEvent;
  * <p>Layout:
  * <ul>
  *   <li>A small preview swatch + "Current" label at the top</li>
- *   <li>A grid of curated preset swatches — click to select</li>
- *   <li>A "More…" button opening a full {@link JColorChooser}</li>
+ *   <li>A grid of curated preset swatches - click to select</li>
+ *   <li>A "More..." button opening a full {@link JColorChooser}</li>
  *   <li>A "Reset to default" button that clears the override</li>
  * </ul>
  *
@@ -55,7 +55,7 @@ public class ColorPickerField extends JPanel
 
 	/** Current selection: -1 means "no override / use default". */
 	private int selectedRgb;
-	/** The underlying default color for this item — shown as the preview when
+	/** The underlying default color for this item - shown as the preview when
 	 *  selectedRgb == -1, and used as the reset target. */
 	private final int defaultRgb;
 
@@ -115,7 +115,7 @@ public class ColorPickerField extends JPanel
 		JPanel actions = new JPanel(new FlowLayout(FlowLayout.LEFT, 4, 0));
 		actions.setOpaque(false);
 
-		JButton more = new JButton("More…");
+		JButton more = new JButton("More...");
 		more.setMargin(new java.awt.Insets(2, 6, 2, 6));
 		more.addActionListener(e -> {
 			Color initial = selectedRgb >= 0 ? new Color(selectedRgb) : Color.GRAY;

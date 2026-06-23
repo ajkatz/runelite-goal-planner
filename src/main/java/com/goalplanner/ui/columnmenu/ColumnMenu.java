@@ -42,7 +42,7 @@ import java.util.List;
  * a leaf runs the action and dismisses. Clicking outside dismisses.
  *
  * <p>Window is non-focusable so the host application (RuneLite) keeps
- * keyboard input — important for in-game gameplay.
+ * keyboard input - important for in-game gameplay.
  */
 public final class ColumnMenu
 {
@@ -56,7 +56,7 @@ public final class ColumnMenu
 	private static final int MAX_COLUMN_HEIGHT = 480;
 
 	/**
-	 * One width for the whole menu — sized to the widest label across ALL levels
+	 * One width for the whole menu - sized to the widest label across ALL levels
 	 * (computed up front in {@link #show}). This keeps deep submenus from
 	 * clipping their text, and keeps the width consistent as the user drills in
 	 * and back out. Clamped to {@link #MIN_COLUMN_WIDTH}..{@link #MAX_COLUMN_WIDTH}
@@ -198,7 +198,7 @@ public final class ColumnMenu
 		scroll.getViewport().setBackground(BG);
 		scroll.setBackground(BG);
 
-		// Compute exact height — sum of row heights + separator heights +
+		// Compute exact height - sum of row heights + separator heights +
 		// padding. Avoids the long empty tail under-content because we no
 		// longer over-estimate via a flat ROW_HEIGHT count.
 		int contentHeight = rowCount * ROW_HEIGHT + sepCount * SEP_HEIGHT + COLUMN_PADDING;
@@ -230,7 +230,7 @@ public final class ColumnMenu
 		row.setPreferredSize(new Dimension(columnWidth, ROW_HEIGHT));
 		row.setMaximumSize(new Dimension(columnWidth, ROW_HEIGHT));
 
-		// "<" matches the ">" submenu indicator — ASCII, font-friendly,
+		// "<" matches the ">" submenu indicator - ASCII, font-friendly,
 		// renders consistently on macOS where unicode arrows like ← can
 		// fall back to colored emoji glyphs on default fonts.
 		JLabel arrow = new JLabel("<");
@@ -269,7 +269,7 @@ public final class ColumnMenu
 
 		if (node.checkable)
 		{
-			// Left gutter — a dot on the selected row, blank on the others
+			// Left gutter - a dot on the selected row, blank on the others
 			// (the gutter stays present on every checkable row so the labels
 			// keep their alignment).
 			JLabel mark = new JLabel(node.checked ? dotIcon(node.enabled ? FG : FG_DISABLED) : null);

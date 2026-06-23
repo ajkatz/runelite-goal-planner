@@ -27,7 +27,7 @@ public final class AchievementDiaryData
 {
 	private AchievementDiaryData() {}
 
-	// InterfaceID.AreaTask constants — group 259
+	// InterfaceID.AreaTask constants - group 259
 	public static final int GROUP_ID = 259;
 	public static final int TASKBOX = 16973826; // clicked row layer (param1 on right-click)
 
@@ -68,7 +68,7 @@ public final class AchievementDiaryData
 
 	/**
 	 * Map of "<AREA>|<TIER>" (uppercase, pipe-separated) to the boolean
-	 * completion varbit ID. Karamja Easy/Medium/Hard are absent — those
+	 * completion varbit ID. Karamja Easy/Medium/Hard are absent - those
 	 * use {@link #KARAMJA_COUNT_VARBITS} instead.
 	 */
 	private static final Map<String, Integer> COMPLETION_VARBITS = new HashMap<>();
@@ -129,7 +129,7 @@ public final class AchievementDiaryData
 	 * Count completed diary tiers (0..{@link #TOTAL_TIER_COUNT}) by reading
 	 * each tier's tracking varbit through the supplied reader (typically
 	 * {@code client::getVarbitValue}). A tier counts as complete when the
-	 * varbit has reached the tracking spec's required value — 1 for boolean
+	 * varbit has reached the tracking spec's required value - 1 for boolean
 	 * COMPLETE varbits, the tier task total for Karamja Easy/Medium/Hard
 	 * count varbits.
 	 */

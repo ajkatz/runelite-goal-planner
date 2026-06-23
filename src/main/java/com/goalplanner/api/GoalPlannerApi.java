@@ -26,7 +26,7 @@ import net.runelite.api.Skill;
 public interface GoalPlannerApi
 {
 	/**
-	 * Add a skill goal targeting a raw XP amount. Canonical form — all skill
+	 * Add a skill goal targeting a raw XP amount. Canonical form - all skill
 	 * goals are stored internally as XP targets.
 	 *
 	 * @param skill    the skill to track (must not be null)
@@ -114,7 +114,7 @@ public interface GoalPlannerApi
 	 * {@code order}, goals within each section sorted by priority). Includes both
 	 * incomplete and completed goals; consumers can filter by {@code completedAt > 0}.
 	 *
-	 * <p>The returned list is a snapshot — mutating it has no effect on the plugin's
+	 * <p>The returned list is a snapshot - mutating it has no effect on the plugin's
 	 * internal state. Call again after mutations to get a fresh view.
 	 */
 	List<GoalView> queryAllGoals();
@@ -128,7 +128,7 @@ public interface GoalPlannerApi
 	// ===== Mutation API =====
 
 	/**
-	 * Remove a single goal by id. Idempotent — returns false if no such goal exists.
+	 * Remove a single goal by id. Idempotent - returns false if no such goal exists.
 	 */
 	boolean removeGoal(String goalId);
 
@@ -178,7 +178,7 @@ public interface GoalPlannerApi
 
 	/**
 	 * Mark a CUSTOM goal complete. Sets completedAt to now. Returns false if the
-	 * goal isn't CUSTOM (other types are auto-tracked). Idempotent — calling on an
+	 * goal isn't CUSTOM (other types are auto-tracked). Idempotent - calling on an
 	 * already-complete goal updates the timestamp.
 	 */
 	boolean markGoalComplete(String goalId);

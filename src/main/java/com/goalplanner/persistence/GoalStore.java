@@ -17,7 +17,7 @@ import javax.inject.Singleton;
 // java.lang.reflect.Type is the type-marker interface returned by
 // Gson's TypeToken<T>.getType(). NOT runtime reflection. Required
 // because runelite bundles Gson 2.8.5 (no fromJson(String, TypeToken<T>)
-// overload — that was added in Gson 2.10) and the plugin hub rejects
+// overload - that was added in Gson 2.10) and the plugin hub rejects
 // new Gson() so we must use the injected 2.8.5 instance.
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -135,7 +135,7 @@ public class GoalStore
 
 	public void load()
 	{
-		// Legacy migration is deferred — it runs on the first call to
+		// Legacy migration is deferred - it runs on the first call to
 		// {@link #migrateLegacyIntoActiveProfile()} after the plugin has
 		// detected the initial profile from client state. This way, a
 		// user upgrading from pre-profile code while logged into a leagues
@@ -195,7 +195,7 @@ public class GoalStore
 		boolean diariesBackfilled = backfillDiaryTracking();
 
 		// Scrub any relation edges that violate the DAG invariant
-		// or point at missing goals. Forgiving on load — we drop the offending
+		// or point at missing goals. Forgiving on load - we drop the offending
 		// edges with a log warning rather than failing to load the whole save.
 		// Normal flows never persist invalid edges (addRequirement rejects
 		// cycles and missing targets up-front), so this is defensive against
@@ -204,7 +204,7 @@ public class GoalStore
 
 		if (tagsMigrated || relationsScrubbed || diariesBackfilled)
 		{
-			// Migration touched tags and/or goal relation edges — persist affected entities.
+			// Migration touched tags and/or goal relation edges - persist affected entities.
 			for (Goal g : goals) saveGoal(g);
 			saveGoalOrder();
 			for (Tag t : tags) saveTag(t);
@@ -392,7 +392,7 @@ public class GoalStore
 		load();
 	}
 
-	/** True once legacy migration has been attempted — guards against repeated scans. */
+	/** True once legacy migration has been attempted - guards against repeated scans. */
 	private boolean legacyMigrationAttempted = false;
 
 	/**
@@ -403,7 +403,7 @@ public class GoalStore
 	 * state reflects the newly-scoped keys.
 	 *
 	 * <p>Call AFTER the plugin has detected the initial profile from client
-	 * state (world type / league account varbit) — otherwise legacy data
+	 * state (world type / league account varbit) - otherwise legacy data
 	 * could end up in the wrong profile (e.g. stuck in main for a user
 	 * upgrading while logged into leagues).
 	 *
@@ -572,7 +572,7 @@ public class GoalStore
 	 * <p>Self-loops and dangling edges are trivial to detect. For cycles we
 	 * run a DFS-based scrub: walk each goal's outgoing edges, and if adding
 	 * any edge creates a cycle given the edges already accepted, drop it.
-	 * This is deterministic but biased — the first edges encountered "win"
+	 * This is deterministic but biased - the first edges encountered "win"
 	 * and later cycle-forming edges are dropped. That's fine for a
 	 * corruption-recovery pass; normal flows never hit this code.
 	 *
@@ -774,7 +774,7 @@ public class GoalStore
 		{
 			sectionOrders.put(s.getId(), s.getOrder());
 		}
-		// Sort by (section.order, current priority) — stable so relative order within
+		// Sort by (section.order, current priority) - stable so relative order within
 		// section is preserved.
 		goals.sort((a, b) -> {
 			int aso = sectionOrders.getOrDefault(a.getSectionId(), Integer.MAX_VALUE);
@@ -967,7 +967,7 @@ public class GoalStore
 	}
 
 	// -----------------------------------------------------------------
-	// IfNotSuspended helpers — defer writes during compound operations
+	// IfNotSuspended helpers - defer writes during compound operations
 	// -----------------------------------------------------------------
 
 	private void saveGoalIfNotSuspended(Goal g)
@@ -1169,7 +1169,7 @@ public class GoalStore
 
 	/**
 	 * Set a user color override on a tag category. Affects every tag in that
-	 * category. SKILLING is read-only (returns false) — skill icon tags ignore
+	 * category. SKILLING is read-only (returns false) - skill icon tags ignore
 	 * the category color anyway, and locking the API surface keeps the
 	 * read-only contract uniform.
 	 *
@@ -1179,7 +1179,7 @@ public class GoalStore
 	{
 		// OTHER is special: it uses per-tag colors instead of a category-wide
 		// color, so the category-level setter is meaningless for it.
-		// SKILLING accepts a category color — system skill tags render as
+		// SKILLING accepts a category color - system skill tags render as
 		// skill icons (color ignored) but user-created SKILLING tags fall
 		// through to colored pills, where the category color does apply.
 		if (category == null || category == TagCategory.OTHER) return false;
@@ -1332,7 +1332,7 @@ public class GoalStore
 		// is safe for all existing callers because:
 		//   - revert paths for freshly-added goals: the goal has no incoming
 		//     edges (no other goal points at it), so this is a no-op
-		//   - bulk removals via iteration: scrubbing is incremental — later
+		//   - bulk removals via iteration: scrubbing is incremental - later
 		//     batch members get cleaned up as earlier ones are removed
 		// Bypass-bridging (connecting predecessors directly to successors
 		// around the deleted node) is a separate opt-in via
@@ -1495,7 +1495,7 @@ public class GoalStore
 	 * exists iff there's already a path from {@code toGoalId} back to
 	 * {@code fromGoalId} in the current graph. Standard DFS.
 	 *
-	 * <p>Does NOT check whether the edge already exists — that's a separate
+	 * <p>Does NOT check whether the edge already exists - that's a separate
 	 * concern handled in {@link #addRequirement}. A duplicate edge is not
 	 * a cycle.
 	 */
@@ -1529,7 +1529,7 @@ public class GoalStore
 	}
 
 	/** Internal lookup used by the relations API. Separate from
-	 *  {@link #findTag} — different collection. */
+	 *  {@link #findTag} - different collection. */
 	/**
 	 * O(1) goal lookup by id.
 	 */
@@ -1621,7 +1621,7 @@ public class GoalStore
 	 *   <li>Call {@link #insertGoalAt}({@link #goal}, {@link #originalIndex})</li>
 	 *   <li>The deleted goal's OWN outgoing edges are preserved in
 	 *       {@code goal.requiredGoalIds} because we capture the snapshot
-	 *       BEFORE deleting — re-inserting the goal restores them automatically</li>
+	 *       BEFORE deleting - re-inserting the goal restores them automatically</li>
 	 *   <li>For each id in {@link #predecessors}, call
 	 *       {@link #addRequirement}(predId, goal.id) to rewire incoming edges</li>
 	 * </ol>
@@ -1637,7 +1637,7 @@ public class GoalStore
 		/** Goal IDs that had the deleted goal in their {@code requiredGoalIds}
 		 *  at delete time (incoming edges). */
 		public final List<String> predecessors;
-		/** [from, to] pairs of edges ACTUALLY added as bypasses — excludes
+		/** [from, to] pairs of edges ACTUALLY added as bypasses - excludes
 		 *  edges that already existed independently (dedupe). Revert must
 		 *  remove exactly these, no more, no less. */
 		public final List<String[]> addedBypassEdges;
@@ -1830,7 +1830,7 @@ public class GoalStore
 				// section's effective setting says so, remembering the home section
 				// so they can flip back. Otherwise keep them inline. A goal whose
 				// home memory already points at its CURRENT section was manually
-				// moved here while complete (see moveGoalToSection) — deliberately
+				// moved here while complete (see moveGoalToSection) - deliberately
 				// kept inline, so auto-archive leaves it alone.
 				Section sec = findSection(currentSid);
 				if (sec != null && isComplete && effectiveAutoArchive(sec)
@@ -1901,7 +1901,7 @@ public class GoalStore
 	 * Canonical namespace key for a section. The built-in Incomplete + Completed
 	 * pair collapses to one shared "default" namespace; each user section is its
 	 * own namespace. Returns null for an unknown section id. Drives the
-	 * per-section no-duplicates rule — each section is its own bucket.
+	 * per-section no-duplicates rule - each section is its own bucket.
 	 */
 	public String namespaceKey(String sectionId)
 	{
@@ -2087,7 +2087,7 @@ public class GoalStore
 	 * Set a user section's completed-archiving override: {@code null} inherits
 	 * the global default, {@code TRUE} forces archive, {@code FALSE} forces keep.
 	 * Built-in sections can't be set. Returns false on: not found, built-in, or
-	 * no-op. Does NOT reconcile — callers wanting immediate effect call
+	 * no-op. Does NOT reconcile - callers wanting immediate effect call
 	 * {@link #reconcileCompletedSection()} after.
 	 */
 	public boolean setSectionAutoArchiveOverride(String sectionId, Boolean value)
@@ -2101,11 +2101,11 @@ public class GoalStore
 	}
 
 	/**
-	 * Delete a user-defined section AND every goal in it — a section owns its
+	 * Delete a user-defined section AND every goal in it - a section owns its
 	 * goals. Edges from surviving goals to the deleted ones are scrubbed
 	 * (plain {@link #removeGoal} semantics, no bypass bridging). Completed
 	 * goals previously archived OUT of this section live in Completed and are
-	 * kept — reconcile clears their stale home memory so they become genuine
+	 * kept - reconcile clears their stale home memory so they become genuine
 	 * default-completed history. Returns false on: not found or built-in.
 	 */
 	public boolean deleteUserSection(String sectionId)
@@ -2213,7 +2213,7 @@ public class GoalStore
 
 		// A completed goal may live in Completed or any user section (each
 		// section keeps its own completed goals inline); only the built-in
-		// Incomplete rejects it — reconcile would just bounce it to Completed.
+		// Incomplete rejects it - reconcile would just bounce it to Completed.
 		if (goal.isComplete() && dest.getBuiltInKind() == Section.BuiltInKind.INCOMPLETE) return false;
 
 		// Per-section no-duplicates: don't move into a namespace that already
@@ -2223,7 +2223,7 @@ public class GoalStore
 		goal.setSectionId(sectionId);
 		// A manual move makes the goal a real member of the destination. For a
 		// completed goal placed in a user section, record THIS section as its
-		// home — reconcile reads home==current as "deliberately kept inline"
+		// home - reconcile reads home==current as "deliberately kept inline"
 		// and won't auto-archive it back to Completed. Everything else drops
 		// any stale home memory so reconcile won't pull it elsewhere.
 		goal.setArchivedFromSectionId(
@@ -2324,7 +2324,7 @@ public class GoalStore
 
 	/**
 	 * Look up a tag by case-insensitive (label, category) match. Returns the
-	 * first match (system OR user) — used by the find-or-create flow so the
+	 * first match (system OR user) - used by the find-or-create flow so the
 	 * same logical tag is shared across goals.
 	 */
 	public Tag findTagByLabel(String label, TagCategory category)
@@ -2415,7 +2415,7 @@ public class GoalStore
 	 *       the destination tag id (both {@code tagIds} and {@code defaultTagIds}).</li>
 	 *   <li>User customizations on the old tag (iconKey, colorRgb) are
 	 *       preserved only if the destination tag doesn't already have them
-	 *       set — the destination always wins a conflict.</li>
+	 *       set - the destination always wins a conflict.</li>
 	 *   <li>The old tag entity is deleted.</li>
 	 * </ul>
 	 *
@@ -2438,7 +2438,7 @@ public class GoalStore
 		Tag dest = findTagByLabel(label, toCategory);
 		if (dest == null)
 		{
-			// No destination exists — just flip the category in place and
+			// No destination exists - just flip the category in place and
 			// preserve all customizations.
 			source.setCategory(toCategory);
 			saveTagIfNotSuspended(source);
@@ -2519,7 +2519,7 @@ public class GoalStore
 
 	/**
 	 * Recolor an individual tag. Only meaningful for tags in the
-	 * OTHER category — every other category uses a category-wide color set
+	 * OTHER category - every other category uses a category-wide color set
 	 * via {@link #setCategoryColor(TagCategory, int)}. Returns false for any
 	 * non-OTHER tag (the call is a no-op rather than an error so the caller
 	 * can decide whether to surface it).
@@ -2538,7 +2538,7 @@ public class GoalStore
 
 	/**
 	 * Set or clear an icon on any tag. System tags can have
-	 * icons set — used by the seed to attach skill icons to the canonical
+	 * icons set - used by the seed to attach skill icons to the canonical
 	 * SKILLING tags. Pass null or empty to clear.
 	 *
 	 * @return true if the icon changed
@@ -2562,7 +2562,7 @@ public class GoalStore
 
 	/**
 	 * Delete a user tag and cascade-remove the reference from every goal.
-	 * System tags cannot be deleted (returns false) — they're auto-attached
+	 * System tags cannot be deleted (returns false) - they're auto-attached
 	 * by goal creation and trackers depend on their existence.
 	 */
 	public boolean deleteTag(String tagId)

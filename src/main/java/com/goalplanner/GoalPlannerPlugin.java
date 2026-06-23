@@ -65,7 +65,7 @@ import java.awt.image.BufferedImage;
 @Slf4j
 @PluginDescriptor(
 	name = "Goal Planner",
-	description = "Plan and track OSRS goals that auto-update from game state — "
+	description = "Plan and track OSRS goals that auto-update from game state - "
 		+ "skills, quests, diaries, bosses, items; organize into sections and share as codes",
 	tags = {"goals", "tracker", "progress", "skills", "quests", "diary", "bosses", "achievement", "share", "plan"}
 )
@@ -167,7 +167,7 @@ public class GoalPlannerPlugin extends Plugin
 		log.info("Goal Planner started");
 
 		// Load the bundled requirement tables using the client's injected Gson
-		// (the hub forbids plugins from constructing their own). Idempotent — safe
+		// (the hub forbids plugins from constructing their own). Idempotent - safe
 		// across restarts. Must precede any requirement seeding / blocked-prereq scan.
 		com.goalplanner.data.DiaryRequirements.init(gson);
 		com.goalplanner.data.BossKillData.init(gson);
@@ -179,7 +179,7 @@ public class GoalPlannerPlugin extends Plugin
 		wikiCaRepository.loadAsync();
 		// Migrate any pre-existing CA goals (from before the bit-packed varp tracking
 		// switch) by looking up their wiki id by name. No-op if the wiki cache hasn't
-		// populated yet — they'll get filled on a later startup.
+		// populated yet - they'll get filled on a later startup.
 		migrateCaTaskIds();
 
 		// Resolve the configured panel font (family + size scale) before the first
@@ -191,7 +191,7 @@ public class GoalPlannerPlugin extends Plugin
 		panel.setClient(client);
 		// Context-menu / dialog actions that read live Client state must run on
 		// the client thread (skill levels, quest states, the quest DB table all
-		// assert it — off the EDT they throw and the action silently no-ops).
+		// assert it - off the EDT they throw and the action silently no-ops).
 		panel.setClientThreadExecutor(clientThread::invokeLater);
 
 		// Share support: codec + the Options-menu share/import actions.
@@ -209,7 +209,7 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			javax.swing.SwingUtilities.invokeLater(rebuildDebounce::restart);
 			// Any structural change (add/seed/import) may have introduced skill or
-			// account goals that need their first value sync — do it now rather
+			// account goals that need their first value sync - do it now rather
 			// than waiting for the next in-game XP event.
 			refreshSkillGoalsNow();
 		});
@@ -253,7 +253,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * share bundle to import by posting a {@link PluginMessage} to namespace
 	 * {@code "goalplanner"}, name {@code "import-share"}, with a {@code "code"}
 	 * string in the data. Just the raw RuneLite PluginMessage convention (the
-	 * shortest-path / quest-helper interop pattern) — a caller needs no dependency
+	 * shortest-path / quest-helper interop pattern) - a caller needs no dependency
 	 * on Goal Planner. See README → "Cross-plugin API".
 	 */
 	@Subscribe
@@ -332,7 +332,7 @@ public class GoalPlannerPlugin extends Plugin
 				// pure data + the dialog show to the Swing thread. Doing
 				// buildItemTags inside SwingUtilities.invokeLater previously
 				// triggered an AssertionError ("must be called on client thread")
-				// for any item not in ItemSourceData (lyres, runes, etc.) — the
+				// for any item not in ItemSourceData (lyres, runes, etc.) - the
 				// EDT swallowed the exception and the goal was silently dropped.
 				clientThread.invokeLater(() ->
 				{
@@ -463,7 +463,7 @@ public class GoalPlannerPlugin extends Plugin
 		//      registered as a boss (Gargoyles, Wyverns, Cockatrice, etc.)
 		//      and sourceless drops (Imbued heart, Eternal gem).
 		// The old dedupe bandaid ("strip non-SKILLING Slayer before appending
-		// SKILLING Slayer") is gone — the OTHER "Slayer" category no longer
+		// SKILLING Slayer") is gone - the OTHER "Slayer" category no longer
 		// exists, so there's nothing to collide with.
 		boolean needsSlayerTag = SourceAttributes.isSlayerItem(itemId);
 		boolean isPet = false;
@@ -497,7 +497,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * Varbit/varp changes drive quest, diary, CA, and account tracking.
 	 * Deferred to the next client tick via invokeLater because
 	 * Quest.getState() runs a script internally, and VarbitChanged fires
-	 * mid-script — calling getState() synchronously would cause a
+	 * mid-script - calling getState() synchronously would cause a
 	 * "scripts are not reentrant" assertion error.
 	 */
 	@Subscribe
@@ -516,7 +516,7 @@ public class GoalPlannerPlugin extends Plugin
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
 			}
 		}
-		// Global "indent dependencies" toggled — sync the flag (nested sections
+		// Global "indent dependencies" toggled - sync the flag (nested sections
 		// keep completed inline), reconcile so completed goals re-sort between
 		// inline/Completed, and rebuild so every section re-renders to match.
 		if ("showDependenciesIndented".equals(event.getKey()))
@@ -529,7 +529,7 @@ public class GoalPlannerPlugin extends Plugin
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
 			}
 		}
-		// Global auto-archive default changed — sync to the store, re-sort the
+		// Global auto-archive default changed - sync to the store, re-sort the
 		// default-following sections, and rebuild.
 		if ("autoArchiveCompleted".equals(event.getKey()))
 		{
@@ -546,7 +546,7 @@ public class GoalPlannerPlugin extends Plugin
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-		// Only track when fully logged in — varbits fire during login
+		// Only track when fully logged in - varbits fire during login
 		// before the client is ready, which can hang Quest.getState().
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		if (isTrackingSuspended()) return;
@@ -587,7 +587,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * Auto-add a Miscellania 100% approval goal when the player raises their
 	 * approval (i.e. is actively managing the kingdom) and no such goal exists.
 	 * Client-thread only; called from {@link #onVarbitChanged}. Gated by the
-	 * config toggle and skipped while a Misc. Approval goal is already present —
+	 * config toggle and skipped while a Misc. Approval goal is already present -
 	 * so it re-adds whenever the goal is missing and approval rises again. The
 	 * added goal is a normal undoable account goal.
 	 */
@@ -597,7 +597,7 @@ public class GoalPlannerPlugin extends Plugin
 		int previous = lastMiscApproval;
 		lastMiscApproval = current;
 
-		// First reading after login just establishes the baseline — never fires.
+		// First reading after login just establishes the baseline - never fires.
 		if (previous < 0)
 		{
 			return;
@@ -629,7 +629,7 @@ public class GoalPlannerPlugin extends Plugin
 			.build());
 	}
 
-	/** True if a Misc. Approval account goal already exists on this profile —
+	/** True if a Misc. Approval account goal already exists on this profile -
 	 *  active OR completed (getGoals/exists scan the full store), so we never
 	 *  auto-add a duplicate of a goal the player is already tracking or has
 	 *  finished. */
@@ -648,7 +648,7 @@ public class GoalPlannerPlugin extends Plugin
 	/**
 	 * Whether we've performed the deferred legacy migration yet. We can't
 	 * migrate at startUp because we don't know the profile until the user
-	 * logs in — migrating early could strand leagues users' legacy goals
+	 * logs in - migrating early could strand leagues users' legacy goals
 	 * in the main profile. Fires exactly once on first profile detection.
 	 */
 	private boolean legacyMigrationDone = false;
@@ -712,7 +712,7 @@ public class GoalPlannerPlugin extends Plugin
 
 		// Run legacy migration exactly once, after we've confirmed which
 		// profile the user is actually on. This handles the edge case where
-		// a pre-profile user upgrades while logged into a leagues account —
+		// a pre-profile user upgrades while logged into a leagues account -
 		// their legacy data lands in the leagues profile, not stranded in main.
 		if (!legacyMigrationDone)
 		{
@@ -733,12 +733,12 @@ public class GoalPlannerPlugin extends Plugin
 			boolean migrated = goalStore.migrateLegacyIntoActiveProfile();
 			// Rebuild on EITHER: a fresh legacy migration that just changed
 			// the goal set, OR a first-time profile switch (e.g. user logs
-			// directly into leagues at startup — startUp() loaded the main
+			// directly into leagues at startup - startUp() loaded the main
 			// namespace into the panel; the setProfile() above swapped the
 			// store to leagues but the panel still shows main's empty
 			// state). Without this, the panel only refreshes when some
 			// later event (tracker tick, config change) incidentally
-			// triggers a rebuild — the "appears after a little bit" bug.
+			// triggers a rebuild - the "appears after a little bit" bug.
 			if ((profileSwitched || migrated) && panel != null)
 			{
 				javax.swing.SwingUtilities.invokeLater(panel::rebuild);
@@ -767,7 +767,7 @@ public class GoalPlannerPlugin extends Plugin
 		// during HOPPING (before the client disconnects from the old world)
 		// and calling checkProfile at that point would switch the in-memory
 		// goal set to the new profile while client state (quest varbits,
-		// skill XP cache) is still the old account's — any queued tracker
+		// skill XP cache) is still the old account's - any queued tracker
 		// task firing in that window falsely completes new-profile goals
 		// using old-profile state. LOGGED_IN is fired only after the new
 		// world's login fully completes, at which point client.getWorldType()
@@ -779,7 +779,7 @@ public class GoalPlannerPlugin extends Plugin
 			skillSyncGate.onLogin();
 			// Reset Miscellania favour-gain detection on EVERY login (checkProfile
 			// only fires on profile *changes*). The login approval-varbit sync
-			// shows up as the first increase and is ignored — see
+			// shows up as the first increase and is ignored - see
 			// maybeAutoAddMiscApprovalGoal.
 			lastMiscApproval = -1;
 			miscApprovalIncreases = 0;
@@ -798,7 +798,7 @@ public class GoalPlannerPlugin extends Plugin
 	/**
 	 * Build an achievement diary Goal for a given area + tier. Stores the completion
 	 * varbit on the Goal so DiaryTracker can poll it (0 if no varbit is exposed, e.g.
-	 * Karamja Easy/Medium/Hard — those stay manual).
+	 * Karamja Easy/Medium/Hard - those stay manual).
 	 */
 	private Goal buildDiaryGoal(String areaDisplayName, AchievementDiaryData.Tier tier)
 	{
@@ -878,7 +878,7 @@ public class GoalPlannerPlugin extends Plugin
 		if (targetXp < 0)
 		{
 			javax.swing.JOptionPane.showMessageDialog(panel,
-				"Enter a valid level (1–99) or XP (0–200,000,000).",
+				"Enter a valid level (1-99) or XP (0-200,000,000).",
 				"Invalid", javax.swing.JOptionPane.WARNING_MESSAGE);
 			return;
 		}
@@ -1040,7 +1040,7 @@ public class GoalPlannerPlugin extends Plugin
 		String monster = monsterW != null ? CombatAchievementData.parseMonsterName(monsterW.getText()) : null;
 
 		// Prefer the wiki repository for description (works for any row, expanded or not).
-		// Fall back to the widget if the wiki cache hasn't populated yet — TASKS_DESCRIPTION
+		// Fall back to the widget if the wiki cache hasn't populated yet - TASKS_DESCRIPTION
 		// is single-instance (only for the currently expanded row), so that fallback is
 		// best-effort.
 		String fullDesc = null;
@@ -1054,7 +1054,7 @@ public class GoalPlannerPlugin extends Plugin
 			net.runelite.api.widgets.Widget descW = client.getWidget(CombatAchievementData.TASKS_DESCRIPTION);
 			fullDesc = descW != null ? CombatAchievementData.parseDescription(descW.getText()) : null;
 		}
-		String tooltip = fullDesc != null ? name + " \u2014 " + fullDesc : null;
+		String tooltip = fullDesc != null ? name + " - " + fullDesc : null;
 
 		// Wiki provides the canonical CA task id; the tracker uses it to read the
 		// bit-packed CA_TASK_COMPLETED varplayers. -1 = unknown.
@@ -1100,19 +1100,19 @@ public class GoalPlannerPlugin extends Plugin
 	 */
 	/**
 	 * Pre-create the canonical system tags so the Tag Management dialog has
-	 * something to display before any goals are added. Idempotent —
+	 * something to display before any goals are added. Idempotent -
 	 * findOrCreateSystemTag is a no-op if the tag already exists.
 	 *
 	 * <p>Seeded set:
 	 * <ul>
 	 *   <li>One SKILLING tag per Skill enum value (Attack, Strength, ..., Sailing)
-	 *       — these are the read-only "skill tags" used for icon-based filtering</li>
-	 *   <li>"Pet" in the OTHER category with a pink color override —
+	 *       - these are the read-only "skill tags" used for icon-based filtering</li>
+	 *   <li>"Pet" in the OTHER category with a pink color override -
 	 *       canonical pet collection tag</li>
 	 * </ul>
 	 *
 	 * <p>Other system tags (per-monster Boss/Raid, per-item source tags) are still
-	 * created lazily by {@code findOrCreateSystemTag} as goals are added — the
+	 * created lazily by {@code findOrCreateSystemTag} as goals are added - the
 	 * universe is too large to pre-seed.
 	 */
 	private void seedCanonicalSystemTags()
@@ -1152,7 +1152,7 @@ public class GoalPlannerPlugin extends Plugin
 			}
 		}
 		// Pet: OTHER category with a per-tag pink color override. OTHER is the
-		// only category that supports per-tag colors — every
+		// only category that supports per-tag colors - every
 		// other category uses a category-wide color, but OTHER tags each
 		// carry their own. recolorTag is idempotent on the same value.
 		com.goalplanner.model.Tag pet = goalStore.findOrCreateSystemTag(
@@ -1166,7 +1166,7 @@ public class GoalPlannerPlugin extends Plugin
 
 	/**
 	 * Apply any one-shot category moves for system tags. Runs on every plugin
-	 * start but is idempotent — {@link GoalStore#recategorizeSystemTag} finds
+	 * start but is idempotent - {@link GoalStore#recategorizeSystemTag} finds
 	 * no source tag after the first successful migration and returns false.
 	 *
 	 * <p>Current migrations:
@@ -1265,9 +1265,9 @@ public class GoalPlannerPlugin extends Plugin
 				final String diaryMenuTarget = "<col=ff9040>" + areaDisplayName + "</col>";
 
 				// One TOP-LEVEL "Add Goal <Tier>" entry per tier, each opening
-				// straight into [Default + each user section] — one hover instead
+				// straight into [Default + each user section] - one hover instead
 				// of the old Add Goal ▸ Tier ▸ section double hop. Every leaf does
-				// a BARE add (no prereq auto-seeding) — organising/seeding is left
+				// a BARE add (no prereq auto-seeding) - organising/seeding is left
 				// to the panel's "Add requirements to this section". Inserting
 				// EASY→ELITE at index 1 stacks them Easy/Medium/Hard/Elite top to
 				// bottom, below the vanilla Open/Wiki entries.
@@ -1308,7 +1308,7 @@ public class GoalPlannerPlugin extends Plugin
 			// Quest list: right-click a row -> add Quest goal
 			boolean isQuestList = widgetGroupId == QUESTLIST_GROUP_ID
 				&& entry.getParam1() == QUESTLIST_LIST_WIDGET;
-			// Bulk quest actions — dev-only testing helpers, trigger on any right-click within the quest list pane.
+			// Bulk quest actions - dev-only testing helpers, trigger on any right-click within the quest list pane.
 			if (DEV_MODE && !bulkQuestMenuAdded && widgetGroupId == QUESTLIST_GROUP_ID)
 			{
 				bulkQuestMenuAdded = true;
@@ -1339,7 +1339,7 @@ public class GoalPlannerPlugin extends Plugin
 				}
 
 				// One "Add Goal" submenu: Default (auto-resolves + seeds prereqs into
-				// the default list) followed by each user section (bare add — use the
+				// the default list) followed by each user section (bare add - use the
 				// panel's "Add requirements to this section" to seed into a section).
 				// Replaces the old separate "Add Goal" + "Add to Section" entries.
 				net.runelite.api.Menu questAddSub = client.createMenuEntry(1)
@@ -1592,7 +1592,7 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		// Record the post-login stat burst for the seed gate before any
-		// early-return below — the burst arrives regardless of whether
+		// early-return below - the burst arrives regardless of whether
 		// tracking is currently suspended.
 		skillSyncGate.onStatChanged();
 		// Suspension window after a profile switch: the client's skill XP
@@ -1646,7 +1646,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * {@link StatChanged}, so a freshly-added or seeded "70 Agility" goal would
 	 * sit at 0 XP until the player next gains XP in some skill. Running on the
 	 * client thread (getSkillExperience is client-thread-only) populates them at
-	 * once. Idempotent — already-synced goals are no-ops.
+	 * once. Idempotent - already-synced goals are no-ops.
 	 */
 	private void refreshSkillGoalsNow()
 	{
@@ -1658,7 +1658,7 @@ public class GoalPlannerPlugin extends Plugin
 			updated |= accountTracker.checkGoals(goals);
 			flushIfUpdated(updated);
 			// Recompute "blocked by prereqs" badges (live skill/quest/account
-			// reads — client thread). If the set changed, rebuild the panel so
+			// reads - client thread). If the set changed, rebuild the panel so
 			// the badges update. Doesn't fire onGoalsChanged, so no refresh loop.
 			if (goalTrackerApi.recomputeBlockedRequirements())
 			{
@@ -1760,7 +1760,7 @@ public class GoalPlannerPlugin extends Plugin
 	}
 
 	// =====================================================================
-	// "Add to Section" — drop an in-game goal straight into a user section
+	// "Add to Section" - drop an in-game goal straight into a user section
 	// =====================================================================
 
 	/** The user's (non-built-in) sections, in panel order. Empty if none. */
@@ -1782,7 +1782,7 @@ public class GoalPlannerPlugin extends Plugin
 	 * gesture. The {@code bareAdd} supplier creates the goal (landing in the
 	 * default Incomplete) and returns its id; we then move it into the section,
 	 * where it stays put even when already complete (user sections keep their
-	 * completed goals inline). Seed-free — the user is curating exact goals.
+	 * completed goals inline). Seed-free - the user is curating exact goals.
 	 */
 	private void addToSection(String sectionId, Goal probe, String label,
 		java.util.function.Supplier<String> bareAdd)
@@ -1886,12 +1886,12 @@ public class GoalPlannerPlugin extends Plugin
 
 			if (sectionChanged)
 			{
-				// Goals moved between sections — need full rebuild
+				// Goals moved between sections - need full rebuild
 				goalTrackerApi.fireGoalsChanged();
 			}
 			else
 			{
-				// O(dirty) incremental card update — no full rebuild
+				// O(dirty) incremental card update - no full rebuild
 				javax.swing.SwingUtilities.invokeLater(() -> panel.refreshProgress(dirtyIds));
 			}
 		}

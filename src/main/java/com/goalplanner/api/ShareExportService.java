@@ -92,7 +92,7 @@ class ShareExportService
 	 * section export as that section (name + colour), goals from the default
 	 * plan as a {@code targetDefault} entry. A selection entirely within the
 	 * default plan stays a legacy loose-goals bundle, and one entirely within
-	 * a single user section stays a legacy section bundle — both on the v1
+	 * a single user section stays a legacy section bundle - both on the v1
 	 * wire so older plugin builds keep importing them; anything spanning
 	 * sections needs the v2 wire.
 	 */

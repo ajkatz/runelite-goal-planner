@@ -43,7 +43,7 @@ public class FormatUtilTest
 	public void testTruncate()
 	{
 		assertEquals("Hello", FormatUtil.truncate("Hello", 10));
-		assertEquals("Hello Wor…", FormatUtil.truncate("Hello World", 10));
+		assertEquals("Hello W...", FormatUtil.truncate("Hello World", 10));
 		assertEquals("", FormatUtil.truncate(null, 10));
 		assertEquals("A", FormatUtil.truncate("A", 1));
 	}

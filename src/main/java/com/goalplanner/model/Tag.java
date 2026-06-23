@@ -25,7 +25,7 @@ import lombok.Data;
  *
  * <p>The {@code colorRgb} field is a packed 0xRRGGBB user override; -1
  * means "use the category default color from {@link TagCategory#getColor()}".
- * Per-goal color overrides do not exist — recoloring a tag affects every
+ * Per-goal color overrides do not exist - recoloring a tag affects every
  * goal that references it.
  */
 @Data
@@ -72,7 +72,7 @@ public class Tag
 	 * If both lookups fail, the tag falls back to color rendering.
 	 *
 	 * <p>When an icon resolves successfully, it entirely replaces the colored
-	 * pill — color and icon are mutually exclusive at render time.
+	 * pill - color and icon are mutually exclusive at render time.
 	 */
 	private String iconKey;
 }

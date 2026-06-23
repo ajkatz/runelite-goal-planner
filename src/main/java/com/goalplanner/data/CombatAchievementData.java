@@ -15,7 +15,7 @@ public final class CombatAchievementData
 {
 	private CombatAchievementData() {}
 
-	// InterfaceID.CaTasks constants — CA_TASKS group = 715
+	// InterfaceID.CaTasks constants - CA_TASKS group = 715
 	public static final int GROUP_ID = 715;
 	public static final int TASKS_BACKGROUND = 46858249; // clicked row layer (param1)
 	public static final int TASKS_NAME = 46858250;

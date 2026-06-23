@@ -8,10 +8,10 @@ package com.goalplanner.api;
  *
  * <p>Operations exposed here are either:
  * <ul>
- *   <li><b>Layout-coupled</b> — section reorder, where ordering semantics are
+ *   <li><b>Layout-coupled</b> - section reorder, where ordering semantics are
  *       coupled to the panel layout (external plugins shouldn't shuffle the
  *       user's UI), or</li>
- *   <li><b>Destructive bulk ops</b> — clear-all, where exposure to external
+ *   <li><b>Destructive bulk ops</b> - clear-all, where exposure to external
  *       plugins is too dangerous</li>
  * </ul>
  */
@@ -20,7 +20,7 @@ public interface GoalPlannerInternalApi
 	/**
 	 * Move a goal within its current section. The new global index must be within
 	 * the goal's current section's bounds (cross-section moves are not supported by
-	 * this method — they require explicit section reassignment which is Phase 2).
+	 * this method - they require explicit section reassignment which is Phase 2).
 	 *
 	 * @return true if the move happened, false if newGlobalIndex is out of bounds
 	 *         or the goal doesn't exist
@@ -97,7 +97,7 @@ public interface GoalPlannerInternalApi
 
 	/**
 	 * Flip a section's collapsed state. Convenience over {@link #setSectionCollapsed}
-	 * — callers don't need to know the current state.
+	 * - callers don't need to know the current state.
 	 *
 	 * @return the new collapsed state (true = now collapsed, false = now expanded);
 	 *         returns the unchanged state if the section doesn't exist
@@ -107,7 +107,7 @@ public interface GoalPlannerInternalApi
 	/**
 	 * Set a section's per-section override for the nested ("Indent dependencies")
 	 * view: {@code null} = follow the global default, {@code TRUE} = always
-	 * nested, {@code FALSE} = never nested. View preference only — does not alter
+	 * nested, {@code FALSE} = never nested. View preference only - does not alter
 	 * goal data.
 	 *
 	 * @return true if the override changed, false if no such section or already in
@@ -154,7 +154,7 @@ public interface GoalPlannerInternalApi
 	/**
 	 * Delete a user-defined section AND the goals in it (a section owns its
 	 * goals). Completed goals previously archived out of the section are kept
-	 * as plain history. Built-in sections cannot be deleted. Undoable — one
+	 * as plain history. Built-in sections cannot be deleted. Undoable - one
 	 * undo restores the section, its goals, and their dependency edges.
 	 *
 	 * @return true if deleted, false if not found or built-in
@@ -196,7 +196,7 @@ public interface GoalPlannerInternalApi
 	 * Delete all user-defined sections in one shot. Goals belonging to deleted
 	 * sections are reassigned to the end of Incomplete (reconcile then pulls
 	 * any completed ones to Completed). Built-in sections are preserved.
-	 * Idempotent — safe to call when no user sections exist.
+	 * Idempotent - safe to call when no user sections exist.
 	 *
 	 * @return number of sections deleted
 	 */
@@ -233,7 +233,7 @@ public interface GoalPlannerInternalApi
 	void setAutoArchiveDefault(boolean value);
 
 	/**
-	 * Set a goal's background color override. Works on all goal types —
+	 * Set a goal's background color override. Works on all goal types -
 	 * the override survives rebuilds because it's persisted on the goal model.
 	 * Pass -1 to clear the override and revert to the GoalType default color.
 	 *
@@ -273,7 +273,7 @@ public interface GoalPlannerInternalApi
 	 *   <li>If the new value meets target and the goal was NOT complete,
 	 *       stamps {@code completedAt} and sets status to COMPLETE.</li>
 	 *   <li>If the new value is below target and the goal WAS complete
-	 *       (rare — happens on custom toggle or target change), clears
+	 *       (rare - happens on custom toggle or target change), clears
 	 *       {@code completedAt} and reverts status to ACTIVE.</li>
 	 * </ul>
 	 *
@@ -289,7 +289,7 @@ public interface GoalPlannerInternalApi
 	boolean recordGoalProgress(String goalId, int newValue);
 
 	// ---------------------------------------------------------------------
-	// Selection (Phase 5) — ephemeral, not persisted
+	// Selection (Phase 5) - ephemeral, not persisted
 	// ---------------------------------------------------------------------
 
 	/**
@@ -384,7 +384,7 @@ public interface GoalPlannerInternalApi
 	 *   <li>The title of the section the goal belongs to</li>
 	 * </ul>
 	 *
-	 * <p>An empty or null query returns every goal in canonical order — this
+	 * <p>An empty or null query returns every goal in canonical order - this
 	 * matches {@link #queryAllGoals()} and lets the UI use one render path.
 	 *
 	 * @param query free-text search; null/blank returns all goals
@@ -397,7 +397,7 @@ public interface GoalPlannerInternalApi
 	// ---------------------------------------------------------------------
 
 	/**
-	 * True if the goal has diverged from its defaults — either its tagIds set
+	 * True if the goal has diverged from its defaults - either its tagIds set
 	 * differs from defaultTagIds, or it has a custom color override. Used to
 	 * gate the (single + bulk) Restore Defaults menu items.
 	 */
@@ -495,7 +495,7 @@ public interface GoalPlannerInternalApi
 
 	/**
 	 * Delete a tag entity. Cascades to remove the reference from every goal.
-	 * System tags cannot be deleted (returns false) — they're auto-attached
+	 * System tags cannot be deleted (returns false) - they're auto-attached
 	 * by goal creation flows.
 	 *
 	 * @return true if deleted, false on: not found or system tag
@@ -504,7 +504,7 @@ public interface GoalPlannerInternalApi
 
 	/**
 	 * Set a per-category color override. Affects every tag in
-	 * the given category. SKILLING is read-only (returns false) — skill icon
+	 * the given category. SKILLING is read-only (returns false) - skill icon
 	 * tags ignore the category color anyway.
 	 *
 	 * @param categoryName one of the TagCategory enum names (excluding SKILLING)
@@ -578,7 +578,7 @@ public interface GoalPlannerInternalApi
 	 * the id of the goal that now satisfies the template (either an
 	 * existing one that matched structurally, or a newly-created seed).
 	 * {@code wasCreated} distinguishes the two cases so callers can build
-	 * the correct undo inverse — link-only if false, delete-seed-plus-link
+	 * the correct undo inverse - link-only if false, delete-seed-plus-link
 	 * if true.
 	 */
 	final class FindOrCreateResult
@@ -600,7 +600,7 @@ public interface GoalPlannerInternalApi
 	 * their dependents follow after.
 	 *
 	 * <p>Only edges where BOTH endpoints are in the section are considered
-	 * for ordering — cross-section requirements are still visible in the
+	 * for ordering - cross-section requirements are still visible in the
 	 * hover tooltip but don't affect the sort. This matches the design
 	 * decision from the relation Q&amp;A: topo sort is per-section.
 	 *
@@ -631,7 +631,7 @@ public interface GoalPlannerInternalApi
 	 * <p>If a new seed is created, it's marked {@code autoSeeded=true} for
 	 * the future absorption rule (session 2) and added to the store in the
 	 * specified section (or Incomplete if {@code preferredSectionId} is
-	 * null). Undoable — link-only on existing match, or compound (create +
+	 * null). Undoable - link-only on existing match, or compound (create +
 	 * link) on no-match.
 	 *
 	 * @param template           a Goal object describing WHAT the caller needs;
@@ -653,7 +653,7 @@ public interface GoalPlannerInternalApi
 	 * {@link com.goalplanner.data.QuestRequirementResolver#resolve(net.runelite.api.Quest,
 	 * net.runelite.api.Client)}. Exists on the internal API so plugin-side
 	 * consumers route quest-requirement queries through the same choke
-	 * point as every other mutation — keeps the plugin code free of
+	 * point as every other mutation - keeps the plugin code free of
 	 * direct references to the data layer and lets future behavioral
 	 * changes (caching, filtering, pluggable data source) live in one
 	 * place.
@@ -665,7 +665,7 @@ public interface GoalPlannerInternalApi
 	 *
 	 * @param quest the quest to look up; may be null (returns an empty
 	 *              {@code Resolved})
-	 * @return an always-non-null {@code Resolved} — empty when the quest
+	 * @return an always-non-null {@code Resolved} - empty when the quest
 	 *         is null, not in the data table, or the player already meets
 	 *         every requirement
 	 */

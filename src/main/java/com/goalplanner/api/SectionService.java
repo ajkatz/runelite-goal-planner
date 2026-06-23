@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Encapsulates section-management methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class SectionService
@@ -42,7 +42,7 @@ class SectionService
 			@Override public boolean revert()
 			{
 				// Undoing "create" must not destroy goals the user has since
-				// put in the section — relocate them, then drop the (empty)
+				// put in the section - relocate them, then drop the (empty)
 				// section. deleteUserSection itself deletes a section's goals.
 				api.goalStore.evacuateSectionToIncomplete(sectionId);
 				return api.goalStore.deleteUserSection(sectionId);
@@ -80,7 +80,7 @@ class SectionService
 		final Boolean nestedOverride = sec.getNestedOverride();
 		final Boolean autoArchiveOverride = sec.getAutoArchiveOverride();
 		// Completed goals archived OUT of this section live in Completed and
-		// survive either path, but the delete clears their home memory —
+		// survive either path, but the delete clears their home memory -
 		// snapshot the ids so undo can restore the link.
 		final java.util.List<String> archivedOutIds = new ArrayList<>();
 		for (Goal g : api.goalStore.getGoals())
@@ -108,7 +108,7 @@ class SectionService
 				{
 					recreateSection(sectionId, name, order, colorRgb, nestedOverride, autoArchiveOverride);
 					// moveGoalToSection pins completed goals inline in the
-					// destination — matching their pre-delete placement.
+					// destination - matching their pre-delete placement.
 					for (String gid : displacedGoalIds)
 					{
 						api.goalStore.moveGoalToSection(gid, sectionId);
@@ -444,7 +444,7 @@ class SectionService
 				// Reconcile both directions: archive existing completed goals out
 				// if this is now auto-archive, OR pull previously-archived goals
 				// back inline if it's now keep-inline. (Like auto-completion, the
-				// relocation itself isn't separately undoable — revert restores
+				// relocation itself isn't separately undoable - revert restores
 				// just the flag.)
 				api.goalStore.reconcileCompletedSection();
 				api.goalStore.save();

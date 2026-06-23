@@ -18,7 +18,7 @@ import java.awt.geom.Path2D;
  *
  * Visual treatment is OSRS sprite-inspired: a four-tone bevel with a dark
  * outline, a base fill, a brighter top/left highlight, and a subtle drop
- * shadow underneath. It's chunky on purpose — feels at home next to RuneLite.
+ * shadow underneath. It's chunky on purpose - feels at home next to RuneLite.
  */
 public final class ShapeIcons
 {
@@ -42,37 +42,37 @@ public final class ShapeIcons
 		return new TriangleIcon(size, color, Direction.RIGHT);
 	}
 
-	/** "Close" / X icon — beveled diagonals like an OSRS UI button. */
+	/** "Close" / X icon - beveled diagonals like an OSRS UI button. */
 	public static Icon closeX(int size, Color color)
 	{
 		return new CloseIcon(size, color);
 	}
 
-	/** "Add" / + icon — axis-aligned bevel cross, matches the closeX styling. */
+	/** "Add" / + icon - axis-aligned bevel cross, matches the closeX styling. */
 	public static Icon plus(int size, Color color)
 	{
 		return new PlusIcon(size, color);
 	}
 
-	/** "Remove all" / minus icon — single horizontal bevel bar, matches plus styling. */
+	/** "Remove all" / minus icon - single horizontal bevel bar, matches plus styling. */
 	public static Icon minus(int size, Color color)
 	{
 		return new MinusIcon(size, color);
 	}
 
-	/** Price-tag silhouette — diagonal point on the left, eyelet hole, beveled body. */
+	/** Price-tag silhouette - diagonal point on the left, eyelet hole, beveled body. */
 	public static Icon tag(int size, Color color)
 	{
 		return new TagIcon(size, color);
 	}
 
-	/** Curved undo arrow — left-facing hook. */
+	/** Curved undo arrow - left-facing hook. */
 	public static Icon undoArrow(int size, Color color)
 	{
 		return new UndoArrow(size, color, true);
 	}
 
-	/** Curved redo arrow — right-facing hook (mirror of undo). */
+	/** Curved redo arrow - right-facing hook (mirror of undo). */
 	public static Icon redoArrow(int size, Color color)
 	{
 		return new UndoArrow(size, color, false);
@@ -84,19 +84,19 @@ public final class ShapeIcons
 		return new MoreDotsIcon(size, color);
 	}
 
-	/** Empty checkbox outline — "select all" affordance. */
+	/** Empty checkbox outline - "select all" affordance. */
 	public static Icon checkboxEmpty(int size, Color color)
 	{
 		return new CheckboxIcon(size, color, false);
 	}
 
-	/** Ticked checkbox — "unselect all" affordance (everything already selected). */
+	/** Ticked checkbox - "unselect all" affordance (everything already selected). */
 	public static Icon checkboxChecked(int size, Color color)
 	{
 		return new CheckboxIcon(size, color, true);
 	}
 
-	/** Warning triangle with an exclamation — the "blocked by prereqs" badge. */
+	/** Warning triangle with an exclamation - the "blocked by prereqs" badge. */
 	public static Icon warning(int size, Color color)
 	{
 		return new WarningIcon(size, color);
@@ -151,7 +151,7 @@ public final class ShapeIcons
 
 				Path2D body = trianglePath(x, y, size, dir);
 
-				// Drop shadow — same shape, offset 1px down/right, semi-transparent
+				// Drop shadow - same shape, offset 1px down/right, semi-transparent
 				Path2D shadow = trianglePath(x + 1, y + 1, size, dir);
 				g2.setColor(new Color(0, 0, 0, 110));
 				g2.fill(shadow);
@@ -160,12 +160,12 @@ public final class ShapeIcons
 				g2.setColor(color);
 				g2.fill(body);
 
-				// Top/leading-edge highlight — partial stroke along the brightest edge
+				// Top/leading-edge highlight - partial stroke along the brightest edge
 				g2.setColor(lighten(color, 60));
 				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				drawHighlightEdge(g2, x, y, size, dir);
 
-				// Outline — dark border for chunky OSRS feel
+				// Outline - dark border for chunky OSRS feel
 				g2.setColor(darken(color, 90));
 				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.draw(body);
@@ -356,25 +356,25 @@ public final class ShapeIcons
 				int x1 = x + pad, y1 = y + pad;
 				int x2 = x + size - pad, y2 = y + size - pad;
 
-				// Drop shadow — diagonals offset 1px
+				// Drop shadow - diagonals offset 1px
 				g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.setColor(new Color(0, 0, 0, 130));
 				g2.drawLine(x1 + 1, y1 + 1, x2 + 1, y2 + 1);
 				g2.drawLine(x2 + 1, y1 + 1, x1 + 1, y2 + 1);
 
-				// Outline — slightly thicker dark stroke
+				// Outline - slightly thicker dark stroke
 				g2.setStroke(new BasicStroke(2.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.setColor(darken(color, 100));
 				g2.drawLine(x1, y1, x2, y2);
 				g2.drawLine(x2, y1, x1, y2);
 
-				// Base color stroke on top — slightly thinner so the dark outline shows
+				// Base color stroke on top - slightly thinner so the dark outline shows
 				g2.setStroke(new BasicStroke(1.4f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.setColor(color);
 				g2.drawLine(x1, y1, x2, y2);
 				g2.drawLine(x2, y1, x1, y2);
 
-				// Highlight — thin bright stroke along the upper edges of the diagonals
+				// Highlight - thin bright stroke along the upper edges of the diagonals
 				g2.setStroke(new BasicStroke(0.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.setColor(lighten(color, 80));
 				g2.drawLine(x1, y1, x1 + 2, y1 + 2);
@@ -524,7 +524,7 @@ public final class ShapeIcons
 				g2.setStroke(new BasicStroke(1.0f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
 				g2.draw(body);
 
-				// Eyelet hole — small circle just inside the body near the point
+				// Eyelet hole - small circle just inside the body near the point
 				int holeR = Math.max(1, s / 6);
 				int holeCx = bodyLeft + holeR + 1;
 				int holeCy = midY;
@@ -548,7 +548,7 @@ public final class ShapeIcons
 		@Override public int getIconHeight() { return size + 2; }
 	}
 
-	/** Three horizontal dots — universal "more options" glyph. */
+	/** Three horizontal dots - universal "more options" glyph. */
 	private static final class MoreDotsIcon implements Icon
 	{
 		private final int size;
@@ -596,7 +596,7 @@ public final class ShapeIcons
 		@Override public int getIconHeight() { return size + 1; }
 	}
 	/**
-	 * Square checkbox, empty or ticked — same four-tone bevel treatment as the
+	 * Square checkbox, empty or ticked - same four-tone bevel treatment as the
 	 * other glyphs. Used as the section-header select-all/unselect-all toggle.
 	 */
 	private static final class CheckboxIcon implements Icon

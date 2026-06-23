@@ -28,10 +28,10 @@ import java.util.List;
  * <p>Extracted to stop drift between the two dialogs. An earlier
  * version had the SKILLING filter applied in only one of them, which
  * silently blocked skill tag attachment on single goals while allowing
- * it in bulk — the kind of bug this class exists to prevent.
+ * it in bulk - the kind of bug this class exists to prevent.
  *
  * <p>The dialog is strictly a picker: it collects a (category, label) pair
- * from the user and returns it. It does NOT mutate any goals — callers
+ * from the user and returns it. It does NOT mutate any goals - callers
  * decide whether to apply the result to a single goal, a selection, or
  * something else, and they own the compound-undo wrapping if applicable.
  */
@@ -78,7 +78,7 @@ public final class TagPickerDialog
 		gbc.gridx = 0; gbc.gridy = 0; gbc.fill = GridBagConstraints.NONE; gbc.weightx = 0;
 		tagPanel.add(catLabel, gbc);
 
-		// All categories. SKILLING is system-only — the dropdown below locks
+		// All categories. SKILLING is system-only - the dropdown below locks
 		// to non-editable when SKILLING is picked so users can only attach
 		// an existing seeded skill tag. The downstream API layer
 		// (addTagWithCategory) also enforces this, but the UI gate avoids
@@ -109,7 +109,7 @@ public final class TagPickerDialog
 		tagPanel.add(nameLabel, gbc);
 
 		JComboBox<String> dropdownField = new JComboBox<>();
-		JTextField freeField = new JTextField(15); // kept for layout symmetry — not currently shown
+		JTextField freeField = new JTextField(15); // kept for layout symmetry - not currently shown
 		JPanel fieldSwap = new JPanel(new CardLayout());
 		fieldSwap.add(dropdownField, "DROPDOWN");
 		fieldSwap.add(freeField, "FREEFORM");
@@ -119,7 +119,7 @@ public final class TagPickerDialog
 		// Populate the dropdown with existing tags in the selected category.
 		// The combo is editable for non-SKILLING categories so the user can
 		// type a new label (find-or-create downstream). For SKILLING it's
-		// locked to the existing seeded set — you can attach a skill tag to
+		// locked to the existing seeded set - you can attach a skill tag to
 		// a goal but you can't create new ones.
 		Runnable updateField = () ->
 		{

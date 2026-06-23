@@ -16,7 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Individual goal card. Consumes a {@link GoalView} (the public DTO) — does not
+ * Individual goal card. Consumes a {@link GoalView} (the public DTO) - does not
  * touch the internal {@code Goal} model directly. The panel obtains GoalViews
  * via {@code GoalPlannerApi.queryAllGoals()} so the read path is the same one
  * external consumer plugins use.
@@ -49,7 +49,7 @@ public class GoalCard extends JPanel
 	 * so completed cards show the same visual identity that the plugin
 	 * navigation button uses. Loaded once at first use; null if the
 	 * resource can't be read (in which case completed cards render
-	 * without the right-side icon — no fallback glyph).
+	 * without the right-side icon - no fallback glyph).
 	 */
 	private static volatile ImageIcon completionIcon;
 
@@ -94,7 +94,7 @@ public class GoalCard extends JPanel
 		this.spriteManager = spriteManager;
 		this.itemManager = itemManager;
 
-		// Tags render on completed cards too — completed goals are first-class
+		// Tags render on completed cards too - completed goals are first-class
 		// section members now (movable, duplicable, taggable), so their tags show
 		// the same as active goals.
 		List<TagView> allTags = combinedTags(view);
@@ -185,7 +185,7 @@ public class GoalCard extends JPanel
 		}
 		else
 		{
-			// Completion marker — render the plugin's sidebar icon
+			// Completion marker - render the plugin's sidebar icon
 			// scaled small on the right edge. Signals "done" with the
 			// plugin's own visual identity rather than a generic check.
 			ImageIcon icon = loadCompletionIcon();
@@ -631,7 +631,7 @@ public class GoalCard extends JPanel
 	/**
 	 * Truncate {@code text} to fit within {@code maxPx} pixels using the given
 	 * font, appending an ellipsis when truncation is needed. Uses
-	 * {@link FontMetrics#stringWidth} for accurate per-glyph width — replaces
+	 * {@link FontMetrics#stringWidth} for accurate per-glyph width - replaces
 	 * char-count truncation which double-clipped wide CA titles.
 	 */
 	/** Throwaway component used solely to obtain FontMetrics in a label-independent
@@ -645,7 +645,7 @@ public class GoalCard extends JPanel
 		if (text == null || text.isEmpty()) return text;
 		FontMetrics fm = FONT_METRICS_CANVAS.getFontMetrics(font);
 		if (fm.stringWidth(text) <= maxPx) return text;
-		String ellipsis = "\u2026";
+		String ellipsis = "...";
 		int ellipsisWidth = fm.stringWidth(ellipsis);
 		int budget = maxPx - ellipsisWidth;
 		if (budget <= 0) return ellipsis;
@@ -661,7 +661,7 @@ public class GoalCard extends JPanel
 		return sb.toString().trim() + ellipsis;
 	}
 
-	// Measurement fonts for truncation — resolved through PanelFonts so they track
+	// Measurement fonts for truncation - resolved through PanelFonts so they track
 	// the configured family + size scale (and stay in sync with the rendered labels).
 	private static Font nameFont()
 	{
@@ -698,7 +698,7 @@ public class GoalCard extends JPanel
 				int targetLevel = Math.max(1, net.runelite.api.Experience.getLevelForXp(
 					Math.max(0, view.targetValue)));
 				// Prefix target level so the card reads "99 Strength" rather than just
-				// "Strength" — matches the ITEM_GRIND pattern ("200x Cannonballs") and
+				// "Strength" - matches the ITEM_GRIND pattern ("200x Cannonballs") and
 				// keeps the completed-state label meaningful once line 2 is replaced
 				// with the completion date.
 				line1 = fitName(targetLevel + " " + skillDisplay);
@@ -707,7 +707,7 @@ public class GoalCard extends JPanel
 			case "ITEM_GRIND":
 				// Prepend target qty so the display reads "200x Cannonballs"
 				// instead of just "Cannonballs". Skip the prefix when target is
-				// 1 (e.g. "Jar of Miasma" not "1x Jar of Miasma" — uniques read
+				// 1 (e.g. "Jar of Miasma" not "1x Jar of Miasma" - uniques read
 				// more naturally without the qty marker).
 				String itemTitle = view.targetValue > 1
 					? FormatUtil.formatNumber(view.targetValue) + "x " + view.name
@@ -756,7 +756,7 @@ public class GoalCard extends JPanel
 			// BOSS cards normally show just "Barrows" in the title with
 			// "50 kills" in the description. Replacing the description
 			// with the completion date drops the target KC, so prepend
-			// it to the title on completion ("50x Barrows") — matches
+			// it to the title on completion ("50x Barrows") - matches
 			// the ITEM_GRIND pattern and keeps the target count visible.
 			String type = view.type == null ? "CUSTOM" : view.type;
 			if ("BOSS".equals(type) && view.targetValue > 0)
@@ -796,7 +796,7 @@ public class GoalCard extends JPanel
 			return "";
 		}
 		// Combat achievements, quests, and diaries are binary; no progress shown
-		// until complete (handled above — empty status, goal_icon.png marks done).
+		// until complete (handled above - empty status, goal_icon.png marks done).
 		if ("COMBAT_ACHIEVEMENT".equals(type) || "QUEST".equals(type) || "DIARY".equals(type))
 		{
 			return "";
@@ -806,7 +806,7 @@ public class GoalCard extends JPanel
 			return "?";
 		}
 		// Hide the percentage on item goals until you actually have at least
-		// one of the item — "0%" reads as noise on a fresh goal.
+		// one of the item - "0%" reads as noise on a fresh goal.
 		if ("ITEM_GRIND".equals(type) && view.currentValue <= 0)
 		{
 			return "";

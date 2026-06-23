@@ -104,7 +104,7 @@ public class TagManagementDialog extends JDialog
 
 		List<TagView> allTags = api.queryAllTags();
 
-		// All tab — combined view, sorted by category then user-first then label
+		// All tab - combined view, sorted by category then user-first then label
 		List<TagView> sortedAll = new java.util.ArrayList<>(allTags);
 		sortedAll.sort((a, b) -> {
 			int catCompare = a.category.compareTo(b.category);
@@ -155,7 +155,7 @@ public class TagManagementDialog extends JDialog
 
 		// Category color header. Skipped for the All tab and the
 		// OTHER tab (which uses per-tag colors instead). SKILLING DOES get
-		// the header — system skill tags render as icons (color ignored) but
+		// the header - system skill tags render as icons (color ignored) but
 		// user-created SKILLING tags fall through to colored pills where the
 		// category color applies.
 		if (category != null && category != TagCategory.OTHER && category != TagCategory.SKILLING)
@@ -388,7 +388,7 @@ public class TagManagementDialog extends JDialog
 		gbc.gridx = 0; gbc.gridy = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0;
 		form.add(catLbl, gbc);
 
-		// SKILLING is excluded — skill tags are seeded by the plugin and
+		// SKILLING is excluded - skill tags are seeded by the plugin and
 		// users can't create new ones.
 		java.util.List<TagCategory> catList = new java.util.ArrayList<>();
 		for (TagCategory c : TagCategory.values())

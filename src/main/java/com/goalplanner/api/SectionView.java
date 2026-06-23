@@ -15,7 +15,7 @@ public class SectionView
 	 */
 	public String kind;
 	/**
-	 * Current section color — user override if set, else the neutral default.
+	 * Current section color - user override if set, else the neutral default.
 	 * Packed as 0xRRGGBB.
 	 */
 	public int colorRgb;
@@ -35,7 +35,7 @@ public class SectionView
 	/**
 	 * Per-section override for the nested ("Indent dependencies") view:
 	 * {@code null} = follow the global default, {@code TRUE} = always nested,
-	 * {@code FALSE} = never nested. View preference only — no effect on goal data.
+	 * {@code FALSE} = never nested. View preference only - no effect on goal data.
 	 */
 	public Boolean nestedOverride;
 }

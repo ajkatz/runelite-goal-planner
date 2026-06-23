@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
  *
  * <p>The previous version of this class held
  * persisted color overrides and was embedded in {@code Goal.tags}. That
- * model is gone — tags are now first-class entities. This class exists
+ * model is gone - tags are now first-class entities. This class exists
  * solely as a value type for the data layer.
  */
 @Data

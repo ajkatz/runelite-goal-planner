@@ -38,7 +38,10 @@ public final class FormatUtil
 	{
 		if (text == null) return "";
 		if (text.length() <= maxLen) return text;
-		return text.substring(0, maxLen - 1) + "\u2026";
+		// Reserve 3 chars for the ASCII "..." so the result stays within maxLen
+		// (a 1-char "…" would render as tofu on macOS Tahoe — see check_glyphs).
+		if (maxLen <= 3) return text.substring(0, maxLen);
+		return text.substring(0, maxLen - 3) + "...";
 	}
 
 	/**

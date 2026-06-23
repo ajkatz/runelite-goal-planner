@@ -44,7 +44,7 @@ public final class PanelFonts
 		return derive(Font.PLAIN, size);
 	}
 
-	/** Restyle at the base size (scaled) — for call sites that only changed style. */
+	/** Restyle at the base size (scaled) - for call sites that only changed style. */
 	public static Font derive(int style)
 	{
 		return base.deriveFont(style, base.getSize2D() * scale);

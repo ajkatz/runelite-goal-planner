@@ -4,8 +4,8 @@ package com.goalplanner.command;
  * A reversible user action on the goal tracker.
  *
  * <p>Commands carry the state needed to revert themselves at construction
- * time — typically a snapshot of "before" values plus the parameters of the
- * action — so applying the command does not depend on any external state
+ * time - typically a snapshot of "before" values plus the parameters of the
+ * action - so applying the command does not depend on any external state
  * that may have changed by the time {@link #revert()} runs.
  *
  * <p>Both {@link #apply()} and {@link #revert()} return a boolean. False
@@ -18,7 +18,7 @@ package com.goalplanner.command;
  * undo/redo button tooltip ("Undo: Add goal 'Vorkath KC'").
  *
  * <p>Tracker-driven mutations (XP gain, quest tick, item count change) do
- * NOT go through Command — they call the underlying store mutation
+ * NOT go through Command - they call the underlying store mutation
  * primitives directly so they never appear in undo history.
  */
 public interface Command

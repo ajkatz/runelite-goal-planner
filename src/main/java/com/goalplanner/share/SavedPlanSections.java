@@ -18,7 +18,7 @@ public final class SavedPlanSections
 
 	/**
 	 * The section names this bundle would import as, parallel to
-	 * {@link ShareBundle#effectiveSections()}. An entry may be {@code null} — a
+	 * {@link ShareBundle#effectiveSections()}. An entry may be {@code null} - a
 	 * loose-goals bundle has no section name until one is assigned.
 	 */
 	public static List<String> sectionNamesOf(ShareBundle bundle)

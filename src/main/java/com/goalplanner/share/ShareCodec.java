@@ -21,7 +21,7 @@ import java.util.zip.GZIPOutputStream;
  * a copy/paste export.
  *
  * <p>Gzip matters because goal data is highly repetitive (enum names, level
- * targets) and chat clients cap message size — compression keeps a
+ * targets) and chat clients cap message size - compression keeps a
  * typical section inside a single message.
  *
  * <p>Takes an injected {@link Gson}; the plugin hub rejects {@code new Gson()},
@@ -32,7 +32,7 @@ public final class ShareCodec
 	/** Magic marker + schema version (current, multi-section). */
 	static final String PREFIX_V2 = "GPSHARE" + ShareBundle.SCHEMA_VERSION + ":";
 
-	/** Legacy single-section marker — still decoded, and still emitted for
+	/** Legacy single-section marker - still decoded, and still emitted for
 	 *  plain single-section bundles so older plugin builds can import them. */
 	static final String PREFIX = "GPSHARE" + ShareBundle.SCHEMA_VERSION_V1 + ":";
 
@@ -90,7 +90,7 @@ public final class ShareCodec
 		wire.setSectionColorRgb(only.getColorRgb());
 		wire.setGoals(only.getGoals());
 		wire.setSections(null);
-		wire.setCrossEdges(null); // single section — nothing to cross
+		wire.setCrossEdges(null); // single section - nothing to cross
 		return wire;
 	}
 
@@ -106,8 +106,8 @@ public final class ShareCodec
 		{
 			throw new ShareFormatException("empty share code");
 		}
-		// The code may be embedded in surrounding instruction text — e.g. a
-		// "get the plugin to import this: <code>" chat/Discord line — so locate
+		// The code may be embedded in surrounding instruction text - e.g. a
+		// "get the plugin to import this: <code>" chat/Discord line - so locate
 		// the marker and read the base64url token that follows it, rather than
 		// requiring the code to sit alone. v2 is checked first; both decode.
 		String prefix = PREFIX_V2;

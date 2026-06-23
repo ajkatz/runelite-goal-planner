@@ -19,9 +19,9 @@ import java.util.Map;
  * Maps item IDs to their drop sources (boss / raid / clue / minigame), used to
  * auto-seed source tags on collection-log item goals.
  *
- * <p>The data — 3,785 (itemId, source, category) rows covering inventory,
+ * <p>The data - 3,785 (itemId, source, category) rows covering inventory,
  * noted, collection-log, and follower item variants, generated from the OSRS
- * Wiki Collection Log — lives in the {@code item-sources.tsv} resource beside
+ * Wiki Collection Log - lives in the {@code item-sources.tsv} resource beside
  * this class rather than inline, and is loaded once into {@link #SOURCES} on
  * class init. Format: {@code itemId<TAB>label<TAB>TagCategory} per line.
  */
@@ -59,7 +59,7 @@ public final class ItemSourceData
 					{
 						continue;
 					}
-					// itemId \t label \t category — labels never contain tabs.
+					// itemId \t label \t category - labels never contain tabs.
 					int t1 = line.indexOf('\t');
 					int t2 = line.indexOf('\t', t1 + 1);
 					int itemId = Integer.parseInt(line.substring(0, t1));

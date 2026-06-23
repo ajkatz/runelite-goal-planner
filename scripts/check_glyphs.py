@@ -21,11 +21,21 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Symbol glyphs known to tofu on macOS Tahoe's Swing font fallback.
-BAD_CHARS = set("→←↑↓↔•◦‣⁃▶▼◀▲▸◂▾▴⋯☰≡")
-BAD_ENTITIES = ["&rarr;", "&larr;", "&uarr;", "&darr;", "&bull;", "&middot;"]
+# Symbol + General-Punctuation glyphs known/suspected to tofu on macOS Tahoe's
+# Swing font fallback. Keep UI/chat strings to ASCII: '->' '-' '...' '|' etc.
+BAD_CHARS = set(
+	"→←↑↓↔•◦‣⁃▶▼◀▲▸◂▾▴⋯☰≡"  # arrows, bullets, triangles, midline ellipsis
+	"…—–·‘’“”"               # ellipsis, em/en dash, middle dot, smart quotes
+)
+BAD_ENTITIES = ["&rarr;", "&larr;", "&uarr;", "&darr;", "&bull;", "&middot;",
+				"&hellip;", "&mdash;", "&ndash;", "&lsquo;", "&rsquo;", "&ldquo;", "&rdquo;"]
 STRING_LITERAL = re.compile(r'"((?:[^"\\]|\\.)*)"')
 LOG_CALL = re.compile(r'\blog\.\w+\(')
+# Same glyphs written as Java \uXXXX escapes (e.g. "Options…") render the
+# same tofu at runtime but are pure ASCII in source, so match them too.
+BAD_ESCAPE = re.compile(
+	r'\\u(' + '|'.join(sorted({f"{ord(c):04x}" for c in BAD_CHARS})) + r')',
+	re.IGNORECASE)
 
 # ASCII replacements to suggest.
 HINT = "use ASCII: '->' for arrows, '-'/'*' for bullets, '...' for ellipsis, or a ShapeIcon"
@@ -43,6 +53,7 @@ def main() -> int:
                 continue
             found = sorted({c for c in text if c in BAD_CHARS})
             found += [e for e in BAD_ENTITIES if e in text]
+            found += sorted({"\\u" + m for m in BAD_ESCAPE.findall(text)})
             if found:
                 rel = os.path.relpath(path, ROOT)
                 hits.append((rel, num, "".join(found), stripped[:100]))

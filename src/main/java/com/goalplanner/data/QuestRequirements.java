@@ -15,8 +15,8 @@ import net.runelite.api.Skill;
 /**
  * Pre-defined quest → requirement associations.
  *
- * <p>Keyed on the RuneLite {@link Quest} enum — the same identity the
- * plugin uses in {@code Goal.questName} — so no string plumbing is
+ * <p>Keyed on the RuneLite {@link Quest} enum - the same identity the
+ * plugin uses in {@code Goal.questName} - so no string plumbing is
  * needed at the consumer. Consumed by the "Add Goal with Requirements"
  * flow in {@code GoalPlannerApiImpl.addQuestGoalWithPrereqs}, which
  * feeds each entry through {@code findOrCreateRequirement} inside a
@@ -73,7 +73,7 @@ public final class QuestRequirements
 
 	private static final Map<Quest, Reqs> TABLE = new EnumMap<>(Quest.class);
 
-	/** Miniquests — 0 QP, shorter, different description in the goal card. */
+	/** Miniquests - 0 QP, shorter, different description in the goal card. */
 	private static final java.util.Set<Quest> MINIQUESTS = java.util.EnumSet.noneOf(Quest.class);
 
 	/** The complete set of F2P quests, used to auto-tag quest goals. */
@@ -81,7 +81,7 @@ public final class QuestRequirements
 
 	// ============================================================
 	// XP reward tags: skills that a quest rewards XP in (fixed
-	// rewards only — choice lamps are excluded).
+	// rewards only - choice lamps are excluded).
 	// ============================================================
 	private static final Map<Quest, List<Skill>> XP_REWARDS = new EnumMap<>(Quest.class);
 
@@ -106,7 +106,7 @@ public final class QuestRequirements
 	private static final Map<Quest, Integer> RECOMMENDED_COMBAT = new EnumMap<>(Quest.class);
 
 	// ============================================================
-	// Display names — short labels for quests whose RuneLite enum
+	// Display names - short labels for quests whose RuneLite enum
 	// name is too long for tags or UI labels. Falls back to
 	// Quest.getName() when not overridden.
 	// ============================================================
@@ -133,7 +133,7 @@ public final class QuestRequirements
 	 *
 	 * @return the requirements, or {@code null} if this quest is not in
 	 *         the data table. A null return means "no data", not "no
-	 *         requirements" — an empty {@link Reqs} is used to express
+	 *         requirements" - an empty {@link Reqs} is used to express
 	 *         the latter (see {@link Quest#COOKS_ASSISTANT}).
 	 */
 	public static Reqs lookup(Quest quest)
@@ -165,7 +165,7 @@ public final class QuestRequirements
 
 	/**
 	 * Recommended combat level for a quest (wiki suggestion), or 0 if none.
-	 * Not a hard requirement — seeded as an optional goal.
+	 * Not a hard requirement - seeded as an optional goal.
 	 */
 	public static int recommendedCombatLevel(Quest quest)
 	{

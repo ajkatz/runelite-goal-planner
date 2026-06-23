@@ -8,7 +8,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Encapsulates relation (requirement/dependency) methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class RelationService
@@ -138,14 +138,14 @@ class RelationService
 			template == null ? null : template.getType());
 		if (template == null || template.getType() == null) return null;
 
-		// Structural match first — reuse an existing goal if one satisfies.
+		// Structural match first - reuse an existing goal if one satisfies.
 		Goal existing = api.goalStore.findMatchingGoal(template);
 		if (existing != null)
 		{
 			return new GoalPlannerInternalApi.FindOrCreateResult(existing.getId(), false);
 		}
 
-		// No match — create a seed goal from the template, marked autoSeeded.
+		// No match - create a seed goal from the template, marked autoSeeded.
 		Goal seed = Goal.builder()
 			.type(template.getType())
 			.name(template.getName())

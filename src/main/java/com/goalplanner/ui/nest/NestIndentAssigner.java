@@ -13,7 +13,7 @@ import java.util.Set;
  * it depends on, indented one level deeper, and the section is emitted in
  * pre-order (a parent immediately followed by its children).
  *
- * <p>Goals form a DAG, not a tree — a "diamond" goal can depend on several others
+ * <p>Goals form a DAG, not a tree - a "diamond" goal can depend on several others
  * (Quest Cape needs three quests; Grandmaster CA needs Quest Cape AND a cape).
  * Indentation can only nest a goal under <em>one</em> parent, so each goal is
  * placed under its <b>primary parent</b>: the in-section prerequisite with the
@@ -69,7 +69,7 @@ public final class NestIndentAssigner
 	 * Resolve a goal's visible prerequisites by following edges THROUGH hidden
 	 * nodes: a hidden prerequisite (e.g. a completed goal the caller filters
 	 * out of the outline) is replaced by its own visible prerequisites,
-	 * transitively — so A → B(hidden) → C still nests A under C instead of
+	 * transitively - so A → B(hidden) → C still nests A under C instead of
 	 * flattening A to a root. Cycle-safe via the visited set; result order
 	 * follows edge order (depth-first through hidden nodes).
 	 *
@@ -119,7 +119,7 @@ public final class NestIndentAssigner
 		Set<String> present = new HashSet<>();
 		for (Node n : nodes) present.add(n.id);
 
-		// 1) dependency depth (max over prereqs + 1) — used to choose the primary parent.
+		// 1) dependency depth (max over prereqs + 1) - used to choose the primary parent.
 		Map<String, Integer> depth = new HashMap<>();
 		for (Node n : nodes)
 		{

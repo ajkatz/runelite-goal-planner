@@ -11,7 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Encapsulates all tag-management methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class TagService
@@ -232,7 +232,7 @@ class TagService
 			return null;
 		}
 		// Use the same find-or-create semantics. If it already existed, no
-		// command — return existing id with no history entry.
+		// command - return existing id with no history entry.
 		Tag existing = api.goalStore.findTagByLabel(label != null ? label.trim() : "", category);
 		if (existing != null) return existing.getId();
 		Tag tag = api.goalStore.createUserTag(label, category);

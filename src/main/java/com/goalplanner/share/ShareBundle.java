@@ -6,13 +6,13 @@ import lombok.Data;
 
 /**
  * Transport-neutral payload for sharing a section or a set of goals with
- * another player who runs the plugin. Carries goal <em>definitions</em> only —
+ * another player who runs the plugin. Carries goal <em>definitions</em> only -
  * recipient-specific state (ids, progress, completion, section membership) is
  * stripped on export and regenerated on import, so imported goals track
  * against the recipient's own account.
  *
  * <p>Serialized via {@link ShareCodec}. The {@link #v} schema version lets the
- * decoder reject payloads from an incompatible plugin version up front — the
+ * decoder reject payloads from an incompatible plugin version up front - the
  * persistence/share format may still change before a stable 1.0.
  */
 @Data
@@ -22,7 +22,7 @@ public class ShareBundle
 	public static final int SCHEMA_VERSION = 2;
 
 	/** Legacy single-section schema version (still decoded and, for plain
-	 *  single-section bundles, still emitted — older plugin builds import it). */
+	 *  single-section bundles, still emitted - older plugin builds import it). */
 	public static final int SCHEMA_VERSION_V1 = 1;
 
 	/** What the bundle represents. */

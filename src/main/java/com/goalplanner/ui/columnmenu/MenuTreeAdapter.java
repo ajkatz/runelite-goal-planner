@@ -16,7 +16,7 @@ import java.util.List;
  * code without porting the menu-build logic to the new model.
  *
  * <p>Each leaf {@link JMenuItem}'s action listeners are wrapped in a
- * single Runnable that fires them with a synthesized ActionEvent —
+ * single Runnable that fires them with a synthesized ActionEvent -
  * preserves the existing menu's behavior verbatim.
  */
 public final class MenuTreeAdapter
@@ -78,13 +78,13 @@ public final class MenuTreeAdapter
 					item, ActionEvent.ACTION_PERFORMED, item.getActionCommand());
 				for (ActionListener l : listeners) l.actionPerformed(ev);
 			};
-			// Items can opt out of dismiss-on-click via this client property —
+			// Items can opt out of dismiss-on-click via this client property -
 			// useful for repeat-friendly actions like Move Up / Move Down.
 			Object keepOpen = item.getClientProperty(KEEP_OPEN_PROPERTY);
 			MenuNode leaf = Boolean.TRUE.equals(keepOpen)
 				? MenuNode.leafStaysOpen(item.getText(), action)
 				: MenuNode.leaf(item.getText(), action);
-			// Radio / checkbox items carry a selected state — render as a
+			// Radio / checkbox items carry a selected state - render as a
 			// checkable row (a left dot marks the selected one).
 			if (item instanceof javax.swing.JRadioButtonMenuItem
 				|| item instanceof javax.swing.JCheckBoxMenuItem)

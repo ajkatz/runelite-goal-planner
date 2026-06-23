@@ -48,7 +48,7 @@ public final class BossKillData
 	}
 
 	// ============================================================
-	// Boss prerequisites — skill/unlock requirements to fight a boss.
+	// Boss prerequisites - skill/unlock requirements to fight a boss.
 	// Applied automatically by addBossGoal regardless of call site.
 	// ============================================================
 
@@ -239,7 +239,7 @@ public final class BossKillData
 	 * Loads the boss prerequisite table from its bundled JSON resource.
 	 * Idempotent and thread-safe; the first caller wins. Pass the client's
 	 * injected {@link com.google.gson.Gson} (the plugin must never create
-	 * its own — the hub forbids it). Called from GoalPlannerPlugin.startUp().
+	 * its own - the hub forbids it). Called from GoalPlannerPlugin.startUp().
 	 */
 	public static void init(com.google.gson.Gson gson)
 	{

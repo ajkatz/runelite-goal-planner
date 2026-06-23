@@ -9,7 +9,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Encapsulates goal-mutation methods extracted from {@link GoalPlannerApiImpl}.
- * Package-private — only {@link GoalPlannerApiImpl} instantiates and delegates to this.
+ * Package-private - only {@link GoalPlannerApiImpl} instantiates and delegates to this.
  */
 @Slf4j
 class GoalMutationService
@@ -61,7 +61,7 @@ class GoalMutationService
 				//    snapshotted Goal carries its original requiredGoalIds so
 				//    outgoing edges come back automatically.
 				api.goalStore.insertGoalAt(snap.goal, snap.originalIndex);
-				// 3. Restore incoming edges — re-add the deleted goal's id to
+				// 3. Restore incoming edges - re-add the deleted goal's id to
 				//    each predecessor's requiredGoalIds.
 				for (String predId : snap.predecessors)
 				{
@@ -236,7 +236,7 @@ class GoalMutationService
 		}
 		if (newTarget == g.getTargetValue())
 		{
-			return false; // no-op — also keeps a re-typed value from re-evaluating a manual completion
+			return false; // no-op - also keeps a re-typed value from re-evaluating a manual completion
 		}
 		final int prevTarget = g.getTargetValue();
 		final String prevName = g.getName();
@@ -290,7 +290,7 @@ class GoalMutationService
 
 		// Re-evaluate completion against the new target so completed and
 		// active goals stay equivalent under retargeting: raising the target
-		// past the recorded progress reopens the goal (trackers resume —
+		// past the recorded progress reopens the goal (trackers resume -
 		// COMPLETE is only terminal while it stands); lowering it to or below
 		// the progress completes it, with the same OR-prereq cascade a
 		// tracker-driven completion runs. Note the recorded progress can lag
@@ -565,7 +565,7 @@ class GoalMutationService
 	}
 
 	/**
-	 * Move goals to the DEFAULT namespace — each lands in the built-in that
+	 * Move goals to the DEFAULT namespace - each lands in the built-in that
 	 * matches its completion (incomplete → Incomplete, complete → Completed),
 	 * as one undoable gesture. This is the "Move to Default" action: the default
 	 * is one logical bucket that auto-splits by completion, so the caller doesn't
@@ -624,7 +624,7 @@ class GoalMutationService
 	void removeAllGoals()
 	{
 		log.debug("API.internal removeAllGoals()");
-		// Only remove incomplete goals — completed goals are preserved.
+		// Only remove incomplete goals - completed goals are preserved.
 		final java.util.List<Goal> toRemove = new ArrayList<>();
 		for (Goal g : api.goalStore.getGoals())
 		{
@@ -673,7 +673,7 @@ class GoalMutationService
 	}
 
 	/**
-	 * Remove duplicate goals — within each namespace (the default Incomplete+
+	 * Remove duplicate goals - within each namespace (the default Incomplete+
 	 * Completed, or a user section), goals that share an identity
 	 * ({@link com.goalplanner.model.GoalIdentity}) are collapsed to one, keeping
 	 * the most advanced (complete &gt; more progress &gt; first). Lets the user

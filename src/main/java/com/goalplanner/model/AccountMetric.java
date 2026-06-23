@@ -11,14 +11,14 @@ import java.awt.Color;
 public enum AccountMetric
 {
 	/**
-	 * maxTarget is a static fallback (335 as of The Red Reef, 2026-06) —
+	 * maxTarget is a static fallback (335 as of The Red Reef, 2026-06) -
 	 * goal creation prefers the live sum of the client's quest DB table via
 	 * {@link #effectiveMaxTarget}, which grows as new quests release.
 	 */
 	QUEST_POINTS("Quest Points", new Color(65, 155, 222), 899, null, 1, 335),
 	COMBAT_LEVEL("Combat Level", new Color(200, 60, 60), 168, null, 3, 126),
 	TOTAL_LEVEL("Total Level", new Color(76, 175, 80), 898, null, 1, 2376),
-	// MUSIC_TRACKS deferred — no reliable bulk API for counting unlocked tracks
+	// MUSIC_TRACKS deferred - no reliable bulk API for counting unlocked tracks
 	CA_POINTS("CA Points", new Color(139, 69, 19), 0, null, 1, 2630),
 	SLAYER_POINTS("Slayer Points", new Color(0, 160, 160), 0, null, 1, 64000),
 	KUDOS("Museum Kudos", new Color(200, 170, 50), 0, "item:11182", 1, 243),
@@ -29,7 +29,7 @@ public enum AccountMetric
 	/**
 	 * Tears of Guthix personal best (max tears collected in a single game).
 	 * Collection time in the minigame is capped by quest points, so this
-	 * ceiling IS the quest-point maximum — the static fallback matches
+	 * ceiling IS the quest-point maximum - the static fallback matches
 	 * QUEST_POINTS and {@link #effectiveMaxTarget} shares its live read.
 	 */
 	TOG_MAX_TEARS("Tears of Guthix PB", new Color(100, 180, 220), 0, null, 1, 335),
@@ -38,13 +38,13 @@ public enum AccountMetric
 	/** Fortis Colosseum personal best glory (highest single-run glory). */
 	COLOSSEUM_GLORY("Colosseum Glory", new Color(212, 175, 55), 0,
 		"item:" + net.runelite.api.ItemID.SMOL_HEREDIT, 1, 100000),
-	/** Doom of Mokhaiotl deepest delve level reached (1–8+). */
+	/** Doom of Mokhaiotl deepest delve level reached (1-8+). */
 	DOM_DEEPEST_LEVEL("DoM Deepest Level", new Color(80, 40, 120), 0, null, 1, 8),
 	/**
 	 * Collection log unique slots obtained (VarPlayer COLLECTION_COUNT,
 	 * transmitted on login since the Jan 2025 collection log update; reads 0
 	 * until the account has synced by opening the collection log once).
-	 * maxTarget is a static fallback for the slot total — goal creation
+	 * maxTarget is a static fallback for the slot total - goal creation
 	 * prefers the live total from VarPlayer COLLECTION_COUNT_MAX, which
 	 * grows as new slots are added to the game.
 	 */
@@ -52,17 +52,17 @@ public enum AccountMetric
 		"item:" + net.runelite.api.ItemID.COLLECTION_LOG, 1, 1701),
 	/**
 	 * Achievement diary tiers completed across all 12 areas and 4 tiers
-	 * (0–48). Summed from the same per-tier completion varbit refdata that
+	 * (0-48). Summed from the same per-tier completion varbit refdata that
 	 * DIARY goals use (AchievementDiaryData), including the Karamja
 	 * Easy/Medium/Hard task-count varbits.
 	 * Icon: SpriteID.AchievementDiaryIcons.GREEN_ACHIEVEMENT_DIARIES.
 	 */
 	DIARY_TIERS_COMPLETED("Diary Tiers", new Color(76, 175, 80), 836, null, 1, 48),
 	/**
-	 * League Points — lifetime points earned during the active OSRS Leagues
+	 * League Points - lifetime points earned during the active OSRS Leagues
 	 * event (VarPlayer LEAGUE_POINTS_COMPLETED). Only increments; spending
 	 * currency does not affect this counter. Reads 0 outside a leagues world.
-	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS — the orange quest-tab sprite
+	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS - the orange quest-tab sprite
 	 * used for the leagues pane (orange counterpart to the green diary /
 	 * red minigames tab icons).
 	 */
@@ -70,7 +70,7 @@ public enum AccountMetric
 	/**
 	 * Total Leagues tasks completed across all difficulty tiers
 	 * (Varbit LEAGUE_TOTAL_TASKS_COMPLETED). Reads 0 outside a leagues world.
-	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS — the orange quest-tab sprite
+	 * Icon: TAB_QUESTS_ORANGE_ADVENTURE_PATHS - the orange quest-tab sprite
 	 * used for the leagues pane (orange counterpart to the green diary /
 	 * red minigames tab icons).
 	 */
@@ -139,7 +139,7 @@ public enum AccountMetric
 	 * requirements). Reads are client-thread operations; callers invoke on the
 	 * client thread (the catch is defensive against a stray off-thread call).
 	 *
-	 * <p>Note: no leagues-world guard here — that's tracker policy and lives in
+	 * <p>Note: no leagues-world guard here - that's tracker policy and lives in
 	 * {@link com.goalplanner.tracker.AccountTracker}.
 	 */
 	public int currentValue(net.runelite.api.Client client)
@@ -325,7 +325,7 @@ public enum AccountMetric
 	};
 
 	/**
-	 * Leagues area-unlock milestones — tasks required to unlock each
+	 * Leagues area-unlock milestones - tasks required to unlock each
 	 * additional region (1st area is free). Used as quick-pick targets
 	 * for LEAGUE_TASKS goals.
 	 */

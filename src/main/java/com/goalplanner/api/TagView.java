@@ -10,7 +10,7 @@ public class TagView
 	public String label;
 	/** Category name as a string. One of: BOSS, RAID, CLUE, MINIGAME, SKILLING, OTHER. */
 	public String category;
-	/** Current tag pill color — user override if set, else the category default. */
+	/** Current tag pill color - user override if set, else the category default. */
 	public int colorRgb;
 	/** Category default color, even when an override is set. */
 	public int defaultColorRgb;

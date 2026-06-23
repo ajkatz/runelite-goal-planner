@@ -24,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <p>Imports land in their own user section: because user sections keep their
  * completed goals inline, the recipient sees the whole shared set as a checklist
- * against their own account — requirements they already meet show ticked off,
+ * against their own account - requirements they already meet show ticked off,
  * the rest show progress.
  *
  * <p>Inverse of {@code com.goalplanner.share.ShareMapper}. Because the payload
@@ -59,7 +59,7 @@ class ShareImportService
 		{
 			return null;
 		}
-		// One canonical section list for the whole import — effectiveSections()
+		// One canonical section list for the whole import - effectiveSections()
 		// builds fresh wrapper instances per call for legacy bundles, and the
 		// cross-edge pass needs stable bundle-position indices.
 		final List<SectionShareDto> bundleSections = bundle.effectiveSections();
@@ -81,7 +81,7 @@ class ShareImportService
 			: "Import shared goals: " + sections.size() + " sections";
 
 		// Wrap the whole import as ONE undoable command across every section.
-		// Imported goals always start INCOMPLETE — buildGoal copies only
+		// Imported goals always start INCOMPLETE - buildGoal copies only
 		// definition fields, never the sharer's progress/completion.
 		final List<String> createdGoalIds = new ArrayList<>();
 		final List<String> createdSectionIds = new ArrayList<>();
@@ -104,7 +104,7 @@ class ShareImportService
 				landedSectionId[0] = null;
 				boolean importedAnything = false;
 				// Per-section ref → created/reused goal id, keyed by the
-				// section's position in the BUNDLE's section list — cross-edge
+				// section's position in the BUNDLE's section list - cross-edge
 				// entries reference sections by that index.
 				final Map<Integer, Map<Integer, String>> refMaps = new HashMap<>();
 
@@ -115,7 +115,7 @@ class ShareImportService
 					if (reuseEquivalents)
 					{
 						// Default plan: goals land in the Incomplete built-in and
-						// existing equivalents are reused — the same dedup the
+						// existing equivalents are reused - the same dedup the
 						// in-game Add Goal flow applies.
 						targetSectionId = api.goalStore.getIncompleteSection().getId();
 					}
@@ -128,7 +128,7 @@ class ShareImportService
 							importSectionName(shared, sharedBy));
 						if (section == null)
 						{
-							log.warn("importBundle: createUserSection failed for '{}' — skipping section",
+							log.warn("importBundle: createUserSection failed for '{}' - skipping section",
 								shared.getName());
 							continue;
 						}
@@ -201,7 +201,7 @@ class ShareImportService
 					refMaps.put(bundleSections.indexOf(shared), refToId);
 				}
 
-				// Third pass: cross-section edges — (section index, ref) pairs
+				// Third pass: cross-section edges - (section index, ref) pairs
 				// resolved through the per-section maps. Unresolvable entries
 				// (skipped goal/section, malformed indices) are dropped.
 				if (bundle.getCrossEdges() != null)
@@ -239,7 +239,7 @@ class ShareImportService
 			@Override
 			public boolean revert()
 			{
-				// Relations first — created goals take theirs with them, but a
+				// Relations first - created goals take theirs with them, but a
 				// relation between two REUSED goals must be removed explicitly.
 				for (String[] rel : addedRequires)
 				{
@@ -319,7 +319,7 @@ class ShareImportService
 			TagCategory category = parseCategory(spec.getCategory());
 			if (label == null || label.isEmpty() || category == null)
 			{
-				continue;   // unusable tag — skip
+				continue;   // unusable tag - skip
 			}
 			Tag tag = spec.isSystem()
 				? api.goalStore.findOrCreateSystemTag(label, category)
@@ -328,7 +328,7 @@ class ShareImportService
 			{
 				continue;
 			}
-			// Only recolour user tags — system-tag colours are shared across the
+			// Only recolour user tags - system-tag colours are shared across the
 			// recipient's goals and shouldn't be mutated by an import.
 			if (!spec.isSystem() && spec.getColorRgb() != -1)
 			{
@@ -351,7 +351,7 @@ class ShareImportService
 		String from = sharedBy != null ? sharedBy.trim() : null;
 		String withFrom = notBlank(from) ? base + " (from " + from + ")" : base;
 		// Section names are capped (GoalStore.createUserSection THROWS on longer
-		// ones — which CommandHistory swallows, silently failing the whole import).
+		// ones - which CommandHistory swallows, silently failing the whole import).
 		// If the "(from X)" form doesn't fit, drop the suffix; clamp as a backstop.
 		if (withFrom.length() <= GoalStore.MAX_SECTION_NAME_LENGTH)
 		{
