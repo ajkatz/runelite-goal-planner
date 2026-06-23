@@ -46,7 +46,7 @@ Building from source? See **[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)**.
 **Tracking:** [Auto-tracking](#auto-tracking) · [Account metrics](#account-metrics) · [Change Amount](#change-amount--retargeting) · [Manual completion](#manual-completion)
 **Organizing:** [Sections](#sections) · [Completed-goal handling](#completed-goal-handling) · [Move & duplicate](#move--duplicate-across-sections) · [Dependency nesting](#dependency-nesting-guide-view) · [Tags](#tags) · [Colors](#colors) · [Search](#search)
 **Selection & safety:** [Multi-select](#multi-select--section-select-all) · [Bulk actions](#bulk-actions) · [Undo / redo](#undo--redo)
-**Sharing:** [Share codes](#share-codes) · [Importing](#importing) · [Cross-section dependencies](#cross-section-dependencies) · [Crafting codes with AI](#crafting-codes-with-ai)
+**Sharing:** [Share codes](#share-codes) · [Importing](#importing) · [Saved plans](#saved-plans) · [Cross-section dependencies](#cross-section-dependencies) · [Crafting codes with AI](#crafting-codes-with-ai)
 
 ## Creating goals
 
@@ -183,6 +183,12 @@ Right-click a section header (or a multi-selection) → **Share** → *Copy shar
 Panel **⋯ → Import shared goals…**, paste, done: sections arrive with their names and colors, goals start tracking against *your* account immediately, and one **⌘Z** reverses the entire import. Re-importing a default-target code never duplicates — existing equivalent goals are reused.
 
 ![Importing a multi-section code](docs/img/importing.gif)
+
+### Saved plans
+
+Not ready to import a code yet? Bank it. **Save share code…** sits next to *Copy share code* on any Share menu, and the import dialog offers **Save for later** — both drop the code into your **Saved Plans** library (panel **⋯ → Saved plans…**) instead of adding goals now. Each saved plan keeps a name you choose and a decoded preview (*"12 goals · 3 sections"*); from the library you can **import**, **copy the code**, **rename** it, **edit how each section will be named on import**, or delete it. The library is global — the same saved plans show on every profile, including leagues.
+
+> 🎥 *Clip coming soon.*
 
 ### Cross-section dependencies
 

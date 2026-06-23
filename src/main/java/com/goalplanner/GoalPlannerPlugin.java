@@ -139,6 +139,9 @@ public class GoalPlannerPlugin extends Plugin
 	/** Share-code codec, built from the injected Gson at start-up. */
 	private ShareCodec shareCodec;
 
+	@Inject
+	private com.goalplanner.persistence.SavedPlanStore savedPlanStore;
+
 	/** Local player's display name, cached on the client thread (onGameTick)
 	 *  so the share UI can read it off the EDT. */
 	private volatile String localPlayerName;
@@ -192,7 +195,8 @@ public class GoalPlannerPlugin extends Plugin
 
 		// Share support: codec + the Options-menu share/import actions.
 		shareCodec = new ShareCodec(gson);
-		panel.setShareSupport(shareCodec, () -> localPlayerName);
+		savedPlanStore.load();
+		panel.setShareSupport(shareCodec, () -> localPlayerName, savedPlanStore);
 
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for

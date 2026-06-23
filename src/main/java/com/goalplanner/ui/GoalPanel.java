@@ -106,6 +106,7 @@ public class GoalPanel extends PluginPanel
 	// Share support — injected via setShareSupport() after construction (like
 	// setClient). Null until then; the Options menu omits share entries if unset.
 	private com.goalplanner.share.ShareCodec shareCodec;
+	private com.goalplanner.persistence.SavedPlanStore savedPlanStore;
 	private java.util.function.Supplier<String> playerNameSupplier;
 
 	public GoalPanel(GoalStore goalStore, SkillIconManager skillIconManager, ItemManager itemManager,
@@ -169,8 +170,15 @@ public class GoalPanel extends PluginPanel
 
 				JMenuItem importShare = new JMenuItem("Import shared goals…");
 				importShare.addActionListener(ev ->
-					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, this::rebuild));
+					ShareDialogs.promptImport(GoalPanel.this, api, shareCodec, savedPlanStore, this::rebuild));
 				popup.add(importShare);
+
+				if (isSavedPlansAvailable())
+				{
+					JMenuItem savedPlans = new JMenuItem("Saved plans…");
+					savedPlans.addActionListener(ev -> openSavedPlans());
+					popup.add(savedPlans);
+				}
 				// Section sharing lives on the section-header right-click menu
 				// (consistent with goal sharing); goal sharing on goal cards.
 			}
@@ -353,10 +361,12 @@ public class GoalPanel extends PluginPanel
 	 */
 	public void setShareSupport(
 		com.goalplanner.share.ShareCodec shareCodec,
-		java.util.function.Supplier<String> playerName)
+		java.util.function.Supplier<String> playerName,
+		com.goalplanner.persistence.SavedPlanStore savedPlanStore)
 	{
 		this.shareCodec = shareCodec;
 		this.playerNameSupplier = playerName;
+		this.savedPlanStore = savedPlanStore;
 	}
 
 	/** Runs an action on the RuneLite client thread. Defaults to synchronous
@@ -437,6 +447,52 @@ public class GoalPanel extends PluginPanel
 			return;
 		}
 		ShareDialogs.copyAllSections(this, api, shareCodec, playerNameSupplier);
+	}
+
+	/** Whether the Saved Plans library is wired (gates save/library menu entries). */
+	public boolean isSavedPlansAvailable()
+	{
+		return shareCodec != null && savedPlanStore != null;
+	}
+
+	/** Bookmark a section's share code into the Saved Plans library. */
+	public void saveSectionPlan(String sectionId)
+	{
+		if (!isSavedPlansAvailable())
+		{
+			return;
+		}
+		ShareDialogs.savePlanForSection(this, api, shareCodec, playerNameSupplier, savedPlanStore, sectionId);
+	}
+
+	/** Bookmark a selection's share code into the Saved Plans library. */
+	public void saveGoalsPlan(java.util.List<String> goalIds)
+	{
+		if (!isSavedPlansAvailable())
+		{
+			return;
+		}
+		ShareDialogs.savePlanForGoals(this, api, shareCodec, playerNameSupplier, savedPlanStore, goalIds);
+	}
+
+	/** Bookmark an all-sections share code into the Saved Plans library. */
+	public void saveAllSectionsPlan()
+	{
+		if (!isSavedPlansAvailable())
+		{
+			return;
+		}
+		ShareDialogs.savePlanForAllSections(this, api, shareCodec, playerNameSupplier, savedPlanStore);
+	}
+
+	/** Open the Saved Plans library manager. */
+	public void openSavedPlans()
+	{
+		if (!isSavedPlansAvailable())
+		{
+			return;
+		}
+		SavedPlansDialog.open(this, api, shareCodec, savedPlanStore, this::rebuild);
 	}
 
 	/**

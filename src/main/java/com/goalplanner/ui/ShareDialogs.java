@@ -24,9 +24,11 @@ public final class ShareDialogs
 	{
 	}
 
-	/** Paste a share code → import into a new section. {@code onDone} (e.g. a
-	 *  panel rebuild) runs on a successful import. */
-	public static void promptImport(Component parent, GoalPlannerApiImpl api, ShareCodec codec, Runnable onDone)
+	/** Paste a share code → import now, or (when the library is wired) save it to
+	 *  the Saved Plans library for later. {@code onDone} (e.g. a panel rebuild)
+	 *  runs on a successful import. */
+	public static void promptImport(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
+		com.goalplanner.persistence.SavedPlanStore savedPlanStore, Runnable onDone)
 	{
 		String text = JOptionPane.showInputDialog(parent,
 			"Paste a Goal Planner share code:", "Import shared goals", JOptionPane.PLAIN_MESSAGE);
@@ -46,6 +48,31 @@ public final class ShareDialogs
 				"Import failed", JOptionPane.WARNING_MESSAGE);
 			return;
 		}
+		// Offer import-now vs bank-for-later when the Saved Plans library is wired.
+		if (savedPlanStore != null)
+		{
+			String[] options = {"Import now", "Save for later", "Cancel"};
+			int choice = JOptionPane.showOptionDialog(parent,
+				"Import these goals now, or save the code to your library to import later?",
+				"Import shared goals", JOptionPane.YES_NO_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
+				null, options, options[0]);
+			if (choice == 2 || choice == JOptionPane.CLOSED_OPTION)
+			{
+				return;
+			}
+			if (choice == 1)
+			{
+				promptSavePlan(parent, savedPlanStore, bundle, codec.encode(bundle));
+				return;
+			}
+		}
+		doImport(parent, api, bundle, onDone);
+	}
+
+	/** Import an already-decoded bundle, with the standard "imported N goal(s)"
+	 *  confirmation. Shared by the import dialog and the Saved Plans library. */
+	static void doImport(Component parent, GoalPlannerApiImpl api, ShareBundle bundle, Runnable onDone)
+	{
 		String sectionId = api.importShareBundle(bundle);
 		if (sectionId == null)
 		{
@@ -70,6 +97,82 @@ public final class ShareDialogs
 		String where = sections > 1 ? " across " + sections + " sections" : "";
 		JOptionPane.showMessageDialog(parent, "Imported " + n + " goal(s)" + where + ".", "Import",
 			JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	/** Prompt for a name and bank {@code code} into the Saved Plans library,
+	 *  remembering the bundle's section display names (editable later). */
+	static void promptSavePlan(Component parent, com.goalplanner.persistence.SavedPlanStore store,
+		ShareBundle bundle, String code)
+	{
+		String defaultName = defaultPlanName(bundle);
+		String name = JOptionPane.showInputDialog(parent, "Name this saved plan:", defaultName);
+		if (name == null)
+		{
+			return;
+		}
+		name = name.trim();
+		if (name.isEmpty())
+		{
+			name = defaultName;
+		}
+		store.add(name, code, com.goalplanner.share.SavedPlanSections.sectionNamesOf(bundle));
+		JOptionPane.showMessageDialog(parent,
+			"Saved \"" + name + "\" to your plans.\nOpen ⋯ → Saved plans to import it later.",
+			"Saved plans", JOptionPane.INFORMATION_MESSAGE);
+	}
+
+	private static String defaultPlanName(ShareBundle bundle)
+	{
+		for (com.goalplanner.share.SectionShareDto s : bundle.effectiveSections())
+		{
+			if (s.getName() != null && !s.getName().trim().isEmpty())
+			{
+				return s.getName().trim();
+			}
+		}
+		return "Shared plan";
+	}
+
+	/** Bookmark a section's code into the Saved Plans library. */
+	public static void savePlanForSection(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
+		Supplier<String> playerName, com.goalplanner.persistence.SavedPlanStore store, String sectionId)
+	{
+		ShareBundle bundle = api.exportSectionBundle(sectionId, safeName(playerName));
+		if (bundle == null || bundle.getGoals().isEmpty())
+		{
+			JOptionPane.showMessageDialog(parent, "That section has no goals to save.",
+				"Saved plans", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		promptSavePlan(parent, store, bundle, codec.encode(bundle));
+	}
+
+	/** Bookmark a goal selection's code into the Saved Plans library. */
+	public static void savePlanForGoals(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
+		Supplier<String> playerName, com.goalplanner.persistence.SavedPlanStore store, List<String> goalIds)
+	{
+		ShareBundle bundle = api.exportGoalsBundle(goalIds, safeName(playerName));
+		if (bundle == null || bundle.totalGoalCount() == 0)
+		{
+			JOptionPane.showMessageDialog(parent, "Nothing to save.", "Saved plans",
+				JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		promptSavePlan(parent, store, bundle, codec.encode(bundle));
+	}
+
+	/** Bookmark an all-sections code into the Saved Plans library. */
+	public static void savePlanForAllSections(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
+		Supplier<String> playerName, com.goalplanner.persistence.SavedPlanStore store)
+	{
+		ShareBundle bundle = api.exportAllSectionsBundle(safeName(playerName));
+		if (bundle == null)
+		{
+			JOptionPane.showMessageDialog(parent, "No user sections with goals to save.",
+				"Saved plans", JOptionPane.INFORMATION_MESSAGE);
+			return;
+		}
+		promptSavePlan(parent, store, bundle, codec.encode(bundle));
 	}
 
 	/** Copy a paste-ready share line carrying EVERY user section (one v2 code). */

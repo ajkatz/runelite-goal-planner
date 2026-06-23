@@ -197,6 +197,12 @@ class GoalContextMenuBuilder
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
+			if (panel.isSavedPlansAvailable())
+			{
+				JMenuItem savePlan = new JMenuItem("Save share code…");
+				savePlan.addActionListener(e -> panel.saveGoalsPlan(shareIds));
+				shareMenu.add(savePlan);
+			}
 			menu.add(shareMenu);
 			menu.addSeparator();
 		}
@@ -809,6 +815,12 @@ class GoalContextMenuBuilder
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
+			if (panel.isSavedPlansAvailable())
+			{
+				JMenuItem savePlan = new JMenuItem("Save share code…");
+				savePlan.addActionListener(e -> panel.saveGoalsPlan(shareIds));
+				shareMenu.add(savePlan);
+			}
 			menu.add(shareMenu);
 		}
 
@@ -1378,6 +1390,15 @@ class GoalContextMenuBuilder
 			JMenuItem copyAll = new JMenuItem("Copy share code (all sections)");
 			copyAll.addActionListener(e -> panel.copyAllSectionsShareCode());
 			shareMenu.add(copyAll);
+			if (panel.isSavedPlansAvailable())
+			{
+				JMenuItem savePlan = new JMenuItem("Save share code…");
+				savePlan.addActionListener(e -> panel.saveSectionPlan(shareSectionId));
+				shareMenu.add(savePlan);
+				JMenuItem saveAll = new JMenuItem("Save share code (all sections)…");
+				saveAll.addActionListener(e -> panel.saveAllSectionsPlan());
+				shareMenu.add(saveAll);
+			}
 			menu.add(shareMenu);
 			menu.addSeparator();
 		}

@@ -6,7 +6,18 @@ versioning is [semver](https://semver.org/) with the caveat that the
 0.x series is experimental and may include breaking changes on minor
 bumps.
 
-## [0.3.2] — 2026-06-23
+## [0.4.0] — 2026-06-23
+
+### Added
+- **Saved Plans — a library of bookmarked share codes.** An optional step
+  between export and import: bank a code to import later instead of adding its
+  goals now. **Save share code…** sits beside *Copy share code* on every Share
+  menu, and the import dialog offers **Save for later**. Manage the library from
+  panel **⋯ → Saved plans…** — each entry shows a name you choose plus a decoded
+  preview, with per-entry Import, Copy code, Edit (rename + change how each
+  section is named on import), and Delete. The library is global (shared across
+  all profiles, including leagues), since a share code carries goal definitions
+  only.
 
 ### Changed
 - **Source-size reduction for Plugin Hub headroom.** No user-facing behavior
@@ -19,8 +30,15 @@ bumps.
   `boss-cl-aliases.tsv`; diary completion varbits →
   `diary-completion-varbits.tsv`), and de-duplicated the repeated "add goal"
   command and "new section" menu boilerplate. Net: main source dropped from
-  ~183k to ~167k tokens (~33k headroom, up from ~17k). Full suite (572 tests)
-  green.
+  ~183k to ~167k tokens (~28k headroom after this release's feature, up from
+  ~17k).
+
+### Fixed
+- **Plugin Hub listing showed a commit hash and a stale version.** The hub
+  listing reads `runelite-plugin.properties`, which had no `version=` key (so
+  the version corner fell back to the commit sha) and a `description` that began
+  with an inaccurate `[Experimental v0.2.0]` prefix. Added `version`, dropped
+  the prefix.
 
 ## [0.3.1] — 2026-06-15
 

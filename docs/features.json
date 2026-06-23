@@ -342,6 +342,28 @@
       "since": "0.3.0"
     },
     {
+      "id": "saved-plans",
+      "title": "Saved plans",
+      "group": "Sharing",
+      "anchor": "saved-plans",
+      "media": "docs/img/saved-plans.gif",
+      "code": [
+        "persistence/SavedPlanStore.java",
+        "persistence/SavedPlan.java",
+        "share/SavedPlanSections.java",
+        "ui/SavedPlansDialog.java",
+        "ui/ShareDialogs.java",
+        "ui/GoalPanel.java"
+      ],
+      "tests": [
+        "persistence/SavedPlanStoreTest.java",
+        "share/SavedPlanSectionsTest.java"
+      ],
+      "since": "0.4.0",
+      "capture": "⋯ → Saved plans (with a couple saved); Edit one to rename + change a section name; Import it. ~10s.",
+      "notes": "Global library (not profile-scoped). Dialog is Swing-only — store + section-override logic are unit-tested; the dialog is verified in-client."
+    },
+    {
       "id": "cross-section",
       "title": "Cross-section dependencies",
       "group": "Sharing",
