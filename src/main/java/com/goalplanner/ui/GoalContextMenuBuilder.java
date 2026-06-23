@@ -193,7 +193,7 @@ class GoalContextMenuBuilder
 		if (panel.isShareAvailable())
 		{
 			final java.util.List<String> shareIds = java.util.Collections.singletonList(goal.getId());
-			JMenu shareMenu = new JMenu("Share");
+			JMenu shareMenu = new JMenu("Share/Save");
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
@@ -811,7 +811,7 @@ class GoalContextMenuBuilder
 		{
 			final List<String> shareIds = new ArrayList<>(selectedIds);
 			menu.addSeparator();
-			JMenu shareMenu = new JMenu("Share " + selectionSize + " selected");
+			JMenu shareMenu = new JMenu("Share/Save " + selectionSize + " selected");
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copyGoalsShareCode(shareIds));
 			shareMenu.add(copyCode);
@@ -1383,7 +1383,7 @@ class GoalContextMenuBuilder
 		if (panel.isShareAvailable() && !sectionGoalIds.isEmpty())
 		{
 			final String shareSectionId = section.id;
-			JMenu shareMenu = new JMenu("Share");
+			JMenu shareMenu = new JMenu("Share/Save");
 			JMenuItem copyCode = new JMenuItem("Copy share code");
 			copyCode.addActionListener(e -> panel.copySectionShareCode(shareSectionId));
 			shareMenu.add(copyCode);
