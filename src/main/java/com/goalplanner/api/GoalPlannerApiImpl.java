@@ -115,6 +115,17 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 		this.onSelectionChanged = callback != null ? callback : () -> {};
 	}
 
+	/**
+	 * Drop per-session selection and undo/redo state. Called from the plugin's
+	 * shutDown() so this {@code @Singleton} doesn't carry a previous session's
+	 * selected ids or command history into the next enable.
+	 */
+	public void clearSelectionState()
+	{
+		selectedGoalIds.clear();
+		commandHistory.clear();
+	}
+
 	// =====================================================================
 	// Goal creation delegations
 	// =====================================================================

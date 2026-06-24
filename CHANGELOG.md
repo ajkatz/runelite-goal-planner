@@ -26,6 +26,16 @@ bumps.
   **Behaviour → Auto-track Miscellania** (on by default).
 
 ### Changed
+- **Performance & stability pass.** Coalesced the tracker suite to run at most
+  once per game tick instead of on every varbit/stat event (many per tick) — the
+  main source of in-game lag with a large plan. Debounced the search box so
+  typing no longer rebuilds the whole panel per keystroke. Hardened
+  `GoalStore`'s goal list against concurrent access from the client thread
+  (trackers) and the EDT (panel/UI): `getGoals()` now returns a snapshot and all
+  structural mutations + the order sort are locked, eliminating the intermittent
+  `ConcurrentModificationException` / sort-corruption that could surface during
+  long sessions. Cleaned up `shutDown()` to stop the rebuild timer and release
+  the panel so a disable -> re-enable doesn't leak the card graph.
 - **Source-size reduction for Plugin Hub headroom.** No user-facing behavior
   change — internal cleanup to stay well under the hub's 200k-token source
   cap. Externalized the remaining hardcoded data tables to resource files

@@ -557,7 +557,11 @@ class GoalStoreTest
 		Goal orphan = Goal.builder().type(GoalType.CUSTOM).name("Orphan").build();
 		// Explicitly clear the sectionId to simulate legacy data without sections
 		orphan.setSectionId(null);
-		store.getGoals().add(orphan);
+		// Inject the orphan directly (getGoals() returns a read-only snapshot, so
+		// bypass addGoal which would assign a section). setGoals replaces the list.
+		java.util.List<Goal> all = new java.util.ArrayList<>(store.getGoals());
+		all.add(orphan);
+		store.setGoals(all);
 		store.save();
 
 		// Load fresh — should migrate the orphan

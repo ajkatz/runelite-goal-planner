@@ -202,8 +202,7 @@ public class GoalPlannerPlugin extends Plugin
 		// Wire the API's UI-refresh hooks with debouncing.
 		// Multiple rapid onGoalsChanged calls (e.g. tracker updates for
 		// every skill chain goal) produce exactly one rebuild.
-		final javax.swing.Timer rebuildDebounce = new javax.swing.Timer(200, e ->
-			panel.rebuild());
+		rebuildDebounce = new javax.swing.Timer(200, e -> panel.rebuild());
 		rebuildDebounce.setRepeats(false);
 		goalTrackerApi.setOnGoalsChanged(() ->
 		{
@@ -246,6 +245,23 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			clientToolbar.removeNavigation(navButton);
 		}
+		// Release everything that pins the panel/card graph across a
+		// disable -> re-enable cycle. goalTrackerApi is a @Singleton whose
+		// callbacks would otherwise keep pointing at this (now-dead) panel.
+		if (rebuildDebounce != null)
+		{
+			rebuildDebounce.stop();
+		}
+		if (goalTrackerApi != null)
+		{
+			goalTrackerApi.setOnGoalsChanged(null);
+			goalTrackerApi.setOnSelectionChanged(null);
+			goalTrackerApi.clearSelectionState();
+		}
+		trackersDirty = false;
+		panel = null;
+		navButton = null;
+		shareCodec = null;
 	}
 
 	/**
@@ -546,32 +562,23 @@ public class GoalPlannerPlugin extends Plugin
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
-		// Only track when fully logged in - varbits fire during login
-		// before the client is ready, which can hang Quest.getState().
+		// Many varbits change every tick (and dozens at login / on region change).
+		// Running the full tracker suite per event was the dominant client-thread
+		// cost; instead just mark dirty and drain ONCE per tick in onGameTick,
+		// which is already a safe client-thread point (no Quest.getState() reentry
+		// mid-varbit). Suspension/GameState are re-checked at drain time.
 		if (client.getGameState() != GameState.LOGGED_IN) return;
-		if (isTrackingSuspended()) return;
-
-		clientThread.invokeLater(() ->
-		{
-			// Re-check at task-run time: the GameState may have transitioned
-			// to HOPPING/LOGIN_SCREEN between the subscribe and the next tick,
-			// in which case client varbits/quest state are stale from the
-			// previous session and would falsely complete goals in the new
-			// profile. The tracker-suspension window also needs rechecking
-			// since a profile switch may have happened on this tick.
-			if (client.getGameState() != GameState.LOGGED_IN) return;
-			if (isTrackingSuspended()) return;
-
-			java.util.List<Goal> goals = goalStore.getGoals();
-			boolean updated = questTracker.checkGoals(goals);
-			updated |= diaryTracker.checkGoals(goals);
-			updated |= combatAchievementTracker.checkGoals(goals);
-			updated |= accountTracker.checkGoals(goals);
-			updated |= bossKillTracker.checkGoals(goals);
-			flushIfUpdated(updated);
-			maybeAutoAddMiscApprovalGoal();
-		});
+		trackersDirty = true;
 	}
+
+	/** Debounce timer coalescing rapid rebuild requests. Hoisted to a field so
+	 *  shutDown() can stop it (otherwise its ActionListener pins the panel). */
+	private javax.swing.Timer rebuildDebounce;
+
+	/** Set by onVarbitChanged/onStatChanged (which fire many times per tick) and
+	 *  drained once per tick in onGameTick, so the tracker suite runs at most once
+	 *  per tick instead of per event. Client-thread only. */
+	private boolean trackersDirty = false;
 
 	/** Last Kingdom of Miscellania approval value seen this session (-1 = not yet
 	 *  read, so the first reading only establishes a baseline). Reset on login. */
@@ -1595,17 +1602,11 @@ public class GoalPlannerPlugin extends Plugin
 		// early-return below - the burst arrives regardless of whether
 		// tracking is currently suspended.
 		skillSyncGate.onStatChanged();
-		// Suspension window after a profile switch: the client's skill XP
-		// cache holds the PREVIOUS account's values until each skill
-		// receives its first StatChanged on the new account. The tracker
-		// iterates all skill goals on any single StatChanged, so unsynced
-		// skills would return stale XP and falsely complete new-profile
-		// goals. Waiting out the window lets all skills sync first.
-		if (isTrackingSuspended()) return;
-		java.util.List<Goal> goals = goalStore.getGoals();
-		boolean updated = skillTracker.checkGoals(goals);
-		updated |= accountTracker.checkGoals(goals);
-		flushIfUpdated(updated);
+		// Coalesce: a single XP drop can fire several StatChanged (and 23 in a
+		// burst at login). Mark dirty and run the trackers once per tick in
+		// onGameTick. The suspension window (stale post-profile-switch skill XP
+		// cache) is honoured by the drain, which skips while suspended.
+		trackersDirty = true;
 	}
 
 	/**
@@ -1625,6 +1626,28 @@ public class GoalPlannerPlugin extends Plugin
 		{
 			localPlayerName = local.getName();
 		}
+		drainTrackerUpdates();
+	}
+
+	/**
+	 * Run the tracker suite once, on the client thread, if a varbit/stat change
+	 * marked it dirty this tick. Coalesces the many per-tick varbit/stat events
+	 * into a single pass. Skips (leaving the dirty flag set) while tracking is
+	 * suspended, so it drains on the first tick after the window ends.
+	 */
+	private void drainTrackerUpdates()
+	{
+		if (!trackersDirty || isTrackingSuspended()) return;
+		trackersDirty = false;
+		java.util.List<Goal> goals = goalStore.getGoals();
+		boolean updated = skillTracker.checkGoals(goals);
+		updated |= questTracker.checkGoals(goals);
+		updated |= diaryTracker.checkGoals(goals);
+		updated |= combatAchievementTracker.checkGoals(goals);
+		updated |= accountTracker.checkGoals(goals);
+		updated |= bossKillTracker.checkGoals(goals);
+		flushIfUpdated(updated);
+		maybeAutoAddMiscApprovalGoal();
 	}
 
 	/**

@@ -68,6 +68,12 @@ public class GoalStore
 	private static final Type STRING_LIST_TYPE = new TypeToken<List<String>>(){}.getType();
 
 	private final ConfigManager configManager;
+	/** Guards every structural mutation of {@link #goals} and the order sort, so
+	 *  the client thread (tracker drain / reconcile / auto-add) and the EDT
+	 *  (panel rebuild / user actions) can't corrupt the list or sort it
+	 *  concurrently. {@link #getGoals()} returns a snapshot taken under this lock,
+	 *  so all external iteration is over an immutable copy (no CME). */
+	private final Object goalsLock = new Object();
 	private List<Goal> goals = new ArrayList<>();
 	private List<Section> sections = new ArrayList<>();
 	private List<Tag> tags = new ArrayList<>();
@@ -228,15 +234,18 @@ public class GoalStore
 				List<Goal> loaded = gson.fromJson(goalsJson, GOAL_LIST_TYPE);
 				if (loaded != null)
 				{
-					goals = new ArrayList<>(loaded);
-					goals.sort(Comparator.comparingInt(Goal::getPriority));
+					synchronized (goalsLock)
+					{
+						goals = new ArrayList<>(loaded);
+						goals.sort(Comparator.comparingInt(Goal::getPriority));
+					}
 					log.info("Loaded {} goals (v1)", goals.size());
 				}
 			}
 			catch (Exception e)
 			{
 				log.error("Failed to load goals (v1)", e);
-				goals = new ArrayList<>();
+				synchronized (goalsLock) { goals = new ArrayList<>(); }
 			}
 		}
 
@@ -272,7 +281,7 @@ public class GoalStore
 		List<String> goalIds = orderJson != null
 			? gson.fromJson(orderJson, STRING_LIST_TYPE)
 			: new ArrayList<>();
-		goals = new ArrayList<>();
+		synchronized (goalsLock) { goals = new ArrayList<>(); }
 		for (String id : goalIds)
 		{
 			String goalJson = getCfg(GOAL_PREFIX + id);
@@ -281,7 +290,7 @@ public class GoalStore
 				try
 				{
 					Goal g = gson.fromJson(goalJson, Goal.class);
-					if (g != null) goals.add(g);
+					if (g != null) synchronized (goalsLock) { goals.add(g); }
 				}
 				catch (Exception e)
 				{
@@ -374,7 +383,7 @@ public class GoalStore
 		if (newProfile == null || newProfile.equals(activeProfile)) return;
 		log.info("Switching profile: {} → {}", activeProfile, newProfile);
 		// Clear in-memory state so load() starts fresh for the new profile.
-		goals.clear();
+		synchronized (goalsLock) { goals.clear(); }
 		sections.clear();
 		tags.clear();
 		categoryColors.clear();
@@ -499,7 +508,8 @@ public class GoalStore
 		// Reload from the now-scoped keys so in-memory state reflects the
 		// migrated data (the previous load() call into the empty profile
 		// returned nothing). Clear first to avoid stacking.
-		goals.clear(); sections.clear(); tags.clear(); categoryColors.clear();
+		synchronized (goalsLock) { goals.clear(); }
+		sections.clear(); tags.clear(); categoryColors.clear();
 		goalIndex.clear(); sectionIndex.clear(); tagIndex.clear(); dependentIndex.clear();
 		load();
 		return true;
@@ -775,14 +785,18 @@ public class GoalStore
 			sectionOrders.put(s.getId(), s.getOrder());
 		}
 		// Sort by (section.order, current priority) - stable so relative order within
-		// section is preserved.
-		goals.sort((a, b) -> {
-			int aso = sectionOrders.getOrDefault(a.getSectionId(), Integer.MAX_VALUE);
-			int bso = sectionOrders.getOrDefault(b.getSectionId(), Integer.MAX_VALUE);
-			if (aso != bso) return Integer.compare(aso, bso);
-			return Integer.compare(a.getPriority(), b.getPriority());
-		});
-		reindex();
+		// section is preserved. Locked so the EDT (rebuild) and client thread
+		// (reconcile) can't sort the same backing array concurrently.
+		synchronized (goalsLock)
+		{
+			goals.sort((a, b) -> {
+				int aso = sectionOrders.getOrDefault(a.getSectionId(), Integer.MAX_VALUE);
+				int bso = sectionOrders.getOrDefault(b.getSectionId(), Integer.MAX_VALUE);
+				if (aso != bso) return Integer.compare(aso, bso);
+				return Integer.compare(a.getPriority(), b.getPriority());
+			});
+			reindex();
+		}
 	}
 
 	/**
@@ -1207,7 +1221,13 @@ public class GoalStore
 
 	public List<Goal> getGoals()
 	{
-		return goals;
+		// Defensive snapshot under the lock: callers only read the result, and
+		// returning a copy makes every iteration immune to a concurrent
+		// structural mutation on the other thread (the panel-rebuild CME).
+		synchronized (goalsLock)
+		{
+			return new ArrayList<>(goals);
+		}
 	}
 
 	/**
@@ -1270,7 +1290,7 @@ public class GoalStore
 			goal.setSectionId(getIncompleteSection().getId());
 		}
 		goal.setPriority(goals.size());
-		goals.add(goal);
+		synchronized (goalsLock) { goals.add(goal); }
 		goalIndex.put(goal.getId(), goal);
 		addToDependentIndex(goal);
 		saveGoalIfNotSuspended(goal);
@@ -1316,7 +1336,7 @@ public class GoalStore
 			goal.setSectionId(getIncompleteSection().getId());
 		}
 		int clamped = Math.max(0, Math.min(index, goals.size()));
-		goals.add(clamped, goal);
+		synchronized (goalsLock) { goals.add(clamped, goal); }
 		goalIndex.put(goal.getId(), goal);
 		addToDependentIndex(goal);
 		reindex();
@@ -1378,7 +1398,7 @@ public class GoalStore
 			}
 		}
 		dependentIndex.remove(goalId);
-		goals.removeIf(g -> g.getId().equals(goalId));
+		synchronized (goalsLock) { goals.removeIf(g -> g.getId().equals(goalId)); }
 		goalIndex.remove(goalId);
 		reindex();
 		for (Goal g : edgeScrubbed) saveGoalIfNotSuspended(g);
@@ -1733,7 +1753,7 @@ public class GoalStore
 		Goal snapshotGoal = deleted;
 
 		// 7. Remove the goal from the flat list.
-		goals.removeIf(g -> g.getId().equals(goalId));
+		synchronized (goalsLock) { goals.removeIf(g -> g.getId().equals(goalId)); }
 		goalIndex.remove(goalId);
 		reindex();
 		// Save affected predecessors (bypass edges + scrubbed edges)
@@ -1754,7 +1774,7 @@ public class GoalStore
 		{
 			if (goals.get(i).getId().equals(goal.getId()))
 			{
-				goals.set(i, goal);
+				synchronized (goalsLock) { goals.set(i, goal); }
 				goalIndex.put(goal.getId(), goal);
 				break;
 			}
@@ -1773,7 +1793,10 @@ public class GoalStore
 		String incompleteId = getIncompleteSection().getId();
 		boolean anyMoved = false;
 		List<Goal> movedGoals = new ArrayList<>();
-		for (Goal goal : goals)
+		// Iterate a snapshot: this runs on the client-thread tracker drain and
+		// must not CME against a concurrent EDT mutation. Field writes below
+		// (setSectionId) still hit the real goals — same object references.
+		for (Goal goal : getGoals())
 		{
 			String currentSid = goal.getSectionId();
 			boolean isComplete = goal.isComplete();
@@ -1854,7 +1877,7 @@ public class GoalStore
 
 	public void setGoals(List<Goal> newGoals)
 	{
-		goals = new ArrayList<>(newGoals);
+		synchronized (goalsLock) { goals = new ArrayList<>(newGoals); }
 		reindex();
 		for (Goal g : goals) saveGoalIfNotSuspended(g);
 		saveGoalOrderIfNotSuspended();
@@ -2605,8 +2628,11 @@ public class GoalStore
 		{
 			return;
 		}
-		Goal moved = goals.remove(fromIndex);
-		goals.add(toIndex, moved);
+		synchronized (goalsLock)
+		{
+			Goal moved = goals.remove(fromIndex);
+			goals.add(toIndex, moved);
+		}
 		reindex();
 		saveGoalOrderIfNotSuspended();
 	}

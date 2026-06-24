@@ -235,12 +235,16 @@ public class GoalPanel extends PluginPanel
 		searchRow.setBorder(new EmptyBorder(0, 8, 8, 8));
 		final javax.swing.JTextField searchField = new javax.swing.JTextField();
 		searchField.setToolTipText("Search goals by name, description, tag, category, type, or section");
+		// Debounce: rebuild() is a full teardown; rebuilding on every keystroke
+		// makes typing janky. Coalesce rapid edits into one rebuild.
+		final javax.swing.Timer searchDebounce = new javax.swing.Timer(150, e -> rebuild());
+		searchDebounce.setRepeats(false);
 		searchField.getDocument().addDocumentListener(new javax.swing.event.DocumentListener()
 		{
 			private void update()
 			{
 				searchFilter = searchField.getText();
-				rebuild();
+				searchDebounce.restart();
 			}
 			@Override public void insertUpdate(javax.swing.event.DocumentEvent e) { update(); }
 			@Override public void removeUpdate(javax.swing.event.DocumentEvent e) { update(); }
