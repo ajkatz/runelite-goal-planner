@@ -1308,8 +1308,6 @@ public class GoalStore
 			goals.add(goal);
 		}
 		goalIndex.put(goal.getId(), goal);
-		log.info("[gp-dbg] addGoal '{}' -> {} goals, thread={}",
-			goal.getName(), goals.size(), Thread.currentThread().getName());
 		addToDependentIndex(goal);
 		saveGoalIfNotSuspended(goal);
 		saveGoalOrderIfNotSuspended();
