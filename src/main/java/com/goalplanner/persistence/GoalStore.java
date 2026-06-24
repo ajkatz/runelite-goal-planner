@@ -75,7 +75,10 @@ public class GoalStore
 	 *  so all external iteration is over an immutable copy (no CME). */
 	private final Object goalsLock = new Object();
 	private List<Goal> goals = new ArrayList<>();
-	private List<Section> sections = new ArrayList<>();
+	// Sections rarely change but are read constantly (every normalizeOrder /
+	// rebuild, from both the client thread and the EDT). CopyOnWriteArrayList
+	// makes those reads lock-free and CME-proof; volatile publishes reassignments.
+	private volatile List<Section> sections = new java.util.concurrent.CopyOnWriteArrayList<>();
 	private List<Tag> tags = new ArrayList<>();
 	/** Per-category color overrides. Key = TagCategory.name(), value = packed 0xRRGGBB. */
 	private java.util.Map<String, Integer> categoryColors = new java.util.HashMap<>();
@@ -116,7 +119,10 @@ public class GoalStore
 	 *  sections keep completed goals inline rather than archiving them. */
 	private boolean indentDependenciesDefault = false;
 	/** Granular dirty tracking for suspend/resume. */
-	private final java.util.Set<String> dirtyGoalIds = new java.util.HashSet<>();
+	/** Goals needing a save. Written from the client thread (tracker progress)
+	 *  and the EDT (user edits); a concurrent set avoids CME when the save loop
+	 *  iterates it while the other thread marks a goal dirty. */
+	private final java.util.Set<String> dirtyGoalIds = java.util.concurrent.ConcurrentHashMap.newKeySet();
 	private final java.util.Set<String> dirtyTagIds = new java.util.HashSet<>();
 	private boolean goalOrderDirty = false;
 	private boolean tagIdsDirty = false;
@@ -340,14 +346,14 @@ public class GoalStore
 				List<Section> loaded = gson.fromJson(sectionsJson, SECTION_LIST_TYPE);
 				if (loaded != null)
 				{
-					sections = new ArrayList<>(loaded);
+					sections = new java.util.concurrent.CopyOnWriteArrayList<>(loaded);
 					log.info("Loaded {} sections", sections.size());
 				}
 			}
 			catch (Exception e)
 			{
 				log.error("Failed to load sections", e);
-				sections = new ArrayList<>();
+				sections = new java.util.concurrent.CopyOnWriteArrayList<>();
 			}
 		}
 
@@ -778,9 +784,11 @@ public class GoalStore
 	 */
 	public void normalizeOrder()
 	{
-		// Build a lookup from sectionId to section.order
+		// Build a lookup from sectionId to section.order. Snapshot sections — this
+		// runs on both the client thread (reconcile) and the EDT (queries), and
+		// the EDT also mutates sections (section CRUD).
 		java.util.Map<String, Integer> sectionOrders = new java.util.HashMap<>();
-		for (Section s : sections)
+		for (Section s : getSections())
 		{
 			sectionOrders.put(s.getId(), s.getOrder());
 		}
@@ -1076,13 +1084,17 @@ public class GoalStore
 	{
 		if (dirtyGoalIds.isEmpty()) return;
 		long start = System.currentTimeMillis();
-		int count = dirtyGoalIds.size();
-		for (String id : dirtyGoalIds)
+		// Snapshot, save, then remove exactly what we saved — an id marked dirty
+		// on the other thread DURING the save survives for the next flush (a bare
+		// clear() would silently drop it and lose that goal's progress).
+		java.util.Set<String> batch = new java.util.HashSet<>(dirtyGoalIds);
+		int count = batch.size();
+		for (String id : batch)
 		{
 			Goal g = findGoalById(id);
 			if (g != null) saveGoal(g);
 		}
-		dirtyGoalIds.clear();
+		dirtyGoalIds.removeAll(batch);
 		saveSections();
 		long elapsed = System.currentTimeMillis() - start;
 		if (elapsed > 50)
@@ -1119,14 +1131,15 @@ public class GoalStore
 	{
 		saveSuspended = false;
 		long start = System.currentTimeMillis();
-		// Flush dirty goals
-		for (String id : dirtyGoalIds)
+		// Flush dirty goals (snapshot + removeAll so a concurrent mark survives)
+		java.util.Set<String> batch = new java.util.HashSet<>(dirtyGoalIds);
+		for (String id : batch)
 		{
 			Goal g = findGoalById(id);
 			if (g != null) saveGoal(g);
 			else deleteGoalKey(id);
 		}
-		dirtyGoalIds.clear();
+		dirtyGoalIds.removeAll(batch);
 		if (goalOrderDirty) { saveGoalOrder(); goalOrderDirty = false; }
 		// Flush dirty tags
 		for (String id : dirtyTagIds)
