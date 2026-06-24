@@ -211,7 +211,7 @@ public class GoalStore
 		if (tagsMigrated || relationsScrubbed || diariesBackfilled)
 		{
 			// Migration touched tags and/or goal relation edges - persist affected entities.
-			for (Goal g : goals) saveGoal(g);
+			for (Goal g : getGoals()) saveGoal(g);
 			saveGoalOrder();
 			for (Tag t : tags) saveTag(t);
 			saveTagIds();
@@ -531,7 +531,7 @@ public class GoalStore
 	{
 		log.info("Migrating persistence from v1 (monolithic) to v2 (per-entity)");
 		// Write each goal individually
-		for (Goal g : goals) saveGoal(g);
+		for (Goal g : getGoals()) saveGoal(g);
 		saveGoalOrder();
 		// Write each tag individually
 		for (Tag t : tags) saveTag(t);
@@ -551,13 +551,13 @@ public class GoalStore
 	private void rebuildIndexes()
 	{
 		goalIndex.clear();
-		for (Goal g : goals) goalIndex.put(g.getId(), g);
+		for (Goal g : getGoals()) goalIndex.put(g.getId(), g);
 		sectionIndex.clear();
 		for (Section s : sections) sectionIndex.put(s.getId(), s);
 		tagIndex.clear();
 		for (Tag t : tags) tagIndex.put(t.getId(), t);
 		dependentIndex.clear();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getRequiredGoalIds() != null)
 			{
@@ -592,14 +592,14 @@ public class GoalStore
 	{
 		boolean changed = false;
 		java.util.Set<String> validIds = new java.util.HashSet<>();
-		for (Goal g : goals) validIds.add(g.getId());
+		for (Goal g : getGoals()) validIds.add(g.getId());
 
 		// Build a scratch graph where we re-accept edges one-by-one and drop
 		// any that would close a cycle in the scratch graph.
 		java.util.Map<String, java.util.List<String>> accepted = new java.util.HashMap<>();
-		for (Goal g : goals) accepted.put(g.getId(), new ArrayList<>());
+		for (Goal g : getGoals()) accepted.put(g.getId(), new ArrayList<>());
 
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			List<String> reqs = g.getRequiredGoalIds();
 			if (reqs == null || reqs.isEmpty()) continue;
@@ -748,7 +748,7 @@ public class GoalStore
 	 */
 	private void redirectGoalTagReferences(String fromTagId, String toTagId)
 	{
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getTagIds() != null)
 			{
@@ -865,7 +865,7 @@ public class GoalStore
 		String completedId = getCompletedSection().getId();
 
 		boolean anyChanged = false;
-		for (Goal goal : goals)
+		for (Goal goal : getGoals())
 		{
 			String sid = goal.getSectionId();
 			boolean known = sid != null && sectionIndex.containsKey(sid);
@@ -878,7 +878,7 @@ public class GoalStore
 		if (anyChanged)
 		{
 			log.info("Migrated orphaned goals into built-in sections");
-			for (Goal g : goals) saveGoal(g);
+			for (Goal g : getGoals()) saveGoal(g);
 			saveGoalOrder();
 		}
 	}
@@ -900,7 +900,7 @@ public class GoalStore
 	private boolean backfillDiaryTracking()
 	{
 		boolean anyChanged = false;
-		for (Goal goal : goals)
+		for (Goal goal : getGoals())
 		{
 			if (goal.getType() != GoalType.DIARY) continue;
 			if (goal.isComplete()) continue;
@@ -949,7 +949,7 @@ public class GoalStore
 	private void saveGoalOrder()
 	{
 		List<String> ids = new ArrayList<>();
-		for (Goal g : goals) ids.add(g.getId());
+		for (Goal g : getGoals()) ids.add(g.getId());
 		setCfg(GOAL_ORDER_KEY, gson.toJson(ids));
 	}
 
@@ -1042,7 +1042,7 @@ public class GoalStore
 		if (saveSuspended)
 		{
 			// Mark everything dirty so resumeSave() flushes it all.
-			for (Goal g : goals) dirtyGoalIds.add(g.getId());
+			for (Goal g : getGoals()) dirtyGoalIds.add(g.getId());
 			goalOrderDirty = true;
 			for (Tag t : tags) dirtyTagIds.add(t.getId());
 			tagIdsDirty = true;
@@ -1094,7 +1094,7 @@ public class GoalStore
 	/** Force an immediate save of everything (e.g. on plugin shutdown). */
 	public void saveNow()
 	{
-		for (Goal g : goals) saveGoal(g);
+		for (Goal g : getGoals()) saveGoal(g);
 		saveGoalOrder();
 		for (Tag t : tags) saveTag(t);
 		saveTagIds();
@@ -1237,7 +1237,7 @@ public class GoalStore
 	 */
 	public boolean exists(java.util.function.Predicate<Goal> predicate)
 	{
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (predicate.test(g)) return true;
 		}
@@ -1289,9 +1289,14 @@ public class GoalStore
 		{
 			goal.setSectionId(getIncompleteSection().getId());
 		}
-		goal.setPriority(goals.size());
-		synchronized (goalsLock) { goals.add(goal); }
+		synchronized (goalsLock)
+		{
+			goal.setPriority(goals.size());
+			goals.add(goal);
+		}
 		goalIndex.put(goal.getId(), goal);
+		log.info("[gp-dbg] addGoal '{}' -> {} goals, thread={}",
+			goal.getName(), goals.size(), Thread.currentThread().getName());
 		addToDependentIndex(goal);
 		saveGoalIfNotSuspended(goal);
 		saveGoalOrderIfNotSuspended();
@@ -1327,7 +1332,7 @@ public class GoalStore
 	public void insertGoalAt(Goal goal, int index)
 	{
 		if (goal == null) return;
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getId().equals(goal.getId())) return; // already there
 		}
@@ -1335,8 +1340,11 @@ public class GoalStore
 		{
 			goal.setSectionId(getIncompleteSection().getId());
 		}
-		int clamped = Math.max(0, Math.min(index, goals.size()));
-		synchronized (goalsLock) { goals.add(clamped, goal); }
+		synchronized (goalsLock)
+		{
+			int clamped = Math.max(0, Math.min(index, goals.size()));
+			goals.add(clamped, goal);
+		}
 		goalIndex.put(goal.getId(), goal);
 		addToDependentIndex(goal);
 		reindex();
@@ -1360,7 +1368,7 @@ public class GoalStore
 		// chain cleanly.
 		// Scrub incoming edges from the dependentIndex and the goals themselves.
 		List<Goal> edgeScrubbed = new ArrayList<>();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getRequiredGoalIds() != null && g.getRequiredGoalIds().remove(goalId))
 			{
@@ -1588,7 +1596,7 @@ public class GoalStore
 	public Goal findMatchingGoal(Goal template)
 	{
 		if (template == null || template.getType() == null) return null;
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getType() != template.getType()) continue;
 			if (matches(g, template)) return g;
@@ -1698,9 +1706,10 @@ public class GoalStore
 
 		// 1. Snapshot the deleted goal's index in the flat list.
 		int originalIndex = -1;
-		for (int i = 0; i < goals.size(); i++)
+		List<Goal> flat = getGoals();
+		for (int i = 0; i < flat.size(); i++)
 		{
-			if (goalId.equals(goals.get(i).getId())) { originalIndex = i; break; }
+			if (goalId.equals(flat.get(i).getId())) { originalIndex = i; break; }
 		}
 
 		// 2. Collect predecessors via the reverse index.
@@ -1770,13 +1779,18 @@ public class GoalStore
 
 	public void updateGoal(Goal goal)
 	{
-		for (int i = 0; i < goals.size(); i++)
+		// Find + replace atomically so a concurrent structural write can't shift
+		// the index between the lookup and the set.
+		synchronized (goalsLock)
 		{
-			if (goals.get(i).getId().equals(goal.getId()))
+			for (int i = 0; i < goals.size(); i++)
 			{
-				synchronized (goalsLock) { goals.set(i, goal); }
-				goalIndex.put(goal.getId(), goal);
-				break;
+				if (goals.get(i).getId().equals(goal.getId()))
+				{
+					goals.set(i, goal);
+					goalIndex.put(goal.getId(), goal);
+					break;
+				}
 			}
 		}
 		saveGoalIfNotSuspended(goal);
@@ -1879,7 +1893,7 @@ public class GoalStore
 	{
 		synchronized (goalsLock) { goals = new ArrayList<>(newGoals); }
 		reindex();
-		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		for (Goal g : getGoals()) saveGoalIfNotSuspended(g);
 		saveGoalOrderIfNotSuspended();
 	}
 
@@ -1942,7 +1956,7 @@ public class GoalStore
 	{
 		String ns = namespaceKey(targetSectionId);
 		if (ns == null || goal == null) return null;
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g == goal) continue;
 			if (ns.equals(namespaceKey(g.getSectionId()))
@@ -2137,7 +2151,7 @@ public class GoalStore
 		if (section == null || section.isBuiltIn()) return false;
 
 		List<String> doomed = new ArrayList<>();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (sectionId.equals(g.getSectionId())) doomed.add(g.getId());
 		}
@@ -2163,7 +2177,7 @@ public class GoalStore
 	{
 		String incompleteId = getIncompleteSection().getId();
 		List<Goal> moved = new ArrayList<>();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (sectionId.equals(g.getSectionId()))
 			{
@@ -2224,7 +2238,7 @@ public class GoalStore
 	public boolean moveGoalToSection(String goalId, String sectionId)
 	{
 		Goal goal = null;
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getId().equals(goalId)) { goal = g; break; }
 		}
@@ -2256,7 +2270,7 @@ public class GoalStore
 		// current priority. Bumping this goal's priority above all others in the
 		// destination section guarantees "appended at end" after normalize.
 		int maxPriorityInDest = -1;
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (sectionId.equals(g.getSectionId()) && g != goal && g.getPriority() > maxPriorityInDest)
 			{
@@ -2299,7 +2313,7 @@ public class GoalStore
 		}
 		if (doomed.isEmpty()) return 0;
 
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (doomed.contains(g.getSectionId()))
 			{
@@ -2312,7 +2326,7 @@ public class GoalStore
 		normalizeOrder();
 		reconcileCompletedSection();
 		// Goals may have been reassigned by both the section delete and reconcile
-		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		for (Goal g : getGoals()) saveGoalIfNotSuspended(g);
 		saveSectionsIfNotSuspended();
 		saveGoalOrderIfNotSuspended();
 		return doomed.size();
@@ -2482,7 +2496,7 @@ public class GoalStore
 
 		String sourceId = source.getId();
 		String destId = dest.getId();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			if (g.getTagIds() != null)
 			{
@@ -2514,7 +2528,7 @@ public class GoalStore
 		tags.remove(source);
 		tagIndex.remove(source.getId());
 		// Save affected goals (tag references rewritten) + tags
-		for (Goal g : goals) saveGoalIfNotSuspended(g);
+		for (Goal g : getGoals()) saveGoalIfNotSuspended(g);
 		saveTagIfNotSuspended(dest);
 		deleteTagKeyIfNotSuspended(sourceId);
 		saveTagIdsIfNotSuspended();
@@ -2593,7 +2607,7 @@ public class GoalStore
 		Tag t = findTag(tagId);
 		if (t == null || t.isSystem()) return false;
 		List<Goal> affectedGoals = new ArrayList<>();
-		for (Goal g : goals)
+		for (Goal g : getGoals())
 		{
 			boolean changed = false;
 			if (g.getTagIds() != null) changed |= g.getTagIds().remove(tagId);
@@ -2624,12 +2638,14 @@ public class GoalStore
 
 	public void reorder(int fromIndex, int toIndex)
 	{
-		if (fromIndex < 0 || fromIndex >= goals.size() || toIndex < 0 || toIndex >= goals.size())
-		{
-			return;
-		}
+		// Bounds-check + move atomically so a concurrent write can't invalidate
+		// the indices between the check and the remove/add.
 		synchronized (goalsLock)
 		{
+			if (fromIndex < 0 || fromIndex >= goals.size() || toIndex < 0 || toIndex >= goals.size())
+			{
+				return;
+			}
 			Goal moved = goals.remove(fromIndex);
 			goals.add(toIndex, moved);
 		}
@@ -2639,9 +2655,12 @@ public class GoalStore
 
 	private void reindex()
 	{
-		for (int i = 0; i < goals.size(); i++)
+		synchronized (goalsLock)
 		{
-			goals.get(i).setPriority(i);
+			for (int i = 0; i < goals.size(); i++)
+			{
+				goals.get(i).setPriority(i);
+			}
 		}
 	}
 }

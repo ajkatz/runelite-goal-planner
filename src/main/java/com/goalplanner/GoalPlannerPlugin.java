@@ -569,6 +569,7 @@ public class GoalPlannerPlugin extends Plugin
 		// mid-varbit). Suspension/GameState are re-checked at drain time.
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		trackersDirty = true;
+		dbgVarbitEvents++;
 	}
 
 	/** Debounce timer coalescing rapid rebuild requests. Hoisted to a field so
@@ -579,6 +580,10 @@ public class GoalPlannerPlugin extends Plugin
 	 *  drained once per tick in onGameTick, so the tracker suite runs at most once
 	 *  per tick instead of per event. Client-thread only. */
 	private boolean trackersDirty = false;
+
+	// [gp-dbg] investigation counters — events coalesced since the last drain.
+	private int dbgVarbitEvents = 0;
+	private int dbgStatEvents = 0;
 
 	/** Last Kingdom of Miscellania approval value seen this session (-1 = not yet
 	 *  read, so the first reading only establishes a baseline). Reset on login. */
@@ -1607,6 +1612,7 @@ public class GoalPlannerPlugin extends Plugin
 		// onGameTick. The suspension window (stale post-profile-switch skill XP
 		// cache) is honoured by the drain, which skips while suspended.
 		trackersDirty = true;
+		dbgStatEvents++;
 	}
 
 	/**
@@ -1639,6 +1645,7 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		if (!trackersDirty || isTrackingSuspended()) return;
 		trackersDirty = false;
+		long t0 = System.nanoTime();
 		java.util.List<Goal> goals = goalStore.getGoals();
 		boolean updated = skillTracker.checkGoals(goals);
 		updated |= questTracker.checkGoals(goals);
@@ -1648,6 +1655,11 @@ public class GoalPlannerPlugin extends Plugin
 		updated |= bossKillTracker.checkGoals(goals);
 		flushIfUpdated(updated);
 		maybeAutoAddMiscApprovalGoal();
+		log.info("[gp-dbg] drain: goals={} coalesced(varbit={}, stat={}) updated={} took={}us thread={}",
+			goals.size(), dbgVarbitEvents, dbgStatEvents, updated,
+			(System.nanoTime() - t0) / 1000, Thread.currentThread().getName());
+		dbgVarbitEvents = 0;
+		dbgStatEvents = 0;
 	}
 
 	/**

@@ -959,6 +959,8 @@ public class GoalPanel extends PluginPanel
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
 		long elapsed = System.currentTimeMillis() - start;
+		log.info("[gp-dbg] rebuild: {} cards, {}ms, filter='{}', thread={}",
+			cardMap.size(), elapsed, searchFilter, Thread.currentThread().getName());
 		if (elapsed > 50)
 		{
 			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
