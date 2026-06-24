@@ -628,17 +628,22 @@ public class GoalPlannerPlugin extends Plugin
 			return;
 		}
 
-		String id = goalTrackerApi.addAccountGoal(AccountMetric.MISC_APPROVAL.name(),
-			com.goalplanner.tracker.MiscellaniaAutoGoal.FULL_APPROVAL);
-		if (id == null)
+		// The add runs through the command system (EDT-owned selection + undo
+		// history), so marshal it off this client-thread drain onto the EDT.
+		javax.swing.SwingUtilities.invokeLater(() ->
 		{
-			return;
-		}
-		log.debug("Auto-added Miscellania 100% approval goal {}", id);
-		postGameMessage(new ChatMessageBuilder()
-			.append("Goal Planner: added a Miscellania 100% approval goal. "
-				+ "You can turn this off in the plugin settings (Auto-track Miscellania).")
-			.build());
+			String id = goalTrackerApi.addAccountGoal(AccountMetric.MISC_APPROVAL.name(),
+				com.goalplanner.tracker.MiscellaniaAutoGoal.FULL_APPROVAL);
+			if (id == null)
+			{
+				return;
+			}
+			log.debug("Auto-added Miscellania 100% approval goal {}", id);
+			postGameMessage(new ChatMessageBuilder()
+				.append("Goal Planner: added a Miscellania 100% approval goal. "
+					+ "You can turn this off in the plugin settings (Auto-track Miscellania).")
+				.build());
+		});
 	}
 
 	/** True if a Misc. Approval account goal already exists on this profile -
@@ -1921,8 +1926,10 @@ public class GoalPlannerPlugin extends Plugin
 
 			if (sectionChanged)
 			{
-				// Goals moved between sections - need full rebuild
-				goalTrackerApi.fireGoalsChanged();
+				// Goals moved between sections - need a full rebuild. fireGoalsChanged
+				// touches selection + command history (EDT-owned state) and triggers
+				// the rebuild, so run it on the EDT rather than this client thread.
+				javax.swing.SwingUtilities.invokeLater(() -> goalTrackerApi.fireGoalsChanged());
 			}
 			else
 			{
