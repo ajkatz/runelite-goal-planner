@@ -412,6 +412,32 @@ class GoalContextMenuBuilder
 			menu.add(editQty);
 		}
 
+		// Boss kill-count goals: edit the target KC, same as an item quantity.
+		if (goal.getType() == GoalType.BOSS)
+		{
+			JMenuItem editKc = new JMenuItem("Change Amount");
+			editKc.addActionListener(e -> {
+				String input = JOptionPane.showInputDialog(
+					panel,
+					"New target kill count for " + goal.getName() + ":",
+					String.valueOf(goal.getTargetValue())
+				);
+				if (input != null)
+				{
+					try
+					{
+						int newKc = Integer.parseInt(input.trim().replace(",", ""));
+						if (newKc > 0)
+						{
+							api.changeTarget(goal.getId(), newKc);
+						}
+					}
+					catch (NumberFormatException ignored) {}
+				}
+			});
+			menu.add(editKc);
+		}
+
 		// Tag management - routes through the shared TagPickerDialog so the
 		// single-item and bulk Add Tag flows stay in lockstep (category list,
 		// SKILLING lock, freeform/dropdown switch).

@@ -340,26 +340,55 @@ public final class ColumnMenu
 	}
 
 	/**
-	 * Clamp the popup inside the RuneLite client window so the right
-	 * edge can't float past the client edge (and the bottom edge
-	 * doesn't either). Falls back to the screen's max bounds if the
-	 * anchor wasn't in a window for some reason.
+	 * Keep the popup on the visible screen. Horizontally it slides left so the
+	 * right edge stays on-screen. Vertically, if the menu would run off the
+	 * bottom (e.g. you right-clicked near the bottom of a window docked at the
+	 * bottom of the display), it FLIPS to grow upward from the click point
+	 * instead of hanging off-screen. Uses the actual monitor's usable bounds
+	 * (minus the dock/taskbar), not the client window, so it can't spill below
+	 * the screen even when the client itself sits at the screen edge.
 	 */
 	private void repositionIfOffscreen()
 	{
-		Rectangle constraint = ownerWindow != null && ownerWindow.isShowing()
-			? ownerWindow.getBounds()
-			: GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
 		Rectangle bounds = window.getBounds();
+		int left;
+		int top;
+		int rightLimit;
+		int bottomLimit;
+		java.awt.GraphicsConfiguration gc = window.getGraphicsConfiguration();
+		if (gc != null)
+		{
+			Rectangle screen = gc.getBounds();
+			java.awt.Insets ins = Toolkit.getDefaultToolkit().getScreenInsets(gc);
+			left = screen.x + ins.left;
+			top = screen.y + ins.top;
+			rightLimit = screen.x + screen.width - ins.right;
+			bottomLimit = screen.y + screen.height - ins.bottom;
+		}
+		else
+		{
+			Rectangle screen = GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds();
+			left = screen.x;
+			top = screen.y;
+			rightLimit = screen.x + screen.width;
+			bottomLimit = screen.y + screen.height;
+		}
+
 		int x = bounds.x;
 		int y = bounds.y;
-		if (bounds.x + bounds.width > constraint.x + constraint.width)
+		if (x + bounds.width > rightLimit)
 		{
-			x = Math.max(constraint.x, constraint.x + constraint.width - bounds.width);
+			x = Math.max(left, rightLimit - bounds.width);
 		}
-		if (bounds.y + bounds.height > constraint.y + constraint.height)
+		if (y + bounds.height > bottomLimit)
 		{
-			y = Math.max(constraint.y, constraint.y + constraint.height - bounds.height);
+			// Flip up: the menu's bottom lands at the click point and it grows
+			// upward. Clamp to the top if it's too tall to fit entirely above.
+			y = bounds.y - bounds.height;
+			if (y < top)
+			{
+				y = Math.max(top, bottomLimit - bounds.height);
+			}
 		}
 		if (x != bounds.x || y != bounds.y) window.setLocation(x, y);
 	}

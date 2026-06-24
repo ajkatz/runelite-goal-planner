@@ -26,6 +26,12 @@ bumps.
   **Behaviour → Auto-track Miscellania** (on by default).
 
 ### Changed
+- **Right-click menu polish.** The panel's context menu now flips to grow
+  *upward* when you click near the bottom of the screen, so it can't open
+  off-screen. Boss goals get a **Change Amount** (edit the target kill count,
+  like item quantities). Adding a goal from the **collection log** and the
+  **combat-achievement log** now uses one consistent "Add Goal" submenu
+  (Default + each section), matching the in-game quest menu.
 - **Performance & stability pass.** Coalesced the tracker suite to run at most
   once per game tick instead of on every varbit/stat event (many per tick) — the
   main source of in-game lag with a large plan. Debounced the search box so

@@ -1384,42 +1384,20 @@ public class GoalPlannerPlugin extends Plugin
 					continue;
 				}
 
-				client.createMenuEntry(1)
+				// One "Add Goal" submenu: Default + each user section (matches the
+				// quest standard; replaces the old separate Add Goal + Add to
+				// Section entries). addCombatAchievementGoal dedups internally.
+				net.runelite.api.Menu caAddSub = client.createMenuEntry(1)
 					.setOption("Add Goal")
 					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
-					.onClick(e ->
-					{
-						// Re-read at click time in case the list was re-filtered
-						Goal goal = buildCombatAchievementGoal(row);
-						if (goal == null)
-						{
-							log.warn("CA goal row {} no longer resolvable at click time", row);
-							return;
-						}
-						// Duplicate guard: prefer caTaskId match (stable across rebuilds);
-						// fall back to name match for legacy goals without a task id.
-						final String newName = goal.getName();
-						final int newTaskId = goal.getCaTaskId();
-						if (goalStore.exists(g -> {
-							if (g.getType() != GoalType.COMBAT_ACHIEVEMENT) return false;
-							boolean sameTask = newTaskId >= 0 && g.getCaTaskId() == newTaskId;
-							boolean sameName = newName != null && newName.equalsIgnoreCase(g.getName());
-							return sameTask || sameName;
-						}))
-						{
-							log.info("CA goal already exists: {}", newName);
-							return;
-						}
-						addGoalUndoable(goal, "Add CA goal: " + newName);
-						refreshItemGoalsNow();
-					});
-				addSectionMenuEntries("Add to Section", entry.getTarget(), preview, preview.getName(),
-					() ->
-					{
-						Goal g = buildCombatAchievementGoal(row);
-						return g == null ? null : goalTrackerApi.addCombatAchievementGoal(g.getCaTaskId());
-					});
+					.createSubMenu();
+				final java.util.function.Supplier<String> caAdd = () ->
+				{
+					Goal g = buildCombatAchievementGoal(row);
+					return g == null ? null : goalTrackerApi.addCombatAchievementGoal(g.getCaTaskId());
+				};
+				addGoalSectionItems(caAddSub, preview, preview.getName(), caAdd, caAdd);
 				break;
 			}
 
@@ -1548,56 +1526,38 @@ public class GoalPlannerPlugin extends Plugin
 				: rawName;
 			final boolean fromCollectionLog = isCollectionLog;
 
-			// Add at index 1 to put it near the bottom of the menu
-			client.createMenuEntry(1)
-				.setOption("Add Goal")
-				.setTarget(entry.getTarget())
-				.setType(MenuAction.RUNELITE)
-				.onClick(e ->
+			// Collection log: an "Add Goal" submenu (Default + each user section)
+			// so the item lands where you want, matching quests / CAs. Inventory
+			// and bank keep the single quick "Add Goal" (-> default Incomplete).
+			if (fromCollectionLog && !userSections().isEmpty())
+			{
+				net.runelite.api.Menu itemSub = client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget(entry.getTarget())
+					.setType(MenuAction.RUNELITE)
+					.createSubMenu();
+				itemSub.createMenuEntry(0)
+					.setOption("Default")
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> promptAddItemGoal(realItemId, itemName, null));
+				for (com.goalplanner.api.SectionView section : userSections())
 				{
-					// Build tags on the client thread (ItemManager requires it),
-					// then show the quantity prompt on the EDT so it doesn't
-					// block the game's rendering loop.
-					java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
-					java.util.List<String> autoTagIds = new java.util.ArrayList<>();
-					for (ItemTag spec : autoTags)
-					{
-						com.goalplanner.model.Tag tag =
-							goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
-						if (tag != null) autoTagIds.add(tag.getId());
-					}
-
-					javax.swing.SwingUtilities.invokeLater(() ->
-					{
-						String input = javax.swing.JOptionPane.showInputDialog(
-							panel,
-							"Target quantity for " + itemName + ":",
-							"1"
-						);
-						if (input == null) return;
-						int qty;
-						try
-						{
-							qty = Integer.parseInt(input.trim().replace(",", ""));
-							if (qty <= 0) return;
-						}
-						catch (NumberFormatException ignored) { return; }
-
-						Goal goal = Goal.builder()
-							.type(GoalType.ITEM_GRIND)
-							.name(itemName)
-							.description(FormatUtil.formatNumber(qty) + " total")
-							.itemId(realItemId)
-							.targetValue(qty)
-							.currentValue(-1)
-							.tagIds(new java.util.ArrayList<>(autoTagIds))
-							.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
-							.build();
-
-						addGoalUndoable(goal, "Add goal: " + itemName);
-						refreshItemGoalsNow();
-					});
-				});
+					final String sid = section.id;
+					itemSub.createMenuEntry(0)
+						.setOption(section.name)
+						.setType(MenuAction.RUNELITE)
+						.onClick(e -> promptAddItemGoal(realItemId, itemName, sid));
+				}
+			}
+			else
+			{
+				// Add at index 1 to put it near the bottom of the menu
+				client.createMenuEntry(1)
+					.setOption("Add Goal")
+					.setTarget(entry.getTarget())
+					.setType(MenuAction.RUNELITE)
+					.onClick(e -> promptAddItemGoal(realItemId, itemName, null));
+			}
 
 			// Only add one "Add Goal" entry
 			break;
@@ -1859,6 +1819,51 @@ public class GoalPlannerPlugin extends Plugin
 	 * seed-prereqs add for quests); each section runs {@code sectionAdd} then moves
 	 * the new goal into that section (via {@link #addToSection}, which dedups).
 	 */
+	/**
+	 * Build an ITEM_GRIND goal: gather auto-tags (client thread), then prompt for
+	 * a target quantity on the EDT and add it. A non-null {@code sectionId} lands
+	 * it in that section; null uses the default Incomplete list. Must be called on
+	 * the client thread (ItemManager tag lookup).
+	 */
+	private void promptAddItemGoal(int realItemId, String itemName, String sectionId)
+	{
+		java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
+		java.util.List<String> autoTagIds = new java.util.ArrayList<>();
+		for (ItemTag spec : autoTags)
+		{
+			com.goalplanner.model.Tag tag =
+				goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+			if (tag != null) autoTagIds.add(tag.getId());
+		}
+		javax.swing.SwingUtilities.invokeLater(() ->
+		{
+			String input = javax.swing.JOptionPane.showInputDialog(
+				panel, "Target quantity for " + itemName + ":", "1");
+			if (input == null) return;
+			int qty;
+			try
+			{
+				qty = Integer.parseInt(input.trim().replace(",", ""));
+				if (qty <= 0) return;
+			}
+			catch (NumberFormatException ignored) { return; }
+
+			Goal goal = Goal.builder()
+				.type(GoalType.ITEM_GRIND)
+				.name(itemName)
+				.description(FormatUtil.formatNumber(qty) + " total")
+				.itemId(realItemId)
+				.targetValue(qty)
+				.currentValue(-1)
+				.sectionId(sectionId)
+				.tagIds(new java.util.ArrayList<>(autoTagIds))
+				.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
+				.build();
+			addGoalUndoable(goal, "Add goal: " + itemName);
+			refreshItemGoalsNow();
+		});
+	}
+
 	private void addGoalSectionItems(net.runelite.api.Menu sub, Goal probe, String label,
 		java.util.function.Supplier<String> defaultAdd,
 		java.util.function.Supplier<String> sectionAdd)
