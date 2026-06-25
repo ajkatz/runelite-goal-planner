@@ -74,9 +74,19 @@ public class GoalCard extends JPanel
 		}
 	}
 
+	/** The plugin's completion icon (scaled, cached), or null if unavailable.
+	 *  Shared so other UI (e.g. an all-complete section header) can show it. */
+	public static ImageIcon completionIcon()
+	{
+		return loadCompletionIcon();
+	}
+
 	private GoalView view;
 	private final JLabel nameLabel;
 	private final JLabel statusLabel;
+	/** When true, the status column uses the single-line compact form regardless
+	 *  of font scale - set for narrow (nested) cards so progress doesn't clip. */
+	private boolean compactStatus;
 	private final JButton upButton;
 	private final JButton downButton;
 
@@ -99,7 +109,15 @@ public class GoalCard extends JPanel
 		// the same as active goals.
 		List<TagView> allTags = combinedTags(view);
 		boolean hasTags = !allTags.isEmpty();
-		int height = hasTags ? CARD_HEIGHT + TAG_ROW_HEIGHT : CARD_HEIGHT;
+		// Grow the fixed-pixel box with the font scale so larger text gets the extra
+		// vertical room it needs - otherwise the 2-line name/progress columns wrap
+		// and clip against a 48px card at the "Large"/"Larger" scales.
+		float s = PanelFonts.scale();
+		final int cardH = Math.round(CARD_HEIGHT * s);
+		final int tagH = Math.round(TAG_ROW_HEIGHT * s);
+		final int iconPx = Math.round(18 * s);
+		final int sideH = cardH - Math.round(12 * s); // arrow/completion column height
+		int height = hasTags ? cardH + tagH : cardH;
 
 		setLayout(new BorderLayout(0, 0));
 		setBorder(new EmptyBorder(4, 10, 4, 4));
@@ -116,7 +134,7 @@ public class GoalCard extends JPanel
 		leftPanel.setOpaque(false);
 
 		JLabel iconLabel = buildIcon(itemManager);
-		iconLabel.setPreferredSize(new Dimension(18, 18));
+		iconLabel.setPreferredSize(new Dimension(iconPx, iconPx));
 		leftPanel.add(iconLabel, BorderLayout.WEST);
 
 		nameLabel = new JLabel(formatNameHtml());
@@ -178,7 +196,7 @@ public class GoalCard extends JPanel
 		{
 			JPanel arrowPanel = new JPanel(new GridLayout(2, 1, 0, 0));
 			arrowPanel.setOpaque(false);
-			arrowPanel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
+			arrowPanel.setPreferredSize(new Dimension(20, sideH));
 			arrowPanel.add(upButton);
 			arrowPanel.add(downButton);
 			topRow.add(arrowPanel, BorderLayout.EAST);
@@ -194,7 +212,7 @@ public class GoalCard extends JPanel
 				JLabel completionLabel = new JLabel(icon);
 				completionLabel.setHorizontalAlignment(SwingConstants.CENTER);
 				completionLabel.setVerticalAlignment(SwingConstants.CENTER);
-				completionLabel.setPreferredSize(new Dimension(20, CARD_HEIGHT - 12));
+				completionLabel.setPreferredSize(new Dimension(20, sideH));
 				topRow.add(completionLabel, BorderLayout.EAST);
 			}
 		}
@@ -572,6 +590,17 @@ public class GoalCard extends JPanel
 		downButton.setVisible(!last);
 	}
 
+	/** Toggle the compact single-line status form (for narrow/nested cards).
+	 *  Applied live each rebuild, like selection - not part of the card signature. */
+	public void setCompactStatus(boolean compact)
+	{
+		if (compact != compactStatus)
+		{
+			compactStatus = compact;
+			statusLabel.setText(formatPercent());
+		}
+	}
+
 	private Color backgroundColor()
 	{
 		return new Color(view.backgroundColorRgb);
@@ -816,6 +845,17 @@ public class GoalCard extends JPanel
 			int remaining = Math.max(0, view.targetValue - view.currentValue);
 			double pct = view.targetValue == 0 ? 0
 				: Math.max(0.0, Math.min(100.0, (view.currentValue * 100.0) / view.targetValue));
+			// When the status column is narrow - a nested card, or any card above
+			// Normal scale - the rich two-line form wraps and clips, so collapse to a
+			// single compact token. SKILL keeps just the percent (levels already show
+			// in the name); BOSS keeps the KC count (the boss name carries no
+			// progress). Full detail stays in the tooltip.
+			if (compactStatus || PanelFonts.scale() > 1.0f)
+			{
+				return "SKILL".equals(type)
+					? String.format("%.0f%%", pct)
+					: FormatUtil.formatNumber(view.currentValue) + " / " + FormatUtil.formatNumber(view.targetValue);
+			}
 			String unit = "SKILL".equals(type) ? " left" : " kills left";
 			return "<html>"
 				+ FormatUtil.formatNumber(view.currentValue) + " / " + FormatUtil.formatNumber(view.targetValue)

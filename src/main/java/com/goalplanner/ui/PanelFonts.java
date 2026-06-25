@@ -22,20 +22,43 @@ public final class PanelFonts
 	{
 	}
 
-	private static volatile Font base = resolveBase(PanelFontFamily.DEFAULT);
+	// Store the CHOICE, not a frozen Font. The base font is resolved live on every
+	// derive() call so DEFAULT always tracks the look-and-feel's current Label.font -
+	// exactly like the old per-call {@code component.getFont().deriveFont(...)}. A
+	// font frozen at configure()-time could capture a not-yet-themed L&F and leave
+	// every panel label stuck on the wrong face.
+	private static volatile PanelFontFamily family = PanelFontFamily.DEFAULT;
 	private static volatile float scale = 1.0f;
+	// Bumped on every configure() so callers that cache rendered components (e.g.
+	// the GoalPanel card-reuse signature) can detect a font change and rebuild -
+	// a reused card keeps the font it was constructed with otherwise.
+	private static volatile int generation = 0;
 
 	/** Apply the configured family + size scale. Safe to call repeatedly. */
-	public static void configure(PanelFontFamily family, PanelFontScale fontScale)
+	public static void configure(PanelFontFamily fontFamily, PanelFontScale fontScale)
 	{
-		base = resolveBase(family);
+		family = fontFamily != null ? fontFamily : PanelFontFamily.DEFAULT;
 		scale = fontScale.getMultiplier();
+		generation++;
+	}
+
+	/** Monotonic token that changes whenever the configured font changes. */
+	public static int generation()
+	{
+		return generation;
+	}
+
+	/** The configured size multiplier - so fixed-pixel layouts (card heights,
+	 *  icon sizes) can grow with the font instead of clipping larger text. */
+	public static float scale()
+	{
+		return scale;
 	}
 
 	/** Font at {@code size} (scaled) in the given {@link Font} style. */
 	public static Font derive(int style, float size)
 	{
-		return base.deriveFont(style, size * scale);
+		return resolveBase(family).deriveFont(style, size * scale);
 	}
 
 	/** Plain font at {@code size} (scaled). */
@@ -47,6 +70,7 @@ public final class PanelFonts
 	/** Restyle at the base size (scaled) - for call sites that only changed style. */
 	public static Font derive(int style)
 	{
+		Font base = resolveBase(family);
 		return base.deriveFont(style, base.getSize2D() * scale);
 	}
 

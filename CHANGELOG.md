@@ -24,6 +24,20 @@ bumps.
   removes it, and deleting it isn't permanent: it returns next time approval
   rises while the goal is missing. A chat line notes it can be turned off under
   **Behaviour → Auto-track Miscellania** (on by default).
+- **Per-profile goals.** Goals, sections and tags are now scoped to the active
+  RuneLite config profile (the same way leagues are kept separate), and reload
+  automatically when you switch profiles — each account/profile keeps its own
+  plan instead of sharing one.
+- **Collapsible nested view.** In the nested view, a goal with nested
+  prerequisites gets a collapse chevron (and a right-click *Hide/Show nested
+  prerequisites*); the collapsed state persists per goal. Import and export now
+  also carry a section's nested/flat view preference.
+- **Configurable panel font.** Choose a font family (Default / Sans-serif /
+  Serif) and size scale (Small … Larger) under settings; the panel — card
+  heights, icons and progress text — scales to match.
+- **Section completion badge.** When every goal in a section is complete, the
+  plugin's completion icon shows in the section header (left of the select-all
+  checkbox).
 
 ### Changed
 - **Right-click menu polish.** The panel's context menu now flips to grow
@@ -31,7 +45,11 @@ bumps.
   off-screen. Boss goals get a **Change Amount** (edit the target kill count,
   like item quantities). Adding a goal from the **collection log** and the
   **combat-achievement log** now uses one consistent "Add Goal" submenu
-  (Default + each section), matching the in-game quest menu.
+  (Default + each section), matching the in-game quest menu. Collection-log
+  items are added straight at quantity 1 (adjust afterward) with no prompt.
+- **Tidier imports.** Imported sections keep their own name instead of being
+  suffixed with "(from <player>)", and the import dialog is a multi-line field
+  so long share codes paste without wrapping errors.
 - **Performance & stability pass.** Coalesced the tracker suite to run at most
   once per game tick instead of on every varbit/stat event (many per tick) — the
   main source of in-game lag with a large plan. Debounced the search box so
@@ -67,6 +85,22 @@ bumps.
   the version corner fell back to the commit sha) and a `description` that began
   with an inaccurate `[Experimental v0.2.0]` prefix. Added `version`, dropped
   the prefix.
+- **Degradable/charged items didn't complete their goal.** An item goal now
+  counts every charge/degrade variant of the item toward the target (blood moon
+  tassets, Guthan's pieces, etc.), so owning a worn-down copy still completes it.
+- **Item goals reset to 0 on logout.** Item counts are now cached across the
+  logout/login boundary instead of momentarily snapping to 0.
+- **Imported quest/boss/diary goals showed a plain colour dot.** They now carry
+  the right icon on import — the quest sprite, the boss's pet item, the diary
+  sprite — matching how the same goals look when added in-game.
+- **Font rendering and large-font layout.** The panel font is resolved live so
+  the Default family tracks the look-and-feel (fixes all-text-wrong on macOS
+  Tahoe), a font change now reapplies without reloading the plugin (cards were
+  being reused with the old font), and card heights, icons and the progress
+  column scale with the font so larger sizes no longer clip. Nested cards use a
+  compact one-line progress form so the right side stays readable, deep nesting
+  uses a width-aware indent so cards keep a usable width, and the "Goal Planner"
+  title no longer overlaps the toolbar buttons at large sizes.
 
 ## [0.3.1] — 2026-06-15
 

@@ -68,6 +68,10 @@ public class GoalPanel extends PluginPanel
 	private Client client;
 	private final JPanel goalListPanel;
 	private final Map<String, GoalCard> cardMap = new HashMap<>();
+	/** Per-card render signature from the LAST rebuild (goal id → signature). A
+	 *  card whose signature is unchanged is reused as-is instead of reconstructed,
+	 *  cutting the dominant per-card Swing-construction cost on large rebuilds. */
+	private final Map<String, String> cardSig = new HashMap<>();
 	/** Section header rows by section id - selection changes refresh their
 	 *  select-all toggle without a full rebuild (mirrors cardMap). */
 	private final java.util.List<SectionHeaderRow> headerRows = new java.util.ArrayList<>();
@@ -196,6 +200,38 @@ public class GoalPanel extends PluginPanel
 			});
 			popup.add(removeDupes);
 
+			// Bulk delete entry points. Both are undoable (single step), so the
+			// confirm dialog notes that; "delete empty sections" is low-risk and
+			// skips the prompt. (Bulk "remove all" was dropped in v0.1.0 for
+			// reversibility - it's back now that each is a single undo.)
+			popup.addSeparator();
+
+			JMenuItem deleteEmptySections = new JMenuItem("Delete empty sections");
+			deleteEmptySections.setToolTipText("Remove sections that contain no goals. Undoable.");
+			deleteEmptySections.addActionListener(ev -> {
+				int n = api.removeEmptyUserSections();
+				rebuild();
+				javax.swing.JOptionPane.showMessageDialog(GoalPanel.this,
+					n == 0 ? "No empty sections found." : "Deleted " + n + " empty section(s).",
+					"Delete Empty Sections", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+			});
+			popup.add(deleteEmptySections);
+
+			JMenuItem deleteEverything = new JMenuItem("Delete all goals and sections");
+			deleteEverything.setToolTipText("Wipe every goal and section (completed goals included). Undoable.");
+			deleteEverything.addActionListener(ev -> {
+				int choice = javax.swing.JOptionPane.showConfirmDialog(GoalPanel.this,
+					"Delete all goals and sections?\nThis wipes every goal (completed included) and every section. This can be undone.",
+					"Delete All Goals and Sections", javax.swing.JOptionPane.YES_NO_OPTION,
+					javax.swing.JOptionPane.WARNING_MESSAGE);
+				if (choice == javax.swing.JOptionPane.YES_OPTION)
+				{
+					api.removeAllGoalsAndSections();
+					rebuild();
+				}
+			});
+			popup.add(deleteEverything);
+
 			popup.show(optionsButton, 0, optionsButton.getHeight());
 		});
 
@@ -225,7 +261,9 @@ public class GoalPanel extends PluginPanel
 		headerButtons.add(Box.createHorizontalStrut(6));
 		headerButtons.add(manageTagsButton);
 
-		header.add(title, BorderLayout.WEST);
+		// Title in CENTER (not WEST) so it yields space to the EAST buttons and
+		// clips instead of overlapping them when a large font widens it.
+		header.add(title, BorderLayout.CENTER);
 		header.add(headerButtons, BorderLayout.EAST);
 
 		// Free-text search row beneath the toolbar. Filters
@@ -565,11 +603,101 @@ public class GoalPanel extends PluginPanel
 		return any;
 	}
 
+	/** True when the section has goals and every one of them is complete -
+	 *  drives the all-complete badge in the section header. */
+	private boolean isAllCompleteInSection(String sectionId)
+	{
+		boolean any = false;
+		for (com.goalplanner.api.GoalView v : api.queryAllGoals())
+		{
+			if (sectionId.equals(v.sectionId))
+			{
+				any = true;
+				if (v.completedAt <= 0)
+				{
+					return false;
+				}
+			}
+		}
+		return any;
+	}
+
+	/**
+	 * Render signature for a goal card: every GoalView field the card draws PLUS
+	 * the position-derived wiring (reorder/context-menu bounds, first/last, source
+	 * highlights). Equal signatures ⇒ the card renders and behaves identically, so
+	 * the prior card can be reused untouched. MAINTENANCE: keep in sync with
+	 * everything GoalCard reads from the view.
+	 */
+	private static String cardSignature(com.goalplanner.api.GoalView v,
+		int secStart, int secEnd, int index, boolean completedSection,
+		boolean first, boolean last, boolean relSource, boolean moveSource)
+	{
+		StringBuilder sb = new StringBuilder(160);
+		// Font generation: a family/size change must bust every signature so cards
+		// are reconstructed with the new font instead of reused with the old one.
+		sb.append('f').append(PanelFonts.generation()).append('|');
+		sb.append(secStart).append(';').append(secEnd).append(';').append(index).append(';')
+			.append(completedSection ? 1 : 0).append(first ? 1 : 0).append(last ? 1 : 0)
+			.append(relSource ? 1 : 0).append(moveSource ? 1 : 0).append('|');
+		sb.append(v.type).append(';').append(v.name).append(';').append(v.optional ? 1 : 0).append(';')
+			.append(v.currentValue).append(';').append(v.targetValue).append(';').append(v.completedAt).append(';')
+			.append(v.backgroundColorRgb).append(';').append(v.spriteId).append('|');
+		// Type-specific icon/label inputs the card reads out of the attribute map.
+		for (String k : new String[]{"itemId", "skillName", "caTaskId", "tier", "monster", "area", "varbitId", "tooltip"})
+		{
+			sb.append(v.attributes.get(k)).append(';');
+		}
+		sb.append('|').append(v.blockedRequirements).append('|');
+		appendTagSig(sb, v.defaultTags);
+		appendTagSig(sb, v.customTags);
+		// Relations drive the (eagerly-built) hover tooltip.
+		appendRelSig(sb, v.requiresNames);
+		appendRelSig(sb, v.orRequiresNames);
+		appendRelSig(sb, v.requiredByNames);
+		appendRelSig(sb, v.orRequiredByNames);
+		return sb.toString();
+	}
+
+	private static void appendTagSig(StringBuilder sb, java.util.List<com.goalplanner.api.TagView> tags)
+	{
+		sb.append("t[");
+		if (tags != null)
+		{
+			for (com.goalplanner.api.TagView t : tags)
+			{
+				sb.append(t.label).append('/').append(t.category).append('/')
+					.append(t.colorRgb).append('/').append(t.iconKey).append(',');
+			}
+		}
+		sb.append(']');
+	}
+
+	private static void appendRelSig(StringBuilder sb, java.util.List<com.goalplanner.api.GoalView.RelationView> rels)
+	{
+		sb.append("r[");
+		if (rels != null)
+		{
+			for (com.goalplanner.api.GoalView.RelationView r : rels)
+			{
+				sb.append(r.name).append('/').append(r.skillName).append('/')
+					.append(r.targetLevel).append('/').append(r.optional).append(',');
+			}
+		}
+		sb.append(']');
+	}
+
 	public void rebuild()
 	{
 		long start = System.currentTimeMillis();
 		goalListPanel.removeAll();
+		// Snapshot last rebuild's cards + signatures so unchanged cards can be
+		// reused (re-parented) instead of reconstructed. cardMap/cardSig are then
+		// cleared and repopulated with the reused-or-new cards for this rebuild.
+		final Map<String, GoalCard> prevCards = new HashMap<>(cardMap);
+		final Map<String, String> prevSig = new HashMap<>(cardSig);
 		cardMap.clear();
+		cardSig.clear();
 		headerRows.clear();
 		refreshUndoRedoButtons();
 
@@ -690,7 +818,8 @@ public class GoalPanel extends PluginPanel
 					{
 						api.selectAllInSection(sectionIdRef);
 					}
-				});
+				},
+				isAllCompleteInSection(sectionIdRef));
 			headerRows.add(headerRow);
 			// All sections get a right-click menu. User sections get the full
 			// rename/move/delete/color menu; built-ins get only Change Color.
@@ -775,6 +904,18 @@ public class GoalPanel extends PluginPanel
 				nestResult = com.goalplanner.ui.nest.NestIndentAssigner.assign(nestNodes);
 			}
 
+			// Goals that are a nest PARENT (some visible goal nests under them) -
+			// these get a collapse chevron + right-click toggle.
+			final java.util.Set<String> nestParents = new java.util.HashSet<>();
+			if (nestResult != null)
+			{
+				for (String gid : nestResult.ordered)
+				{
+					String pp = nestResult.primaryParent.get(gid);
+					if (pp != null) nestParents.add(pp);
+				}
+			}
+
 			// Iterate topo-order for rendering, but resolve each
 			// goal's flat-priority index for the arrow buttons. Arrows target
 			// the VISUALLY adjacent card in the topo view, but only when that
@@ -804,7 +945,23 @@ public class GoalPanel extends PluginPanel
 				// Arrow actions go through api.moveGoal, which enforces the
 				// auto-deselect-if-not-member rule at the API layer - no
 				// UI-side wrapping needed.
-				GoalCard card = new GoalCard(
+				final boolean firstInList = isCompletedSection || topoPos == 0;
+				final boolean lastInList = isCompletedSection || topoPos == topoOrder.size() - 1;
+				final boolean relSource = pendingRelationSourceIds.contains(goalIdRef);
+				final boolean moveSource = goalIdRef.equals(pendingMoveSourceId);
+				// Reuse the prior card untouched when its full signature is
+				// unchanged - the signature covers every rendered view field AND the
+				// position-derived wiring (reorder targets, context-menu indices,
+				// first/last, source borders), so a match means the card is valid
+				// as-is. Re-parenting it skips the dominant Swing construction cost
+				// with no re-wiring (no duplicate listeners). MAINTENANCE: any new
+				// GoalView field the card renders MUST be added to cardSignature().
+				final String sig = cardSignature(view, sectionStart, sectionEnd, index,
+					isCompletedSection, firstInList, lastInList, relSource, moveSource);
+				GoalCard card = sig.equals(prevSig.get(goalIdRef)) ? prevCards.get(goalIdRef) : null;
+				if (card == null)
+				{
+				card = new GoalCard(
 					view,
 					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/true),
 					e -> reorderController.moveChainInTopo(goalIdRef, arrowSectionId, /*up=*/false),
@@ -817,41 +974,38 @@ public class GoalPanel extends PluginPanel
 				);
 
 				// Completed section is read-only ordering - no reorder arrows.
-				// Otherwise arrows are visible at all non-edge positions; the
-				// handler itself decides whether a move is actually possible
-				// (e.g. a chain that already hits the top of the section is
-				// a no-op).
-				if (isCompletedSection)
-				{
-					card.setFirstInList(true);
-					card.setLastInList(true);
-				}
-				else
-				{
-					card.setFirstInList(topoPos == 0);
-					card.setLastInList(topoPos == topoOrder.size() - 1);
-				}
-
-				contextMenuBuilder.addContextMenu(card, goal, index, sectionStart, sectionEnd);
+				// Otherwise arrows show at non-edge positions; the handler decides
+				// whether a move is actually possible.
+				card.setFirstInList(firstInList);
+				card.setLastInList(lastInList);
+				contextMenuBuilder.addContextMenu(card, goal, index, sectionStart, sectionEnd,
+					nestParents.contains(goalIdRef)
+						? () -> { api.toggleGoalNestCollapsed(goalIdRef); rebuild(); }
+						: null);
 				attachSelectionClick(card, view);
-				cardMap.put(goal.getId(), card);
 
-				// Highlight every relation-pick source card with an orange
-				// border so the user can see which goals they're pairing
-				// from while they search for a target. (Bulk relation
-				// picks highlight all members of the selection.)
-				if (pendingRelationSourceIds.contains(goal.getId()))
+				// Relation-pick (orange) / move-pick (blue) source highlight.
+				if (relSource)
 				{
 					card.setBorder(javax.swing.BorderFactory.createLineBorder(
 						new Color(0xFF, 0x99, 0x33), 2));
 				}
-				// Move-pick source - distinct blue border so the user can
-				// tell it apart from a relation pick at a glance.
-				else if (goal.getId().equals(pendingMoveSourceId))
+				else if (moveSource)
 				{
 					card.setBorder(javax.swing.BorderFactory.createLineBorder(
 						new Color(0x33, 0x99, 0xFF), 2));
 				}
+				}
+				// Selection is toggled live (refreshSelection), not part of the
+				// signature; sync the (reused or new) card's highlight cheaply.
+				card.setSelected(view.selected);
+				// Nested cards are narrower the deeper they sit; use the compact
+				// status form there so the progress column doesn't clip. Applied
+				// live (like selection) so reused cards update when their level shifts.
+				int nestLvl = nestResult != null ? nestResult.level.getOrDefault(goalIdRef, 0) : 0;
+				card.setCompactStatus(nestedView && nestLvl > 0);
+				cardMap.put(goalIdRef, card);
+				cardSig.put(goalIdRef, sig);
 
 				// In nested view the cards are laid out by the nest container in
 				// tree pre-order (built after this loop, from cardMap); don't add
@@ -873,11 +1027,15 @@ public class GoalPanel extends PluginPanel
 					new java.util.ArrayList<>();
 				if (nestResult != null)
 				{
+					int hideBelowLevel = Integer.MAX_VALUE;
 					for (String gid : nestResult.ordered)
 					{
+						int lvl = nestResult.level.getOrDefault(gid, 0);
+						// Skip everything beneath a collapsed parent (preorder).
+						if (lvl > hideBelowLevel) continue;
+						hideBelowLevel = Integer.MAX_VALUE;
 						GoalCard card = cardMap.get(gid);
 						if (card == null) continue; // search-filtered out
-						int lvl = nestResult.level.getOrDefault(gid, 0);
 						int extra = nestResult.extraPrereqs.getOrDefault(gid, 0);
 						if (extra > 0)
 						{
@@ -902,7 +1060,12 @@ public class GoalPanel extends PluginPanel
 						{
 							card.setToolTipText(null);
 						}
-						nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(gid, lvl, card));
+						boolean isParent = nestParents.contains(gid);
+						Goal pg = goalStore.findGoalById(gid);
+						boolean isCollapsed = isParent && pg != null && pg.isNestCollapsed();
+						if (isCollapsed) hideBelowLevel = lvl;
+						nestRows.add(new com.goalplanner.ui.nest.SectionNestContainer.Row(
+							gid, lvl, card, isParent, isCollapsed));
 					}
 				}
 				// Completed in-section goals: flat (level 0), sunk to the bottom.
@@ -918,7 +1081,8 @@ public class GoalPanel extends PluginPanel
 				if (!nestRows.isEmpty())
 				{
 					com.goalplanner.ui.nest.SectionNestContainer nestContainer =
-						new com.goalplanner.ui.nest.SectionNestContainer(nestRows);
+						new com.goalplanner.ui.nest.SectionNestContainer(nestRows,
+							gid -> { api.toggleGoalNestCollapsed(gid); rebuild(); });
 					nestContainer.setAlignmentX(Component.CENTER_ALIGNMENT);
 					goalListPanel.add(nestContainer);
 					goalListPanel.add(Box.createVerticalStrut(4));
@@ -959,8 +1123,6 @@ public class GoalPanel extends PluginPanel
 		goalListPanel.revalidate();
 		goalListPanel.repaint();
 		long elapsed = System.currentTimeMillis() - start;
-		log.info("[gp-dbg] rebuild: {} cards, {}ms, filter='{}', thread={}",
-			cardMap.size(), elapsed, searchFilter, Thread.currentThread().getName());
 		if (elapsed > 50)
 		{
 			log.warn("rebuild() took {}ms ({} cards)", elapsed, cardMap.size());
