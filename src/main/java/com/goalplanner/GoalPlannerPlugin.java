@@ -50,6 +50,7 @@ import net.runelite.client.callback.ClientThread;
 import net.runelite.client.config.ConfigManager;
 import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
+import net.runelite.client.events.ProfileChanged;
 import net.runelite.client.game.ItemManager;
 import net.runelite.client.game.SkillIconManager;
 import net.runelite.client.game.SpriteManager;
@@ -559,6 +560,35 @@ public class GoalPlannerPlugin extends Plugin
 		}
 	}
 
+	/**
+	 * The user switched RuneLite config profiles. Goals are stored per config
+	 * profile (RuneLite scopes our {@code getConfiguration} reads to the active
+	 * profile's {@code .properties}); RuneLite has already swapped that file, so
+	 * re-read the goal set for the current namespace. Without this the previous
+	 * profile's in-memory goals linger in the sidebar and leak into the new
+	 * profile on the next save. The active main/leagues namespace is unchanged -
+	 * only the backing store moved - so this is a reload(), not a setProfile().
+	 */
+	@Subscribe
+	public void onProfileChanged(ProfileChanged event)
+	{
+		if (goalStore == null) return;
+		goalStore.reload();
+		// Saved Plans are likewise per config profile (their key isn't prefixed
+		// with main/leagues, but RuneLite scopes config per profile) - re-read so
+		// the library reflects this profile and doesn't leak into it on next save.
+		if (savedPlanStore != null) savedPlanStore.reload();
+		seedCanonicalSystemTags();
+		// Same settle window as a main↔leagues switch: let client state resync
+		// for the (possibly different) account before trackers apply values.
+		trackingSuspendedUntil = System.currentTimeMillis() + PROFILE_SWITCH_SUSPEND_MS;
+		lastMiscApproval = -1;
+		if (panel != null)
+		{
+			javax.swing.SwingUtilities.invokeLater(panel::rebuild);
+		}
+	}
+
 	@Subscribe
 	public void onVarbitChanged(VarbitChanged event)
 	{
@@ -569,7 +599,6 @@ public class GoalPlannerPlugin extends Plugin
 		// mid-varbit). Suspension/GameState are re-checked at drain time.
 		if (client.getGameState() != GameState.LOGGED_IN) return;
 		trackersDirty = true;
-		dbgVarbitEvents++;
 	}
 
 	/** Debounce timer coalescing rapid rebuild requests. Hoisted to a field so
@@ -580,10 +609,6 @@ public class GoalPlannerPlugin extends Plugin
 	 *  drained once per tick in onGameTick, so the tracker suite runs at most once
 	 *  per tick instead of per event. Client-thread only. */
 	private boolean trackersDirty = false;
-
-	// [gp-dbg] investigation counters — events coalesced since the last drain.
-	private int dbgVarbitEvents = 0;
-	private int dbgStatEvents = 0;
 
 	/** Last Kingdom of Miscellania approval value seen this session (-1 = not yet
 	 *  read, so the first reading only establishes a baseline). Reset on login. */
@@ -809,6 +834,11 @@ public class GoalPlannerPlugin extends Plugin
 			// Left the logged-in state: drop any seeding queued for the
 			// previous session so it can't seed into a different profile.
 			skillSyncGate.onLogout();
+			// Re-arm the item tracker's pre-bank guard. The bank container is
+			// cleared on leaving a world, so a relog must reopen the bank before
+			// a full count is trustworthy again - otherwise a bank-less count
+			// overwrites persisted item-goal values with 0 right after login.
+			itemTracker.onLogout();
 		}
 	}
 
@@ -1475,40 +1505,33 @@ public class GoalPlannerPlugin extends Plugin
 					for (String resolvedName : bossCandidates)
 					{
 						final String bossName = resolvedName;
-						client.createMenuEntry(1)
-							.setOption("Add " + bossName + " KC Goal")
-							.setTarget(entry.getTarget())
-							.setType(MenuAction.RUNELITE)
-							.onClick(e ->
-							{
-								javax.swing.SwingUtilities.invokeLater(() ->
-								{
-									String input = javax.swing.JOptionPane.showInputDialog(
-										panel,
-										"Target kill count for " + bossName + ":",
-										"1"
-									);
-									if (input == null) return;
-									int kills;
-									try
-									{
-										kills = Integer.parseInt(input.trim().replace(",", ""));
-									}
-									catch (NumberFormatException ex)
-									{
-										return;
-									}
-									if (kills <= 0) return;
-									// Hop to the client thread: addBossGoal's
-									// prereq seeding calls Quest.getState(client)
-									// and client.getRealSkillLevel, which throw
-									// if invoked off the client thread. The EDT
-									// would swallow that exception silently.
-									final int finalKills = kills;
-									clientThread.invokeLater(() -> skillSyncGate.runWhenSynced(
-										() -> goalTrackerApi.addBossGoal(bossName, finalKills)));
-								});
-							});
+						// Quick-add at KC 1, matching the collection-log item flow and
+						// the section-submenu pattern other goals use - adjust the
+						// kill count afterward via the card's Change Amount action.
+						// addBossGoal seeds prereqs (Quest.getState / getRealSkillLevel),
+						// which must run on the client thread; the RUNELITE onClick fires
+						// there and runWhenSynced preserves it (immediate or tick-drained).
+						final Goal bossProbe = Goal.builder()
+							.type(GoalType.BOSS).bossName(bossName).build();
+						final java.util.function.Supplier<String> bossAdd =
+							() -> goalTrackerApi.addBossGoal(bossName, 1);
+						if (!userSections().isEmpty())
+						{
+							net.runelite.api.Menu bossSub = client.createMenuEntry(1)
+								.setOption("Add " + bossName + " KC Goal")
+								.setTarget(entry.getTarget())
+								.setType(MenuAction.RUNELITE)
+								.createSubMenu();
+							addGoalSectionItems(bossSub, bossProbe, bossName, bossAdd, bossAdd);
+						}
+						else
+						{
+							client.createMenuEntry(1)
+								.setOption("Add " + bossName + " KC Goal")
+								.setTarget(entry.getTarget())
+								.setType(MenuAction.RUNELITE)
+								.onClick(e -> skillSyncGate.runWhenSynced(bossAdd::get));
+						}
 					}
 					continue;
 				}
@@ -1539,24 +1562,30 @@ public class GoalPlannerPlugin extends Plugin
 				itemSub.createMenuEntry(0)
 					.setOption("Default")
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> promptAddItemGoal(realItemId, itemName, null));
+					.onClick(e -> quickAddItemGoal(realItemId, itemName, null));
 				for (com.goalplanner.api.SectionView section : userSections())
 				{
 					final String sid = section.id;
 					itemSub.createMenuEntry(0)
 						.setOption(section.name)
 						.setType(MenuAction.RUNELITE)
-						.onClick(e -> promptAddItemGoal(realItemId, itemName, sid));
+						.onClick(e -> quickAddItemGoal(realItemId, itemName, sid));
 				}
 			}
 			else
 			{
-				// Add at index 1 to put it near the bottom of the menu
+				// Add at index 1 to put it near the bottom of the menu. Collection-log
+				// items (no user sections to pick from here) still quick-add at 1;
+				// inventory/bank items prompt for a stockpile quantity.
 				client.createMenuEntry(1)
 					.setOption("Add Goal")
 					.setTarget(entry.getTarget())
 					.setType(MenuAction.RUNELITE)
-					.onClick(e -> promptAddItemGoal(realItemId, itemName, null));
+					.onClick(e ->
+					{
+						if (fromCollectionLog) quickAddItemGoal(realItemId, itemName, null);
+						else promptAddItemGoal(realItemId, itemName, null);
+					});
 			}
 
 			// Only add one "Add Goal" entry
@@ -1577,7 +1606,6 @@ public class GoalPlannerPlugin extends Plugin
 		// onGameTick. The suspension window (stale post-profile-switch skill XP
 		// cache) is honoured by the drain, which skips while suspended.
 		trackersDirty = true;
-		dbgStatEvents++;
 	}
 
 	/**
@@ -1610,7 +1638,6 @@ public class GoalPlannerPlugin extends Plugin
 	{
 		if (!trackersDirty || isTrackingSuspended()) return;
 		trackersDirty = false;
-		long t0 = System.nanoTime();
 		java.util.List<Goal> goals = goalStore.getGoals();
 		boolean updated = skillTracker.checkGoals(goals);
 		updated |= questTracker.checkGoals(goals);
@@ -1620,11 +1647,6 @@ public class GoalPlannerPlugin extends Plugin
 		updated |= bossKillTracker.checkGoals(goals);
 		flushIfUpdated(updated);
 		maybeAutoAddMiscApprovalGoal();
-		log.info("[gp-dbg] drain: goals={} coalesced(varbit={}, stat={}) updated={} took={}us thread={}",
-			goals.size(), dbgVarbitEvents, dbgStatEvents, updated,
-			(System.nanoTime() - t0) / 1000, Thread.currentThread().getName());
-		dbgVarbitEvents = 0;
-		dbgStatEvents = 0;
 	}
 
 	/**
@@ -1825,16 +1847,13 @@ public class GoalPlannerPlugin extends Plugin
 	 * it in that section; null uses the default Incomplete list. Must be called on
 	 * the client thread (ItemManager tag lookup).
 	 */
+	// Inventory/bank items prompt for a target quantity (stockpile goals tend to
+	// want a specific count). Collection-log items skip the prompt and land at 1
+	// via quickAddItemGoal - you're bookmarking "get this drop", and the count is
+	// adjustable afterward through the card's Change Amount action.
 	private void promptAddItemGoal(int realItemId, String itemName, String sectionId)
 	{
-		java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
-		java.util.List<String> autoTagIds = new java.util.ArrayList<>();
-		for (ItemTag spec : autoTags)
-		{
-			com.goalplanner.model.Tag tag =
-				goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
-			if (tag != null) autoTagIds.add(tag.getId());
-		}
+		final java.util.List<String> autoTagIds = resolveItemTagIds(realItemId);
 		javax.swing.SwingUtilities.invokeLater(() ->
 		{
 			String input = javax.swing.JOptionPane.showInputDialog(
@@ -1847,21 +1866,49 @@ public class GoalPlannerPlugin extends Plugin
 				if (qty <= 0) return;
 			}
 			catch (NumberFormatException ignored) { return; }
-
-			Goal goal = Goal.builder()
-				.type(GoalType.ITEM_GRIND)
-				.name(itemName)
-				.description(FormatUtil.formatNumber(qty) + " total")
-				.itemId(realItemId)
-				.targetValue(qty)
-				.currentValue(-1)
-				.sectionId(sectionId)
-				.tagIds(new java.util.ArrayList<>(autoTagIds))
-				.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
-				.build();
-			addGoalUndoable(goal, "Add goal: " + itemName);
-			refreshItemGoalsNow();
+			addItemGoalInternal(realItemId, itemName, sectionId, qty, autoTagIds);
 		});
+	}
+
+	private void quickAddItemGoal(int realItemId, String itemName, String sectionId)
+	{
+		final java.util.List<String> autoTagIds = resolveItemTagIds(realItemId);
+		javax.swing.SwingUtilities.invokeLater(
+			() -> addItemGoalInternal(realItemId, itemName, sectionId, 1, autoTagIds));
+	}
+
+	// Resolve auto-tags on the calling (client) thread - buildItemTags reads item
+	// metadata that must not run on the EDT.
+	private java.util.List<String> resolveItemTagIds(int realItemId)
+	{
+		java.util.List<ItemTag> autoTags = buildItemTags(realItemId);
+		java.util.List<String> autoTagIds = new java.util.ArrayList<>();
+		for (ItemTag spec : autoTags)
+		{
+			com.goalplanner.model.Tag tag =
+				goalStore.findOrCreateSystemTag(spec.getLabel(), spec.getCategory());
+			if (tag != null) autoTagIds.add(tag.getId());
+		}
+		return autoTagIds;
+	}
+
+	// Build + add the item goal. Must run on the EDT (addGoalUndoable / refresh).
+	private void addItemGoalInternal(int realItemId, String itemName, String sectionId,
+		int qty, java.util.List<String> autoTagIds)
+	{
+		Goal goal = Goal.builder()
+			.type(GoalType.ITEM_GRIND)
+			.name(itemName)
+			.description(FormatUtil.formatNumber(qty) + " total")
+			.itemId(realItemId)
+			.targetValue(qty)
+			.currentValue(-1)
+			.sectionId(sectionId)
+			.tagIds(new java.util.ArrayList<>(autoTagIds))
+			.defaultTagIds(new java.util.ArrayList<>(autoTagIds))
+			.build();
+		addGoalUndoable(goal, "Add goal: " + itemName);
+		refreshItemGoalsNow();
 	}
 
 	private void addGoalSectionItems(net.runelite.api.Menu sub, Goal probe, String label,

@@ -132,6 +132,49 @@ class ItemTrackerTest
 	}
 
 	@Test
+	@DisplayName("After logout, a bank-less relog does not reset a persisted goal to 0")
+	void logoutReArmsBankGuard()
+	{
+		Goal g = makeItemGoal(CANNONBALL_ID, 200);
+		// Session 1: bank seen, goal reaches 150 (50 inventory + 100 bank).
+		stubInventoryItems(mockItem(CANNONBALL_ID, 50));
+		stubBankItems(mockItem(CANNONBALL_ID, 100));
+		assertTrue(tracker.checkGoals(store.getGoals()));
+		assertEquals(150, g.getCurrentValue());
+
+		// Relog: the bank container is cleared (null) and the items live in the
+		// bank, so a count now sees only the (empty) inventory = 0.
+		tracker.onLogout();
+		stubBankNull();
+		stubInventoryItems();
+
+		// Without the re-armed guard this records 0; with it, the persisted 150 holds.
+		tracker.checkGoals(store.getGoals());
+		assertEquals(150, g.getCurrentValue());
+	}
+
+	@Test
+	@DisplayName("A degraded/charge variant counts toward a goal for the base item")
+	void variantCountsTowardGoal()
+	{
+		final int PRISTINE = 29025; // Blood moon tassets
+		final int DEGRADED = 29045; // Blood moon tassets (degraded)
+		// Precondition: RuneLite's variation data groups these under one base.
+		assertEquals(
+			net.runelite.client.game.ItemVariationMapping.map(PRISTINE),
+			net.runelite.client.game.ItemVariationMapping.map(DEGRADED),
+			"expected Blood moon tassets variants to share a variation base");
+
+		Goal g = makeItemGoal(PRISTINE, 1);
+		stubInventoryItems();
+		stubBankItems(mockItem(DEGRADED, 1)); // owns only the degraded copy
+
+		assertTrue(tracker.checkGoals(store.getGoals()));
+		assertEquals(1, g.getCurrentValue());
+		assertTrue(g.isComplete());
+	}
+
+	@Test
 	@DisplayName("completed item goals are sticky and do not revert on drop")
 	void completedItemGoalIsSticky()
 	{

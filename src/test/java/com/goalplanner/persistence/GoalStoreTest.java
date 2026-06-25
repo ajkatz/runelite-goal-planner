@@ -58,6 +58,53 @@ class GoalStoreTest
 		assertTrue(store.getIncompleteSection().getOrder() < store.getCompletedSection().getOrder());
 	}
 
+	@Test
+	@DisplayName("reload() re-reads goals from the backing store (config-profile switch)")
+	void reloadRereadsFromBackingStore()
+	{
+		// A goal persisted by this store.
+		Goal alpha = Goal.builder().type(GoalType.CUSTOM).name("Alpha").build();
+		store.addGoal(alpha);
+		assertNotNull(store.findGoalById(alpha.getId()));
+
+		// A second store on the SAME config manager stands in for RuneLite
+		// swapping the active profile's .properties underneath us: it deletes
+		// Alpha and adds Beta in the backing store.
+		GoalStore other = new GoalStore(configManager, new com.google.gson.Gson());
+		other.load();
+		other.removeGoal(alpha.getId());
+		Goal beta = Goal.builder().type(GoalType.CUSTOM).name("Beta").build();
+		other.addGoal(beta);
+
+		// Until our store reloads, it still shows the stale in-memory Alpha and
+		// has never heard of Beta - the exact cross-profile leak.
+		assertNotNull(store.findGoalById(alpha.getId()));
+		assertNull(store.findGoalById(beta.getId()));
+
+		store.reload();
+
+		// After reload it reflects the backing store: Alpha gone, Beta present.
+		assertNull(store.findGoalById(alpha.getId()));
+		assertNotNull(store.findGoalById(beta.getId()));
+	}
+
+	@Test
+	@DisplayName("load() drops sections when the active profile has none (no cross-profile bleed)")
+	void loadDoesNotRetainSectionsAcrossProfiles()
+	{
+		Section bleeder = store.createUserSection("Bleeder");
+		assertNotNull(bleeder);
+		assertTrue(store.getSections().stream().anyMatch(s -> s.getId().equals(bleeder.getId())));
+
+		// Simulate switching to a profile that has no stored sections: the active
+		// sections key is absent. load() must reset, not inherit the old sections.
+		configManager.unsetConfiguration("goalplanner", "main.sections");
+		store.load();
+
+		assertFalse(store.getSections().stream().anyMatch(s -> s.getId().equals(bleeder.getId())),
+			"a section from the previous profile state must not survive into one with no sections");
+	}
+
 	// ====================================================================
 	// addGoal: section assignment
 	// ====================================================================

@@ -337,6 +337,14 @@ public class GoalStore
 	/** Load sections and category colors (same format in both v1 and v2). */
 	private void loadSectionsAndCategoryColors()
 	{
+		// Reset FIRST, unconditionally, so a profile with no stored sections/colors
+		// starts clean rather than inheriting the previous profile's - matching how
+		// loadV2 always resets goals/tags to empty before reading. Without this,
+		// switching to a profile that has no sections key leaves the old profile's
+		// sections in memory (and they then leak into that profile on the next save).
+		sections = new java.util.concurrent.CopyOnWriteArrayList<>();
+		categoryColors = new java.util.HashMap<>();
+
 		// Sections
 		String sectionsJson = getCfg(SECTIONS_KEY);
 		if (sectionsJson != null && !sectionsJson.isEmpty())
@@ -388,7 +396,24 @@ public class GoalStore
 	{
 		if (newProfile == null || newProfile.equals(activeProfile)) return;
 		log.info("Switching profile: {} → {}", activeProfile, newProfile);
-		// Clear in-memory state so load() starts fresh for the new profile.
+		activeProfile = newProfile;
+		reload();
+	}
+
+	/**
+	 * Discard in-memory state and re-read it from the CURRENT profile namespace.
+	 * Unlike {@link #setProfile}, the active main/leagues profile is unchanged -
+	 * this re-reads the same namespace after the backing store changed underneath
+	 * us, namely a RuneLite config-profile switch (which swaps the {@code
+	 * .properties} file that {@code getConfiguration} reads). Without it, the
+	 * previous profile's goals linger in memory and get re-saved into the new
+	 * config profile. Per-entity saves are eager, so clearing the dirty sets
+	 * without flushing first is safe (any unsaved edit was persisted on a prior
+	 * tick).
+	 */
+	public void reload()
+	{
+		// Clear in-memory state so load() starts fresh for the active namespace.
 		synchronized (goalsLock) { goals.clear(); }
 		sections.clear();
 		tags.clear();
@@ -403,7 +428,6 @@ public class GoalStore
 		tagIdsDirty = false;
 		sectionsDirty = false;
 		categoryColorsDirty = false;
-		activeProfile = newProfile;
 		load();
 	}
 
@@ -1068,6 +1092,18 @@ public class GoalStore
 	public void markGoalDirty(String goalId)
 	{
 		dirtyGoalIds.add(goalId);
+	}
+
+	/** Toggle a goal's nested-collapse state and persist it. Returns the new
+	 *  state, or null if the goal is unknown. */
+	public Boolean toggleNestCollapsed(String goalId)
+	{
+		Goal g = findGoalById(goalId);
+		if (g == null) return null;
+		boolean next = !g.isNestCollapsed();
+		g.setNestCollapsed(next);
+		saveGoalIfNotSuspended(g);
+		return next;
 	}
 
 	/** Snapshot of currently dirty goal IDs (before saveDirtyGoals clears them). */
