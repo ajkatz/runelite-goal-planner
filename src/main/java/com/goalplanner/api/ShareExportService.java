@@ -74,7 +74,8 @@ class ShareExportService
 				continue;
 			}
 			sections.add(ShareMapper.toSectionDto(
-				section.getName(), section.getColorRgb(), false, goals, api.goalStore::findTag));
+				section.getName(), section.getColorRgb(), false, section.getNestedOverride(),
+				goals, api.goalStore::findTag));
 			sectionGoals.add(goals);
 		}
 		if (sections.isEmpty())
@@ -149,13 +150,14 @@ class ShareExportService
 		{
 			Section sec = api.goalStore.findSection(e.getKey());
 			sections.add(ShareMapper.toSectionDto(
-				sec.getName(), sec.getColorRgb(), false, e.getValue(), api.goalStore::findTag));
+				sec.getName(), sec.getColorRgb(), false, sec.getNestedOverride(),
+				e.getValue(), api.goalStore::findTag));
 			groups.add(e.getValue());
 		}
 		if (!defaultGroup.isEmpty())
 		{
 			sections.add(ShareMapper.toSectionDto(
-				null, -1, true, defaultGroup, api.goalStore::findTag));
+				null, -1, true, null, defaultGroup, api.goalStore::findTag));
 			groups.add(defaultGroup);
 		}
 		ShareBundle bundle = ShareMapper.toMultiBundle(sections, sharedBy);

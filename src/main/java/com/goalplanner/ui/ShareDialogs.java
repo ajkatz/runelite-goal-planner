@@ -30,8 +30,22 @@ public final class ShareDialogs
 	public static void promptImport(Component parent, GoalPlannerApiImpl api, ShareCodec codec,
 		com.goalplanner.persistence.SavedPlanStore savedPlanStore, Runnable onDone)
 	{
-		String text = JOptionPane.showInputDialog(parent,
-			"Paste a Goal Planner share code:", "Import shared goals", JOptionPane.PLAIN_MESSAGE);
+		// Multi-line text area (not a single-line input): long codes wrap when
+		// pasted from chat, and a single-line field would drop everything after
+		// the first newline. The decoder skips embedded whitespace, so a wrapped
+		// paste still decodes.
+		javax.swing.JTextArea codeArea = new javax.swing.JTextArea(4, 28);
+		codeArea.setLineWrap(true);
+		codeArea.setWrapStyleWord(false);
+		javax.swing.JScrollPane codeScroll = new javax.swing.JScrollPane(codeArea);
+		int ok = JOptionPane.showConfirmDialog(parent,
+			new Object[]{"Paste a Goal Planner share code:", codeScroll},
+			"Import shared goals", JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+		if (ok != JOptionPane.OK_OPTION)
+		{
+			return;
+		}
+		String text = codeArea.getText();
 		if (text == null || text.trim().isEmpty())
 		{
 			return;

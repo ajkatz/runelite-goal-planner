@@ -104,6 +104,10 @@ public interface GoalPlannerInternalApi
 	 */
 	boolean toggleSectionCollapsed(String sectionId);
 
+	/** Toggle a goal's nested-prerequisite collapse state (persisted per profile).
+	 *  Returns true if a goal was found and toggled. */
+	boolean toggleGoalNestCollapsed(String goalId);
+
 	/**
 	 * Set a section's per-section override for the nested ("Indent dependencies")
 	 * view: {@code null} = follow the global default, {@code TRUE} = always
@@ -201,6 +205,20 @@ public interface GoalPlannerInternalApi
 	 * @return number of sections deleted
 	 */
 	int removeAllUserSections();
+
+	/**
+	 * Delete every user section that holds no goals. Built-in sections are
+	 * preserved. Undoable as one step. Idempotent.
+	 *
+	 * @return number of empty sections deleted
+	 */
+	int removeEmptyUserSections();
+
+	/**
+	 * Complete wipe: delete every goal (any status, completed included) and every
+	 * user section. Built-in sections remain (empty). Undoable as one step.
+	 */
+	void removeAllGoalsAndSections();
 
 	// ---------------------------------------------------------------------
 	// Color overrides (Phase 3)

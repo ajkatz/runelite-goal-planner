@@ -55,6 +55,9 @@ public class GoalView
 	public boolean selected;
 	/** True when the user has marked this goal as optional. */
 	public boolean optional;
+	/** True when this goal's nested prerequisite subtree is collapsed in the
+	 *  nested view (persisted per profile). */
+	public boolean nestCollapsed;
 	/** Labels of DIRECT prerequisites the player hasn't met and that aren't in
 	 *  the plan - drives the "blocked" badge. Empty = no badge. */
 	public List<String> blockedRequirements = java.util.Collections.emptyList();

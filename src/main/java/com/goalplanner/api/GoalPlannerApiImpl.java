@@ -278,8 +278,37 @@ public class GoalPlannerApiImpl implements GoalPlannerApi, GoalPlannerInternalAp
 	// Not part of the published GoalPlannerApi - UI "Move to Default" action.
 	public int moveGoalsToDefault(java.util.Collection<String> goalIds) { return mutationService.moveGoalsToDefault(goalIds); }
 	@Override public int removeAllUserSections() { return sectionService.removeAllUserSections(); }
+	@Override public int removeEmptyUserSections() { return sectionService.removeEmptyUserSections(); }
+
+	@Override public void removeAllGoalsAndSections()
+	{
+		// Complete wipe: every user section AND every goal regardless of status
+		// (completed included). Built-in Incomplete/Completed sections remain
+		// (empty). One compound so the whole reset is a single undo.
+		//
+		// Order matters for undo fidelity: removeAllUserSections runs FIRST, while
+		// goals still carry their user-section ids, so it captures the original
+		// section->goals mapping for its revert. It re-homes those goals to
+		// Incomplete; we then wipe every remaining goal. On undo (reverse order)
+		// the goals are restored first, then removeAllUserSections' revert
+		// recreates the sections and moves each goal back to where it started.
+		beginCompound("Delete all goals and sections");
+		try
+		{
+			removeAllUserSections();
+			for (Goal g : goalStore.getGoals())
+			{
+				removeGoal(g.getId());
+			}
+		}
+		finally
+		{
+			endCompound();
+		}
+	}
 	@Override public boolean setSectionCollapsed(String sectionId, boolean collapsed) { return sectionService.setSectionCollapsed(sectionId, collapsed); }
 	@Override public boolean toggleSectionCollapsed(String sectionId) { return sectionService.toggleSectionCollapsed(sectionId); }
+	@Override public boolean toggleGoalNestCollapsed(String goalId) { return goalStore.toggleNestCollapsed(goalId) != null; }
 	@Override public boolean setSectionNestedOverride(String sectionId, Boolean value) { return sectionService.setSectionNestedOverride(sectionId, value); }
 	@Override public int seedRequirementsForGoal(String goalId, boolean includeMet) { return creationService.seedRequirementsForGoal(goalId, includeMet); }
 	@Override public boolean setSectionColor(String sectionId, int colorRgb) { return sectionService.setSectionColor(sectionId, colorRgb); }

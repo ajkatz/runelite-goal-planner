@@ -23,6 +23,10 @@ public class SectionShareDto
 	/** Section colour override (0xRRGGBB; -1 = default). */
 	private int colorRgb = -1;
 
+	/** Nested-view preference for this section on import: TRUE = force nested,
+	 *  FALSE = force flat, null = no preference (recipient's global default). */
+	private Boolean nestedOverride;
+
 	/**
 	 * When {@code true} the goals land in the recipient's DEFAULT plan
 	 * (Incomplete/Completed built-ins) instead of a new user section, and

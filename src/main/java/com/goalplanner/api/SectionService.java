@@ -296,6 +296,41 @@ class SectionService
 		return moved;
 	}
 
+	/**
+	 * Delete every user section that currently holds no goals. Built-in sections
+	 * are never touched. Empty sections have nothing to re-home, so each is a
+	 * plain {@link #deleteSection} - wrapped in one compound so the whole sweep
+	 * is a single undo. Returns the number deleted.
+	 */
+	int removeEmptyUserSections()
+	{
+		log.debug("API.internal removeEmptyUserSections()");
+		final java.util.Set<String> nonEmpty = new java.util.HashSet<>();
+		for (Goal g : api.goalStore.getGoals())
+		{
+			if (g.getSectionId() != null) nonEmpty.add(g.getSectionId());
+		}
+		final java.util.List<String> empties = new ArrayList<>();
+		for (Section s : api.goalStore.getSections())
+		{
+			if (s.getBuiltInKind() == null && !nonEmpty.contains(s.getId()))
+			{
+				empties.add(s.getId());
+			}
+		}
+		if (empties.isEmpty()) return 0;
+		api.beginCompound("Delete empty sections");
+		try
+		{
+			for (String id : empties) deleteSection(id, false);
+		}
+		finally
+		{
+			api.endCompound();
+		}
+		return empties.size();
+	}
+
 	int removeAllUserSections()
 	{
 		log.debug("API.internal removeAllUserSections()");

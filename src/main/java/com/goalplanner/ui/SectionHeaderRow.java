@@ -50,7 +50,7 @@ public class SectionHeaderRow extends JPanel
 
 	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle)
 	{
-		this(section, goalCount, onToggle, null, null);
+		this(section, goalCount, onToggle, null, null, false);
 	}
 
 	/**
@@ -61,7 +61,8 @@ public class SectionHeaderRow extends JPanel
 	 *                          selected, unselect all otherwise.
 	 */
 	public SectionHeaderRow(SectionView section, int goalCount, Runnable onToggle,
-		java.util.function.BooleanSupplier allSelectedState, Runnable onToggleSelectAll)
+		java.util.function.BooleanSupplier allSelectedState, Runnable onToggleSelectAll,
+		boolean allCompleted)
 	{
 		setLayout(new BorderLayout());
 
@@ -110,6 +111,27 @@ public class SectionHeaderRow extends JPanel
 		// goals, otherwise an empty spacer of equal width so the centered name
 		// stays visually centered despite the chevron on the left edge.
 		this.allSelectedState = allSelectedState;
+		// Right edge: an optional all-complete badge to the LEFT of the select-all
+		// toggle. BorderLayout (not FlowLayout) so children stretch to the row's
+		// bordered content height instead of being clipped at their preferred size.
+		javax.swing.JPanel eastPanel = new javax.swing.JPanel(new BorderLayout(2, 0));
+		eastPanel.setOpaque(false);
+
+		// Every goal in a non-empty section is complete -> show the plugin's
+		// completion icon as a section badge, scaled to fit the short header row.
+		if (allCompleted && goalCount > 0)
+		{
+			javax.swing.ImageIcon src = GoalCard.completionIcon();
+			if (src != null)
+			{
+				int px = ROW_HEIGHT - 10; // fit within the 4px-bordered content height
+				java.awt.Image scaled = src.getImage().getScaledInstance(px, px, java.awt.Image.SCALE_SMOOTH);
+				JLabel doneBadge = new JLabel(new javax.swing.ImageIcon(scaled));
+				doneBadge.setToolTipText("All goals in this section are complete");
+				eastPanel.add(doneBadge, BorderLayout.WEST);
+			}
+		}
+
 		if (allSelectedState != null && onToggleSelectAll != null && goalCount > 0)
 		{
 			this.selectToggle = new JLabel();
@@ -134,15 +156,16 @@ public class SectionHeaderRow extends JPanel
 					}
 				}
 			});
-			add(selectToggle, BorderLayout.EAST);
+			eastPanel.add(selectToggle, BorderLayout.EAST);
 		}
 		else
 		{
 			this.selectToggle = null;
 			JLabel spacer = new JLabel();
 			spacer.setPreferredSize(new Dimension(CHEVRON_WIDTH, ROW_HEIGHT));
-			add(spacer, BorderLayout.EAST);
+			eastPanel.add(spacer, BorderLayout.EAST);
 		}
+		add(eastPanel, BorderLayout.EAST);
 
 		add(chevron, BorderLayout.WEST);
 		add(nameLabel, BorderLayout.CENTER);

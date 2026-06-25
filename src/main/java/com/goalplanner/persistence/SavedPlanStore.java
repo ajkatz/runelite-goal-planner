@@ -14,17 +14,21 @@ import net.runelite.client.config.ConfigManager;
  * Persists the user's library of saved share codes ("Saved Plans") via
  * RuneLite's {@link ConfigManager}.
  *
- * <p>Unlike goals, this library is <b>global</b> - it is not profile-scoped, so
- * the same set is visible on every account / leagues profile. A share code
- * carries goal <em>definitions</em> only (no account state), so a single
- * library is the right model.
+ * <p>The key is deliberately NOT prefixed with the plugin's main/leagues
+ * namespace, so one library is shared across a main account and its leagues
+ * profile. RuneLite's config IS scoped per config profile, though, so the
+ * library is per config profile - {@link #reload()} re-reads it when the user
+ * switches profiles, otherwise the in-memory copy would linger and leak into
+ * the new profile on the next save. A share code carries goal
+ * <em>definitions</em> only (no account state).
  */
 @Slf4j
 @Singleton
 public class SavedPlanStore
 {
 	private static final String CONFIG_GROUP = "goalplanner";
-	/** Global key - deliberately NOT prefixed with the active profile. */
+	/** Not prefixed with the main/leagues namespace (shared across them); still
+	 *  per RuneLite config profile, since getConfiguration is profile-scoped. */
 	private static final String KEY = "savedPlans";
 
 	private final ConfigManager configManager;
@@ -66,6 +70,17 @@ public class SavedPlanStore
 		{
 			log.warn("Could not parse saved plans; starting with an empty library", e);
 		}
+	}
+
+	/**
+	 * Re-read the library from the active config profile, discarding the
+	 * in-memory copy. Call when RuneLite switches config profiles -
+	 * getConfiguration is profile-scoped, so the backing store changed
+	 * underneath us and the cached list is now the previous profile's.
+	 */
+	public void reload()
+	{
+		load();
 	}
 
 	/** A snapshot copy of the saved plans, in insertion (oldest-first) order. */

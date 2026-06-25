@@ -66,6 +66,63 @@ class GoalPlannerApiImplTest
 		api.setOnSelectionChanged(callbackFireCount::incrementAndGet);
 	}
 
+	@Test
+	@DisplayName("removeEmptyUserSections deletes only goal-less sections, undoably")
+	void removeEmptyUserSectionsDeletesOnlyEmpties()
+	{
+		String full = api.createSection("Full");
+		String empty1 = api.createSection("Empty1");
+		String empty2 = api.createSection("Empty2");
+
+		// One goal in "Full" so it is NOT empty.
+		store.addGoal(Goal.builder().type(GoalType.CUSTOM).name("X").sectionId(full).build());
+
+		int deleted = api.removeEmptyUserSections();
+		assertEquals(2, deleted);
+
+		Set<String> ids = new java.util.HashSet<>();
+		for (SectionView s : api.queryAllSections()) ids.add(s.id);
+		assertTrue(ids.contains(full), "non-empty section is kept");
+		assertFalse(ids.contains(empty1), "empty section removed");
+		assertFalse(ids.contains(empty2), "empty section removed");
+
+		// One undo restores both empty sections (the sweep is a single compound).
+		api.undo();
+		Set<String> afterUndo = new java.util.HashSet<>();
+		for (SectionView s : api.queryAllSections()) afterUndo.add(s.id);
+		assertTrue(afterUndo.contains(empty1));
+		assertTrue(afterUndo.contains(empty2));
+		assertTrue(afterUndo.contains(full));
+
+		// Re-running after undo finds the two restored empties again (Full stays).
+		assertEquals(2, api.removeEmptyUserSections());
+	}
+
+	@Test
+	@DisplayName("removeAllGoalsAndSections wipes every goal (incl. completed) + user sections, undoably")
+	void removeAllGoalsAndSectionsWipesEverything()
+	{
+		String sec = api.createSection("S");
+		store.addGoal(Goal.builder().type(GoalType.CUSTOM).name("Incomplete").sectionId(sec).build());
+		store.addGoal(Goal.builder().type(GoalType.CUSTOM).name("Done")
+			.status(GoalStatus.COMPLETE).sectionId(sec).build());
+
+		int goalsBefore = store.getGoals().size();
+		assertTrue(goalsBefore >= 2);
+
+		api.removeAllGoalsAndSections();
+
+		assertEquals(0, store.getGoals().size(), "every goal removed, completed included");
+		for (SectionView s : api.queryAllSections()) assertTrue(s.builtIn, "only built-in sections remain");
+
+		// One undo restores all goals and the user section.
+		api.undo();
+		assertEquals(goalsBefore, store.getGoals().size());
+		boolean secBack = false;
+		for (SectionView s : api.queryAllSections()) if (s.id.equals(sec)) secBack = true;
+		assertTrue(secBack, "section restored by one undo");
+	}
+
 	// ====================================================================
 	// Public API: addAccountGoal target clamping
 	// ====================================================================

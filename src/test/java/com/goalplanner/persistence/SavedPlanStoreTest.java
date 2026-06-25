@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-@DisplayName("SavedPlanStore — global saved share-code library")
+@DisplayName("SavedPlanStore — saved share-code library (per config profile)")
 class SavedPlanStoreTest
 {
 	private ConfigManager config;
@@ -42,7 +42,7 @@ class SavedPlanStoreTest
 	}
 
 	@Test
-	@DisplayName("persists across a fresh load using a global (profile-independent) key")
+	@DisplayName("persists across a fresh load (key not prefixed with main/leagues)")
 	void persistsAcrossReload()
 	{
 		store.add("Plan A", "GPSHARE1:aaa", Arrays.asList("A"));
@@ -53,6 +53,29 @@ class SavedPlanStoreTest
 		assertEquals(2, reopened.getPlans().size());
 		assertEquals("Plan A", reopened.getPlans().get(0).getName());
 		assertEquals("Plan B", reopened.getPlans().get(1).getName());
+	}
+
+	@Test
+	@DisplayName("reload() re-reads the library after the backing store changes (profile switch)")
+	void reloadRereadsLibrary()
+	{
+		SavedPlan a = store.add("Plan A", "GPSHARE1:aaa", null);
+
+		// A second store on the SAME config stands in for RuneLite swapping the
+		// active profile's backing store underneath us: it removes A and adds B.
+		SavedPlanStore other = new SavedPlanStore(config, new Gson());
+		other.load();
+		other.remove(a.getId());
+		other.add("Plan B", "GPSHARE1:bbb", null);
+
+		// Stale until reload: our store still shows A and has never seen B.
+		assertEquals(1, store.getPlans().size());
+		assertEquals("Plan A", store.getPlans().get(0).getName());
+
+		store.reload();
+
+		assertEquals(1, store.getPlans().size());
+		assertEquals("Plan B", store.getPlans().get(0).getName());
 	}
 
 	@Test

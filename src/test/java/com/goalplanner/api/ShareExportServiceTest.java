@@ -184,7 +184,7 @@ class ShareExportServiceTest
 		assertEquals("Loose", secs.get(2).getGoals().get(0).getName());
 
 		// Round-trip: the receiver gets BOTH sections back, not one blob.
-		// (Imported sections are suffixed "(from <sharer>)" by design.)
+		// (Imported sections keep their own name verbatim - no sharer suffix.)
 		ShareCodec codec = new ShareCodec(new Gson());
 		Env receiver = new Env();
 		receiver.api.importShareBundle(codec.decode(codec.encode(bundle)));

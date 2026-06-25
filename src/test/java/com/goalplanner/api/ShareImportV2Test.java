@@ -106,6 +106,91 @@ class ShareImportV2Test
 	}
 
 	@Test
+	@DisplayName("v2 item goal keeps its system BOSS source tag, visible on the card")
+	void v2ImportAppliesItemSourceTag()
+	{
+		// Mirror an MCP source-tagged item goal: ITEM_GRIND + a system BOSS tag,
+		// in a multi-section (v2) bundle - the combination the in-app tests missed.
+		com.goalplanner.share.TagShareDto cerb = new com.goalplanner.share.TagShareDto();
+		cerb.setLabel("Cerberus");
+		cerb.setCategory("BOSS");
+		cerb.setColorRgb(-1);
+		cerb.setSystem(true);
+
+		GoalShareDto peg = new GoalShareDto();
+		peg.setRef(0);
+		peg.setType("ITEM_GRIND");
+		peg.setName("Pegasian crystal");
+		peg.setItemId(13227);
+		peg.setTargetValue(1);
+		peg.setTags(Collections.singletonList(cerb));
+
+		String sectionId = api.importShareBundle(v2Bundle("Tag Test", section("Cerberus", false, peg)));
+		assertNotNull(sectionId);
+
+		Goal g = goalsInSection(sectionId).stream()
+			.filter(x -> "Pegasian crystal".equals(x.getName())).findFirst().orElseThrow();
+
+		// Model: tag find-or-created as a system BOSS tag and attached.
+		assertEquals(1, g.getTagIds().size(), "item goal should carry its source tag");
+		com.goalplanner.model.Tag tag = store.findTag(g.getTagIds().get(0));
+		assertNotNull(tag);
+		assertEquals("Cerberus", tag.getLabel());
+		assertEquals(com.goalplanner.model.TagCategory.BOSS, tag.getCategory());
+
+		// Render path: the tag surfaces in the card's render lists (customTags,
+		// since import sets tagIds but not defaultTagIds).
+		GoalView gv = api.queryGoalView(g.getId());
+		assertNotNull(gv);
+		boolean shown =
+			(gv.defaultTags != null && gv.defaultTags.stream().anyMatch(t -> "Cerberus".equals(t.label)))
+			|| (gv.customTags != null && gv.customTags.stream().anyMatch(t -> "Cerberus".equals(t.label)));
+		assertTrue(shown, "Cerberus source tag should appear on the imported card");
+	}
+
+	@Test
+	@DisplayName("imported QUEST and BOSS goals get enriched icon fields the wire omits")
+	void importEnrichesQuestAndBossIcons()
+	{
+		GoalShareDto quest = new GoalShareDto();
+		quest.setRef(0);
+		quest.setType("QUEST");
+		quest.setName("Dragon Slayer II");
+		quest.setQuestName("Dragon Slayer II");
+
+		ShareBundle bundle = v2Bundle("Andrew",
+			section("Quests", false, quest),
+			section("Bossing", false, bossDto(0, "Zulrah", 100, null)));
+
+		String firstSection = api.importShareBundle(bundle);
+		assertNotNull(firstSection);
+
+		Goal q = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.QUEST).findFirst().orElseThrow();
+		assertEquals(GoalPlannerApiImpl.QUEST_SPRITE_ID, q.getSpriteId(),
+			"a QUEST goal with no wire sprite should get the quest journal sprite");
+
+		Goal boss = store.getGoals().stream()
+			.filter(g -> g.getType() == GoalType.BOSS).findFirst().orElseThrow();
+		assertEquals(com.goalplanner.data.BossKillData.getPetItemId("Zulrah"), boss.getItemId(),
+			"a BOSS goal with no wire item should get its pet item id for the card icon");
+		assertTrue(boss.getItemId() > 0, "Zulrah should resolve to a real pet item id");
+	}
+
+	@Test
+	@DisplayName("import carries a section's nested-view preference")
+	void importCarriesNestedOverride()
+	{
+		SectionShareDto sec = section("Tree", false, skillDto(0, "Attack 90", "ATTACK", 5_346_332));
+		sec.setNestedOverride(Boolean.TRUE);
+		String landed = api.importShareBundle(v2Bundle("Andrew", sec));
+
+		assertNotNull(landed);
+		Section created = userSections().get(0);
+		assertEquals(Boolean.TRUE, created.getNestedOverride());
+	}
+
+	@Test
 	@DisplayName("a multi-section bundle imports each section as its own user section")
 	void multiSectionImportsEachSection()
 	{
@@ -120,8 +205,8 @@ class ShareImportV2Test
 		assertNotNull(landed);
 		List<Section> created = userSections();
 		assertEquals(2, created.size());
-		assertEquals("Slayer (from Andrew)", created.get(0).getName());
-		assertEquals("Raids (from Andrew)", created.get(1).getName());
+		assertEquals("Slayer", created.get(0).getName());
+		assertEquals("Raids", created.get(1).getName());
 		assertEquals(1, goalsInSection(created.get(0).getId()).size());
 
 		List<Goal> raids = goalsInSection(created.get(1).getId());
@@ -249,7 +334,7 @@ class ShareImportV2Test
 
 		assertNotNull(landed);
 		assertEquals(1, userSections().size());
-		assertEquals("Inferno Prep (from Andrew)", userSections().get(0).getName());
+		assertEquals("Inferno Prep", userSections().get(0).getName());
 		assertEquals(2, goalsInSection(landed).size());
 	}
 }

@@ -23,34 +23,51 @@ import javax.swing.JPanel;
  */
 public final class SectionNestContainer extends JPanel
 {
-	/** One goal row: its indent level (0 = root) and its card. */
+	/** One goal row: its indent level (0 = root), its card, and whether it is a
+	 *  collapsible nest parent (and if so, whether currently collapsed). */
 	public static final class Row
 	{
 		public final String id;
 		public final int level;
 		public final JComponent card;
+		public final boolean parent;
+		public final boolean collapsed;
 
 		public Row(String id, int level, JComponent card)
+		{
+			this(id, level, card, false, false);
+		}
+
+		public Row(String id, int level, JComponent card, boolean parent, boolean collapsed)
 		{
 			this.id = id;
 			this.level = Math.max(0, level);
 			this.card = card;
+			this.parent = parent;
+			this.collapsed = collapsed;
 		}
 	}
 
 	// Faint, theme-friendly guide on the dark panel - low contrast on purpose.
 	private static final Color GUIDE = new Color(0x6a, 0x6a, 0x6a, 0x66);
+	private static final Color CHEVRON_COLOR = new Color(0xB4, 0xB4, 0xDC);
 
-	private static final int LEFT_PAD    = 3;   // margin before level-0 cards
-	private static final int INDENT_STEP = 13;  // px added per nesting level
+	private static final int LEFT_PAD    = 14;  // margin before level-0 cards (room for the collapse chevron)
+	private static final int INDENT_STEP = 13;  // px added per nesting level (max; shrinks to fit, see effectiveStep)
+	private static final int MIN_STEP    = 7;   // floor for the per-level indent on a very narrow / deep panel
+	private static final int MIN_CARD_W  = 150; // keep the deepest card at least this wide before squeezing the indent
 	private static final int MAX_LEVEL   = 6;   // cap indent so deep chains don't run off a narrow panel
 	private static final int ROW_GAP     = 4;   // vertical gap between cards
 	private static final int TICK        = 5;   // short horizontal stub from the parent guide into the card
 
 	private final List<Row> rows;
-	private final int indentW; // widest indent, for preferred-size bookkeeping
+	private final int deepestLevel; // deepest capped level present, for indent bookkeeping
+	private final int indentW; // widest indent at full step, for preferred-size bookkeeping
+	private int stepPx = INDENT_STEP; // effective per-level indent, width-adapted each doLayout()
+	/** Collapse chevron per parent row id, positioned in the gutter in doLayout(). */
+	private final java.util.Map<String, javax.swing.JLabel> chevrons = new java.util.HashMap<>();
 
-	public SectionNestContainer(List<Row> rows)
+	public SectionNestContainer(List<Row> rows, java.util.function.Consumer<String> onToggleCollapse)
 	{
 		this.rows = rows;
 		setOpaque(false);
@@ -58,29 +75,75 @@ public final class SectionNestContainer extends JPanel
 
 		int maxLevel = 0;
 		for (Row r : rows) maxLevel = Math.max(maxLevel, capped(r.level));
+		this.deepestLevel = maxLevel;
 		this.indentW = LEFT_PAD + maxLevel * INDENT_STEP;
 
-		for (Row r : rows) add(r.card);
+		for (Row r : rows)
+		{
+			add(r.card);
+			// A clickable collapse chevron for goals that have a nested subtree.
+			if (r.parent && onToggleCollapse != null)
+			{
+				javax.swing.JLabel chev = new javax.swing.JLabel(r.collapsed
+					? com.goalplanner.ui.ShapeIcons.rightTriangle(8, CHEVRON_COLOR)
+					: com.goalplanner.ui.ShapeIcons.downTriangle(8, CHEVRON_COLOR));
+				chev.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.HAND_CURSOR));
+				chev.setToolTipText(r.collapsed
+					? "Show nested prerequisites" : "Hide nested prerequisites");
+				final String gid = r.id;
+				chev.addMouseListener(new java.awt.event.MouseAdapter()
+				{
+					@Override public void mousePressed(java.awt.event.MouseEvent e)
+					{
+						if (e.getButton() == java.awt.event.MouseEvent.BUTTON1) onToggleCollapse.accept(gid);
+					}
+				});
+				chevrons.put(r.id, chev);
+				add(chev);
+			}
+		}
 	}
 
 	private static int capped(int level) { return Math.min(level, MAX_LEVEL); }
 
 	/** Left x of a card at the given (capped) level. */
-	private int cardX(int level) { return LEFT_PAD + capped(level) * INDENT_STEP; }
+	private int cardX(int level) { return LEFT_PAD + capped(level) * stepPx; }
 
 	/** X of the vertical guide for ancestor level k (1-based). */
-	private int guideX(int k) { return LEFT_PAD + (k - 1) * INDENT_STEP + INDENT_STEP / 2; }
+	private int guideX(int k) { return LEFT_PAD + (k - 1) * stepPx + stepPx / 2; }
+
+	/** Per-level indent that fits the current panel width: full {@link #INDENT_STEP}
+	 *  when there's room, shrinking toward {@link #MIN_STEP} so the deepest card keeps
+	 *  at least {@link #MIN_CARD_W} px instead of clipping its progress column. */
+	private int effectiveStep(int width)
+	{
+		if (deepestLevel <= 0 || width <= 0) return INDENT_STEP;
+		// Reserve more card width at larger font scales (the card content grows with
+		// the font); the MIN_STEP floor keeps the hierarchy legible regardless.
+		int minCard = Math.round(MIN_CARD_W * com.goalplanner.ui.PanelFonts.scale());
+		int budget = width - LEFT_PAD - minCard;
+		int fit = budget / deepestLevel;
+		return Math.max(MIN_STEP, Math.min(INDENT_STEP, fit));
+	}
 
 	@Override
 	public void doLayout()
 	{
 		int width = getWidth();
+		stepPx = effectiveStep(width);
 		int y = 0;
 		for (Row r : rows)
 		{
 			int x = cardX(r.level);
 			int h = r.card.getPreferredSize().height;
 			r.card.setBounds(x, y, Math.max(40, width - x), h);
+			javax.swing.JLabel chev = chevrons.get(r.id);
+			if (chev != null)
+			{
+				int cw = chev.getPreferredSize().width;
+				int ch = chev.getPreferredSize().height;
+				chev.setBounds(Math.max(1, x - cw - 2), y + (h - ch) / 2, cw, ch);
+			}
 			y += h + ROW_GAP;
 		}
 	}

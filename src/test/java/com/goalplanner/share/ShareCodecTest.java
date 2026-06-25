@@ -64,6 +64,22 @@ public class ShareCodecTest
 	}
 
 	@Test
+	public void decodesDespiteEmbeddedWhitespaceFromWrappedPaste()
+	{
+		// A long code pasted from chat often wraps; the body arrives with newlines
+		// and spaces interspersed. Decode must skip them, not truncate at the first.
+		String code = codec.encode(sampleSection());
+		int p = code.indexOf(':') + 1;
+		String wrapped = code.substring(0, p)
+			+ code.substring(p, p + 10) + "\n"
+			+ code.substring(p + 10, p + 25) + "  \r\n"
+			+ code.substring(p + 25) + "\n";
+		ShareBundle decoded = codec.decode(wrapped);
+		assertNotNull(decoded);
+		assertEquals(codec.decode(code), decoded);
+	}
+
+	@Test
 	public void encodedStringCarriesTheMagicVersionPrefix()
 	{
 		String code = codec.encode(sampleSection());

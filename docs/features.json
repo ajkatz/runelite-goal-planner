@@ -229,11 +229,12 @@
       "media": "docs/img/nesting.gif",
       "code": [
         "ui/GoalPanel.java",
-        "ui/GoalContextMenuBuilder.java"
+        "ui/GoalContextMenuBuilder.java",
+        "ui/nest/SectionNestContainer.java"
       ],
       "tests": [],
       "since": "0.3.0",
-      "notes": "Renderer is Swing-only — no automated coverage; topo-order math covered via GoalQueryService tests."
+      "notes": "Renderer is Swing-only — no automated coverage; topo-order math covered via GoalQueryService tests. A goal with a nested prerequisite subtree can be collapsed via a chevron on its row or a right-click 'Hide/show nested prerequisites' item; the collapsed state persists per profile (Goal.nestCollapsed)."
     },
     {
       "id": "tags",

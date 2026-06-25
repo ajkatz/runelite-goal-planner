@@ -75,7 +75,6 @@ class ShareImportService
 		{
 			return null;
 		}
-		final String sharedBy = bundle.getSharedBy();
 		final String description = sections.size() == 1
 			? "Import shared goals: " + displayName(sections.get(0))
 			: "Import shared goals: " + sections.size() + " sections";
@@ -92,7 +91,12 @@ class ShareImportService
 		final List<String[]> addedOrRequires = new ArrayList<>();
 		final String[] landedSectionId = {null};
 
-		api.executeCommand(new com.goalplanner.command.Command()
+		// Batch persistence across the whole import: apply/revert/redo each flush
+		// once instead of writing per goal+section. A large import's undo/redo
+		// was issuing one config write per entity, the source of the lag.
+		api.executeCommand(new com.goalplanner.command.SaveBatchingCommand(
+			api.goalStore::suspendSave, api.goalStore::resumeSave,
+			new com.goalplanner.command.Command()
 		{
 			@Override
 			public boolean apply()
@@ -125,7 +129,7 @@ class ShareImportService
 						// to KEEP COMPLETED INLINE so the recipient sees the shared
 						// set as a checklist against their account.
 						Section section = api.goalStore.createUserSection(
-							importSectionName(shared, sharedBy));
+							importSectionName(shared));
 						if (section == null)
 						{
 							log.warn("importBundle: createUserSection failed for '{}' - skipping section",
@@ -135,6 +139,14 @@ class ShareImportService
 						if (shared.getColorRgb() >= 0)
 						{
 							section.setColorRgb(shared.getColorRgb());
+						}
+						// Carry the sharer's nested-view preference (TRUE/FALSE);
+						// null leaves the recipient on their global default. Set
+						// directly on the section (like colorRgb above) - the import
+						// flow persists the section afterward.
+						if (shared.getNestedOverride() != null)
+						{
+							section.setNestedOverride(shared.getNestedOverride());
 						}
 						api.goalStore.setSectionAutoArchiveOverride(section.getId(), false);
 						createdSectionIds.add(section.getId());
@@ -265,7 +277,7 @@ class ShareImportService
 			{
 				return description;
 			}
-		});
+		}));
 
 		return landedSectionId[0];
 	}
@@ -281,6 +293,20 @@ class ShareImportService
 
 	private Goal buildGoal(GoalShareDto dto, GoalType type, String sectionId)
 	{
+		// Enrich the icon fields the share wire doesn't carry, mirroring in-game
+		// creation: QUEST/DIARY goals get the journal sprite, BOSS goals get their
+		// pet item id - otherwise the card falls back to a plain colour dot.
+		int spriteId = dto.getSpriteId();
+		int itemId = dto.getItemId();
+		if (spriteId <= 0)
+		{
+			if (type == GoalType.QUEST) spriteId = GoalPlannerApiImpl.QUEST_SPRITE_ID;
+			else if (type == GoalType.DIARY) spriteId = com.goalplanner.data.AchievementDiaryData.DIARY_SPRITE_ID;
+		}
+		if (itemId <= 0 && type == GoalType.BOSS && notBlank(dto.getBossName()))
+		{
+			itemId = com.goalplanner.data.BossKillData.getPetItemId(dto.getBossName().trim());
+		}
 		Goal goal = Goal.builder()
 			.type(type)
 			.name(clamp(dto.getName(), MAX_NAME))
@@ -291,8 +317,8 @@ class ShareImportService
 			.accountMetric(dto.getAccountMetric())
 			.bossName(clamp(dto.getBossName(), MAX_NAME))
 			.varbitId(dto.getVarbitId())
-			.itemId(dto.getItemId())
-			.spriteId(dto.getSpriteId())
+			.itemId(itemId)
+			.spriteId(spriteId)
 			.tooltip(clamp(dto.getTooltip(), MAX_TEXT))
 			.caTaskId(dto.getCaTaskId())
 			.customColorRgb(dto.getCustomColorRgb())
@@ -345,18 +371,14 @@ class ShareImportService
 		return existing != null ? existing : api.goalStore.createUserTag(label, category);
 	}
 
-	private String importSectionName(SectionShareDto shared, String sharedBy)
+	private String importSectionName(SectionShareDto shared)
 	{
+		// Use the shared section's own name verbatim - no "(from <sharer>)" suffix.
+		// That suffix ate horizontal space in the panel; sharer attribution isn't
+		// worth a section's limited width. Clamp as a backstop against the cap
+		// (createUserSection THROWS on over-length names, which CommandHistory
+		// swallows - silently failing the whole import).
 		String base = notBlank(shared.getName()) ? shared.getName().trim() : "Shared goals";
-		String from = sharedBy != null ? sharedBy.trim() : null;
-		String withFrom = notBlank(from) ? base + " (from " + from + ")" : base;
-		// Section names are capped (GoalStore.createUserSection THROWS on longer
-		// ones - which CommandHistory swallows, silently failing the whole import).
-		// If the "(from X)" form doesn't fit, drop the suffix; clamp as a backstop.
-		if (withFrom.length() <= GoalStore.MAX_SECTION_NAME_LENGTH)
-		{
-			return withFrom;
-		}
 		return clamp(base, GoalStore.MAX_SECTION_NAME_LENGTH);
 	}
 

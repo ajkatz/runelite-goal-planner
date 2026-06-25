@@ -121,13 +121,26 @@ public final class ShareCodec
 		{
 			throw new ShareFormatException("unrecognised or wrong-version share code");
 		}
+		// Collect the Base64url body, SKIPPING embedded whitespace. A long code
+		// pasted from chat often wraps across lines; without skipping, the scan
+		// would stop at the first newline/space and decode a truncated payload
+		// ("That doesn't look like a valid share code"). Stop at the first real
+		// non-Base64url, non-whitespace char (trailing prose after the code).
 		int start = marker + prefix.length();
-		int end = start;
-		while (end < text.length() && isBase64Url(text.charAt(end)))
+		StringBuilder body = new StringBuilder(text.length() - start);
+		for (int i = start; i < text.length(); i++)
 		{
-			end++;
+			char c = text.charAt(i);
+			if (isBase64Url(c))
+			{
+				body.append(c);
+			}
+			else if (!Character.isWhitespace(c))
+			{
+				break;
+			}
 		}
-		String b64 = text.substring(start, end);
+		String b64 = body.toString();
 
 		byte[] gz;
 		try

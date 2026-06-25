@@ -71,6 +71,7 @@ public final class ShareMapper
 		String name,
 		int colorRgb,
 		boolean targetDefault,
+		Boolean nestedOverride,
 		List<Goal> goals,
 		Function<String, Tag> tagLookup)
 	{
@@ -78,6 +79,7 @@ public final class ShareMapper
 		dto.setName(name);
 		dto.setColorRgb(colorRgb);
 		dto.setTargetDefault(targetDefault);
+		dto.setNestedOverride(nestedOverride);
 		dto.setGoals(toDtos(goals, tagLookup));
 		return dto;
 	}

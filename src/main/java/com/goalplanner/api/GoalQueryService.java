@@ -180,6 +180,7 @@ class GoalQueryService
 		v.spriteId = g.getSpriteId();
 		v.selected = api.selectedGoalIds.contains(g.getId());
 		v.optional = g.isOptional();
+		v.nestCollapsed = g.isNestCollapsed();
 		v.blockedRequirements = api.blockedRequirements(g.getId());
 
 		// Background color: type default + optional user override. DTO carries both

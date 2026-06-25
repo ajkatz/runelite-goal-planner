@@ -91,6 +91,14 @@ class GoalContextMenuBuilder
 	 */
 	void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd)
 	{
+		addContextMenu(card, goal, index, sectionStart, sectionEnd, null);
+	}
+
+	/** @param onToggleNestCollapse non-null only for goals that are a nest parent
+	 *  in the current nested view - adds a hide/show-nested-prerequisites item. */
+	void addContextMenu(GoalCard card, Goal goal, int index, int sectionStart, int sectionEnd,
+		Runnable onToggleNestCollapse)
+	{
 		card.addMouseListener(new MouseAdapter()
 		{
 			@Override
@@ -119,7 +127,7 @@ class GoalContextMenuBuilder
 				Set<String> sel = api.getSelectedGoalIds();
 				JPopupMenu source = sel.contains(goal.getId()) && sel.size() >= 2
 					? buildBulkMenu(goal.getId())
-					: buildSingleItemMenu(goal, index, sectionStart, sectionEnd);
+					: buildSingleItemMenu(goal, index, sectionStart, sectionEnd, onToggleNestCollapse);
 				com.goalplanner.ui.columnmenu.ColumnMenu.show(card, e.getX(), e.getY(),
 					com.goalplanner.ui.columnmenu.MenuTreeAdapter.fromPopup(source));
 			}
@@ -164,6 +172,12 @@ class GoalContextMenuBuilder
 	 */
 	JPopupMenu buildSingleItemMenu(Goal goal, int index, int sectionStart, int sectionEnd)
 	{
+		return buildSingleItemMenu(goal, index, sectionStart, sectionEnd, null);
+	}
+
+	JPopupMenu buildSingleItemMenu(Goal goal, int index, int sectionStart, int sectionEnd,
+		Runnable onToggleNestCollapse)
+	{
 		JPopupMenu menu = new JPopupMenu();
 
 		// Selection toggle - first item so it's predictable. Label flips based on
@@ -177,6 +191,16 @@ class GoalContextMenuBuilder
 			else api.addToGoalSelection(goal.getId());
 		});
 		menu.add(selectToggle);
+
+		// Nested view: hide/show this goal's prerequisite subtree. Menu is built
+		// lazily on each show, so the label reflects current state.
+		if (onToggleNestCollapse != null)
+		{
+			JMenuItem nestToggle = new JMenuItem(goal.isNestCollapsed()
+				? "Show nested prerequisites" : "Hide nested prerequisites");
+			nestToggle.addActionListener(e -> onToggleNestCollapse.run());
+			menu.add(nestToggle);
+		}
 
 		// "Deselect All" appears on every card whenever ANY card is selected,
 		// so the user has a quick escape from a multi-selection.

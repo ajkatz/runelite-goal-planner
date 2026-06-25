@@ -230,7 +230,7 @@ class GoalMutationService
 		{
 			if (newTarget > MAX_XP) return false;
 		}
-		else if (g.getType() != GoalType.ITEM_GRIND)
+		else if (g.getType() != GoalType.ITEM_GRIND && g.getType() != GoalType.BOSS)
 		{
 			return false; // CA/quest/diary targets are immutable
 		}
@@ -286,6 +286,10 @@ class GoalMutationService
 		else if (g.getType() == GoalType.ITEM_GRIND)
 		{
 			g.setDescription(com.goalplanner.util.FormatUtil.formatNumber(newTarget) + " total");
+		}
+		else if (g.getType() == GoalType.BOSS)
+		{
+			g.setDescription(newTarget + " kills");
 		}
 
 		// Re-evaluate completion against the new target so completed and

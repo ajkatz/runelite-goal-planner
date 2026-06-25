@@ -96,6 +96,11 @@ public class Goal
 	@Builder.Default
 	private boolean optional = false;
 
+	/** True when this goal's nested prerequisite subtree is collapsed (hidden)
+	 *  in the nested view. Persisted per profile. Default false. */
+	@Builder.Default
+	private boolean nestCollapsed = false;
+
 	// Integrations
 	private String wikiUrl;
 	private String inventorySetup;  // Inventory Setups loadout name
