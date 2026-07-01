@@ -9,6 +9,7 @@ import java.util.Collections;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
+import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.Quest;
 import net.runelite.api.Skill;
 
@@ -22,7 +23,7 @@ import net.runelite.api.Skill;
  * feeds each entry through {@code findOrCreateRequirement} inside a
  * compound command.
  *
- * <p><b>Coverage.</b> This table covers all 209 quests in the
+ * <p><b>Coverage.</b> This table covers all 210 quests in the
  * RuneLite {@link Quest} enum. Requirements are wiki-sourced.
  *
  * <p><b>Account-wide requirements.</b> Quest points, combat level,
@@ -30,8 +31,23 @@ import net.runelite.api.Skill;
  * resolved into {@code GoalType.ACCOUNT} goal templates by the
  * {@link QuestRequirementResolver}.
  */
+@Slf4j
 public final class QuestRequirements
 {
+	/** {@link Quest#valueOf} but null instead of throwing on a constant this
+	 *  RuneLite API version doesn't have (a forward-declared new quest). */
+	private static Quest questOrNull(String name)
+	{
+		try
+		{
+			return Quest.valueOf(name);
+		}
+		catch (IllegalArgumentException e)
+		{
+			return null;
+		}
+	}
+
 	/** A single skill requirement (skill + minimum level). */
 	public static final class SkillReq
 	{
@@ -231,14 +247,31 @@ public final class QuestRequirements
 					// quest \t skills \t prereqs \t questPoints \t combatLevel
 					//   \t xpRewards \t qpReward \t recSkills \t recCombat \t displayOverride \t flags(M=mini,F=f2p,L=lamp)
 					String[] f = line.split("\t", -1);
-					Quest quest = Quest.valueOf(f[0]);
+					// A row may name a quest the current RuneLite API doesn't ship
+					// yet (a just-released quest forward-declared here before the
+					// dependency bump). Skip it rather than throwing and taking the
+					// whole table down; it activates automatically once the enum lands.
+					Quest quest = questOrNull(f[0]);
+					if (quest == null)
+					{
+						log.debug("quest-requirements.tsv: skipping unknown Quest '{}' (not in this RuneLite API version)", f[0]);
+						continue;
+					}
 
 					List<Quest> prereqs = new ArrayList<>();
 					if (!f[2].isEmpty())
 					{
 						for (String pq : f[2].split(";"))
 						{
-							prereqs.add(Quest.valueOf(pq));
+							Quest p = questOrNull(pq);
+							if (p != null)
+							{
+								prereqs.add(p);
+							}
+							else
+							{
+								log.debug("quest-requirements.tsv: {} lists unknown prerequisite '{}' - skipped", f[0], pq);
+							}
 						}
 					}
 					put(quest, parseSkillReqs(f[1]), prereqs,
